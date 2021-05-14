@@ -111,16 +111,6 @@ def get_bar_data(currency, bar_number = 240):
 
 
 
-
-
-
-
-
-
-
-
-
-
 for currency,currency_folder in list(zip(currencies, currency_folders)):
 
     print("Receive data for currency pair " + currency)
