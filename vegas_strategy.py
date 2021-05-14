@@ -55,6 +55,7 @@ for currency in currencies:
 
 #This is the trial app_id
 app_id = "162083550794289"
+
 url = "http://api.forexfeed.net/data/162083550794289/n-240/f-csv/i-3600/s-EURUSD,USDJPY"
 
 def convert_to_time(timestamp):
