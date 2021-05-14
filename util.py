@@ -21,8 +21,6 @@ import  matplotlib.ticker as plticker
 
 import matplotlib.dates as mdates
 
-
-
 import gzip
 
 pd.set_option('display.max_rows', 1000)
