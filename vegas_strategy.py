@@ -47,6 +47,8 @@ currency_df = pd.read_csv(currency_file)
 currencies = list(currency_df['currency'])
 
 
+
+
 currency_folders = []
 data_folders = []
 chart_folders = []
@@ -56,7 +58,11 @@ for currency in currencies:
     if not os.path.exists(currency_folder):
         os.makedirs(currency_folder)
 
+    print("currency_folder:")
+    print(currency_folder)
     data_folder = os.path.join(currency_folder, "data")
+    print("data_folder:")
+    print(data_folder)
     if not os.path.exists(data_folder):
         os.makedirs(data_folder)
 
@@ -146,7 +152,7 @@ def get_bar_data(currency, bar_number = 240, start_timestamp = -1, is_convert_to
 
     return None
 
-is_simulate = True
+is_simulate = False
 
 # windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
 # high_low_window = 100
@@ -214,12 +220,23 @@ for currency,data_folder,chart_folder,log_file in list(zip(currencies, data_fold
 
 
 
+    # print("Before data_df:")
+    # print(data_df.tail(50))
 
-    if is_simulate:
-        data_df = data_df[0:-24]
+
+    # if is_simulate:
+    #     data_df = data_df.iloc[0:-12]
+
+    # print("After data_df:")
+    # print(data_df.tail(50))
+
+    #sys.exit(0)
+
+
+
 
     print("data_df:")
-    print(data_df.tail(30))
+    print(data_df.tail(10))
 
 
     currency_trader = CurrencyTrader(threading.Condition(), currency, data_folder, chart_folder, log_file)
@@ -240,7 +257,11 @@ def wait_for_trigger():
     temp_time = current_time + timedelta(seconds=3600)
     next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
 
+    print("Next hour: " + str(next_hour))
+
     seconds_remaining = (next_hour - current_time).seconds
+
+    print("Waiting for " + str(seconds_remaining) + " seconds")
 
     time.sleep(seconds_remaining)
 
@@ -253,7 +274,7 @@ def wait_for_trigger():
 
 def wait_for_trigger_simulate():
 
-    time.sleep(15)
+    time.sleep(3)
 
     return
 
@@ -315,7 +336,8 @@ while True:
                         else:
                             print("Reached maximum number of trials for " + currency + ", give up")
 
-        time.sleep(2)
+        if not is_all_received:
+            time.sleep(2)
 
 
 

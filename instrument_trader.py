@@ -116,11 +116,10 @@ class CurrencyTrader(threading.Thread):
 
     def trade(self):
 
-        key_features = ['is_above_vegas', 'pct_to_upper_vegas', 'high_pct_price_buy', 'low_pct_price_buy',
-                        'is_vegas_up_trend',
-                        'is_below_vegas', 'pct_to_lower_vegas', 'low_pct_price_sell', 'high_pct_price_sell',
-                        'is_vegas_down_trend',
+        numerical_features = [ 'pct_to_upper_vegas', 'high_pct_price_buy', 'low_pct_price_buy', 'pct_to_lower_vegas', 'low_pct_price_sell', 'high_pct_price_sell',
                         'ma_close12', 'ma12_gradient']
+
+        bool_features = ['is_above_vegas',  'is_vegas_up_trend', 'is_below_vegas', 'is_vegas_down_trend']
 
         signal_attrs = ['buy_weak_ready', 'buy_weak_fire',  'buy_ready', 'buy_fire',
                         'sell_weak_ready', 'sell_weak_fire',  'sell_ready', 'sell_fire']
@@ -190,13 +189,13 @@ class CurrencyTrader(threading.Thread):
             self.data_df['pct_to_lower_vegas'] = self.data_df['distance_to_lower_vegas'] / self.data_df['high_low_range']
 
 
-            feature_msg = ','.join([feature + "=" + str("%.4f" % self.data_df.iloc[-1][feature]) for feature in key_features])
+            feature_msg = ','.join([feature + "=" + str(self.data_df.iloc[-1][feature]) for feature in bool_features] + [feature + "=" + str("%.4f" % self.data_df.iloc[-1][feature]) for feature in numerical_features])
             self.log_msg(feature_msg)
 
             self.data_df['buy_weak_ready'] = self.data_df['is_above_vegas'] & (
                         self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold) & (
                                                     self.data_df['high_pct_price_buy'] < self.data_df['ma_close12'])
-            self.data_df['buy_weak_fire'] = self.data_df['is_above_vegas'] & (
+            self.data_df['buy_weak_fire'] = self.data_df['is_above_vegas_strict'] & (
                         self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold) & (
                                                    self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
                                        & (self.data_df['ma12_gradient'] >= 0)
@@ -207,7 +206,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_weak_ready'] = self.data_df['is_below_vegas'] & (
                         self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold) & (
                                                      self.data_df['low_pct_price_sell'] > self.data_df['ma_close12'])
-            self.data_df['sell_weak_fire'] = self.data_df['is_below_vegas'] & (
+            self.data_df['sell_weak_fire'] = self.data_df['is_below_vegas_strict'] & (
                         self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold) & (
                                                     self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
                                         & (self.data_df['ma12_gradient'] <= 0)
@@ -219,30 +218,54 @@ class CurrencyTrader(threading.Thread):
 
             signal_msg = ','.join([signal_attr + "=" + str(self.data_df.iloc[-1][signal_attr]) for signal_attr in signal_attrs])
             self.log_msg(signal_msg)
+
+            current_time = self.data_df.iloc[-1]['time'] + timedelta(seconds = 3600)
+            current_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
             if self.data_df.iloc[-1]['buy_weak_ready']:
                 if self.data_df.iloc[-1]['buy_ready']:
-                    self.log_msg("Ready to long " + self.currency)
+                    msg = "Ready to long " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    #sendEmail(msg, msg)
                 else:
-                    self.log_msg("Ready to weakly long " + self.currency)
+                    msg = "Ready to weakly long " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    #sendEmail(msg, msg)
 
             if self.data_df.iloc[-1]['buy_weak_fire']:
                 if self.data_df.iloc[-1]['buy_fire']:
-                    self.log_msg("Long " + self.currency)
+                    msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    sendEmail(msg, msg)
                 else:
-                    self.log_msg("Weakly long " + self.currency)
+                    msg = "Weakly long " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    sendEmail(msg, msg)
 
 
             if self.data_df.iloc[-1]['sell_weak_ready']:
                 if self.data_df.iloc[-1]['sell_ready']:
-                    self.log_msg("Ready to short " + self.currency)
+                    msg = "Ready to short " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    #sendEmail(msg, msg)
                 else:
-                    self.log_msg("Ready to weakly short " + self.currency)
+                    msg = "Ready to weakly short " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    #sendEmail(msg, msg)
 
             if self.data_df.iloc[-1]['sell_weak_fire']:
                 if self.data_df.iloc[-1]['sell_fire']:
-                    self.log_msg("Short " + self.currency)
+                    msg = "Short " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    sendEmail(msg, msg)
                 else:
-                    self.log_msg("Weakly short " + self.currency)
+                    msg = "Weakly short " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
+                    self.log_msg(msg)
+                    sendEmail(msg, msg)
+
+
+
+
 
 
 
