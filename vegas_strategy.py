@@ -46,6 +46,8 @@ currency_df = pd.read_csv(currency_file)
 
 currencies = list(currency_df['currency'])
 
+#currencies = ['CADJPY']
+
 
 
 
@@ -71,9 +73,9 @@ for currency in currencies:
         os.makedirs(chart_folder)
 
     log_file = os.path.join(currency_folder, currency + "_log.txt")
-    if not os.path.exists(log_file):
-        fd = open(log_file, 'w')
-        fd.close()
+    #if not os.path.exists(log_file):
+    fd = open(log_file, 'w')
+    fd.close()
 
     currency_folders += [currency_folder]
     data_folders += [data_folder]
@@ -167,7 +169,7 @@ is_simulate = False
 
 symbol_id = 0
 
-query_incremental_if_stock_file_exists = False
+query_incremental_if_stock_file_exists = True
 
 #Query initial data for each currency pair
 currency_traders = []
@@ -201,11 +203,15 @@ for currency,data_folder,chart_folder,log_file in list(zip(currencies, data_fold
 
         if query_incremental_if_stock_file_exists:
             last_timestamp = int(datetime.timestamp(data_df.iloc[-1]['time']))
-            next_timestamp = last_timestamp + 3600
+            #next_timestamp = last_timestamp + 3600
 
-            incremental_data_df = get_bar_data(currency, bar_number = initial_bar_number, start_timestamp = next_timestamp)
+            incremental_data_df = get_bar_data(currency, bar_number = initial_bar_number, start_timestamp = last_timestamp)
             print("incremental_data_df:")
             print(incremental_data_df)
+
+            incremental_data_df = incremental_data_df.iloc[1:-1]
+
+            print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
             if incremental_data_df.shape[0] > 0:
                 data_df = pd.concat([data_df, incremental_data_df])
@@ -224,8 +230,8 @@ for currency,data_folder,chart_folder,log_file in list(zip(currencies, data_fold
     # print(data_df.tail(50))
 
 
-    # if is_simulate:
-    #     data_df = data_df.iloc[0:-12]
+    if is_simulate:
+        data_df = data_df.iloc[0:-48]
 
     # print("After data_df:")
     # print(data_df.tail(50))
@@ -263,10 +269,20 @@ def wait_for_trigger():
 
     print("Waiting for " + str(seconds_remaining) + " seconds")
 
-    time.sleep(seconds_remaining)
+    sleep_seconds = 5
+    while seconds_remaining > 0:
+        actual_sleep_seconds = seconds_remaining if seconds_remaining < sleep_seconds else sleep_seconds
+        print("Sleep " + str(actual_sleep_seconds))
+        time.sleep(actual_sleep_seconds)
+        now = datetime.now()
+        print("Current time: " + now.strftime("%Y-%m-%d %H:%M:%S"))
+        seconds_remaining -= actual_sleep_seconds
+        print("seconds_remaining = " + str(seconds_remaining))
 
     now = datetime.now()
     while (now - next_hour).seconds < 2:
+        print("Now is " + now.strftime("%Y-%m-%d %H:%M:%S"))
+        time.sleep(1)
         now = datetime.now()
 
     return
@@ -274,11 +290,11 @@ def wait_for_trigger():
 
 def wait_for_trigger_simulate():
 
-    time.sleep(3)
+    time.sleep(1)
 
     return
 
-maximum_trial_number = 5
+maximum_trial_number = 2
 while True:
 
     print("Waiting for the next trigger")
@@ -304,7 +320,7 @@ while True:
                 last_time = currency_trader.get_last_time() #Python thinks this as UTC time, while it is actually HK time
                 last_timestamp = int(last_time.timestamp())
                 last_timestamp -= 28800
-                next_timestamp = last_timestamp + 3600
+                #next_timestamp = last_timestamp + 3600
 
 
                 print("last_timestamp = " + str(last_timestamp))
@@ -312,17 +328,18 @@ while True:
                 print(last_time)
 
 
-                incremental_data_df = get_bar_data(currency, bar_number=incremental_bar_number, start_timestamp=next_timestamp)
+                incremental_data_df = get_bar_data(currency, bar_number=incremental_bar_number, start_timestamp=last_timestamp)
 
                 if is_simulate:
-                    if incremental_data_df is not None and incremental_data_df.shape[0] > 1:
-                        incremental_data_df = incremental_data_df.iloc[0:1]
+                    if incremental_data_df is not None and incremental_data_df.shape[0] > 2:
+                        incremental_data_df = incremental_data_df.iloc[0:3]
 
                 print("incremental_data_df:")
                 print(incremental_data_df)
                 print("")
 
-                if incremental_data_df is not None and incremental_data_df.shape[0] > 0:
+                if incremental_data_df is not None and incremental_data_df.shape[0] > 2:
+                    incremental_data_df = incremental_data_df.iloc[1:-1]
                     currency_trader.feed_data(incremental_data_df)
                     is_new_data_received[i] = True
                     print("Received data update for " + currency)
