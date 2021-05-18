@@ -44,7 +44,7 @@ windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
 high_low_window = 100
 bolling_width = 20
 
-bar_low_percentile = 0.3
+bar_low_percentile = 0.5
 bar_high_percentile = 0.1
 
 initial_bar_number = 400
