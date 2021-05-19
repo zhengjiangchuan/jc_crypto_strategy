@@ -40,6 +40,14 @@ warnings.filterwarnings("ignore")
 
 root_folder = "C:\\Forex\\trading"
 
+communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
+communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]
+max_idx = np.array(communicate_nums).argmax()
+communicate_file = os.path.join(root_folder, communicate_files[max_idx])
+
+
+
+
 currency_file = os.path.join(root_folder, "currency.csv")
 
 currency_df = pd.read_csv(currency_file)
@@ -47,8 +55,6 @@ currency_df = pd.read_csv(currency_file)
 currencies = list(currency_df['currency'])
 
 #currencies = ['CADJPY']
-
-
 
 
 currency_folders = []
@@ -270,20 +276,40 @@ def wait_for_trigger():
     print("Waiting for " + str(seconds_remaining) + " seconds")
 
     sleep_seconds = 5
+    total_sleep_seconds = 0
     while seconds_remaining > 0:
         actual_sleep_seconds = seconds_remaining if seconds_remaining < sleep_seconds else sleep_seconds
         print("Sleep " + str(actual_sleep_seconds))
         time.sleep(actual_sleep_seconds)
+        total_sleep_seconds += actual_sleep_seconds
         now = datetime.now()
         print("Current time: " + now.strftime("%Y-%m-%d %H:%M:%S"))
         seconds_remaining -= actual_sleep_seconds
         print("seconds_remaining = " + str(seconds_remaining))
+        print("total_sleep_seconds = " + str(total_sleep_seconds))
+
+        now = datetime.now()
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        print("    Child Process: Current time: " + now_str)
+        fd = open(communicate_file, 'w')
+        print(now_str, file=fd)
+        fd.close()
+        #
+        # if total_sleep_seconds > 30:
+        #     time.sleep(1800)
+
+
+
 
     now = datetime.now()
     while (now - next_hour).seconds < 2:
         print("Now is " + now.strftime("%Y-%m-%d %H:%M:%S"))
         time.sleep(1)
         now = datetime.now()
+
+    sendEmail("Trading program still alive", "")
+
+
 
     return
 
