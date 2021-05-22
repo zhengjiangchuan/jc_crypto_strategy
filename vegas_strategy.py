@@ -38,6 +38,14 @@ pd.set_option('display.max_colwidth', 1000)
 import warnings
 warnings.filterwarnings("ignore")
 
+class CurrencyPair:
+
+    def __init__(self, currency, lot_size, exchange_rate):
+        self.currency = currency
+        self.lot_size = lot_size
+        self.exchange_rate = exchange_rate
+
+
 root_folder = "C:\\Forex\\trading"
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
@@ -48,11 +56,22 @@ communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
 
 
+
+
 currency_file = os.path.join(root_folder, "currency.csv")
 
 currency_df = pd.read_csv(currency_file)
 
-currencies = list(currency_df['currency'])
+
+#currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'CADCHF'])]
+
+
+currency_pairs = []
+for i in range(currency_df.shape[0]):
+    row = currency_df.iloc[i]
+    currency_pairs += [CurrencyPair(row['currency'], row['lot_size'], row['exchange_rate'])]
+
+#currencies = list(currency_df['currency'])
 
 #currencies = ['CADJPY']
 
@@ -60,8 +79,12 @@ currencies = list(currency_df['currency'])
 currency_folders = []
 data_folders = []
 chart_folders = []
+simple_chart_folders = []
 log_files = []
-for currency in currencies:
+for currency_pair in currency_pairs:
+
+    currency = currency_pair.currency
+
     currency_folder = os.path.join(root_folder, currency)
     if not os.path.exists(currency_folder):
         os.makedirs(currency_folder)
@@ -78,6 +101,10 @@ for currency in currencies:
     if not os.path.exists(chart_folder):
         os.makedirs(chart_folder)
 
+    simple_chart_folder = os.path.join(currency_folder, "simple_chart")
+    if not os.path.exists(simple_chart_folder):
+        os.makedirs(simple_chart_folder)
+
     log_file = os.path.join(currency_folder, currency + "_log.txt")
     #if not os.path.exists(log_file):
     fd = open(log_file, 'w')
@@ -86,6 +113,7 @@ for currency in currencies:
     currency_folders += [currency_folder]
     data_folders += [data_folder]
     chart_folders += [chart_folder]
+    simple_chart_folders += [simple_chart_folder]
     log_files += [log_file]
 
 
@@ -179,7 +207,11 @@ query_incremental_if_stock_file_exists = True
 
 #Query initial data for each currency pair
 currency_traders = []
-for currency,data_folder,chart_folder,log_file in list(zip(currencies, data_folders, chart_folders, log_files)):
+for currency_pair,data_folder,chart_folder,simple_chart_folder,log_file in list(zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files)):
+
+    currency = currency_pair.currency
+    lot_size = currency_pair.lot_size
+    exchange_rate = currency_pair.exchange_rate
 
     symbol_id += 1
 
@@ -208,6 +240,9 @@ for currency,data_folder,chart_folder,log_file in list(zip(currencies, data_fold
         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
         if query_incremental_if_stock_file_exists:
+            print("currency_file = " + currency_file)
+            print("data_df:")
+            print(data_df.tail(10))
             last_timestamp = int(datetime.timestamp(data_df.iloc[-1]['time']))
             #next_timestamp = last_timestamp + 3600
 
@@ -251,7 +286,7 @@ for currency,data_folder,chart_folder,log_file in list(zip(currencies, data_fold
     print(data_df.tail(10))
 
 
-    currency_trader = CurrencyTrader(threading.Condition(), currency, data_folder, chart_folder, log_file)
+    currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, data_folder, chart_folder, simple_chart_folder, log_file)
     currency_traders += [currency_trader]
 
     currency_trader.feed_data(data_df)
@@ -342,7 +377,7 @@ while True:
         for i in range(len(currency_traders)):
             if not is_new_data_received[i]:
                 currency_trader = currency_traders[i]
-                currency = currencies[i]
+                currency = currency_pairs[i].currency
                 last_time = currency_trader.get_last_time() #Python thinks this as UTC time, while it is actually HK time
                 last_timestamp = int(last_time.timestamp())
                 last_timestamp -= 28800

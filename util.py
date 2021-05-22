@@ -202,7 +202,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                            num_days = 10, plot_jc = False, plot_bolling = False, is_jc_calculated = False, print_prefix = "",
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
-                           bar_fig_folder = None, is_plot_aux = False, file_name_suffix = ''):
+                           bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False):
 
     print("In plot_candle_bar_charts:")
     print("tick_interval = " + str(tick_interval))
@@ -367,17 +367,19 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
         # dummy_buy_points = which(sub_data['buy_fire'])
         # print("dummy_buy_points:")
         # print(dummy_buy_points[0:10])
-        buy_points = which(sub_data['first_buy_fire'])
+        buy_real_points = which(sub_data['first_buy_real_fire'])
+        buy_points = which(sub_data['first_buy_fire'] & (~sub_data['first_buy_real_fire']))
 
         buy_weak_ready_points = which(sub_data['buy_weak_ready'] & (~sub_data['buy_ready']))
-        buy_weak_points = which(sub_data['first_buy_weak_fire'] & (~sub_data['first_buy_fire']))
+        buy_weak_points = which(sub_data['first_buy_weak_fire'] & (~sub_data['first_buy_fire']) & (~sub_data['first_buy_real_fire']))
 
 
         sell_ready_points = which(sub_data['sell_ready'])
-        sell_points = which(sub_data['first_sell_fire'])
+        sell_real_points = which(sub_data['first_sell_real_fire'])
+        sell_points = which(sub_data['first_sell_fire'] & (~sub_data['first_sell_real_fire']))
 
         sell_weak_ready_points = which(sub_data['sell_weak_ready'] & (~sub_data['sell_ready']))
-        sell_weak_points = which(sub_data['first_sell_weak_fire'] & (~sub_data['first_sell_fire']))
+        sell_weak_points = which(sub_data['first_sell_weak_fire'] & (~sub_data['first_sell_fire']) & (~sub_data['first_sell_real_fire']))
 
 
         if is_plot_candle_buy_sell_points:
@@ -386,37 +388,30 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             short_marker = 'v'
 
 
-            for buy_ready_point in buy_ready_points:
-                axes.plot(int_time_series[buy_ready_point], sub_data.iloc[buy_ready_point]['close'], marker = long_marker, markersize = 13, color = 'blue')
 
-            for buy_point in buy_points:
-                axes.plot(int_time_series[buy_point], sub_data.iloc[buy_point]['close'], marker = long_marker, markersize = 20, color = 'blue')
+            for buy_real_point in buy_real_points:
+                axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'darkblue')
 
-            for buy_weak_ready_point in buy_weak_ready_points:
-                axes.plot(int_time_series[buy_weak_ready_point], sub_data.iloc[buy_weak_ready_point]['close'], marker = long_marker, markersize = 13, color = 'cornflowerblue')
-
-            for buy_weak_point in buy_weak_points:
-                axes.plot(int_time_series[buy_weak_point], sub_data.iloc[buy_weak_point]['close'], marker = long_marker, markersize = 20, color = 'cornflowerblue')
+            if not is_plot_simple_chart:
+                for buy_point in buy_points:
+                    axes.plot(int_time_series[buy_point], sub_data.iloc[buy_point]['close'], marker = long_marker, markersize = 15, color = 'blue')
 
 
-
-            for sell_ready_point in sell_ready_points:
-                axes.plot(int_time_series[sell_ready_point], sub_data.iloc[sell_ready_point]['close'], marker = short_marker, markersize = 13, color = 'red')
-
-            for sell_point in sell_points:
-                axes.plot(int_time_series[sell_point], sub_data.iloc[sell_point]['close'], marker = short_marker, markersize = 20, color = 'red')
-
-
-            for sell_weak_ready_point in sell_weak_ready_points:
-                axes.plot(int_time_series[sell_weak_ready_point], sub_data.iloc[sell_weak_ready_point]['close'], marker = short_marker, markersize = 13, color = 'salmon')
-
-            for sell_weak_point in sell_weak_points:
-                axes.plot(int_time_series[sell_weak_point], sub_data.iloc[sell_weak_point]['close'], marker = short_marker, markersize = 20, color = 'salmon')
+                for buy_weak_point in buy_weak_points:
+                    axes.plot(int_time_series[buy_weak_point], sub_data.iloc[buy_weak_point]['close'], marker = long_marker, markersize = 15, color = 'cornflowerblue')
 
 
 
+            for sell_real_point in sell_real_points:
+                axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'darkred')
+
+            if not is_plot_simple_chart:
+                for sell_point in sell_points:
+                    axes.plot(int_time_series[sell_point], sub_data.iloc[sell_point]['close'], marker = short_marker, markersize = 15, color = 'red')
 
 
+                for sell_weak_point in sell_weak_points:
+                    axes.plot(int_time_series[sell_weak_point], sub_data.iloc[sell_weak_point]['close'], marker = short_marker, markersize = 15, color = 'salmon')
 
 
         # if is_plot_candle_buy_sell_points:
@@ -526,8 +521,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         fig.savefig(fig_file_path)
         plt.close(fig)
-
-
 
 
         figs += [fig]
