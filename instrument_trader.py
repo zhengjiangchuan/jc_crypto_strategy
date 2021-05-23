@@ -167,17 +167,20 @@ class CurrencyTrader(threading.Thread):
             self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
             guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
-            # for guppy_line in guppy_lines:
-            #     self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
+            for guppy_line in guppy_lines:
+                self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
 
 
-            aligned_long_conditions = [self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]] for i in
+            aligned_long_conditions = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
                                        range(len(guppy_lines) - 1)]
-            self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions)
+            all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
+            self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions + all_up_conditions)
 
-            aligned_short_conditions = [self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]] for i in
+
+            aligned_short_conditions = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                         range(len(guppy_lines) - 1)]
-            self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions)
+            all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
+            self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions + all_down_conditions)
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
