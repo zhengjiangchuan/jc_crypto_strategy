@@ -167,6 +167,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
             guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
+            # for guppy_line in guppy_lines:
+            #     self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
+
 
             aligned_long_conditions = [self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]] for i in
                                        range(len(guppy_lines) - 1)]
