@@ -59,6 +59,8 @@ minimum_profilt_loss_ratio = 1/3
 
 ma12_lookback = 10
 
+vegas_tolerate = 30
+
 
 
 class CurrencyTrader(threading.Thread):
@@ -223,7 +225,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['is_above_vegas'] = self.data_df['ma_close12'] > self.data_df['lower_vegas']
             self.data_df['is_above_vegas_strict'] = self.data_df['ma_close12'] > self.data_df['upper_vegas']
 
-            self.data_df['is_above_vegas_prev1'] = self.data_df['is_above_vegas'].shift(1)
+            self.data_df['is_above_vegas_tolerated'] = (self.data_df['ma_close12'] - self.data_df['lower_vegas']) * self.lot_size * self.exchange_rate > -vegas_tolerate
+
+            self.data_df['is_above_vegas_prev1'] = self.data_df['is_above_vegas_tolerated'].shift(1)
             for i in range(2, ma12_lookback + 1):
                 self.data_df['is_above_vegas_prev' + str(i)] = self.data_df['is_above_vegas_prev' + str(i-1)].shift(1)
 
@@ -236,7 +240,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['is_below_vegas'] = self.data_df['ma_close12'] < self.data_df['upper_vegas']
             self.data_df['is_below_vegas_strict'] = self.data_df['ma_close12'] < self.data_df['lower_vegas']
 
-            self.data_df['is_below_vegas_prev1'] = self.data_df['is_below_vegas'].shift(1)
+            self.data_df['is_below_vegas_tolerated'] = (self.data_df['ma_close12'] - self.data_df['upper_vegas']) * self.lot_size * self.exchange_rate < vegas_tolerate
+
+            self.data_df['is_below_vegas_prev1'] = self.data_df['is_below_vegas_tolerated'].shift(1)
             for i in range(2, ma12_lookback + 1):
                 self.data_df['is_below_vegas_prev' + str(i)] = self.data_df['is_below_vegas_prev' + str(i - 1)].shift(1)
 
