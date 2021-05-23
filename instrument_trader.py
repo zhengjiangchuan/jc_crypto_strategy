@@ -76,6 +76,8 @@ class CurrencyTrader(threading.Thread):
         self.last_time = None
         self.log_file = log_file
 
+        self.use_relaxed_vegas_support = True
+
         self.currency_file = os.path.join(data_folder, currency + ".csv")
 
         self.log_fd = open(self.log_file, 'a')
@@ -155,6 +157,15 @@ class CurrencyTrader(threading.Thread):
             self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
             self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
 
+            self.data_df['prev1_min_price'] = self.data_df['min_price'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_min_price'] = self.data_df['prev' + str(i-1) + '_min_price'].shift(1)
+
+            self.data_df['prev1_max_price'] = self.data_df['max_price'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_max_price'] = self.data_df['prev' + str(i - 1) + '_max_price'].shift(1)
+
+
             self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
 
             self.data_df['low_pct_price_buy'] = self.data_df['min_price'] + (self.data_df['price_range']) * bar_low_percentile
@@ -189,6 +200,10 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['highest_guppy'] = self.data_df['guppy6']
             self.data_df['lowest_guppy'] = self.data_df['guppy1']
+
+            self.data_df['prev1_ma_close12'] = self.data_df['ma_close12'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_ma_close12'] = self.data_df['prev' + str(i-1) + '_ma_close12'].shift(1)
 
             self.data_df['ma12_gradient'] = self.data_df['ma_close12'].diff()
             self.data_df['prev1_ma12_gradient'] = self.data_df['ma12_gradient'].shift(1)
@@ -229,6 +244,34 @@ class CurrencyTrader(threading.Thread):
             for i in range(2, ma12_lookback + 1):
                 self.data_df['is_below_vegas_until_prev' + str(i)] = self.data_df['is_below_vegas_until_prev' + str(i-1)] & self.data_df['is_below_vegas_prev' + str(i)]
 
+            self.data_df['high_low_range'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['period_low' + str(high_low_window)]
+
+
+
+
+
+            self.data_df['price_pct_to_upper_vegas'] = (self.data_df['low'] - self.data_df['upper_vegas']) / self.data_df['high_low_range']
+            self.data_df['price_pct_to_lower_vegas'] = (self.data_df['high'] - self.data_df['lower_vegas']) / self.data_df['high_low_range']
+
+            self.data_df['prev1_price_pct_to_upper_vegas'] = self.data_df['price_pct_to_upper_vegas'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_price_pct_to_upper_vegas'] = self.data_df['prev' + str(i-1) + '_price_pct_to_upper_vegas'].shift(1)
+
+            self.data_df['prev1_price_pct_to_lower_vegas'] = self.data_df['price_pct_to_lower_vegas'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_price_pct_to_lower_vegas'] = self.data_df['prev' + str(i-1) + '_price_pct_to_lower_vegas'].shift(1)
+
+
+            recent_supported_by_vegas = reduce(lambda left, right: left | right,
+                                               [((self.data_df['prev' + str(i) + '_price_pct_to_upper_vegas'] < distance_to_vegas_threshold) & \
+                                                (self.data_df['prev' + str(i) + '_max_price'] <= self.data_df['prev' + str(i) + '_ma_close12']))
+                                                for i in range(1, ma12_lookback + 1)])
+
+            recent_suppressed_by_vegas = reduce(lambda left, right: left | right,
+                                               [((self.data_df['prev' + str(i) + '_price_pct_to_lower_vegas'] > -distance_to_vegas_threshold) & \
+                                                (self.data_df['prev' + str(i) + '_min_price'] >= self.data_df['prev' + str(i) + '_ma_close12']))
+                                                for i in range(1, ma12_lookback + 1)])
+
 
 
 
@@ -242,21 +285,26 @@ class CurrencyTrader(threading.Thread):
             self.data_df['price_to_bolling_lower'] = self.data_df['close'] - self.data_df['lower_band_close']
 
 
-            self.data_df['high_low_range'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['period_low' + str(high_low_window)]
 
             self.data_df['pct_to_upper_vegas'] = self.data_df['distance_to_upper_vegas'] / self.data_df['high_low_range']
             self.data_df['pct_to_lower_vegas'] = self.data_df['distance_to_lower_vegas'] / self.data_df['high_low_range']
+
+            if self.use_relaxed_vegas_support:
+                final_recent_supported_by_vegas = (recent_supported_by_vegas) | (self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold)
+                final_recent_suppressed_by_vegas = (recent_suppressed_by_vegas) | (self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold)
+            else:
+                final_recent_supported_by_vegas = self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold
+                final_recent_suppressed_by_vegas = self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold
 
 
             feature_msg = ','.join([feature + "=" + str(self.data_df.iloc[-1][feature]) for feature in bool_features] + [feature + "=" + str("%.4f" % self.data_df.iloc[-1][feature]) for feature in numerical_features])
             self.log_msg(feature_msg)
 
             self.data_df['buy_weak_ready'] = self.data_df['is_above_vegas'] & (
-                        self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold) & (
+                        final_recent_supported_by_vegas) & ( #self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold
                                                     self.data_df['high_pct_price_buy'] < self.data_df['ma_close12'])
             self.data_df['buy_weak_fire'] = self.data_df['is_above_vegas_strict'] & (
-                        self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold) & (
-                                                   self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
+                        final_recent_supported_by_vegas) & (self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
                                        & (self.data_df['ma12_gradient'] >= 0)
 
             self.data_df['buy_ready'] = self.data_df['buy_weak_ready'] & self.data_df['is_vegas_up_trend']
@@ -312,11 +360,10 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['sell_weak_ready'] = self.data_df['is_below_vegas'] & (
-                        self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold) & (
+                        final_recent_suppressed_by_vegas) & (#self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold
                                                      self.data_df['low_pct_price_sell'] > self.data_df['ma_close12'])
             self.data_df['sell_weak_fire'] = self.data_df['is_below_vegas_strict'] & (
-                        self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold) & (
-                                                    self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
+                        final_recent_suppressed_by_vegas) & (self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
                                         & (self.data_df['ma12_gradient'] <= 0)
 
             self.data_df['sell_ready'] = self.data_df['sell_weak_ready'] & self.data_df['is_vegas_down_trend']

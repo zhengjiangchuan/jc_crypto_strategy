@@ -62,7 +62,7 @@ currency_file = os.path.join(root_folder, "currency.csv")
 
 currency_df = pd.read_csv(currency_file)
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
+currency_df = currency_df[currency_df['currency'].isin(['USDCAD'])]
 
 
 currency_pairs = []
