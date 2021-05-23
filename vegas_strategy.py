@@ -38,6 +38,17 @@ pd.set_option('display.max_colwidth', 1000)
 import warnings
 warnings.filterwarnings("ignore")
 
+# parser = OptionParser()
+#
+# parser.add_option("-b", "--symbol", dest = "symbol",
+#                   default = None)
+#
+# (options, args) = parser.parse_args()
+#
+# symbol = str(options.symbol)
+#
+# print("Start process symbol " + symbol)
+
 class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate):
@@ -46,11 +57,18 @@ class CurrencyPair:
         self.exchange_rate = exchange_rate
 
 
-root_folder = "C:\\Forex\\trading"
+root_folder = "C:\\Forex\\formal_trading"
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]
-max_idx = np.array(communicate_nums).argmax()
+if len(communicate_nums) > 0:
+    max_idx = np.array(communicate_nums).argmax()
+else:
+    max_idx = 0
+    communicate_file = os.path.join(root_folder, "communicate1.txt")
+    fd = open(communicate_file, 'w')
+    fd.close()
+    communicate_files += [communicate_file]
 communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
 
@@ -62,7 +80,14 @@ currency_file = os.path.join(root_folder, "currency.csv")
 
 currency_df = pd.read_csv(currency_file)
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADJPY'])]
+
+
+#currency_df = currency_df[currency_df['currency'].isin([symbol])]
+
+# print("currency_df:")
+# print(currency_df)
+
+#currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'CADJPY', 'CHFJPY'])]
 
 
 currency_pairs = []
@@ -187,7 +212,7 @@ def get_bar_data(currency, bar_number = 240, start_timestamp = -1, is_convert_to
 
     return None
 
-is_simulate = False
+is_simulate = True
 
 # windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
 # high_low_window = 100
@@ -271,7 +296,7 @@ for currency_pair,data_folder,chart_folder,simple_chart_folder,log_file in list(
 
 
     if is_simulate:
-        data_df = data_df.iloc[0:-48]
+        data_df = data_df.iloc[0:-100]
 
     # print("After data_df:")
     # print(data_df.tail(50))
@@ -341,7 +366,7 @@ def wait_for_trigger():
         time.sleep(1)
         now = datetime.now()
 
-    sendEmail("Trading program still alive", "")
+    #sendEmail("Trading program still alive", "")
 
 
 
@@ -350,7 +375,7 @@ def wait_for_trigger():
 
 def wait_for_trigger_simulate():
 
-    time.sleep(1)
+    time.sleep(60)
 
     return
 

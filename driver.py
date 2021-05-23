@@ -30,7 +30,7 @@ def my_func():
 
 if __name__ == '__main__':
 
-    root_folder = "C:\\Forex\\trading"
+    root_folder = "C:\\Forex\\formal_trading"
 
     communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 

@@ -8,7 +8,7 @@ import random
 
 random_id = int(random.random()*10000)
 
-root_folder = "C:\\Forex\\trading"
+root_folder = "C:\\Forex\\formal_trading"
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]

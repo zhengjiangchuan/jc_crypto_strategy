@@ -61,6 +61,9 @@ ma12_lookback = 10
 
 vegas_tolerate = 30
 
+enter_lot = 1
+maximum_tolerable_loss = 300
+
 
 
 class CurrencyTrader(threading.Thread):
@@ -461,23 +464,35 @@ class CurrencyTrader(threading.Thread):
 
 
             if self.data_df.iloc[-1]['first_buy_real_fire']:
+
+                enter_price = self.data_df.iloc[-1]['close']
+                stop_loss_price = self.data_df.iloc[-1]['lower_vegas']
+
+                expected_loss = (enter_price - stop_loss_price) * self.lot_size * self.exchange_rate
+
+                actual_enter_lot = maximum_tolerable_loss / expected_loss * enter_lot
+                if actual_enter_lot > 1:
+                    actual_enter_lot = 1
+
                 msg = "Strongly Long " + self.currency + " at " + current_time + ", last_price = " + str(
-                    "%.5f" % self.data_df.iloc[-1]['close'])
+                    "%.5f" % self.data_df.iloc[-1]['close']) + " with " + str("%.2f" % actual_enter_lot) + " lot"
                 self.log_msg(msg)
+                self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
                 self.log_msg("********************************")
                 sendEmail(msg, msg)
+
             elif self.data_df.iloc[-1]['first_buy_fire']:
                 msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str(
                     "%.5f" % self.data_df.iloc[-1]['close'])
                 self.log_msg(msg)
                 self.log_msg("********************************")
-                sendEmail(msg, msg)
+                #sendEmail(msg, msg)
             elif self.data_df.iloc[-1]['first_buy_weak_fire']:
                 msg = "Weakly Long " + self.currency + " at " + current_time + ", last_price = " + str(
                     "%.5f" % self.data_df.iloc[-1]['close'])
                 self.log_msg(msg)
                 self.log_msg("********************************")
-                sendEmail(msg, msg)
+                #sendEmail(msg, msg)
 
 
 
@@ -493,9 +508,21 @@ class CurrencyTrader(threading.Thread):
 
 
             if self.data_df.iloc[-1]['first_sell_real_fire']:
+
+                enter_price = self.data_df.iloc[-1]['close']
+                stop_loss_price = self.data_df.iloc[-1]['upper_vegas']
+
+                expected_loss = (stop_loss_price - enter_price) * self.lot_size * self.exchange_rate
+
+                actual_enter_lot = maximum_tolerable_loss / expected_loss * enter_lot
+                if actual_enter_lot > 1:
+                    actual_enter_lot = 1
+
+
                 msg = "Strongly Short " + self.currency + " at " + current_time + ", last_price = " + str(
-                    "%.5f" % self.data_df.iloc[-1]['close'])
+                    "%.5f" % self.data_df.iloc[-1]['close']) + " with " + str("%.2f" % actual_enter_lot) + " lot"
                 self.log_msg(msg)
+                self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
                 self.log_msg("********************************")
                 sendEmail(msg, msg)
             elif self.data_df.iloc[-1]['first_sell_fire']:
@@ -503,13 +530,13 @@ class CurrencyTrader(threading.Thread):
                     "%.5f" % self.data_df.iloc[-1]['close'])
                 self.log_msg(msg)
                 self.log_msg("********************************")
-                sendEmail(msg, msg)
+                #sendEmail(msg, msg)
             elif self.data_df.iloc[-1]['first_sell_weak_fire']:
                 msg = "Weakly Short " + self.currency + " at " + current_time + ", last_price = " + str(
                     "%.5f" % self.data_df.iloc[-1]['close'])
                 self.log_msg(msg)
                 self.log_msg("********************************")
-                sendEmail(msg, msg)
+                #sendEmail(msg, msg)
 
 
 
@@ -523,6 +550,10 @@ class CurrencyTrader(threading.Thread):
 
             for file in os.listdir(self.chart_folder):
                 file_path = os.path.join(self.chart_folder, file)
+                os.remove(file_path)
+
+            for file in os.listdir(self.simple_chart_folder):
+                file_path = os.path.join(self.simple_chart_folder, file)
                 os.remove(file_path)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days,
