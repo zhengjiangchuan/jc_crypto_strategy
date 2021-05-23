@@ -80,6 +80,7 @@ class CurrencyTrader(threading.Thread):
 
         self.use_relaxed_vegas_support = True
         self.is_require_m12_strictly_above_vegas = False
+        self.remove_c12 = True
 
         self.currency_file = os.path.join(data_folder, currency + ".csv")
 
@@ -343,7 +344,12 @@ class CurrencyTrader(threading.Thread):
             #buy_c3 = (self.data_df['prev1_ma12_gradient'] < 0) | (self.data_df['prev2_ma12_gradient'] < 0) | (self.data_df['prev3_ma12_gradient'] < 0) | (self.data_df['prev4_ma12_gradient'] < 0) | (self.data_df['prev5_ma12_gradient'] < 0)
             buy_c4 = self.data_df['high'] > self.data_df['upper_band_close']
 
-            self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+            if not self.remove_c12:
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+            else:
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
+
+
             self.data_df['buy_c11'] = buy_c11
             self.data_df['buy_c12'] = buy_c12
             self.data_df['buy_c13'] = buy_c13
@@ -405,7 +411,13 @@ class CurrencyTrader(threading.Thread):
             #sell_c3 = (self.data_df['prev1_ma12_gradient'] > 0) | (self.data_df['prev2_ma12_gradient'] > 0) | (self.data_df['prev3_ma12_gradient'] > 0) | (self.data_df['prev4_ma12_gradient'] > 0) | (self.data_df['prev5_ma12_gradient'] > 0)
             sell_c4 = self.data_df['low'] < self.data_df['lower_band_close']
 
-            self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+            if not self.remove_c12:
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+            else:
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
+
+
+
             self.data_df['sell_c11'] = sell_c11
             self.data_df['sell_c12'] = sell_c12
             self.data_df['sell_c13'] = sell_c13
