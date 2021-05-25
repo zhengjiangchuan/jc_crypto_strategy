@@ -359,10 +359,17 @@ class CurrencyTrader(threading.Thread):
 
             buy_c2 = self.data_df['is_guppy_aligned_short']
 
-            buy_c3 = reduce(lambda left, right: left | right,
+            buy_c3_strong = reduce(lambda left, right: left | right,
+                            [((self.data_df['prev' + str(i) + '_ma12_gradient'] < 0) & \
+                              (self.data_df['prev' + str(i) + '_ma_close12'] > self.data_df['prev' + str(i) + '_upper_vegas']) & \
+                              (self.data_df['is_above_vegas_until_prev' + str(i)])) for i in range(1, ma12_lookback + 1)])
+
+            buy_c3_weak = reduce(lambda left, right: left | right,
                             [((self.data_df['prev' + str(i) + '_ma12_gradient'] < 0) & \
                               (self.data_df['prev' + str(i) + '_ma_close12'] > self.data_df['prev' + str(i) + '_lower_vegas']) & \
                               (self.data_df['is_above_vegas_until_prev' + str(i)])) for i in range(1, ma12_lookback + 1)])
+
+            buy_c3 = buy_c3_strong | (buy_c3_weak & (self.data_df['highest_guppy'] > self.data_df['lower_vegas']))
 
             #buy_c3 = (self.data_df['prev1_ma12_gradient'] < 0) | (self.data_df['prev2_ma12_gradient'] < 0) | (self.data_df['prev3_ma12_gradient'] < 0) | (self.data_df['prev4_ma12_gradient'] < 0) | (self.data_df['prev5_ma12_gradient'] < 0)
             #buy_c4 = self.data_df['high'] > self.data_df['upper_band_close']
@@ -434,10 +441,18 @@ class CurrencyTrader(threading.Thread):
 
             sell_c2 = self.data_df['is_guppy_aligned_long']
 
-            sell_c3 = reduce(lambda left, right: left | right,
+
+            sell_c3_strong = reduce(lambda left, right: left | right,
+                            [((self.data_df['prev' + str(i) + '_ma12_gradient'] > 0) & \
+                              (self.data_df['prev' + str(i) + '_ma_close12'] < self.data_df['prev' + str(i) + '_lower_vegas']) & \
+                              (self.data_df['is_below_vegas_until_prev' + str(i)])) for i in range(1, ma12_lookback + 1)])
+
+            sell_c3_weak = reduce(lambda left, right: left | right,
                             [((self.data_df['prev' + str(i) + '_ma12_gradient'] > 0) & \
                               (self.data_df['prev' + str(i) + '_ma_close12'] < self.data_df['prev' + str(i) + '_upper_vegas']) & \
                               (self.data_df['is_below_vegas_until_prev' + str(i)])) for i in range(1, ma12_lookback + 1)])
+
+            sell_c3 = sell_c3_strong | (sell_c3_weak & (self.data_df['lowest_guppy'] < self.data_df['upper_vegas']))
 
             #sell_c3 = (self.data_df['prev1_ma12_gradient'] > 0) | (self.data_df['prev2_ma12_gradient'] > 0) | (self.data_df['prev3_ma12_gradient'] > 0) | (self.data_df['prev4_ma12_gradient'] > 0) | (self.data_df['prev5_ma12_gradient'] > 0)
             #sell_c4 = self.data_df['low'] < self.data_df['lower_band_close']
