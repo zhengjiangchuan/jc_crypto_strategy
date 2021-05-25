@@ -214,6 +214,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
             self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
+            self.data_df['upper_vegas_gradient'] = self.data_df['upper_vegas'].diff()
+            self.data_df['lower_vegas_gradient'] = self.data_df['lower_vegas'].diff()
+
             self.data_df['prev1_upper_vegas'] = self.data_df['upper_vegas'].shift(1)
             for i in range(2, ma12_lookback + 1):
                 self.data_df['prev' + str(i) + '_upper_vegas'] = self.data_df['prev' + str(i-1) + '_upper_vegas'].shift(1)
@@ -356,12 +359,17 @@ class CurrencyTrader(threading.Thread):
             feature_msg = ','.join([feature + "=" + str(self.data_df.iloc[-1][feature]) for feature in bool_features] + [feature + "=" + str("%.4f" % self.data_df.iloc[-1][feature]) for feature in numerical_features])
             self.log_msg(feature_msg)
 
-            is_above_vegas = "is_above_vegas_strict" if self.is_require_m12_strictly_above_vegas else "is_above_vegas"
+            #is_above_vegas = "is_above_vegas_strict" if self.is_require_m12_strictly_above_vegas else "is_above_vegas"
+
+            if self.is_require_m12_strictly_above_vegas:
+                above_cond = self.data_df['is_above_vegas_strict']
+            else:
+                above_cond = self.data_df['is_above_vegas_strict'] | (self.data_df['is_above_vegas'] & (self.data_df['upper_vegas_gradient'] > 0) & (self.data_df['lower_vegas_gradient'] > 0))
 
             self.data_df['buy_weak_ready'] = self.data_df['is_above_vegas'] & (
                         final_recent_supported_by_vegas) & ( #self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold
                                                     self.data_df['high_pct_price_buy'] < self.data_df['ma_close12'])
-            self.data_df['buy_weak_fire'] = self.data_df[is_above_vegas] & ( #'is_above_vegas_strict'
+            self.data_df['buy_weak_fire'] = above_cond & ( #'is_above_vegas_strict'
                         final_recent_supported_by_vegas) & (self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
                                        & (self.data_df['ma12_gradient'] >= 0) & (self.data_df['close'] > self.data_df['ma_close12']) \
                                             & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
@@ -444,11 +452,17 @@ class CurrencyTrader(threading.Thread):
             # print("")
 
 
-            is_below_vegas = "is_below_vegas_strict" if self.is_require_m12_strictly_above_vegas else "is_below_vegas"
+            #is_below_vegas = "is_below_vegas_strict" if self.is_require_m12_strictly_above_vegas else "is_below_vegas"
+
+            if self.is_require_m12_strictly_above_vegas:
+                below_cond = self.data_df['is_below_vegas_strict']
+            else:
+                below_cond = self.data_df['is_below_vegas_strict'] | (self.data_df['is_below_vegas'] & (self.data_df['upper_vegas_gradient'] < 0) & (self.data_df['lower_vegas_gradient'] < 0))
+
             self.data_df['sell_weak_ready'] = self.data_df['is_below_vegas'] & (
                         final_recent_suppressed_by_vegas) & (#self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold
                                                      self.data_df['low_pct_price_sell'] > self.data_df['ma_close12'])
-            self.data_df['sell_weak_fire'] = self.data_df[is_below_vegas] & ( #is_below_vegas_strict
+            self.data_df['sell_weak_fire'] = below_cond & ( #is_below_vegas_strict
                         final_recent_suppressed_by_vegas) & (self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
                                         & (self.data_df['ma12_gradient'] <= 0) & (self.data_df['close'] < self.data_df['ma_close12']) \
                                              & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold)
