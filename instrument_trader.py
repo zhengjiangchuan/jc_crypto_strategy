@@ -398,7 +398,7 @@ class CurrencyTrader(threading.Thread):
 
             #buy_c3 = (self.data_df['prev1_ma12_gradient'] < 0) | (self.data_df['prev2_ma12_gradient'] < 0) | (self.data_df['prev3_ma12_gradient'] < 0) | (self.data_df['prev4_ma12_gradient'] < 0) | (self.data_df['prev5_ma12_gradient'] < 0)
             #buy_c4 = self.data_df['high'] > self.data_df['upper_band_close']
-            buy_c41 = self.data_df['high'] > self.data_df['prev_upper_band_close']
+            buy_c41 = self.data_df['high'] > self.data_df['upper_band_close'] #self.data_df['prev_upper_band_close']
             buy_c42 = self.data_df['upper_band_close_gradient'] * self.lot_size * self.exchange_rate > 0# bolling_threshold
             buy_c43 = self.data_df['is_positive'] & (self.data_df['prev1_open'] < self.data_df['prev1_close'])
             buy_c4 = buy_c41 & buy_c42 & buy_c43
@@ -492,7 +492,7 @@ class CurrencyTrader(threading.Thread):
 
             #sell_c3 = (self.data_df['prev1_ma12_gradient'] > 0) | (self.data_df['prev2_ma12_gradient'] > 0) | (self.data_df['prev3_ma12_gradient'] > 0) | (self.data_df['prev4_ma12_gradient'] > 0) | (self.data_df['prev5_ma12_gradient'] > 0)
             #sell_c4 = self.data_df['low'] < self.data_df['lower_band_close']
-            sell_c41 = self.data_df['low'] < self.data_df['prev_lower_band_close']
+            sell_c41 = self.data_df['low'] < self.data_df['lower_band_close'] # self.data_df['prev_lower_band_close']
             sell_c42 = self.data_df['lower_band_close_gradient'] * self.lot_size * self.exchange_rate < 0 #-bolling_threshold
             sell_c43 = self.data_df['is_negative'] &  (self.data_df['prev1_open'] > self.data_df['prev1_close'])
             sell_c4 = sell_c41 & sell_c42 & sell_c43
