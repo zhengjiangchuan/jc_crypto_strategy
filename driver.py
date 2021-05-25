@@ -54,8 +54,10 @@ if __name__ == '__main__':
 
     print("Child pid = " + str(son_process.pid))
 
+    initial_time = None
     while (True):
 
+        is_dead = False
         print("Parent Process sleeps 5 seconds");
         time.sleep(5)
 
@@ -72,12 +74,22 @@ if __name__ == '__main__':
             print("Parent reads child now = " + line)
 
             if len(line) < 10:
-                continue
+
+                if initial_time is None:
+                    initial_time = now
+                    continue
+                else:
+                    if (now - initial_time).seconds > 600:
+                        is_dead = True
+                        initial_time = None
+                    else:
+                        continue
+
 
             read_time = datetime.strptime(line, "%Y-%m-%d %H:%M:%S")
             child_dead_seconds = (now - read_time).seconds
             print("*********************************************************************Parent: child dead seconds = " + str(child_dead_seconds))
-            if (now - read_time).seconds > 120:
+            if (now - read_time).seconds > 120 or is_dead:
                 print("Parent spots that child process pid=" + str(son_process.pid) +  " is dead but not exit, kill it and re-start it")
                 sendEmail("Trading program dead, restart it", "")
                 son_process.kill()

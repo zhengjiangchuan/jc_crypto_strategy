@@ -82,7 +82,7 @@ currency_df = pd.read_csv(currency_file)
 
 
 
-#currency_df = currency_df[currency_df['currency'].isin([symbol])]
+#currency_df = currency_df[currency_df['currency'].isin(['USDCHF'])]
 
 # print("currency_df:")
 # print(currency_df)
@@ -212,7 +212,7 @@ def get_bar_data(currency, bar_number = 240, start_timestamp = -1, is_convert_to
 
     return None
 
-is_simulate = True
+is_simulate = False
 
 # windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
 # high_low_window = 100
@@ -267,14 +267,23 @@ for currency_pair,data_folder,chart_folder,simple_chart_folder,log_file in list(
             print("currency_file = " + currency_file)
             print("data_df:")
             print(data_df.tail(10))
-            last_timestamp = int(datetime.timestamp(data_df.iloc[-1]['time']))
+
+
+            last_time = data_df.iloc[-1]['time']
+            last_timestamp = int(datetime.timestamp(last_time))
             #next_timestamp = last_timestamp + 3600
+
+            print("Here last time = " + str(last_time))
+            print("last_timestamp = " + str(last_timestamp))
+            #time.sleep(15)
 
             incremental_data_df = get_bar_data(currency, bar_number = initial_bar_number, start_timestamp = last_timestamp)
             print("incremental_data_df:")
             print(incremental_data_df)
 
-            incremental_data_df = incremental_data_df.iloc[1:-1]
+            incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+
+            #incremental_data_df = incremental_data_df.iloc[1:-1]
 
             print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
@@ -354,7 +363,7 @@ def wait_for_trigger():
         print(now_str, file=fd)
         fd.close()
         #
-        # if total_sleep_seconds > 30:
+        # if total_sleep_secnds > 30:
         #     time.sleep(1800)
 
 
@@ -366,7 +375,7 @@ def wait_for_trigger():
         time.sleep(1)
         now = datetime.now()
 
-    #sendEmail("Trading program still alive", "")
+    sendEmail("Trading program still alive", "")
 
 
 
@@ -404,27 +413,52 @@ while True:
                 currency = currency_pairs[i].currency
                 last_time = currency_trader.get_last_time() #Python thinks this as UTC time, while it is actually HK time
                 last_timestamp = int(last_time.timestamp())
+
+                print("last_timestamp = " + str(last_timestamp))
+                print("last_time = " + str(last_time))
+                #time.sleep(15)
+
                 last_timestamp -= 28800
                 #next_timestamp = last_timestamp + 3600
 
 
-                print("last_timestamp = " + str(last_timestamp))
-                print("last_time = " + str(last_time))
-                print(last_time)
+
 
 
                 incremental_data_df = get_bar_data(currency, bar_number=incremental_bar_number, start_timestamp=last_timestamp)
-
-                if is_simulate:
-                    if incremental_data_df is not None and incremental_data_df.shape[0] > 2:
-                        incremental_data_df = incremental_data_df.iloc[0:3]
 
                 print("incremental_data_df:")
                 print(incremental_data_df)
                 print("")
 
-                if incremental_data_df is not None and incremental_data_df.shape[0] > 2:
-                    incremental_data_df = incremental_data_df.iloc[1:-1]
+                if is_simulate:
+                    if incremental_data_df is not None:# and incremental_data_df.shape[0] > 2:
+                        incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:1]
+                        #incremental_data_df = incremental_data_df.iloc[0:3]
+                else:
+                    if incremental_data_df is not None:
+                        incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+
+                print("incremental_data_df:")
+                print(incremental_data_df)
+                print("")
+                #time.sleep(30)
+
+                if incremental_data_df is not None and incremental_data_df.shape[0] > 0: # incremental_data_df.shape[0] > 2:
+
+                    print("Debugging incremental_data_df:")
+                    print(incremental_data_df)
+                    print("last_time")
+                    print(last_time)
+
+
+                    #incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+
+                    print("after incremental_data_df:")
+                    print(incremental_data_df)
+
+
+                    #incremental_data_df = incremental_data_df.iloc[1:-1]
                     currency_trader.feed_data(incremental_data_df)
                     is_new_data_received[i] = True
                     print("Received data update for " + currency)

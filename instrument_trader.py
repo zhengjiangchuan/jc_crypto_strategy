@@ -327,7 +327,7 @@ class CurrencyTrader(threading.Thread):
                                                     self.data_df['high_pct_price_buy'] < self.data_df['ma_close12'])
             self.data_df['buy_weak_fire'] = self.data_df[is_above_vegas] & ( #'is_above_vegas_strict'
                         final_recent_supported_by_vegas) & (self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
-                                       & (self.data_df['ma12_gradient'] >= 0)
+                                       & (self.data_df['ma12_gradient'] >= 0) & (self.data_df['close'] > self.data_df['ma_close12'])
 
             self.data_df['buy_ready'] = self.data_df['buy_weak_ready'] & self.data_df['is_vegas_up_trend']
             self.data_df['buy_fire'] = self.data_df['buy_weak_fire'] & self.data_df['is_vegas_up_trend']
@@ -394,7 +394,7 @@ class CurrencyTrader(threading.Thread):
                                                      self.data_df['low_pct_price_sell'] > self.data_df['ma_close12'])
             self.data_df['sell_weak_fire'] = self.data_df[is_below_vegas] & ( #is_below_vegas_strict
                         final_recent_suppressed_by_vegas) & (self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
-                                        & (self.data_df['ma12_gradient'] <= 0)
+                                        & (self.data_df['ma12_gradient'] <= 0) & (self.data_df['close'] < self.data_df['ma_close12'])
 
             self.data_df['sell_ready'] = self.data_df['sell_weak_ready'] & self.data_df['is_vegas_down_trend']
             self.data_df['sell_fire'] = self.data_df['sell_weak_fire'] & self.data_df['is_vegas_down_trend']
