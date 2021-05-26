@@ -47,6 +47,8 @@ bolling_width = 20
 bar_low_percentile = 0.5
 bar_high_percentile = 0.1
 
+vegas_bar_percentile = 0.2
+
 initial_bar_number = 400
 
 distance_to_vegas_threshold = 0.20
@@ -208,8 +210,16 @@ class CurrencyTrader(threading.Thread):
             self.data_df['low_pct_price_buy'] = self.data_df['min_price'] + (self.data_df['price_range']) * bar_low_percentile
             self.data_df['high_pct_price_buy'] = self.data_df['max_price'] - (self.data_df['price_range']) * bar_high_percentile
 
+            self.data_df['low_low_pct_price_buy'] = self.data_df['min_price'] + (self.data_df['price_range']) * vegas_bar_percentile
+            self.data_df['prev_low_low_pct_price_buy'] = self.data_df['low_low_pct_price_buy'].shift(1)
+
+
             self.data_df['low_pct_price_sell'] = self.data_df['min_price'] + (self.data_df['price_range']) * bar_high_percentile
             self.data_df['high_pct_price_sell'] = self.data_df['max_price'] - (self.data_df['price_range']) * bar_low_percentile
+
+            self.data_df['high_high_pct_price_sell'] = self.data_df['max_price'] - (self.data_df['price_range']) * vegas_bar_percentile
+            self.data_df['prev_high_high_pct_price_sell'] = self.data_df['high_high_pct_price_sell'].shift(1)
+
 
             self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
             self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
@@ -234,16 +244,27 @@ class CurrencyTrader(threading.Thread):
                 self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
 
 
-            aligned_long_conditions = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
+            aligned_long_conditions1 = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
                                        range(len(guppy_lines) - 1)]
-            all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
-            self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions + all_up_conditions)
+            #all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
+            aligned_long_conditions2 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[0:3]]
+            #self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions) # + all_up_conditions)
+            aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
+            aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
+
+            self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
 
 
-            aligned_short_conditions = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
+            aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                         range(len(guppy_lines) - 1)]
-            all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
-            self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions + all_down_conditions)
+            #all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
+            aligned_short_conditions2 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[0:3]]
+            #self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions) # + all_down_conditions)
+            aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1)
+            aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
+
+            self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
+
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
@@ -401,7 +422,8 @@ class CurrencyTrader(threading.Thread):
             buy_c41 = self.data_df['high'] > self.data_df['upper_band_close'] #self.data_df['prev_upper_band_close']
             buy_c42 = self.data_df['upper_band_close_gradient'] * self.lot_size * self.exchange_rate > 0# bolling_threshold
             buy_c43 = self.data_df['is_positive'] & (self.data_df['prev1_open'] < self.data_df['prev1_close'])
-            buy_c4 = buy_c41 & buy_c42 & buy_c43
+            buy_c44 = (self.data_df['low_low_pct_price_buy'] > self.data_df['upper_vegas']) & (self.data_df['prev_low_low_pct_price_buy'] > self.data_df['prev1_upper_vegas'])
+            buy_c4 = buy_c41 & buy_c42 & buy_c43 & buy_c44
 
             buy_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
                                                                for i in range(1,c5_lookback + 1)])
@@ -495,7 +517,8 @@ class CurrencyTrader(threading.Thread):
             sell_c41 = self.data_df['low'] < self.data_df['lower_band_close'] # self.data_df['prev_lower_band_close']
             sell_c42 = self.data_df['lower_band_close_gradient'] * self.lot_size * self.exchange_rate < 0 #-bolling_threshold
             sell_c43 = self.data_df['is_negative'] &  (self.data_df['prev1_open'] > self.data_df['prev1_close'])
-            sell_c4 = sell_c41 & sell_c42 & sell_c43
+            sell_c44 = (self.data_df['high_high_pct_price_sell'] < self.data_df['lower_vegas']) & (self.data_df['prev_high_high_pct_price_sell'] < self.data_df['prev1_lower_vegas'])
+            sell_c4 = sell_c41 & sell_c42 & sell_c43 & sell_c44
 
             sell_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold )
                                                                 for i in range(1,c5_lookback + 1)])
