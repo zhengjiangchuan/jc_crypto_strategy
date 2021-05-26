@@ -52,6 +52,7 @@ vegas_bar_percentile = 0.2
 initial_bar_number = 400
 
 distance_to_vegas_threshold = 0.20
+tight_distance_to_vegas_threshold = 0.05
 
 vegas_width_threshold = 10
 
@@ -274,6 +275,15 @@ class CurrencyTrader(threading.Thread):
             self.data_df['highest_guppy'] = self.data_df['guppy6']
             self.data_df['lowest_guppy'] = self.data_df['guppy1']
 
+            self.data_df['prev1_highest_guppy'] = self.data_df['highest_guppy'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_highest_guppy'] = self.data_df['prev' + str(i-1) + '_highest_guppy'].shift(1)
+
+            self.data_df['prev1_lowest_guppy'] = self.data_df['lowest_guppy'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_lowest_guppy'] = self.data_df['prev' + str(i-1) + '_lowest_guppy'].shift(1)
+
+
             self.data_df['prev1_ma_close12'] = self.data_df['ma_close12'].shift(1)
             for i in range(2, ma12_lookback + 1):
                 self.data_df['prev' + str(i) + '_ma_close12'] = self.data_df['prev' + str(i-1) + '_ma_close12'].shift(1)
@@ -342,15 +352,36 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev' + str(i) + '_price_pct_to_lower_vegas'] = self.data_df['prev' + str(i-1) + '_price_pct_to_lower_vegas'].shift(1)
 
 
-            recent_supported_by_vegas = reduce(lambda left, right: left | right,
-                                               [((self.data_df['prev' + str(i) + '_price_pct_to_upper_vegas'] < distance_to_vegas_threshold) & \
+            #Hutong
+            recent_tightly_supported_by_vegas = reduce(lambda left, right: left | right,
+                                               [((self.data_df['prev' + str(i) + '_price_pct_to_upper_vegas'] < tight_distance_to_vegas_threshold) & \
                                                 (self.data_df['prev' + str(i) + '_max_price'] <= self.data_df['prev' + str(i) + '_ma_close12']))
                                                 for i in range(1, ma12_lookback + 1)])
 
-            recent_suppressed_by_vegas = reduce(lambda left, right: left | right,
-                                               [((self.data_df['prev' + str(i) + '_price_pct_to_lower_vegas'] > -distance_to_vegas_threshold) & \
+            recent_supported_by_vegas = reduce(lambda left, right: left | right,
+                                           [((self.data_df['prev' + str(i) + '_price_pct_to_upper_vegas'] < distance_to_vegas_threshold) & \
+                                            (self.data_df['prev' + str(i) + '_max_price'] <= self.data_df['prev' + str(i) + '_ma_close12'])) & \
+                                            (self.data_df['prev' + str(i) + '_lowest_guppy'] > self.data_df['prev' + str(i) + '_upper_vegas']) & \
+                                            (self.data_df['prev' + str(i) + '_min_price'] <= self.data_df['prev' + str(i) + '_lowest_guppy'])
+                                            for i in range(1, ma12_lookback + 1)])
+
+
+
+
+            recent_tightly_suppressed_by_vegas = reduce(lambda left, right: left | right,
+                                               [((self.data_df['prev' + str(i) + '_price_pct_to_lower_vegas'] > -tight_distance_to_vegas_threshold) & \
                                                 (self.data_df['prev' + str(i) + '_min_price'] >= self.data_df['prev' + str(i) + '_ma_close12']))
                                                 for i in range(1, ma12_lookback + 1)])
+
+            recent_suppressed_by_vegas = reduce(lambda left, right: left | right,
+                                           [((self.data_df['prev' + str(i) + '_price_pct_to_lower_vegas'] > -distance_to_vegas_threshold) & \
+                                            (self.data_df['prev' + str(i) + '_min_price'] >= self.data_df['prev' + str(i) + '_ma_close12'])) & \
+                                            (self.data_df['prev' + str(i) + '_highest_guppy'] < self.data_df['prev' + str(i) + '_lower_vegas']) & \
+                                            (self.data_df['prev' + str(i) + '_max_price'] >= self.data_df['prev' + str(i) + '_highest_guppy'])
+                                            for i in range(1, ma12_lookback + 1)])
+
+
+
 
 
 
@@ -369,9 +400,38 @@ class CurrencyTrader(threading.Thread):
             self.data_df['pct_to_upper_vegas'] = self.data_df['distance_to_upper_vegas'] / self.data_df['high_low_range']
             self.data_df['pct_to_lower_vegas'] = self.data_df['distance_to_lower_vegas'] / self.data_df['high_low_range']
 
+            self.data_df['prev1_pct_to_upper_vegas'] = self.data_df['pct_to_upper_vegas'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_pct_to_upper_vegas'] = self.data_df['prev' + str(i-1) + '_pct_to_upper_vegas'].shift(1)
+
+            self.data_df['prev1_pct_to_lower_vegas'] = self.data_df['pct_to_lower_vegas'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_pct_to_lower_vegas'] = self.data_df['prev' + str(i-1) + '_pct_to_lower_vegas'].shift(1)
+
+
+            recent_m12_supported_by_vegas = reduce(lambda left, right: left | right,
+                                                   [  self.data_df['prev' + str(i) + '_pct_to_upper_vegas'] < distance_to_vegas_threshold
+                                                       for i in range(1, ma12_lookback + 1)]
+                                                   )
+
+            recent_m12_suppressed_by_vegas = reduce(lambda left, right: left | right,
+                                                   [  self.data_df['prev' + str(i) + '_pct_to_lower_vegas'] > -distance_to_vegas_threshold
+                                                       for i in range(1, ma12_lookback + 1)]
+                                                   )
+
+
+
             if self.use_relaxed_vegas_support:
-                final_recent_supported_by_vegas = (recent_supported_by_vegas) | (self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold)
-                final_recent_suppressed_by_vegas = (recent_suppressed_by_vegas) | (self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold)
+                #final_recent_supported_by_vegas = (recent_supported_by_vegas) | (self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold)
+                #final_recent_suppressed_by_vegas = (recent_suppressed_by_vegas) | (self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold)
+
+                final_recent_supported_by_vegas = recent_tightly_supported_by_vegas | recent_supported_by_vegas | (self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold)
+                final_recent_suppressed_by_vegas = recent_tightly_suppressed_by_vegas | recent_suppressed_by_vegas | (self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold)
+
+                # final_recent_supported_by_vegas = recent_tightly_supported_by_vegas | recent_supported_by_vegas | recent_m12_supported_by_vegas
+                # final_recent_suppressed_by_vegas = recent_tightly_suppressed_by_vegas | recent_suppressed_by_vegas | recent_m12_suppressed_by_vegas
+
+
             else:
                 final_recent_supported_by_vegas = self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold
                 final_recent_suppressed_by_vegas = self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold

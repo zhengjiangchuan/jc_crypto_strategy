@@ -82,8 +82,8 @@ currency_df = pd.read_csv(currency_file)
 
 
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCHF'])]
-#currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['CADJPY'])]
 
 # print("currency_df:")
 # print(currency_df)

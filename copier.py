@@ -21,7 +21,7 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    # if symbol_folder[-6:] not in ['EURJPY']:
+    # if symbol_folder[-6:] not in ['EURJPY', 'CHFJPY', 'CADJPY']:
     #     continue
 
     print(symbol_folder)
