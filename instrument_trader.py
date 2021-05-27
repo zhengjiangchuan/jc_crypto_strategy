@@ -75,6 +75,8 @@ enter_bar_width_threshold = 10
 
 guppy_tolerate = 20
 
+maximum_enter_bar_length = 100
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -207,6 +209,7 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
+            self.data_df['prev_price_range'] = self.data_df['price_range'].shift(1)
 
             self.data_df['low_pct_price_buy'] = self.data_df['min_price'] + (self.data_df['price_range']) * bar_low_percentile
             self.data_df['high_pct_price_buy'] = self.data_df['max_price'] - (self.data_df['price_range']) * bar_high_percentile
@@ -253,6 +256,8 @@ class CurrencyTrader(threading.Thread):
             aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
             aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
 
+            half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:3])
+
             self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
 
 
@@ -264,12 +269,15 @@ class CurrencyTrader(threading.Thread):
             aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1)
             aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
 
+            half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:3])
+
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
 
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
-            df_temp.columns = ['guppy1', 'guppy2', 'guppy3', 'guppy4', 'guppy5', 'guppy6']
+            sorted_guppys = ['guppy1', 'guppy2', 'guppy3', 'guppy4', 'guppy5', 'guppy6']
+            df_temp.columns = sorted_guppys
             self.data_df = pd.concat([self.data_df, df_temp], axis=1)
 
             self.data_df['highest_guppy'] = self.data_df['guppy6']
@@ -301,8 +309,17 @@ class CurrencyTrader(threading.Thread):
             self.data_df['is_vegas_down_trend'] = self.data_df['ma_close144'] < self.data_df['ma_close169']
 
             self.data_df['vegas_width'] = (self.data_df['ma_close144'] - self.data_df['ma_close169'])
-            self.data_df['is_vegas_enough_up_trend'] = self.data_df['vegas_width'] * self.lot_size * self.exchange_rate > vegas_width_threshold
-            self.data_df['is_vegas_enough_down_trend'] = self.data_df['vegas_width'] * self.lot_size * self.exchange_rate < -vegas_width_threshold
+
+            self.data_df['is_vegas_enough_up_trend'] = (self.data_df['vegas_width'] * self.lot_size * self.exchange_rate > vegas_width_threshold) | half_aligned_long_condition
+                                                         # | reduce(lambda left, right: left & right,
+                                                         #          [(self.data_df[guppy] > self.data_df['lower_vegas']) for guppy in guppy_lines[0:3]] +
+                                                         #          [(self.data_df[guppy + '_gradient'] > 0) for guppy in guppy_lines[0:3]])
+
+
+            self.data_df['is_vegas_enough_down_trend'] = (self.data_df['vegas_width'] * self.lot_size * self.exchange_rate < -vegas_width_threshold) | half_aligned_short_condition
+                                                           # | reduce(lambda left, right: left & right,
+                                                           #        [(self.data_df[guppy] < self.data_df['upper_vegas']) for guppy in guppy_lines[0:3]] +
+                                                           #        [(self.data_df[guppy + '_gradient'] < 0) for guppy in guppy_lines[0:3]])
 
 
 
@@ -447,10 +464,14 @@ class CurrencyTrader(threading.Thread):
             else:
                 above_cond = self.data_df['is_above_vegas_strict'] | (self.data_df['is_above_vegas'] & (self.data_df['upper_vegas_gradient'] > 0) & (self.data_df['lower_vegas_gradient'] > 0))
 
+            #Cruise
+            enter_bar_too_large = (self.data_df['price_range'] * self.lot_size * self.exchange_rate > maximum_enter_bar_length) | \
+                                  (self.data_df['prev_price_range'] * self.lot_size * self.exchange_rate > maximum_enter_bar_length)
+
             self.data_df['buy_weak_ready'] = self.data_df['is_above_vegas'] & (
                         final_recent_supported_by_vegas) & ( #self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold
                                                     self.data_df['high_pct_price_buy'] < self.data_df['ma_close12'])
-            self.data_df['buy_weak_fire'] = above_cond & ( #'is_above_vegas_strict'
+            self.data_df['buy_weak_fire'] = above_cond & ( #'is_above_vegas_strict'     (~enter_bar_too_large) &
                         final_recent_supported_by_vegas) & (self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
                                        & (self.data_df['ma12_gradient'] >= 0) & (self.data_df['close'] > self.data_df['ma_close12']) \
                                             & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
@@ -544,7 +565,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_weak_ready'] = self.data_df['is_below_vegas'] & (
                         final_recent_suppressed_by_vegas) & (#self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold
                                                      self.data_df['low_pct_price_sell'] > self.data_df['ma_close12'])
-            self.data_df['sell_weak_fire'] = below_cond & ( #is_below_vegas_strict
+            self.data_df['sell_weak_fire'] =  below_cond & ( #is_below_vegas_strict    (~enter_bar_too_large) &
                         final_recent_suppressed_by_vegas) & (self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
                                         & (self.data_df['ma12_gradient'] <= 0) & (self.data_df['close'] < self.data_df['ma_close12']) \
                                              & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold)

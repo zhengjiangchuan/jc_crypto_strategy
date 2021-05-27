@@ -11,7 +11,7 @@ import shutil
 
 root_folder = "C:\\Forex\\formal_trading"
 
-dest_folder = "C:\\Forex\\all_charts_updated2_realtime"
+dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug"
 
 if not os.path.exists(dest_folder):
     os.makedirs(dest_folder)
@@ -21,7 +21,7 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    # if symbol_folder[-6:] not in ['EURJPY', 'CHFJPY', 'CADJPY']:
+    # if symbol_folder[-6:] not in ['EURGBP', 'AUDUSD', 'CADJPY']:
     #     continue
 
     print(symbol_folder)
