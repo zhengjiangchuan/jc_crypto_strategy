@@ -77,6 +77,10 @@ guppy_tolerate = 20
 
 maximum_enter_bar_length = 100
 
+price_range_lookback_window = 3
+
+bar_increase_threshold = 0.8 #1.5 for mean
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -199,6 +203,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
             self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
 
+
             self.data_df['prev1_min_price'] = self.data_df['min_price'].shift(1)
             for i in range(2, ma12_lookback + 1):
                 self.data_df['prev' + str(i) + '_min_price'] = self.data_df['prev' + str(i-1) + '_min_price'].shift(1)
@@ -210,6 +215,38 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
             self.data_df['prev_price_range'] = self.data_df['price_range'].shift(1)
+
+            self.data_df['positive_price_range'] = np.where(self.data_df['close'] > self.data_df['open'],
+                                                              self.data_df['price_range'],
+                                                              0)
+            self.data_df['negative_price_range'] = np.where(self.data_df['close'] < self.data_df['open'],
+                                                              self.data_df['price_range'],
+                                                              0)
+
+
+            #df[attr].rolling(window, min_periods = window).max()
+            self.data_df['price_range_mean'] = self.data_df['price_range'].rolling(price_range_lookback_window, min_periods = price_range_lookback_window).max() #mean()
+            self.data_df['prev_price_range_mean'] = self.data_df['price_range_mean'].shift(1)
+
+            self.data_df['bar_length_increase'] = (self.data_df['price_range'] - self.data_df['prev_price_range_mean']) / self.data_df['prev_price_range_mean']
+            self.data_df['prev1_bar_length_increase'] = self.data_df['bar_length_increase'].shift(1)
+            self.data_df['prev2_bar_length_increase'] = self.data_df['prev1_bar_length_increase'].shift(1)
+
+            self.data_df['is_large_bar_buy'] = reduce(lambda left, right: left | right,
+                                                      [((self.data_df['prev' + str(i) + '_bar_length_increase'] > bar_increase_threshold) & \
+                                                       (self.data_df['prev' + str(i) + '_close'] - self.data_df['prev' + str(i) + '_open'] > 0))
+                                                                                         for i in range(1, 3)] +
+                                                      [(self.data_df['bar_length_increase'] > bar_increase_threshold)])
+
+            self.data_df['is_large_bar_sell'] = reduce(lambda left, right: left | right,
+                                                      [((self.data_df['prev' + str(i) + '_bar_length_increase'] > bar_increase_threshold) & \
+                                                       (self.data_df['prev' + str(i) + '_close'] - self.data_df['prev' + str(i) + '_open'] < 0))
+                                                                                         for i in range(1, 3)] +
+                                                      [(self.data_df['bar_length_increase'] > bar_increase_threshold)])
+
+
+            self.data_df['is_large_bar'] = self.data_df['bar_length_increase'] > bar_increase_threshold
+
 
             self.data_df['low_pct_price_buy'] = self.data_df['min_price'] + (self.data_df['price_range']) * bar_low_percentile
             self.data_df['high_pct_price_buy'] = self.data_df['max_price'] - (self.data_df['price_range']) * bar_high_percentile
@@ -256,7 +293,7 @@ class CurrencyTrader(threading.Thread):
             aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
             aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
 
-            half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:3])
+            half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:2])
 
             self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
 
@@ -269,7 +306,7 @@ class CurrencyTrader(threading.Thread):
             aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1)
             aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
 
-            half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:3])
+            half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:2])
 
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
 
@@ -471,7 +508,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_weak_ready'] = self.data_df['is_above_vegas'] & (
                         final_recent_supported_by_vegas) & ( #self.data_df['pct_to_upper_vegas'] < distance_to_vegas_threshold
                                                     self.data_df['high_pct_price_buy'] < self.data_df['ma_close12'])
-            self.data_df['buy_weak_fire'] = above_cond & ( #'is_above_vegas_strict'     (~enter_bar_too_large) &
+            self.data_df['buy_weak_fire'] = above_cond & ( #'is_above_vegas_strict'  (~enter_bar_too_large)
                         final_recent_supported_by_vegas) & (self.data_df['low_pct_price_buy'] > self.data_df['ma_close12']) \
                                        & (self.data_df['ma12_gradient'] >= 0) & (self.data_df['close'] > self.data_df['ma_close12']) \
                                             & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
@@ -485,6 +522,9 @@ class CurrencyTrader(threading.Thread):
             buy_c13 = (-self.data_df['price_to_bolling_upper'] / self.data_df['price_to_lower_vegas']) > minimum_profilt_loss_ratio
 
             buy_c2 = self.data_df['is_guppy_aligned_short']
+
+            buy_c2_aux = (half_aligned_short_condition &
+                      (self.data_df['close'] < self.data_df[sorted_guppys[2]]) & (self.data_df['close'] > self.data_df['lowest_guppy'])) | self.data_df['is_guppy_aligned_short']
 
             buy_c3_strong = reduce(lambda left, right: left | right,
                             [((self.data_df['prev' + str(i) + '_ma12_gradient'] < 0) & \
@@ -509,12 +549,13 @@ class CurrencyTrader(threading.Thread):
             buy_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
                                                                for i in range(1,c5_lookback + 1)])
 
-
+            #buy_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
+            buy_c6 = self.data_df['is_large_bar_buy']
 
             if not self.remove_c12:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -525,7 +566,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c41'] = buy_c41
             self.data_df['buy_c42'] = buy_c42
             self.data_df['buy_c43'] = buy_c43
+            self.data_df['buy_c44'] = buy_c44
             self.data_df['buy_c5'] = buy_c5
+            self.data_df['buy_c6'] = buy_c6
 
 
 
@@ -565,7 +608,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_weak_ready'] = self.data_df['is_below_vegas'] & (
                         final_recent_suppressed_by_vegas) & (#self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold
                                                      self.data_df['low_pct_price_sell'] > self.data_df['ma_close12'])
-            self.data_df['sell_weak_fire'] =  below_cond & ( #is_below_vegas_strict    (~enter_bar_too_large) &
+            self.data_df['sell_weak_fire'] = below_cond & ( #is_below_vegas_strict    (~enter_bar_too_large) &
                         final_recent_suppressed_by_vegas) & (self.data_df['high_pct_price_sell'] < self.data_df['ma_close12']) \
                                         & (self.data_df['ma12_gradient'] <= 0) & (self.data_df['close'] < self.data_df['ma_close12']) \
                                              & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold)
@@ -579,6 +622,9 @@ class CurrencyTrader(threading.Thread):
             sell_c13 = (-self.data_df['price_to_bolling_lower'] / self.data_df['price_to_upper_vegas']) > minimum_profilt_loss_ratio
 
             sell_c2 = self.data_df['is_guppy_aligned_long']
+
+            sell_c2_aux = (half_aligned_long_condition &
+                       (self.data_df['close'] > self.data_df[sorted_guppys[3]]) & (self.data_df['close'] < self.data_df['highest_guppy'])) | self.data_df['is_guppy_aligned_long']
 
 
             sell_c3_strong = reduce(lambda left, right: left | right,
@@ -604,10 +650,13 @@ class CurrencyTrader(threading.Thread):
             sell_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold )
                                                                 for i in range(1,c5_lookback + 1)])
 
+            #sell_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
+            sell_c6 = self.data_df['is_large_bar_sell']
+
             if not self.remove_c12:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
 
 
 
@@ -619,7 +668,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_c41'] = sell_c41
             self.data_df['sell_c42'] = sell_c42
             self.data_df['sell_c43'] = sell_c43
+            self.data_df['sell_c44'] = sell_c44
             self.data_df['sell_c5'] = sell_c5
+            self.data_df['sell_c6'] = sell_c6
 
 
             self.data_df['prev_sell_weak_fire'] = self.data_df['sell_weak_fire'].shift(1)
@@ -672,7 +723,10 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg(msg)
                 self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
                 self.log_msg("********************************")
-                sendEmail(msg, msg)
+
+                additional_msg = " Exit if next two bars are both negative" if buy_c2_aux[-1] else ""
+
+                sendEmail(msg, msg + additional_msg)
 
             elif self.data_df.iloc[-1]['first_buy_fire']:
                 msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str(
@@ -717,7 +771,11 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg(msg)
                 self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
                 self.log_msg("********************************")
-                sendEmail(msg, msg)
+
+                additional_msg = " Exit if next two bars are both positive" if sell_c2_aux[-1] else ""
+
+                sendEmail(msg, msg + additional_msg)
+
             elif self.data_df.iloc[-1]['first_sell_fire']:
                 msg = "Short " + self.currency + " at " + current_time + ", last_price = " + str(
                     "%.5f" % self.data_df.iloc[-1]['close'])
