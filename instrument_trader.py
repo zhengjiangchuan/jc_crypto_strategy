@@ -79,7 +79,7 @@ maximum_enter_bar_length = 100
 
 price_range_lookback_window = 3
 
-bar_increase_threshold = 0.8 #1.5 for mean
+bar_increase_threshold = 1.5 #1.5 for mean
 
 class CurrencyTrader(threading.Thread):
 
@@ -225,8 +225,33 @@ class CurrencyTrader(threading.Thread):
 
 
             #df[attr].rolling(window, min_periods = window).max()
-            self.data_df['price_range_mean'] = self.data_df['price_range'].rolling(price_range_lookback_window, min_periods = price_range_lookback_window).max() #mean()
+
+            self.data_df['price_range_mean'] = self.data_df['price_range'].rolling(price_range_lookback_window, min_periods = price_range_lookback_window).mean() #mean()
             self.data_df['prev_price_range_mean'] = self.data_df['price_range_mean'].shift(1)
+
+
+            # self.data_df['positive_price_range_mean'] = self.data_df['positive_price_range'].rolling(price_range_lookback_window, min_periods = price_range_lookback_window).max() #mean()
+            # self.data_df['prev_positive_price_range_mean'] = self.data_df['positive_price_range_mean'].shift(1)
+            #
+            # self.data_df['negative_price_range_mean'] = self.data_df['negative_price_range'].rolling(price_range_lookback_window, min_periods = price_range_lookback_window).max() #mean()
+            # self.data_df['prev_negative_price_range_mean'] = self.data_df['negative_price_range_mean'].shift(1)
+
+
+            # self.data_df['bar_length_increase'] = np.where(
+            #     self.data_df['close'] - self.data_df['open'] > 0,
+            #     np.where(
+            #         self.data_df['prev_positive_price_range_mean'] > 0,
+            #         (self.data_df['price_range'] - self.data_df['prev_positive_price_range_mean']) / self.data_df['prev_positive_price_range_mean'],
+            #         0
+            #     ),
+            #     np.where(
+            #         self.data_df['prev_negative_price_range_mean'] > 0,
+            #         (self.data_df['price_range'] - self.data_df['prev_negative_price_range_mean']) / self.data_df['prev_negative_price_range_mean'],
+            #         0
+            #     )
+            # )
+
+
 
             self.data_df['bar_length_increase'] = (self.data_df['price_range'] - self.data_df['prev_price_range_mean']) / self.data_df['prev_price_range_mean']
             self.data_df['prev1_bar_length_increase'] = self.data_df['bar_length_increase'].shift(1)
@@ -549,8 +574,8 @@ class CurrencyTrader(threading.Thread):
             buy_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
                                                                for i in range(1,c5_lookback + 1)])
 
-            #buy_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
-            buy_c6 = self.data_df['is_large_bar_buy']
+            buy_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
+            #buy_c6 = self.data_df['is_large_bar_buy']
 
             if not self.remove_c12:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
