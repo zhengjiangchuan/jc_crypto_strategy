@@ -11,7 +11,7 @@ import shutil
 
 root_folder = "C:\\Forex\\formal_trading"
 
-dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug"
+dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct"
 
 if not os.path.exists(dest_folder):
     os.makedirs(dest_folder)

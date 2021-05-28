@@ -77,9 +77,14 @@ guppy_tolerate = 20
 
 maximum_enter_bar_length = 100
 
-price_range_lookback_window = 3
+price_range_lookback_window = 3 #Change this to 15  used to be 3
 
 bar_increase_threshold = 1.5 #1.5 for mean
+
+large_bar_look_back = 15
+skip_bar_num = 2
+
+large_bar_consider_past_num = 2
 
 class CurrencyTrader(threading.Thread):
 
@@ -205,11 +210,11 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['prev1_min_price'] = self.data_df['min_price'].shift(1)
-            for i in range(2, ma12_lookback + 1):
+            for i in range(2, max(ma12_lookback, large_bar_look_back) + 1):
                 self.data_df['prev' + str(i) + '_min_price'] = self.data_df['prev' + str(i-1) + '_min_price'].shift(1)
 
             self.data_df['prev1_max_price'] = self.data_df['max_price'].shift(1)
-            for i in range(2, ma12_lookback + 1):
+            for i in range(2, max(ma12_lookback, large_bar_look_back) + 1):
                 self.data_df['prev' + str(i) + '_max_price'] = self.data_df['prev' + str(i - 1) + '_max_price'].shift(1)
 
 
@@ -226,6 +231,7 @@ class CurrencyTrader(threading.Thread):
 
             #df[attr].rolling(window, min_periods = window).max()
 
+            ##Calculate large bar condition 1
             self.data_df['price_range_mean'] = self.data_df['price_range'].rolling(price_range_lookback_window, min_periods = price_range_lookback_window).mean() #mean()
             self.data_df['prev_price_range_mean'] = self.data_df['price_range_mean'].shift(1)
 
@@ -254,23 +260,123 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['bar_length_increase'] = (self.data_df['price_range'] - self.data_df['prev_price_range_mean']) / self.data_df['prev_price_range_mean']
+            self.data_df['large_bar_c1'] = self.data_df['bar_length_increase'] > bar_increase_threshold
+
+
+            ##Calculate large bar condition 2
+            self.data_df['middle'] = (self.data_df['open'] + self.data_df['close']) / 2
+
+            self.data_df['prev' + str(skip_bar_num + 1) + '_has_covered_lower'] = self.data_df['prev' + str(skip_bar_num + 1) + '_min_price'] <= self.data_df['middle']
+            for i in range(skip_bar_num + 2, large_bar_look_back + 1):
+                self.data_df['prev' + str(i) + '_has_covered_lower'] = self.data_df['prev' + str(i-1) + '_has_covered_lower'] | \
+                                                                         (self.data_df['prev' + str(i) + '_min_price'] <= self.data_df['middle'])
+
+            self.data_df['prev'  + str(skip_bar_num + 1) +  '_has_covered_higher'] = self.data_df['prev' + str(skip_bar_num + 1) + '_max_price'] >= self.data_df['middle']
+            for i in range(skip_bar_num + 2, large_bar_look_back + 1):
+                self.data_df['prev' + str(i) + '_has_covered_higher'] = self.data_df['prev' + str(i-1) + '_has_covered_higher'] | \
+                                                                         (self.data_df['prev' + str(i) + '_max_price'] >= self.data_df['middle'])
+
+            self.data_df['has_been_covered_recently'] = np.where(
+                self.data_df['close'] > self.data_df['open'],
+                self.data_df['prev' + str(large_bar_look_back) + '_has_covered_higher'],
+                self.data_df['prev' + str(large_bar_look_back) + '_has_covered_lower']
+            )
+
+
+            self.data_df['large_bar_c2'] = self.data_df['has_been_covered_recently']
+
+            ##Calculate large bar condition 3
+            self.data_df['positive_price_range_max'] = self.data_df['positive_price_range'].rolling(large_bar_look_back, min_periods = large_bar_look_back).max() #mean()
+            self.data_df['prev_positive_price_range_max'] = self.data_df['positive_price_range_max'].shift(1)
+
+            self.data_df['negative_price_range_max'] = self.data_df['negative_price_range'].rolling(large_bar_look_back, min_periods = large_bar_look_back).max() #mean()
+            self.data_df['prev_negative_price_range_max'] = self.data_df['negative_price_range_max'].shift(1)
+
+            self.data_df['prev_opposite_longest_bar_range'] = np.where(
+                self.data_df['close'] - self.data_df['open'] > 0,
+                self.data_df['prev_negative_price_range_max'],
+                self.data_df['prev_positive_price_range_max']
+            )
+
+            self.data_df['large_bar_c3'] = (self.data_df['prev_opposite_longest_bar_range'] - self.data_df['price_range']) / self.data_df['price_range'] < 0.05
+
+
+            self.data_df['large_positive_bar'] = (self.data_df['close'] > self.data_df['open']) & \
+                                                 self.data_df['large_bar_c1'] & self.data_df['large_bar_c2'] & self.data_df['large_bar_c3']
+
+            self.data_df['large_negative_bar'] = (self.data_df['close'] < self.data_df['open']) & \
+                                                 self.data_df['large_bar_c1'] & self.data_df['large_bar_c2'] & self.data_df['large_bar_c3']
+
+
+            # self.data_df['large_positive_bar'] = (self.data_df['close'] > self.data_df['open']) & \
+            #                                      self.data_df['large_bar_c1']
+            #
+            # self.data_df['large_negative_bar'] = (self.data_df['close'] < self.data_df['open']) & \
+            #                                      self.data_df['large_bar_c1']
+
+
+
+
+
+            #self.data_df.at[0, 'prev_buy_weak_fire'] = False
+            #self.data_df['prev_buy_weak_fire'] = pd.Series(list(self.data_df['prev_buy_weak_fire']), dtype='bool')
+
+
+
+            self.data_df['prev1_large_positive_bar'] = self.data_df['large_positive_bar'].shift(1)
+            #self.data_df.at[0, 'prev1_large_positive_bar'] = False
+            #self.data_df['prev1_large_positive_bar'] = pd.Series(list(self.data_df['prev1_large_positive_bar']), dtype='bool')
+
+            for i in range(2, large_bar_consider_past_num + 1):
+                self.data_df['prev' + str(i) + '_large_positive_bar'] = self.data_df['prev' + str(i-1) + '_large_positive_bar'].shift(1)
+
+            self.data_df['prev1_large_negative_bar'] = self.data_df['large_negative_bar'].shift(1)
+            for i in range(2, large_bar_consider_past_num + 1):
+                self.data_df['prev' + str(i) + '_large_negative_bar'] = self.data_df['prev' + str(i-1) + '_large_negative_bar'].shift(1)
+
+
+            self.data_df['is_false_buy_signal'] = reduce(lambda left, right: left | right,
+                                                          [self.data_df['prev' + str(i) + '_large_positive_bar'] for i in range(1, large_bar_consider_past_num + 1)] +
+                                                          [self.data_df['large_positive_bar']])
+
+            self.data_df['is_false_sell_signal'] = reduce(lambda left, right: left | right,
+                                                          [self.data_df['prev' + str(i) + '_large_negative_bar'] for i in range(1, large_bar_consider_past_num + 1)] +
+                                                          [self.data_df['large_negative_bar']])
+
+
+
+
+
+           ############# Old code ###############
             self.data_df['prev1_bar_length_increase'] = self.data_df['bar_length_increase'].shift(1)
-            self.data_df['prev2_bar_length_increase'] = self.data_df['prev1_bar_length_increase'].shift(1)
+            for i in range(2, large_bar_consider_past_num + 1):
+                self.data_df['prev' + str(i) + '_bar_length_increase'] = self.data_df['prev' + str(i-1) + '_bar_length_increase'].shift(1)
+
 
             self.data_df['is_large_bar_buy'] = reduce(lambda left, right: left | right,
                                                       [((self.data_df['prev' + str(i) + '_bar_length_increase'] > bar_increase_threshold) & \
                                                        (self.data_df['prev' + str(i) + '_close'] - self.data_df['prev' + str(i) + '_open'] > 0))
-                                                                                         for i in range(1, 3)] +
+                                                                                         for i in range(1, large_bar_consider_past_num + 1)] +
                                                       [(self.data_df['bar_length_increase'] > bar_increase_threshold)])
 
             self.data_df['is_large_bar_sell'] = reduce(lambda left, right: left | right,
                                                       [((self.data_df['prev' + str(i) + '_bar_length_increase'] > bar_increase_threshold) & \
                                                        (self.data_df['prev' + str(i) + '_close'] - self.data_df['prev' + str(i) + '_open'] < 0))
-                                                                                         for i in range(1, 3)] +
+                                                                                         for i in range(1, large_bar_consider_past_num + 1)] +
                                                       [(self.data_df['bar_length_increase'] > bar_increase_threshold)])
 
+             ######################################
 
-            self.data_df['is_large_bar'] = self.data_df['bar_length_increase'] > bar_increase_threshold
+
+
+
+
+
+
+
+
+
+            #self.data_df['is_large_bar'] = self.data_df['bar_length_increase'] > bar_increase_threshold
 
 
             self.data_df['low_pct_price_buy'] = self.data_df['min_price'] + (self.data_df['price_range']) * bar_low_percentile
@@ -334,6 +440,15 @@ class CurrencyTrader(threading.Thread):
             half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:2])
 
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
+
+
+
+
+            self.data_df['is_real_false_buy_signal'] = self.data_df['is_false_buy_signal'] #& (~half_aligned_long_condition)
+            self.data_df['is_real_false_sell_signal'] = self.data_df['is_false_sell_signal'] #& (~half_aligned_short_condition)
+
+            self.data_df['half_aligned_long_condition'] = half_aligned_long_condition
+            self.data_df['half_aligned_short_condition'] = half_aligned_short_condition
 
 
             df_temp = self.data_df[guppy_lines]
@@ -575,7 +690,10 @@ class CurrencyTrader(threading.Thread):
                                                                for i in range(1,c5_lookback + 1)])
 
             #buy_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
-            buy_c6 = self.data_df['is_large_bar_buy']
+
+            #buy_c6 = self.data_df['is_large_bar_buy']
+
+            buy_c6 = self.data_df['is_real_false_buy_signal']
 
             if not self.remove_c12:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6)  & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
@@ -676,7 +794,9 @@ class CurrencyTrader(threading.Thread):
                                                                 for i in range(1,c5_lookback + 1)])
 
             #sell_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
-            sell_c6 = self.data_df['is_large_bar_sell']
+            #sell_c6 = self.data_df['is_large_bar_sell']
+
+            sell_c6 = self.data_df['is_real_false_sell_signal']
 
             if not self.remove_c12:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
@@ -749,7 +869,7 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
                 self.log_msg("********************************")
 
-                additional_msg = " Exit if next two bars are both negative" if buy_c2_aux[-1] else ""
+                additional_msg = " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
 
                 additional_msg2 = " Be careful" if buy_c6[-1] else ""
 
@@ -799,7 +919,7 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
                 self.log_msg("********************************")
 
-                additional_msg = " Exit if next two bars are both positive" if sell_c2_aux[-1] else ""
+                additional_msg = " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
 
                 additional_msg2 = " Be careful" if sell_c6[-1] else ""
 
