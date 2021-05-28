@@ -88,7 +88,7 @@ currency_df = pd.read_csv(currency_file)
 # print("currency_df:")
 # print(currency_df)
 
-currency_df = currency_df[currency_df['currency'].isin(['AUDUSD'])]
+currency_df = currency_df[currency_df['currency'].isin(['AUDCHF'])]
 
 
 currency_pairs = []
