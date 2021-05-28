@@ -574,13 +574,13 @@ class CurrencyTrader(threading.Thread):
             buy_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
                                                                for i in range(1,c5_lookback + 1)])
 
-            buy_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
-            #buy_c6 = self.data_df['is_large_bar_buy']
+            #buy_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
+            buy_c6 = self.data_df['is_large_bar_buy']
 
             if not self.remove_c12:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5)  & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5)  & ((buy_c4) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -679,9 +679,9 @@ class CurrencyTrader(threading.Thread):
             sell_c6 = self.data_df['is_large_bar_sell']
 
             if not self.remove_c12:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5)  & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5)  & ((sell_c4) | ((sell_c13) & (~sell_c2)))
 
 
 
@@ -751,7 +751,9 @@ class CurrencyTrader(threading.Thread):
 
                 additional_msg = " Exit if next two bars are both negative" if buy_c2_aux[-1] else ""
 
-                sendEmail(msg, msg + additional_msg)
+                additional_msg2 = " Be careful" if buy_c6[-1] else ""
+
+                sendEmail(msg, msg + additional_msg + additional_msg2)
 
             elif self.data_df.iloc[-1]['first_buy_fire']:
                 msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str(
@@ -799,7 +801,9 @@ class CurrencyTrader(threading.Thread):
 
                 additional_msg = " Exit if next two bars are both positive" if sell_c2_aux[-1] else ""
 
-                sendEmail(msg, msg + additional_msg)
+                additional_msg2 = " Be careful" if sell_c6[-1] else ""
+
+                sendEmail(msg, msg + additional_msg + additional_msg2)
 
             elif self.data_df.iloc[-1]['first_sell_fire']:
                 msg = "Short " + self.currency + " at " + current_time + ", last_price = " + str(
