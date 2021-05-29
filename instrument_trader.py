@@ -836,7 +836,7 @@ class CurrencyTrader(threading.Thread):
 
             buy_c6 = self.data_df['is_false_buy_signal']
 
-            buy_c7 = (self.data_df['close'] > self.data_df['upper_band_close']) & \
+            buy_c7 = (self.data_df['high'] > self.data_df['upper_band_close']) & \
                      ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_strict) | \
                       ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_long_condition)))
                       #Buy price too high, should not enter
@@ -946,7 +946,7 @@ class CurrencyTrader(threading.Thread):
 
             sell_c6 = self.data_df['is_false_sell_signal']
 
-            sell_c7 = (self.data_df['close'] < self.data_df['lower_band_close']) & \
+            sell_c7 = (self.data_df['low'] < self.data_df['lower_band_close']) & \
                      ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_strict) | \
                       ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_short_condition)))
 
