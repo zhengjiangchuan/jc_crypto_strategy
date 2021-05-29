@@ -86,6 +86,7 @@ skip_bar_num = 2
 
 large_bar_consider_past_num = 2
 
+price_to_period_range_pct_relaxed = 0.2
 price_to_period_range_pct = 0.10
 price_to_period_range_pct_strict = 0.02
 
@@ -95,6 +96,8 @@ vegas_trend_pct_threshold = 0.8
 vegas_short_look_back = 10
 
 vagas_fast_support_threshold = 10
+
+period_lookback = 50
 
 class CurrencyTrader(threading.Thread):
 
@@ -305,6 +308,306 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev' + str(i) + '_lowest_guppy'] = self.data_df['prev' + str(i-1) + '_lowest_guppy'].shift(1)
 
 
+            self.data_df['upper_band_close_gradient'] = self.data_df['upper_band_close'].diff()
+            self.data_df['lower_band_close_gradient'] = self.data_df['lower_band_close'].diff()
+
+            self.data_df['upper_band_go_up'] = self.data_df['upper_band_close_gradient'] > 0
+            self.data_df['lower_band_go_down'] = self.data_df['lower_band_close_gradient'] < 0
+
+            self.data_df['break_upper_bolling'] = self.data_df['high'] > self.data_df['upper_band_close']
+            self.data_df['break_lower_bolling'] = self.data_df['low'] < self.data_df['lower_band_close']
+
+            ################# features to detect trend approaching the end ###############
+            self.data_df['period_high' + str(high_low_window) + '_gradient'] = self.data_df['period_high' + str(high_low_window)].diff()
+            self.data_df['period_high' + str(high_low_window) + '_go_up'] = np.where(
+                self.data_df['period_high' + str(high_low_window) + '_gradient'] > 0,
+                1,
+                0
+            )
+            self.data_df['period_high' + str(high_low_window) + '_go_down'] = np.where(
+                self.data_df['period_high' + str(high_low_window) + '_gradient'] < 0,
+                1,
+                0
+            )
+
+            self.data_df['period_high' + str(high_low_window) + '_go_up_num'] = \
+                self.data_df['period_high' + str(high_low_window) + '_go_up'].rolling(period_lookback, min_periods = period_lookback).sum()
+            self.data_df['period_high' + str(high_low_window) + '_go_down_num'] = \
+                self.data_df['period_high' + str(high_low_window) + '_go_down'].rolling(period_lookback, min_periods = period_lookback).sum()
+
+
+
+
+            self.data_df['period_low' + str(high_low_window) + '_gradient'] = self.data_df['period_low' + str(high_low_window)].diff()
+            self.data_df['period_low' + str(high_low_window) + '_go_up'] = np.where(
+                self.data_df['period_low' + str(high_low_window) + '_gradient'] > 0,
+                1,
+                0
+            )
+            self.data_df['period_low' + str(high_low_window) + '_go_down'] = np.where(
+                self.data_df['period_low' + str(high_low_window) + '_gradient'] < 0,
+                1,
+                0
+            )
+            self.data_df['period_low' + str(high_low_window) + '_go_up_num'] = \
+                self.data_df['period_low' + str(high_low_window) + '_go_up'].rolling(period_lookback, min_periods = period_lookback).sum()
+            self.data_df['period_low' + str(high_low_window) + '_go_down_num'] = \
+                self.data_df['period_low' + str(high_low_window) + '_go_down'].rolling(period_lookback, min_periods = period_lookback).sum()
+
+
+            self.data_df['is_breaking_up_upper_band'] = self.data_df['break_upper_bolling'] | self.data_df['upper_band_go_up']
+            self.data_df['is_breaking_down_lower_band'] = self.data_df['break_lower_bolling'] | self.data_df['lower_band_go_down']
+
+            self.data_df['breaking_up_upper_band'] = np.where(
+                self.data_df['is_breaking_up_upper_band'],
+                1,
+                0
+            )
+
+            self.data_df['breaking_down_lower_band'] = np.where(
+                self.data_df['is_breaking_down_lower_band'],
+                1,
+                0
+            )
+
+            self.data_df['breaking_up_upper_band_diff'] = self.data_df['breaking_up_upper_band'].diff()
+            self.data_df['breaking_down_lower_band_diff'] = self.data_df['breaking_down_lower_band'].diff()
+
+            self.data_df['is_new_break_up_upper_band'] = np.where(
+                self.data_df['breaking_up_upper_band_diff'] == 1,
+                1,
+                0
+            )
+
+            self.data_df['is_new_break_down_lower_band'] = np.where(
+                self.data_df['breaking_down_lower_band_diff'] == 1,
+                1,
+                0
+            )
+
+
+
+            # self.data_df['period_break_up_upper_band_num'] = self.data_df['is_new_break_up_upper_band'].rolling(period_lookback, min_periods = period_lookback).sum()
+            # self.data_df['period_break_down_lower_band_num'] = self.data_df['is_new_break_down_lower_band'].rolling(period_lookback, min_periods = period_lookback).sum()
+
+            #'period_high' + str(high_low_window) + '_go_up'
+            self.data_df['cum_num_new_break_up'] = self.data_df['is_new_break_up_upper_band'].cumsum()
+            self.data_df['cum_num_new_break_down'] = self.data_df['is_new_break_down_lower_band'].cumsum()
+
+            self.data_df['cum_num_high_go_up'] = self.data_df['period_high' + str(high_low_window) + '_go_up'].cumsum()
+            self.data_df['cum_num_high_go_down'] = self.data_df['period_high' + str(high_low_window) + '_go_down'].cumsum()
+            self.data_df['cum_num_low_go_up'] = self.data_df['period_low' + str(high_low_window) + '_go_up'].cumsum()
+            self.data_df['cum_num_low_go_down'] = self.data_df['period_low' + str(high_low_window) + '_go_down'].cumsum()
+
+
+
+            self.data_df['cum_num_new_break_up'] = self.data_df['cum_num_new_break_up'].shift(1)
+            self.data_df.at[0, 'cum_num_new_break_up'] = 0
+
+            self.data_df['cum_num_new_break_down'] = self.data_df['cum_num_new_break_down'].shift(1)
+            self.data_df.at[0, 'cum_num_new_break_down'] = 0
+
+
+            self.data_df['cum_num_high_go_up'] = self.data_df['cum_num_high_go_up'].shift(1)
+            self.data_df.at[0, 'cum_num_high_go_up'] = 0
+
+            self.data_df['cum_num_high_go_down'] = self.data_df['cum_num_high_go_down'].shift(1)
+            self.data_df.at[0, 'cum_num_high_go_down'] = 0
+
+            self.data_df['cum_num_low_go_up'] = self.data_df['cum_num_low_go_up'].shift(1)
+            self.data_df.at[0, 'cum_num_low_go_up'] = 0
+
+            self.data_df['cum_num_low_go_down'] = self.data_df['cum_num_low_go_down'].shift(1)
+            self.data_df.at[0, 'cum_num_low_go_down'] = 0
+
+            cum_columns = ['cum_num_new_break_up', 'cum_num_new_break_down',
+                           'cum_num_high_go_up', 'cum_num_high_go_down', 'cum_num_low_go_up', 'cum_num_low_go_down']
+
+
+            self.data_df['id'] = list(range(self.data_df.shape[0]))
+
+            self.data_df['period_high' + str(high_low_window) + '_go_up_temp'] = np.nan
+            self.data_df['period_high' + str(high_low_window) + '_go_up_temp'] = np.where(
+                self.data_df['period_high' + str(high_low_window) + '_go_up'] == 1,
+                self.data_df['id'],
+                self.data_df['period_high' + str(high_low_window) + '_go_up_temp']
+            )
+
+            df_high_go_up = self.data_df[self.data_df['period_high' + str(high_low_window) + '_go_up_temp'].notnull()]\
+                                        [['id'] + cum_columns]
+
+
+            self.data_df['period_high' + str(high_low_window) + '_go_down_temp'] = np.nan
+            self.data_df['period_high' + str(high_low_window) + '_go_down_temp'] = np.where(
+                self.data_df['period_high' + str(high_low_window) + '_go_down'] == 1,
+                self.data_df['id'],
+                self.data_df['period_high' + str(high_low_window) + '_go_up_temp']
+            )
+
+            df_high_go_down = self.data_df[self.data_df['period_high' + str(high_low_window) + '_go_down_temp'].notnull()]\
+                                          [['id'] + cum_columns]
+
+
+
+
+            self.data_df['period_low' + str(high_low_window) + '_go_up_temp'] = np.nan
+            self.data_df['period_low' + str(high_low_window) + '_go_up_temp'] = np.where(
+                self.data_df['period_low' + str(high_low_window) + '_go_up'] == 1,
+                self.data_df['id'],
+                self.data_df['period_low' + str(high_low_window) + '_go_up_temp']
+            )
+
+            df_low_go_up = self.data_df[self.data_df['period_low' + str(high_low_window) + '_go_up_temp'].notnull()]\
+                                       [['id'] + cum_columns]
+
+
+
+
+            self.data_df['period_low' + str(high_low_window) + '_go_down_temp'] = np.nan
+            self.data_df['period_low' + str(high_low_window) + '_go_down_temp'] = np.where(
+                self.data_df['period_low' + str(high_low_window) + '_go_down'] == 1,
+                self.data_df['id'],
+                self.data_df['period_low' + str(high_low_window) + '_go_down_temp']
+            )
+
+            df_low_go_down = self.data_df[self.data_df['period_low' + str(high_low_window) + '_go_down_temp'].notnull()]\
+                                         [['id'] + cum_columns]
+
+
+
+
+            temp_df = self.data_df[['id',
+                                    'period_high' + str(high_low_window) + '_go_up_temp',
+                                    'period_high' + str(high_low_window) + '_go_down_temp',
+                                    'period_low' + str(high_low_window) + '_go_up_temp',
+                                    'period_low' + str(high_low_window) + '_go_down_temp']]
+
+            temp_df = temp_df.fillna(method = 'ffill').fillna(0)
+
+            temp_df['period_high' + str(high_low_window) + '_go_up_duration'] = temp_df['id'] - temp_df['period_high' + str(high_low_window) + '_go_up_temp'] + 1
+            temp_df['period_high' + str(high_low_window) + '_go_down_duration'] = temp_df['id'] - temp_df['period_high' + str(high_low_window) + '_go_down_temp']  + 1
+            temp_df['period_low' + str(high_low_window) + '_go_up_duration'] = temp_df['id'] - temp_df['period_low' + str(high_low_window) + '_go_up_temp'] + 1
+            temp_df['period_low' + str(high_low_window) + '_go_down_duration'] = temp_df['id'] - temp_df['period_low' + str(high_low_window) + '_go_down_temp'] + 1
+
+
+            temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_go_up_temp']
+            temp_df = pd.merge(temp_df, df_high_go_up, on = ['id'], how = 'inner')
+            temp_df = temp_df.rename(columns = {
+                'cum_num_new_break_up' : 'cum_num_new_break_up_for_high_go_up',
+                'cum_num_new_break_down' : 'cum_num_new_break_down_for_high_go_up',
+                'cum_num_high_go_up' : 'cum_num_high_go_up_for_high_go_up',
+                'cum_num_high_go_down': 'cum_num_high_go_down_for_high_go_up',
+                'cum_num_low_go_up': 'cum_num_low_go_up_for_high_go_up',
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_up'
+            })
+
+            temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_go_down_temp']
+            temp_df = pd.merge(temp_df, df_high_go_down, on = ['id'], how = 'inner')
+            temp_df = temp_df.rename(columns = {
+                'cum_num_new_break_up' : 'cum_num_new_break_up_for_high_go_down',
+                'cum_num_new_break_down' : 'cum_num_new_break_down_for_high_go_down',
+                'cum_num_high_go_up': 'cum_num_high_go_up_for_high_go_down',
+                'cum_num_high_go_down': 'cum_num_high_go_down_for_high_go_down',
+                'cum_num_low_go_up': 'cum_num_low_go_up_for_high_go_down',
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_down'
+            })
+
+            temp_df['id'] = temp_df['period_low' + str(high_low_window) + '_go_up_temp']
+            temp_df = pd.merge(temp_df, df_low_go_up, on = ['id'], how = 'inner')
+            temp_df = temp_df.rename(columns = {
+                'cum_num_new_break_up' : 'cum_num_new_break_up_for_low_go_up',
+                'cum_num_new_break_down' : 'cum_num_new_break_down_for_low_go_up',
+                'cum_num_high_go_up': 'cum_num_high_go_up_for_low_go_up',
+                'cum_num_high_go_down': 'cum_num_high_go_down_for_low_go_up',
+                'cum_num_low_go_up': 'cum_num_low_go_up_for_low_go_up',
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_up'
+            })
+
+            temp_df['id'] = temp_df['period_low' + str(high_low_window) + '_go_down_temp']
+            temp_df = pd.merge(temp_df, df_low_go_down, on = ['id'], how = 'inner')
+            temp_df = temp_df.rename(columns = {
+                'cum_num_new_break_up' : 'cum_num_new_break_up_for_low_go_down',
+                'cum_num_new_break_down' : 'cum_num_new_break_down_for_low_go_down',
+                'cum_num_high_go_up': 'cum_num_high_go_up_for_low_go_down',
+                'cum_num_high_go_down': 'cum_num_high_go_down_for_low_go_down',
+                'cum_num_low_go_up': 'cum_num_low_go_up_for_low_go_down',
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_down'
+            })
+
+
+
+            temp_df = temp_df[['id'] + [col for col in temp_df.columns if 'duration' in col or 'cum_num' in col]]
+
+            self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
+
+            self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])
+
+
+            self.data_df['num_new_break_up_in_high_go_up'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_high_go_up']
+            self.data_df['num_new_break_up_in_high_go_down'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_high_go_down']
+            self.data_df['num_new_break_up_in_low_go_up'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_low_go_up']
+            self.data_df['num_new_break_up_in_low_go_down'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_low_go_down']
+
+
+
+            self.data_df['num_new_break_down_in_high_go_up'] = self.data_df['cum_num_new_break_down'] - self.data_df['cum_num_new_break_down_for_high_go_up']
+            self.data_df['num_new_break_down_in_high_go_down'] = self.data_df['cum_num_new_break_down'] - self.data_df['cum_num_new_break_down_for_high_go_down']
+            self.data_df['num_new_break_down_in_low_go_up'] = self.data_df['cum_num_new_break_down'] - self.data_df['cum_num_new_break_down_for_low_go_up']
+            self.data_df['num_new_break_down_in_low_go_down'] = self.data_df['cum_num_new_break_down'] - self.data_df['cum_num_new_break_down_for_low_go_down']
+
+
+            self.data_df['num_high_go_up_in_high_go_up'] = self.data_df['cum_num_high_go_up'] - self.data_df['cum_num_high_go_up_for_high_go_up']
+            self.data_df['num_high_go_up_in_high_go_down'] = self.data_df['cum_num_high_go_up'] - self.data_df['cum_num_high_go_up_for_high_go_down']
+            self.data_df['num_high_go_up_in_low_go_up'] = self.data_df['cum_num_high_go_up'] - self.data_df['cum_num_high_go_up_for_low_go_up']
+            self.data_df['num_high_go_up_in_low_go_down'] = self.data_df['cum_num_high_go_up'] - self.data_df['cum_num_high_go_up_for_low_go_down']
+
+            self.data_df['num_high_go_down_in_high_go_up'] = self.data_df['cum_num_high_go_down'] - self.data_df['cum_num_high_go_down_for_high_go_up']
+            self.data_df['num_high_go_down_in_high_go_down'] = self.data_df['cum_num_high_go_down'] - self.data_df['cum_num_high_go_down_for_high_go_down']
+            self.data_df['num_high_go_down_in_low_go_up'] = self.data_df['cum_num_high_go_down'] - self.data_df['cum_num_high_go_down_for_low_go_up']
+            self.data_df['num_high_go_down_in_low_go_down'] = self.data_df['cum_num_high_go_down'] - self.data_df['cum_num_high_go_down_for_low_go_down']
+
+            self.data_df['num_low_go_up_in_high_go_up'] = self.data_df['cum_num_low_go_up'] - self.data_df['cum_num_low_go_up_for_high_go_up']
+            self.data_df['num_low_go_up_in_high_go_down'] = self.data_df['cum_num_low_go_up'] - self.data_df['cum_num_low_go_up_for_high_go_down']
+            self.data_df['num_low_go_up_in_low_go_up'] = self.data_df['cum_num_low_go_up'] - self.data_df['cum_num_low_go_up_for_low_go_up']
+            self.data_df['num_low_go_up_in_low_go_down'] = self.data_df['cum_num_low_go_up'] - self.data_df['cum_num_low_go_up_for_low_go_down']
+
+            self.data_df['num_low_go_down_in_high_go_up'] = self.data_df['cum_num_low_go_down'] - self.data_df['cum_num_low_go_down_for_high_go_up']
+            self.data_df['num_low_go_down_in_high_go_down'] = self.data_df['cum_num_low_go_down'] - self.data_df['cum_num_low_go_down_for_high_go_down']
+            self.data_df['num_low_go_down_in_low_go_up'] = self.data_df['cum_num_low_go_down'] - self.data_df['cum_num_low_go_down_for_low_go_up']
+            self.data_df['num_low_go_down_in_low_go_down'] = self.data_df['cum_num_low_go_down'] - self.data_df['cum_num_low_go_down_for_low_go_down']
+
+
+
+
+
+            self.data_df['is_bear_dying'] = \
+                (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > 50) & \
+                (self.data_df['num_high_go_down_in_low_go_down'] >= 1) & \
+                (self.data_df['num_new_break_down_in_low_go_down'] >= 2)
+
+            self.data_df['is_bull_dying'] = \
+                (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > 50) & \
+                (self.data_df['num_low_go_up_in_high_go_up'] >= 1) & \
+                (self.data_df['num_new_break_up_in_high_go_up'] >= 2)
+
+
+
+            # self.data_df['is_bear_dying'] = \
+            #     (self.data_df['period_low' + str(high_low_window) + '_go_down_num'] == 0) & (self.data_df['period_high' + str(high_low_window) + '_go_down_num'] >= 1) \
+            #     & (self.data_df['period_break_down_lower_band_num'] >= 2)
+            #
+            # self.data_df['is_bull_dying'] = \
+            #     (self.data_df['period_high' + str(high_low_window) + '_go_up_num'] == 0) & (self.data_df['period_low' + str(high_low_window) + '_go_up_num'] >= 1) \
+            #     & (self.data_df['period_break_up_upper_band_num'] >= 2)
+
+
+
+
+
+
+            ####################################################################################################################################
+
+
             self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
             self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
@@ -337,6 +640,9 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['prev_upper_vegas_go_up_pct'] = self.data_df['upper_vegas_go_up_pct'].shift(1)
             self.data_df['prev_lower_vegas_go_up_pct'] = self.data_df['lower_vegas_go_up_pct'].shift(1)
+
+
+
 
 
 
@@ -549,8 +855,7 @@ class CurrencyTrader(threading.Thread):
             for i in range(2, ma12_lookback + 1):
                 self.data_df['prev' + str(i) + '_ma12_gradient'] = self.data_df['prev' + str(i-1) + '_ma12_gradient'].shift(1)
 
-            self.data_df['upper_band_close_gradient'] = self.data_df['upper_band_close'].diff()
-            self.data_df['lower_band_close_gradient'] = self.data_df['lower_band_close'].diff()
+
 
 
             self.data_df['is_vegas_up_trend'] = self.data_df['ma_close144'] > self.data_df['ma_close169']
@@ -840,15 +1145,18 @@ class CurrencyTrader(threading.Thread):
 
             buy_c6 = self.data_df['is_false_buy_signal']
 
-            buy_c7 = (self.data_df['high'] > self.data_df['upper_band_close']) & \
+            buy_c7 = self.data_df['break_upper_bolling'] & \
                      ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_strict) | \
                       ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_long_condition)))
                       #Buy price too high, should not enter
 
+            buy_c8 = self.data_df['is_bull_dying'] & (self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_relaxed)
+
+
             if not self.remove_c12:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -863,6 +1171,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c5'] = buy_c5
             self.data_df['buy_c6'] = buy_c6
             self.data_df['buy_c7'] = buy_c7
+            self.data_df['buy_c8'] = buy_c8
 
 
 
@@ -951,14 +1260,16 @@ class CurrencyTrader(threading.Thread):
 
             sell_c6 = self.data_df['is_false_sell_signal']
 
-            sell_c7 = (self.data_df['low'] < self.data_df['lower_band_close']) & \
+            sell_c7 = self.data_df['break_lower_bolling'] & \
                      ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_strict) | \
                       ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_short_condition)))
 
+            sell_c8 = self.data_df['is_bear_dying'] & (self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_relaxed)
+
             if not self.remove_c12:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
 
 
 
@@ -974,6 +1285,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_c5'] = sell_c5
             self.data_df['sell_c6'] = sell_c6
             self.data_df['sell_c7'] = sell_c7
+            self.data_df['sell_c8'] = sell_c8
 
 
             self.data_df['prev_sell_weak_fire'] = self.data_df['sell_weak_fire'].shift(1)
