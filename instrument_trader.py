@@ -86,6 +86,9 @@ skip_bar_num = 2
 
 large_bar_consider_past_num = 2
 
+price_to_period_range_pct = 0.10
+price_to_period_range_pct_strict = 0.02
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -181,6 +184,10 @@ class CurrencyTrader(threading.Thread):
             calc_bolling_bands(self.data_df, "close", bolling_width)
             calc_macd(self.data_df, "close")
 
+
+            self.data_df['period_high_low_range'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['period_low' + str(high_low_window)]
+            self.data_df['price_to_period_low_pct'] = (self.data_df['close'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
+            self.data_df['price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['close']) / self.data_df['period_high_low_range']
 
             # self.data_df['prev_open'] = self.data_df['open'].shift(1)
             # self.data_df['prev_close'] = self.data_df['close'].shift(1)
@@ -711,10 +718,15 @@ class CurrencyTrader(threading.Thread):
 
             buy_c6 = self.data_df['is_false_buy_signal']
 
+            buy_c7 = (self.data_df['close'] > self.data_df['upper_band_close']) & \
+                     ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_strict) | \
+                      ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_long_condition)))
+                      #Buy price too high, should not enter
+
             if not self.remove_c12:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -728,6 +740,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c44'] = buy_c44
             self.data_df['buy_c5'] = buy_c5
             self.data_df['buy_c6'] = buy_c6
+            self.data_df['buy_c7'] = buy_c7
 
 
 
@@ -814,10 +827,14 @@ class CurrencyTrader(threading.Thread):
 
             sell_c6 = self.data_df['is_false_sell_signal']
 
+            sell_c7 = (self.data_df['close'] < self.data_df['lower_band_close']) & \
+                     ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_strict) | \
+                      ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_short_condition)))
+
             if not self.remove_c12:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6)  & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6)  & ((sell_c4) | ((sell_c13) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & ((sell_c4) | ((sell_c13) & (~sell_c2)))
 
 
 
