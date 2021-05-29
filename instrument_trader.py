@@ -389,12 +389,12 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev' + str(skip_bar_num + 1) + '_has_covered_lower'] = self.data_df['prev' + str(skip_bar_num + 1) + '_min_price'] <= self.data_df['middle']
             for i in range(skip_bar_num + 2, large_bar_look_back + 1):
                 self.data_df['prev' + str(i) + '_has_covered_lower'] = self.data_df['prev' + str(i-1) + '_has_covered_lower'] | \
-                                                                         (self.data_df['prev' + str(i) + '_min_price'] <= self.data_df['middle'])
+                                                                         (self.data_df['prev' + str(i) + '_min_price'] <= self.data_df['min_price']) #self.data_df['middle']
 
             self.data_df['prev'  + str(skip_bar_num + 1) +  '_has_covered_higher'] = self.data_df['prev' + str(skip_bar_num + 1) + '_max_price'] >= self.data_df['middle']
             for i in range(skip_bar_num + 2, large_bar_look_back + 1):
                 self.data_df['prev' + str(i) + '_has_covered_higher'] = self.data_df['prev' + str(i-1) + '_has_covered_higher'] | \
-                                                                         (self.data_df['prev' + str(i) + '_max_price'] >= self.data_df['middle'])
+                                                                         (self.data_df['prev' + str(i) + '_max_price'] >= self.data_df['max_price']) #self.data_df['middle']
 
             self.data_df['has_been_covered_recently'] = np.where(
                 self.data_df['close'] > self.data_df['open'],
@@ -968,6 +968,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_c44'] = sell_c44
             self.data_df['sell_c5'] = sell_c5
             self.data_df['sell_c6'] = sell_c6
+            self.data_df['sell_c7'] = sell_c7
 
 
             self.data_df['prev_sell_weak_fire'] = self.data_df['sell_weak_fire'].shift(1)

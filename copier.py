@@ -11,7 +11,7 @@ import shutil
 
 root_folder = "C:\\Forex\\formal_trading"
 
-dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct2"
+dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct"
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_16RedefineFalseSignalEntryBar"
 
@@ -23,9 +23,8 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    # if symbol_folder[-6:] not in ['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
-    #                                                     'EURCHF', 'GBPCHF', 'USDCHF']:
-    #     continue
+    if symbol_folder[-6:] not in ['USDCAD']:
+        continue
 
     print(symbol_folder)
     chart_folder = os.path.join(symbol_folder, "simple_chart")
