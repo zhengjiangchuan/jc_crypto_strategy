@@ -89,6 +89,13 @@ large_bar_consider_past_num = 2
 price_to_period_range_pct = 0.10
 price_to_period_range_pct_strict = 0.02
 
+vegas_look_back = 120
+vegas_trend_pct_threshold = 0.8
+
+vegas_short_look_back = 10
+
+vagas_fast_support_threshold = 10
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -240,6 +247,16 @@ class CurrencyTrader(threading.Thread):
             for guppy_line in guppy_lines:
                 self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
 
+            for guppy_line in guppy_lines:
+                self.data_df[guppy_line + '_up'] = np.where(
+                    self.data_df[guppy_line + '_gradient'] > 0,
+                    1,
+                    0
+                )
+
+            self.data_df['up_guppy_line_num'] = reduce(lambda left, right: left + right, [self.data_df[guppy_line + '_up'] for guppy_line in guppy_lines])
+            self.data_df['down_guppy_line_num'] = len(guppy_lines) - self.data_df['up_guppy_line_num']
+
 
             aligned_long_conditions1 = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
                                        range(len(guppy_lines) - 1)]
@@ -293,6 +310,34 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['upper_vegas_gradient'] = self.data_df['upper_vegas'].diff()
             self.data_df['lower_vegas_gradient'] = self.data_df['lower_vegas'].diff()
+
+            self.data_df['prev_upper_vegas_gradient'] = self.data_df['upper_vegas_gradient'].shift(1)
+            self.data_df['prev_lower_vegas_gradient'] = self.data_df['lower_vegas_gradient'].shift(1)
+
+            self.data_df['upper_vegas_go_up'] = np.where(
+                self.data_df['upper_vegas_gradient'] > 0,
+                1,
+                0
+            )
+
+            self.data_df['lower_vegas_go_up'] = np.where(
+                self.data_df['lower_vegas_gradient'] > 0,
+                1,
+                0
+            )
+
+            self.data_df['upper_vegas_go_up_num'] = self.data_df['upper_vegas_go_up'].rolling(vegas_look_back, min_periods = vegas_look_back).sum()
+            self.data_df['lower_vegas_go_up_num'] = self.data_df['lower_vegas_go_up'].rolling(vegas_look_back, min_periods = vegas_look_back).sum()
+
+            self.data_df['upper_vegas_go_up_pct'] = self.data_df['upper_vegas_go_up_num'] / vegas_look_back
+            self.data_df['lower_vegas_go_up_pct'] = self.data_df['lower_vegas_go_up_num'] / vegas_look_back
+
+            self.data_df['prev_upper_vegas_go_up_pct'] = self.data_df['upper_vegas_go_up_pct'].shift(1)
+            self.data_df['prev_lower_vegas_go_up_pct'] = self.data_df['lower_vegas_go_up_pct'].shift(1)
+
+
+
+
 
             self.data_df['prev1_upper_vegas'] = self.data_df['upper_vegas'].shift(1)
             for i in range(2, ma12_lookback + 1):
@@ -664,6 +709,77 @@ class CurrencyTrader(threading.Thread):
             else:
                 above_cond = self.data_df['is_above_vegas_strict'] | (self.data_df['is_above_vegas'] & (self.data_df['upper_vegas_gradient'] > 0) & (self.data_df['lower_vegas_gradient'] > 0))
 
+
+
+            self.data_df['upper_vegas_mostly_up'] = self.data_df['prev_upper_vegas_go_up_pct'] >= vegas_trend_pct_threshold
+            self.data_df['lower_vegas_mostly_up'] = self.data_df['prev_lower_vegas_go_up_pct'] >= vegas_trend_pct_threshold
+
+            self.data_df['upper_vegas_mostly_down'] = self.data_df['prev_upper_vegas_go_up_pct'] <= 1 - vegas_trend_pct_threshold
+            self.data_df['lower_vegas_mostly_down'] = self.data_df['prev_lower_vegas_go_up_pct'] <= 1 - vegas_trend_pct_threshold
+
+            self.data_df['vegas_mostly_up'] = self.data_df['upper_vegas_mostly_up'] & self.data_df['lower_vegas_mostly_up']
+            self.data_df['vegas_mostly_down'] = self.data_df['upper_vegas_mostly_down'] & self.data_df['lower_vegas_mostly_down']
+
+            self.data_df['vegas_fast_above'] = self.data_df['ma_close144'] > self.data_df['ma_close169']
+
+            self.data_df['vegas_layout'] = np.where(
+                self.data_df['vegas_fast_above'],
+                1,
+                0
+            )
+            self.data_df['vegas_cross'] = self.data_df['vegas_layout'].diff()
+            self.data_df['vegas_cross_up'] = np.where(
+                self.data_df['vegas_cross'] == 1,
+                1,
+                0
+            )
+            self.data_df['vegas_cross_down'] = np.where(
+                self.data_df['vegas_cross'] == -1,
+                1,
+                0
+            )
+
+
+            self.data_df['recent_vegas_cross_up_num'] = self.data_df['vegas_cross_up'].rolling(vegas_short_look_back, min_periods = vegas_short_look_back).sum()
+            self.data_df['recent_vegas_cross_down_num'] = self.data_df['vegas_cross_down'].rolling(vegas_short_look_back, min_periods = vegas_short_look_back).sum()
+
+            self.data_df['fastest_guppy_at_top'] = np.abs(self.data_df['ma_close30'] - self.data_df['highest_guppy']) < 1e-5
+            self.data_df['fastest_guppy_at_btm'] = np.abs(self.data_df['ma_close30'] - self.data_df['lowest_guppy']) < 1e-5
+
+
+            buy_c41 = self.data_df['high'] > self.data_df['upper_band_close'] #self.data_df['prev_upper_band_close']
+            buy_c42 = self.data_df['upper_band_close_gradient'] * self.lot_size * self.exchange_rate > 0# bolling_threshold
+            buy_c43 = self.data_df['is_positive'] & (self.data_df['prev1_open'] < self.data_df['prev1_close'])
+            buy_c44 = (self.data_df['low_low_pct_price_buy'] > self.data_df['upper_vegas']) & (self.data_df['prev_low_low_pct_price_buy'] > self.data_df['prev1_upper_vegas'])
+            buy_c4 = buy_c41 & buy_c42 & buy_c43 & buy_c44
+
+            sell_c41 = self.data_df['low'] < self.data_df['lower_band_close'] # self.data_df['prev_lower_band_close']
+            sell_c42 = self.data_df['lower_band_close_gradient'] * self.lot_size * self.exchange_rate < 0 #-bolling_threshold
+            sell_c43 = self.data_df['is_negative'] &  (self.data_df['prev1_open'] > self.data_df['prev1_close'])
+            sell_c44 = (self.data_df['high_high_pct_price_sell'] < self.data_df['lower_vegas']) & (self.data_df['prev_high_high_pct_price_sell'] < self.data_df['prev1_lower_vegas'])
+            sell_c4 = sell_c41 & sell_c42 & sell_c43 & sell_c44
+
+
+            #(self.data_df['fastest_guppy_at_top'] & self.data_df['ma_close30_gradient'] > 0)
+            self.data_df['vegas_inferred_up_cond1'] = self.data_df['vegas_fast_above'] & (self.data_df['recent_vegas_cross_up_num'] == 1)
+            self.data_df['vegas_inferred_up_cond2'] = (~self.data_df['vegas_fast_above']) & (
+                ((self.data_df['fastest_guppy_at_top'] & self.data_df['ma_close30_gradient'] > 0)) | \
+                ((self.data_df['lower_vegas_gradient']*self.lot_size*self.exchange_rate > vagas_fast_support_threshold) & (self.data_df['prev_lower_vegas_gradient']*self.lot_size*self.exchange_rate > vagas_fast_support_threshold))
+            )
+            self.data_df['vegas_inferred_up'] = self.data_df['vegas_inferred_up_cond1'] | self.data_df['vegas_inferred_up_cond2'] | buy_c4
+
+            #(self.data_df['fastest_guppy_at_btm'] & self.data_df['ma_close30_gradient'] < 0)
+            self.data_df['vegas_inferred_down_cond1'] = (~self.data_df['vegas_fast_above']) & (self.data_df['recent_vegas_cross_down_num'] == 1)
+            self.data_df['vegas_inferred_down_cond2'] = self.data_df['vegas_fast_above'] & (
+                ((self.data_df['fastest_guppy_at_btm'] & self.data_df['ma_close30_gradient'] < 0)) | \
+                ((self.data_df['upper_vegas_gradient']*self.lot_size*self.exchange_rate < -vagas_fast_support_threshold) & (self.data_df['prev_upper_vegas_gradient']*self.lot_size*self.exchange_rate < -vagas_fast_support_threshold))
+            )
+            self.data_df['vegas_inferred_down'] = self.data_df['vegas_inferred_down_cond1'] | self.data_df['vegas_inferred_down_cond2'] | sell_c4
+
+            self.data_df['vegas_final_inferred_up'] = self.data_df['vegas_mostly_up'] & self.data_df['vegas_inferred_up']
+            self.data_df['vegas_final_inferred_down'] = self.data_df['vegas_mostly_down'] & self.data_df['vegas_inferred_down']
+
+
             #Cruise
             enter_bar_too_large = (self.data_df['price_range'] * self.lot_size * self.exchange_rate > maximum_enter_bar_length) | \
                                   (self.data_df['prev_price_range'] * self.lot_size * self.exchange_rate > maximum_enter_bar_length)
@@ -676,9 +792,9 @@ class CurrencyTrader(threading.Thread):
                                        & (self.data_df['ma12_gradient'] >= 0) & (self.data_df['close'] > self.data_df['ma_close12']) \
                                             & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
 
-            self.data_df['buy_ready'] = self.data_df['buy_weak_ready'] & self.data_df['is_vegas_up_trend']
-            self.data_df['buy_fire'] = self.data_df['buy_weak_fire'] & self.data_df['is_vegas_up_trend']
-            self.data_df['buy_real_fire'] = self.data_df['buy_fire'] & self.data_df['is_vegas_enough_up_trend']
+            self.data_df['buy_ready'] = self.data_df['buy_weak_ready'] & (self.data_df['is_vegas_up_trend'] | self.data_df['vegas_final_inferred_up'])
+            self.data_df['buy_fire'] = self.data_df['buy_weak_fire'] & (self.data_df['is_vegas_up_trend'] | self.data_df['vegas_final_inferred_up'])
+            self.data_df['buy_real_fire'] = self.data_df['buy_fire'] & (self.data_df['is_vegas_enough_up_trend'] | self.data_df['vegas_final_inferred_up'])
 
             buy_c11 = self.data_df['price_to_lower_vegas'] * self.lot_size * self.exchange_rate < maximum_loss
             buy_c12 = self.data_df['price_to_bolling_upper'] * self.lot_size * self.exchange_rate < -minimum_profit
@@ -703,11 +819,13 @@ class CurrencyTrader(threading.Thread):
 
             #buy_c3 = (self.data_df['prev1_ma12_gradient'] < 0) | (self.data_df['prev2_ma12_gradient'] < 0) | (self.data_df['prev3_ma12_gradient'] < 0) | (self.data_df['prev4_ma12_gradient'] < 0) | (self.data_df['prev5_ma12_gradient'] < 0)
             #buy_c4 = self.data_df['high'] > self.data_df['upper_band_close']
-            buy_c41 = self.data_df['high'] > self.data_df['upper_band_close'] #self.data_df['prev_upper_band_close']
-            buy_c42 = self.data_df['upper_band_close_gradient'] * self.lot_size * self.exchange_rate > 0# bolling_threshold
-            buy_c43 = self.data_df['is_positive'] & (self.data_df['prev1_open'] < self.data_df['prev1_close'])
-            buy_c44 = (self.data_df['low_low_pct_price_buy'] > self.data_df['upper_vegas']) & (self.data_df['prev_low_low_pct_price_buy'] > self.data_df['prev1_upper_vegas'])
-            buy_c4 = buy_c41 & buy_c42 & buy_c43 & buy_c44
+
+            # buy_c41 = self.data_df['high'] > self.data_df['upper_band_close'] #self.data_df['prev_upper_band_close']
+            # buy_c42 = self.data_df['upper_band_close_gradient'] * self.lot_size * self.exchange_rate > 0# bolling_threshold
+            # buy_c43 = self.data_df['is_positive'] & (self.data_df['prev1_open'] < self.data_df['prev1_close'])
+            # buy_c44 = (self.data_df['low_low_pct_price_buy'] > self.data_df['upper_vegas']) & (self.data_df['prev_low_low_pct_price_buy'] > self.data_df['prev1_upper_vegas'])
+            # buy_c4 = buy_c41 & buy_c42 & buy_c43 & buy_c44
+
 
             buy_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate > enter_bar_width_threshold)
                                                                for i in range(1,c5_lookback + 1)])
@@ -785,9 +903,9 @@ class CurrencyTrader(threading.Thread):
                                         & (self.data_df['ma12_gradient'] <= 0) & (self.data_df['close'] < self.data_df['ma_close12']) \
                                              & ((self.data_df['close'] - self.data_df['open']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold)
 
-            self.data_df['sell_ready'] = self.data_df['sell_weak_ready'] & self.data_df['is_vegas_down_trend']
-            self.data_df['sell_fire'] = self.data_df['sell_weak_fire'] & self.data_df['is_vegas_down_trend']
-            self.data_df['sell_real_fire'] = self.data_df['sell_fire'] & self.data_df['is_vegas_enough_down_trend']
+            self.data_df['sell_ready'] = self.data_df['sell_weak_ready'] & (self.data_df['is_vegas_down_trend'] | self.data_df['vegas_final_inferred_down'])
+            self.data_df['sell_fire'] = self.data_df['sell_weak_fire'] & (self.data_df['is_vegas_down_trend'] | self.data_df['vegas_final_inferred_down'])
+            self.data_df['sell_real_fire'] = self.data_df['sell_fire'] & (self.data_df['is_vegas_enough_down_trend'] | self.data_df['vegas_final_inferred_down'])
 
             sell_c11 = self.data_df['price_to_upper_vegas'] * self.lot_size * self.exchange_rate > -maximum_loss
             sell_c12 = self.data_df['price_to_bolling_lower'] * self.lot_size * self.exchange_rate > minimum_profit
@@ -813,11 +931,12 @@ class CurrencyTrader(threading.Thread):
 
             #sell_c3 = (self.data_df['prev1_ma12_gradient'] > 0) | (self.data_df['prev2_ma12_gradient'] > 0) | (self.data_df['prev3_ma12_gradient'] > 0) | (self.data_df['prev4_ma12_gradient'] > 0) | (self.data_df['prev5_ma12_gradient'] > 0)
             #sell_c4 = self.data_df['low'] < self.data_df['lower_band_close']
-            sell_c41 = self.data_df['low'] < self.data_df['lower_band_close'] # self.data_df['prev_lower_band_close']
-            sell_c42 = self.data_df['lower_band_close_gradient'] * self.lot_size * self.exchange_rate < 0 #-bolling_threshold
-            sell_c43 = self.data_df['is_negative'] &  (self.data_df['prev1_open'] > self.data_df['prev1_close'])
-            sell_c44 = (self.data_df['high_high_pct_price_sell'] < self.data_df['lower_vegas']) & (self.data_df['prev_high_high_pct_price_sell'] < self.data_df['prev1_lower_vegas'])
-            sell_c4 = sell_c41 & sell_c42 & sell_c43 & sell_c44
+
+            # sell_c41 = self.data_df['low'] < self.data_df['lower_band_close'] # self.data_df['prev_lower_band_close']
+            # sell_c42 = self.data_df['lower_band_close_gradient'] * self.lot_size * self.exchange_rate < 0 #-bolling_threshold
+            # sell_c43 = self.data_df['is_negative'] &  (self.data_df['prev1_open'] > self.data_df['prev1_close'])
+            # sell_c44 = (self.data_df['high_high_pct_price_sell'] < self.data_df['lower_vegas']) & (self.data_df['prev_high_high_pct_price_sell'] < self.data_df['prev1_lower_vegas'])
+            # sell_c4 = sell_c41 & sell_c42 & sell_c43 & sell_c44
 
             sell_c5 = reduce(lambda left, right: left & right, [((self.data_df['prev' + str(i) + '_open'] - self.data_df['prev' + str(i) + '_close']) * self.lot_size * self.exchange_rate < -enter_bar_width_threshold )
                                                                 for i in range(1,c5_lookback + 1)])
@@ -977,7 +1096,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file, index=False)
+            self.data_df.to_csv(self.currency_file + 'tmp.csv', index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 
