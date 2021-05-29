@@ -229,6 +229,74 @@ class CurrencyTrader(threading.Thread):
                                                               0)
 
 
+            guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
+            for guppy_line in guppy_lines:
+                self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
+
+
+            aligned_long_conditions1 = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
+                                       range(len(guppy_lines) - 1)]
+            #all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
+            aligned_long_conditions2 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[0:3]]
+            #self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions) # + all_up_conditions)
+            aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
+            aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
+
+            half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:2])
+            strongly_half_aligned_long_condition = aligned_long_condition2
+
+            self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
+            self.data_df['strongly_half_aligned_long_condition'] = strongly_half_aligned_long_condition
+
+
+            aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
+                                        range(len(guppy_lines) - 1)]
+            #all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
+            aligned_short_conditions2 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[0:3]]
+            #self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions) # + all_down_conditions)
+            aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1)
+            aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
+
+            half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:2])
+            strongly_half_aligned_short_condition = aligned_short_condition2
+
+            self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
+            self.data_df['strongly_half_aligned_short_condition'] = strongly_half_aligned_short_condition
+
+            df_temp = self.data_df[guppy_lines]
+            df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
+            sorted_guppys = ['guppy1', 'guppy2', 'guppy3', 'guppy4', 'guppy5', 'guppy6']
+            df_temp.columns = sorted_guppys
+            self.data_df = pd.concat([self.data_df, df_temp], axis=1)
+
+            self.data_df['highest_guppy'] = self.data_df['guppy6']
+            self.data_df['lowest_guppy'] = self.data_df['guppy1']
+
+            self.data_df['prev1_highest_guppy'] = self.data_df['highest_guppy'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_highest_guppy'] = self.data_df['prev' + str(i-1) + '_highest_guppy'].shift(1)
+
+            self.data_df['prev1_lowest_guppy'] = self.data_df['lowest_guppy'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_lowest_guppy'] = self.data_df['prev' + str(i-1) + '_lowest_guppy'].shift(1)
+
+
+            self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
+            self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
+
+            self.data_df['upper_vegas_gradient'] = self.data_df['upper_vegas'].diff()
+            self.data_df['lower_vegas_gradient'] = self.data_df['lower_vegas'].diff()
+
+            self.data_df['prev1_upper_vegas'] = self.data_df['upper_vegas'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_upper_vegas'] = self.data_df['prev' + str(i-1) + '_upper_vegas'].shift(1)
+
+            self.data_df['prev1_lower_vegas'] = self.data_df['lower_vegas'].shift(1)
+            for i in range(2, ma12_lookback + 1):
+                self.data_df['prev' + str(i) + '_lower_vegas'] = self.data_df['prev' + str(i-1) + '_lower_vegas'].shift(1)
+
+
+
             #df[attr].rolling(window, min_periods = window).max()
 
             ##Calculate large bar condition 1
@@ -301,25 +369,30 @@ class CurrencyTrader(threading.Thread):
             self.data_df['large_bar_c3'] = (self.data_df['prev_opposite_longest_bar_range'] - self.data_df['price_range']) / self.data_df['price_range'] < 0.05
 
 
-            self.data_df['large_positive_bar'] = (self.data_df['close'] > self.data_df['open']) & \
+            self.data_df['large_temp_positive_bar'] = (self.data_df['close'] > self.data_df['open']) & \
                                                  self.data_df['large_bar_c1'] & self.data_df['large_bar_c2'] & self.data_df['large_bar_c3']
 
-            self.data_df['large_negative_bar'] = (self.data_df['close'] < self.data_df['open']) & \
+            self.data_df['large_temp_negative_bar'] = (self.data_df['close'] < self.data_df['open']) & \
                                                  self.data_df['large_bar_c1'] & self.data_df['large_bar_c2'] & self.data_df['large_bar_c3']
 
+            self.data_df['is_cross_guppy'] = (self.data_df['min_price'] < self.data_df['lowest_guppy']) & (self.data_df['max_price'] > self.data_df['highest_guppy'])
 
-            # self.data_df['large_positive_bar'] = (self.data_df['close'] > self.data_df['open']) & \
-            #                                      self.data_df['large_bar_c1']
-            #
-            # self.data_df['large_negative_bar'] = (self.data_df['close'] < self.data_df['open']) & \
-            #                                      self.data_df['large_bar_c1']
-
-
+            # self.data_df['large_positive_bar'] = self.data_df['large_temp_positive_bar'] & \
+            #                                      ((~(strongly_half_aligned_long_condition & (self.data_df['lowest_guppy'] > self.data_df['upper_vegas']))) | self.data_df['is_cross_guppy'])
+            # self.data_df['large_negative_bar'] = self.data_df['large_temp_negative_bar'] & \
+            #                                      ((~(strongly_half_aligned_short_condition & (self.data_df['highest_guppy'] < self.data_df['lower_vegas']))) | self.data_df['is_cross_guppy'])
 
 
+            self.data_df['large_positive_bar'] = self.data_df['large_temp_positive_bar'] & \
+                                                 ((~strongly_half_aligned_long_condition) | self.data_df['is_cross_guppy'])
+            self.data_df['large_negative_bar'] = self.data_df['large_temp_negative_bar'] & \
+                                                 ((~strongly_half_aligned_short_condition) | self.data_df['is_cross_guppy'])
 
-            #self.data_df.at[0, 'prev_buy_weak_fire'] = False
-            #self.data_df['prev_buy_weak_fire'] = pd.Series(list(self.data_df['prev_buy_weak_fire']), dtype='bool')
+
+
+            #self.data_df['large_positive_bar'] = self.data_df['large_temp_positive_bar']
+            #self.data_df['large_negative_bar'] = self.data_df['large_temp_negative_bar']
+
 
 
 
@@ -393,80 +466,23 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev_high_high_pct_price_sell'] = self.data_df['high_high_pct_price_sell'].shift(1)
 
 
-            self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
-            self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
-            self.data_df['upper_vegas_gradient'] = self.data_df['upper_vegas'].diff()
-            self.data_df['lower_vegas_gradient'] = self.data_df['lower_vegas'].diff()
-
-            self.data_df['prev1_upper_vegas'] = self.data_df['upper_vegas'].shift(1)
-            for i in range(2, ma12_lookback + 1):
-                self.data_df['prev' + str(i) + '_upper_vegas'] = self.data_df['prev' + str(i-1) + '_upper_vegas'].shift(1)
-
-            self.data_df['prev1_lower_vegas'] = self.data_df['lower_vegas'].shift(1)
-            for i in range(2, ma12_lookback + 1):
-                self.data_df['prev' + str(i) + '_lower_vegas'] = self.data_df['prev' + str(i-1) + '_lower_vegas'].shift(1)
 
             self.data_df['prev_upper_band_close'] = self.data_df['upper_band_close'].shift(1)
             self.data_df['prev_lower_band_close'] = self.data_df['lower_band_close'].shift(1)
 
 
-            guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
-            for guppy_line in guppy_lines:
-                self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
-
-
-            aligned_long_conditions1 = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
-                                       range(len(guppy_lines) - 1)]
-            #all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
-            aligned_long_conditions2 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[0:3]]
-            #self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions) # + all_up_conditions)
-            aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
-            aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
-
-            half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:2])
-
-            self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
-
-
-            aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
-                                        range(len(guppy_lines) - 1)]
-            #all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
-            aligned_short_conditions2 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[0:3]]
-            #self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions) # + all_down_conditions)
-            aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1)
-            aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
-
-            half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:2])
-
-            self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
-
-
-
-
-            self.data_df['is_real_false_buy_signal'] = self.data_df['is_false_buy_signal'] #& (~half_aligned_long_condition)
-            self.data_df['is_real_false_sell_signal'] = self.data_df['is_false_sell_signal'] #& (~half_aligned_short_condition)
+            # self.data_df['is_real_false_buy_signal'] = self.data_df['is_false_buy_signal'] & \
+            #                                            ((~strongly_half_aligned_long_condition) | self.data_df['is_cross_guppy'])
+            #
+            # self.data_df['is_real_false_sell_signal'] = self.data_df['is_false_sell_signal'] & \
+            #                                              ((~strongly_half_aligned_short_condition) | self.data_df['is_cross_guppy'])
 
             self.data_df['half_aligned_long_condition'] = half_aligned_long_condition
             self.data_df['half_aligned_short_condition'] = half_aligned_short_condition
 
 
-            df_temp = self.data_df[guppy_lines]
-            df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
-            sorted_guppys = ['guppy1', 'guppy2', 'guppy3', 'guppy4', 'guppy5', 'guppy6']
-            df_temp.columns = sorted_guppys
-            self.data_df = pd.concat([self.data_df, df_temp], axis=1)
 
-            self.data_df['highest_guppy'] = self.data_df['guppy6']
-            self.data_df['lowest_guppy'] = self.data_df['guppy1']
-
-            self.data_df['prev1_highest_guppy'] = self.data_df['highest_guppy'].shift(1)
-            for i in range(2, ma12_lookback + 1):
-                self.data_df['prev' + str(i) + '_highest_guppy'] = self.data_df['prev' + str(i-1) + '_highest_guppy'].shift(1)
-
-            self.data_df['prev1_lowest_guppy'] = self.data_df['lowest_guppy'].shift(1)
-            for i in range(2, ma12_lookback + 1):
-                self.data_df['prev' + str(i) + '_lowest_guppy'] = self.data_df['prev' + str(i-1) + '_lowest_guppy'].shift(1)
 
 
             self.data_df['prev1_ma_close12'] = self.data_df['ma_close12'].shift(1)
@@ -693,12 +709,12 @@ class CurrencyTrader(threading.Thread):
 
             #buy_c6 = self.data_df['is_large_bar_buy']
 
-            buy_c6 = self.data_df['is_real_false_buy_signal']
+            buy_c6 = self.data_df['is_false_buy_signal']
 
             if not self.remove_c12:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6)  & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
-                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6)  & ((buy_c4) | ((buy_c13) & (~buy_c2)))
+                self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & ((buy_c4) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -796,10 +812,10 @@ class CurrencyTrader(threading.Thread):
             #sell_c6 = (self.data_df['bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev1_bar_length_increase'] > bar_increase_threshold) | (self.data_df['prev2_bar_length_increase'] > bar_increase_threshold)
             #sell_c6 = self.data_df['is_large_bar_sell']
 
-            sell_c6 = self.data_df['is_real_false_sell_signal']
+            sell_c6 = self.data_df['is_false_sell_signal']
 
             if not self.remove_c12:
-                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6)  & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6)  & ((sell_c4) | ((sell_c13) & (~sell_c2)))
 

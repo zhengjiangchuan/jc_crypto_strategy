@@ -13,6 +13,8 @@ root_folder = "C:\\Forex\\formal_trading"
 
 dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct"
 
+#dest_folder = "C:\\Forex\\all_charts_updated2_16RedefineFalseSignalEntryBar"
+
 if not os.path.exists(dest_folder):
     os.makedirs(dest_folder)
 

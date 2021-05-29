@@ -81,20 +81,21 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-
+#Hutong
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['AUDUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURNZD', 'AUDCHF'])]
 
 # print("currency_df:")
 # print(currency_df)
 
-currency_df = currency_df[currency_df['currency'].isin(['EURJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['CADJPY'])]
 
 
 currency_pairs = []
 for i in range(currency_df.shape[0]):
     row = currency_df.iloc[i]
     currency_pairs += [CurrencyPair(row['currency'], row['lot_size'], row['exchange_rate'])]
+
 
 #currencies = list(currency_df['currency'])
 
