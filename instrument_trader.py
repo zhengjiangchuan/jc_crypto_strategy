@@ -751,13 +751,13 @@ class CurrencyTrader(threading.Thread):
             buy_c42 = self.data_df['upper_band_close_gradient'] * self.lot_size * self.exchange_rate > 0# bolling_threshold
             buy_c43 = self.data_df['is_positive'] & (self.data_df['prev1_open'] < self.data_df['prev1_close'])
             buy_c44 = (self.data_df['low_low_pct_price_buy'] > self.data_df['upper_vegas']) & (self.data_df['prev_low_low_pct_price_buy'] > self.data_df['prev1_upper_vegas'])
-            buy_c4 = buy_c41 & buy_c42 & buy_c43 & buy_c44
+            buy_c4 = buy_c41 & buy_c42 & ((self.data_df['close'] > self.data_df['highest_guppy']) | (buy_c43 & buy_c44))
 
             sell_c41 = self.data_df['low'] < self.data_df['lower_band_close'] # self.data_df['prev_lower_band_close']
             sell_c42 = self.data_df['lower_band_close_gradient'] * self.lot_size * self.exchange_rate < 0 #-bolling_threshold
             sell_c43 = self.data_df['is_negative'] &  (self.data_df['prev1_open'] > self.data_df['prev1_close'])
             sell_c44 = (self.data_df['high_high_pct_price_sell'] < self.data_df['lower_vegas']) & (self.data_df['prev_high_high_pct_price_sell'] < self.data_df['prev1_lower_vegas'])
-            sell_c4 = sell_c41 & sell_c42 & sell_c43 & sell_c44
+            sell_c4 = sell_c41 & sell_c42 & ((self.data_df['close'] < self.data_df['lowest_guppy']) | (sell_c43 & sell_c44))
 
 
             #(self.data_df['fastest_guppy_at_top'] & self.data_df['ma_close30_gradient'] > 0)
