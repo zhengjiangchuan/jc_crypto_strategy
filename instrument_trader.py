@@ -1201,7 +1201,7 @@ class CurrencyTrader(threading.Thread):
                 above_cond = self.data_df['is_above_vegas_strict']
             else:
                 #above_cond = self.data_df['is_above_vegas_strict'] | (self.data_df['is_above_vegas'] & ((self.data_df['upper_vegas_gradient'] > 0) | (self.data_df['lower_vegas_gradient'] > 0)))
-                above_cond = self.data_df['is_above_vegas_strict'] | (self.data_df['is_above_vegas'] & (self.data_df['ma_close169_gradient'] > 0))
+                above_cond = self.data_df['is_above_vegas_strict'] | (self.data_df['is_above_vegas'] & (self.data_df['ma_close169_gradient'] > 0) & self.data_df['is_vegas_up_trend'])
 
 
 
@@ -1399,7 +1399,7 @@ class CurrencyTrader(threading.Thread):
                 below_cond = self.data_df['is_below_vegas_strict']
             else:
                 #below_cond = self.data_df['is_below_vegas_strict'] | (self.data_df['is_below_vegas'] & ((self.data_df['upper_vegas_gradient'] < 0) | (self.data_df['lower_vegas_gradient'] < 0)))
-                below_cond = self.data_df['is_below_vegas_strict'] | (self.data_df['is_below_vegas'] & (self.data_df['ma_close169_gradient'] < 0))
+                below_cond = self.data_df['is_below_vegas_strict'] | (self.data_df['is_below_vegas'] & (self.data_df['ma_close169_gradient'] < 0) & self.data_df['is_vegas_down_trend'])
 
             self.data_df['sell_weak_ready'] = self.data_df['is_below_vegas'] & (
                         final_recent_suppressed_by_vegas) & (#self.data_df['pct_to_lower_vegas'] > -distance_to_vegas_threshold
