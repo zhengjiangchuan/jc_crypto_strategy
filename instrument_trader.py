@@ -86,7 +86,7 @@ skip_bar_num = 2
 
 large_bar_consider_past_num = 2
 
-price_to_period_range_pct_relaxed = 0.2
+price_to_period_range_pct_relaxed = 0.25
 price_to_period_range_pct = 0.10
 price_to_period_range_pct_strict = 0.02
 
@@ -98,6 +98,9 @@ vegas_short_look_back = 10
 vagas_fast_support_threshold = 10
 
 period_lookback = 50
+
+minimum_opposite_side_trend_num = 1
+minimum_break_bolling_num = 2
 
 class CurrencyTrader(threading.Thread):
 
@@ -336,6 +339,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['period_high' + str(high_low_window) + '_go_down'].rolling(period_lookback, min_periods = period_lookback).sum()
 
 
+            #self.data_df['period_high' + str(high_low_window) + '_go_up_num'] = self.data_df['period_high' + str(high_low_window) + '_go_up_num'].astype(int)
+            #self.data_df['period_high' + str(high_low_window) + '_go_down_num'] = self.data_df['period_high' + str(high_low_window) + '_go_down_num'].astype(int)
 
 
             self.data_df['period_low' + str(high_low_window) + '_gradient'] = self.data_df['period_low' + str(high_low_window)].diff()
@@ -354,36 +359,123 @@ class CurrencyTrader(threading.Thread):
             self.data_df['period_low' + str(high_low_window) + '_go_down_num'] = \
                 self.data_df['period_low' + str(high_low_window) + '_go_down'].rolling(period_lookback, min_periods = period_lookback).sum()
 
+            #self.data_df['period_low' + str(high_low_window) + '_go_up_num'] = self.data_df['period_low' + str(high_low_window) + '_go_up_num'].astype(int)
+            #self.data_df['period_low' + str(high_low_window) + '_go_down_num'] = self.data_df['period_low' + str(high_low_window) + '_go_down_num'].astype(int)
 
-            self.data_df['is_breaking_up_upper_band'] = self.data_df['break_upper_bolling'] | self.data_df['upper_band_go_up']
-            self.data_df['is_breaking_down_lower_band'] = self.data_df['break_lower_bolling'] | self.data_df['lower_band_go_down']
 
-            self.data_df['breaking_up_upper_band'] = np.where(
-                self.data_df['is_breaking_up_upper_band'],
+
+            self.data_df['is_break_upper_bolling'] = np.where(
+                self.data_df['break_upper_bolling'],
+                1,
+                0
+            )
+            self.data_df['is_break_lower_bolling'] = np.where(
+                self.data_df['break_lower_bolling'],
+                1,
+                0
+            )
+            self.data_df['is_upper_band_go_up'] = np.where(
+                self.data_df['upper_band_go_up'],
+                1,
+                0
+            )
+            self.data_df['is_lower_band_go_down'] = np.where(
+                self.data_df['lower_band_go_down'],
                 1,
                 0
             )
 
-            self.data_df['breaking_down_lower_band'] = np.where(
-                self.data_df['is_breaking_down_lower_band'],
-                1,
-                0
+
+            self.data_df['break_upper_band_temp_state'] = self.data_df['is_break_upper_bolling'] * 2 + self.data_df['is_upper_band_go_up']
+            self.data_df['break_lower_band_temp_state'] = self.data_df['is_break_lower_bolling'] * 2 + self.data_df['is_lower_band_go_down']
+
+            self.data_df['break_upper_band_state'] = np.nan
+            self.data_df['break_upper_band_state'] = np.where(
+                self.data_df['break_upper_band_temp_state'] == 1,
+                self.data_df['break_upper_band_state'],
+                self.data_df['break_upper_band_temp_state']
             )
 
-            self.data_df['breaking_up_upper_band_diff'] = self.data_df['breaking_up_upper_band'].diff()
-            self.data_df['breaking_down_lower_band_diff'] = self.data_df['breaking_down_lower_band'].diff()
+            self.data_df['break_lower_band_state'] = np.nan
+            self.data_df['break_lower_band_state'] = np.where(
+                self.data_df['break_lower_band_temp_state'] == 1,
+                self.data_df['break_lower_band_state'],
+                self.data_df['break_lower_band_temp_state']
+            )
+
+            dummy_df = self.data_df[['break_upper_band_state', 'break_lower_band_state']]
+            dummy_df = dummy_df.fillna(method = 'ffill').fillna(0)
+            self.data_df['break_upper_band_state'] = dummy_df['break_upper_band_state']
+            self.data_df['break_lower_band_state'] = dummy_df['break_lower_band_state']
+
+            self.data_df['prev_break_upper_band_state'] = self.data_df['break_upper_band_state'].shift(1)
+            self.data_df['prev_break_lower_band_state'] = self.data_df['break_lower_band_state'].shift(1)
+
+            self.data_df['new_break_up_upper_band'] = (self.data_df['prev_break_upper_band_state'] == 0) & \
+                                                         ((self.data_df['break_upper_band_state'] == 2) | (self.data_df['break_upper_band_state'] == 3))
+
+            self.data_df['new_break_down_lower_band'] = (self.data_df['prev_break_lower_band_state'] == 0) & \
+                                                         ((self.data_df['break_lower_band_state'] == 2) | (self.data_df['break_lower_band_state'] == 3))
+
+
+
+            # self.data_df['prev_is_break_upper_bolling'] = self.data_df['is_break_upper_bolling'].shift(1)
+            # self.data_df['prev_is_break_lower_bolling'] = self.data_df['is_break_lower_bolling'].shift(1)
+            # self.data_df['prev_is_upper_band_go_up'] = self.data_df['is_upper_band_go_up'].shift(1)
+            # self.data_df['prev_is_lower_band_go_down'] = self.data_df['is_lower_band_go_down'].shift(1)
+            #
+            # self.data_df['new_break_up_upper_band'] = (self.data_df['prev_is_break_upper_bolling'] == 0) & \
+            #                                                 (self.data_df['prev_is_upper_band_go_up'] == 0) & \
+            #                                                 (self.data_df['is_break_upper_bolling'] == 1)
+            #
+            # self.data_df['new_break_down_lower_band'] = (self.data_df['prev_is_break_lower_bolling'] == 0) & \
+            #                                                 (self.data_df['prev_is_lower_band_go_down'] == 0) & \
+            #                                                 (self.data_df['is_break_lower_bolling'] == 1)
+
 
             self.data_df['is_new_break_up_upper_band'] = np.where(
-                self.data_df['breaking_up_upper_band_diff'] == 1,
+                self.data_df['new_break_up_upper_band'],
                 1,
                 0
             )
 
             self.data_df['is_new_break_down_lower_band'] = np.where(
-                self.data_df['breaking_down_lower_band_diff'] == 1,
+                self.data_df['new_break_down_lower_band'],
                 1,
                 0
             )
+
+
+
+            # self.data_df['is_breaking_up_upper_band'] = self.data_df['break_upper_bolling'] | self.data_df['upper_band_go_up']
+            # self.data_df['is_breaking_down_lower_band'] = self.data_df['break_lower_bolling'] | self.data_df['lower_band_go_down']
+            #
+            # self.data_df['breaking_up_upper_band'] = np.where(
+            #     self.data_df['is_breaking_up_upper_band'],
+            #     1,
+            #     0
+            # )
+            #
+            # self.data_df['breaking_down_lower_band'] = np.where(
+            #     self.data_df['is_breaking_down_lower_band'],
+            #     1,
+            #     0
+            # )
+            #
+            # self.data_df['breaking_up_upper_band_diff'] = self.data_df['breaking_up_upper_band'].diff()
+            # self.data_df['breaking_down_lower_band_diff'] = self.data_df['breaking_down_lower_band'].diff()
+            #
+            # self.data_df['is_new_break_up_upper_band'] = np.where(
+            #     self.data_df['breaking_up_upper_band_diff'] == 1,
+            #     1,
+            #     0
+            # )
+            #
+            # self.data_df['is_new_break_down_lower_band'] = np.where(
+            #     self.data_df['breaking_down_lower_band_diff'] == 1,
+            #     1,
+            #     0
+            # )
 
 
 
@@ -426,6 +518,9 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['id'] = list(range(self.data_df.shape[0]))
 
+            for col in cum_columns:
+                self.data_df[col] = self.data_df[col].astype(int)
+
             self.data_df['period_high' + str(high_low_window) + '_go_up_temp'] = np.nan
             self.data_df['period_high' + str(high_low_window) + '_go_up_temp'] = np.where(
                 self.data_df['period_high' + str(high_low_window) + '_go_up'] == 1,
@@ -435,6 +530,13 @@ class CurrencyTrader(threading.Thread):
 
             df_high_go_up = self.data_df[self.data_df['period_high' + str(high_low_window) + '_go_up_temp'].notnull()]\
                                         [['id'] + cum_columns]
+            df_high_go_up.reset_index(inplace = True)
+            df_high_go_up = df_high_go_up.drop(columns = ['index'])
+
+            # print("Create df_high_go_up:")
+            # print("length = " + str(df_high_go_up.shape[0]))
+            # print(df_high_go_up.head(20))
+            # print(df_high_go_up.tail(20))
 
 
             self.data_df['period_high' + str(high_low_window) + '_go_down_temp'] = np.nan
@@ -447,7 +549,8 @@ class CurrencyTrader(threading.Thread):
             df_high_go_down = self.data_df[self.data_df['period_high' + str(high_low_window) + '_go_down_temp'].notnull()]\
                                           [['id'] + cum_columns]
 
-
+            df_high_go_down.reset_index(inplace = True)
+            df_high_go_down = df_high_go_down.drop(columns = ['index'])
 
 
             self.data_df['period_low' + str(high_low_window) + '_go_up_temp'] = np.nan
@@ -460,7 +563,8 @@ class CurrencyTrader(threading.Thread):
             df_low_go_up = self.data_df[self.data_df['period_low' + str(high_low_window) + '_go_up_temp'].notnull()]\
                                        [['id'] + cum_columns]
 
-
+            df_low_go_up.reset_index(inplace = True)
+            df_low_go_up = df_low_go_up.drop(columns = ['index'])
 
 
             self.data_df['period_low' + str(high_low_window) + '_go_down_temp'] = np.nan
@@ -474,6 +578,12 @@ class CurrencyTrader(threading.Thread):
                                          [['id'] + cum_columns]
 
 
+            df_low_go_down.reset_index(inplace = True)
+            df_low_go_down = df_low_go_down.drop(columns = ['index'])
+
+            #
+            # print("df_low_go_down:")
+            # print(df_low_go_down.tail(20))
 
 
             temp_df = self.data_df[['id',
@@ -484,14 +594,36 @@ class CurrencyTrader(threading.Thread):
 
             temp_df = temp_df.fillna(method = 'ffill').fillna(0)
 
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+
+
             temp_df['period_high' + str(high_low_window) + '_go_up_duration'] = temp_df['id'] - temp_df['period_high' + str(high_low_window) + '_go_up_temp'] + 1
             temp_df['period_high' + str(high_low_window) + '_go_down_duration'] = temp_df['id'] - temp_df['period_high' + str(high_low_window) + '_go_down_temp']  + 1
             temp_df['period_low' + str(high_low_window) + '_go_up_duration'] = temp_df['id'] - temp_df['period_low' + str(high_low_window) + '_go_up_temp'] + 1
             temp_df['period_low' + str(high_low_window) + '_go_down_duration'] = temp_df['id'] - temp_df['period_low' + str(high_low_window) + '_go_down_temp'] + 1
 
 
+
+
+
+
             temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_go_up_temp']
-            temp_df = pd.merge(temp_df, df_high_go_up, on = ['id'], how = 'inner')
+
+            # print("temp_df:")
+            # print("length = " + str(temp_df.shape[0]))
+            # print(temp_df.head(100))
+            # print(temp_df.tail(100))
+            # print("df_high_go_up:")
+            # print("length = " + str(df_high_go_up.shape[0]))
+            # print(df_high_go_up.head(20))
+            # print(df_high_go_up.tail(20))
+            #sys.exit(0)
+
+
+
+            temp_df = pd.merge(temp_df, df_high_go_up, on = ['id'], how = 'left')
             temp_df = temp_df.rename(columns = {
                 'cum_num_new_break_up' : 'cum_num_new_break_up_for_high_go_up',
                 'cum_num_new_break_down' : 'cum_num_new_break_down_for_high_go_up',
@@ -501,8 +633,19 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_up'
             })
 
+            temp_df = temp_df.fillna(0)
+
+
+            # print("After merge:")
+            # print("temp_df length = " + str(temp_df.shape[0]))
+            # print(temp_df)
+
+
+            #sys.exit(0)
+
+
             temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_go_down_temp']
-            temp_df = pd.merge(temp_df, df_high_go_down, on = ['id'], how = 'inner')
+            temp_df = pd.merge(temp_df, df_high_go_down, on = ['id'], how = 'left')
             temp_df = temp_df.rename(columns = {
                 'cum_num_new_break_up' : 'cum_num_new_break_up_for_high_go_down',
                 'cum_num_new_break_down' : 'cum_num_new_break_down_for_high_go_down',
@@ -511,9 +654,11 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_high_go_down',
                 'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_down'
             })
+            temp_df = temp_df.fillna(0)
+
 
             temp_df['id'] = temp_df['period_low' + str(high_low_window) + '_go_up_temp']
-            temp_df = pd.merge(temp_df, df_low_go_up, on = ['id'], how = 'inner')
+            temp_df = pd.merge(temp_df, df_low_go_up, on = ['id'], how = 'left')
             temp_df = temp_df.rename(columns = {
                 'cum_num_new_break_up' : 'cum_num_new_break_up_for_low_go_up',
                 'cum_num_new_break_down' : 'cum_num_new_break_down_for_low_go_up',
@@ -522,9 +667,10 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_low_go_up',
                 'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_up'
             })
+            temp_df = temp_df.fillna(0)
 
             temp_df['id'] = temp_df['period_low' + str(high_low_window) + '_go_down_temp']
-            temp_df = pd.merge(temp_df, df_low_go_down, on = ['id'], how = 'inner')
+            temp_df = pd.merge(temp_df, df_low_go_down, on = ['id'], how = 'left')
             temp_df = temp_df.rename(columns = {
                 'cum_num_new_break_up' : 'cum_num_new_break_up_for_low_go_down',
                 'cum_num_new_break_down' : 'cum_num_new_break_down_for_low_go_down',
@@ -533,14 +679,34 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_low_go_down',
                 'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_down'
             })
+            temp_df = temp_df.fillna(0)
 
 
 
-            temp_df = temp_df[['id'] + [col for col in temp_df.columns if 'duration' in col or 'cum_num' in col]]
+            temp_df = temp_df[[col for col in temp_df.columns if 'duration' in col or 'cum_num' in col]]
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+            # print("Final temp_df:")
+            # print("length = " + str(temp_df.shape[0]))
+            # print(temp_df.head(20))
+            # print(temp_df.tail(20))
+            #
+            # print("data_df:")
+            # print("length = " + str(self.data_df.shape[0]))
+            # print(self.data_df.head(10))
+            # print(self.data_df.tail(10))
 
             self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
 
+
             self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])
+
+            # print("Final data_df:")
+            # print(self.data_df.head(10))
+            # print(self.data_df.tail(10))
+            #sys.exit(0)
 
 
             self.data_df['num_new_break_up_in_high_go_up'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_high_go_up']
@@ -581,14 +747,14 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['is_bear_dying'] = \
-                (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > 50) & \
-                (self.data_df['num_high_go_down_in_low_go_down'] >= 1) & \
-                (self.data_df['num_new_break_down_in_low_go_down'] >= 2)
+                (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > period_lookback) & \
+                (self.data_df['num_high_go_down_in_low_go_down'] >= minimum_opposite_side_trend_num) & \
+                (self.data_df['num_new_break_down_in_low_go_down'] >= minimum_break_bolling_num)
 
             self.data_df['is_bull_dying'] = \
-                (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > 50) & \
-                (self.data_df['num_low_go_up_in_high_go_up'] >= 1) & \
-                (self.data_df['num_new_break_up_in_high_go_up'] >= 2)
+                (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > period_lookback) & \
+                (self.data_df['num_low_go_up_in_high_go_up'] >= minimum_opposite_side_trend_num) & \
+                (self.data_df['num_new_break_up_in_high_go_up'] >= minimum_break_bolling_num)
 
 
 
@@ -606,6 +772,10 @@ class CurrencyTrader(threading.Thread):
 
 
             ####################################################################################################################################
+
+            # print("data_df:")
+            # print(self.data_df.tail(10))
+
 
 
             self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
@@ -1173,9 +1343,16 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c7'] = buy_c7
             self.data_df['buy_c8'] = buy_c8
 
+            #
+            # print("Fucking data df here:")
+            # print("length = " + str(self.data_df.shape[0]))
+
 
 
             self.data_df['prev_buy_weak_fire'] = self.data_df['buy_weak_fire'].shift(1)
+
+            #print(self.data_df[['id', 'close', 'buy_weak_fire', 'prev_buy_weak_fire']].tail(10))
+
             self.data_df.at[0, 'prev_buy_weak_fire'] = False
             self.data_df['prev_buy_weak_fire'] = pd.Series(list(self.data_df['prev_buy_weak_fire']), dtype='bool')
             self.data_df['first_buy_weak_fire'] = self.data_df['buy_weak_fire'] & (~self.data_df['prev_buy_weak_fire'])
@@ -1414,7 +1591,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file + 'tmp.csv', index=False)
+            self.data_df.to_csv(self.currency_file + 'tmp6.csv', index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 
