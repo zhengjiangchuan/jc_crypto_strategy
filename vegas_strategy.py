@@ -40,10 +40,12 @@ warnings.filterwarnings("ignore")
 
 # parser = OptionParser()
 #
-# parser.add_option("-b", "--symbol", dest = "symbol",
-#                   default = None)
+# parser.add_option("-m", "--mode", dest = "mode",
+#                   default = "standalone")
 #
 # (options, args) = parser.parse_args()
+#
+# mode = options.mode
 #
 # symbol = str(options.symbol)
 #
@@ -72,10 +74,6 @@ else:
 communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
 
-
-
-
-
 currency_file = os.path.join(root_folder, "currency.csv")
 
 currency_df = pd.read_csv(currency_file)
@@ -91,7 +89,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['GBPUSD', 'CADCHF', 'EURUSD'])]
+currency_df = currency_df[currency_df['currency'].isin(['NZDUSD', 'USDCAD'])]
 
 
 currency_pairs = []
@@ -312,13 +310,6 @@ for currency_pair,data_folder,chart_folder,simple_chart_folder,log_file in list(
     if is_simulate:
         data_df = data_df.iloc[0:-100]
 
-    # print("After data_df:")
-    # print(data_df.tail(50))
-
-    #sys.exit(0)
-
-
-
 
     print("data_df:")
     print(data_df.tail(10))
@@ -425,9 +416,6 @@ while True:
 
                 last_timestamp -= 28800
                 #next_timestamp = last_timestamp + 3600
-
-
-
 
 
                 incremental_data_df = get_bar_data(currency, bar_number=incremental_bar_number, start_timestamp=last_timestamp)

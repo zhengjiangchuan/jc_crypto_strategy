@@ -171,11 +171,12 @@ class CurrencyTrader(threading.Thread):
         self.condition.release()
 
     def run(self):
-
+        print("Running...........")
         self.trade()
 
     def trade(self):
 
+        print("Do trading............")
         numerical_features = [ 'pct_to_upper_vegas', 'high_pct_price_buy', 'low_pct_price_buy', 'pct_to_lower_vegas', 'low_pct_price_sell', 'high_pct_price_sell',
                         'ma_close12', 'ma12_gradient']
 
@@ -227,7 +228,7 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
             self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
-
+            self.data_df['middle'] = (self.data_df['open'] + self.data_df['close']) / 2
 
             self.data_df['prev1_min_price'] = self.data_df['min_price'].shift(1)
             for i in range(2, max(ma12_lookback, large_bar_look_back) + 1):
@@ -236,6 +237,10 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev1_max_price'] = self.data_df['max_price'].shift(1)
             for i in range(2, max(ma12_lookback, large_bar_look_back) + 1):
                 self.data_df['prev' + str(i) + '_max_price'] = self.data_df['prev' + str(i - 1) + '_max_price'].shift(1)
+
+            self.data_df['prev1_middle'] = self.data_df['middle'].shift(1)
+            for i in range(2, max(ma12_lookback, large_bar_look_back) + 1):
+                self.data_df['prev' + str(i) + '_middle'] = self.data_df['prev' + str(i-1) + '_middle'].shift(1)
 
 
             self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
@@ -878,7 +883,7 @@ class CurrencyTrader(threading.Thread):
 
 
             ##Calculate large bar condition 2
-            self.data_df['middle'] = (self.data_df['open'] + self.data_df['close']) / 2
+
 
             self.data_df['prev' + str(skip_bar_num + 1) + '_has_covered_lower'] = self.data_df['prev' + str(skip_bar_num + 1) + '_min_price'] <= self.data_df['middle']
             for i in range(skip_bar_num + 2, large_bar_look_back + 1):
@@ -1613,7 +1618,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file + 'tmp7.csv', index=False)
+            self.data_df.to_csv(self.currency_file + '.csv', index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 
