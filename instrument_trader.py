@@ -268,30 +268,40 @@ class CurrencyTrader(threading.Thread):
                                        range(len(guppy_lines) - 1)]
             #all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
             aligned_long_conditions2 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[0:3]]
+            aligned_long_conditions3 = aligned_long_conditions1 + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
+
             #self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions) # + all_up_conditions)
             aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
             aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
+            aligned_long_condition3 = reduce(lambda left, right: left & right, aligned_long_conditions3)
 
             half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:2])
             strongly_half_aligned_long_condition = aligned_long_condition2
+            strongly_aligned_long_condition = aligned_long_condition3
 
             self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
             self.data_df['strongly_half_aligned_long_condition'] = strongly_half_aligned_long_condition
+            self.data_df['strongly_aligned_long_condition'] = strongly_aligned_long_condition
 
 
             aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                         range(len(guppy_lines) - 1)]
             #all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
             aligned_short_conditions2 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[0:3]]
+            aligned_short_conditions3 = aligned_short_conditions1 + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
+
             #self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions) # + all_down_conditions)
             aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1)
             aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
+            aligned_short_condition3 = reduce(lambda left, right: left & right, aligned_short_conditions3)
 
             half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:2])
             strongly_half_aligned_short_condition = aligned_short_condition2
+            strongly_aligned_short_condition = aligned_short_condition3
 
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
             self.data_df['strongly_half_aligned_short_condition'] = strongly_half_aligned_short_condition
+            self.data_df['strongly_aligned_short_condition'] = strongly_aligned_short_condition
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
@@ -319,6 +329,9 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['break_upper_bolling'] = self.data_df['high'] > self.data_df['upper_band_close']
             self.data_df['break_lower_bolling'] = self.data_df['low'] < self.data_df['lower_band_close']
+
+            self.data_df['strict_break_upper_bolling'] = self.data_df['close'] > self.data_df['upper_band_close']
+            self.data_df['strict_break_lower_bolling'] = self.data_df['close'] < self.data_df['lower_band_close']
 
             ################# features to detect trend approaching the end ###############
             self.data_df['period_high' + str(high_low_window) + '_gradient'] = self.data_df['period_high' + str(high_low_window)].diff()
@@ -365,12 +378,12 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['is_break_upper_bolling'] = np.where(
-                self.data_df['break_upper_bolling'],
+                self.data_df['strict_break_upper_bolling'],
                 1,
                 0
             )
             self.data_df['is_break_lower_bolling'] = np.where(
-                self.data_df['break_lower_bolling'],
+                self.data_df['strict_break_lower_bolling'],
                 1,
                 0
             )
@@ -743,18 +756,20 @@ class CurrencyTrader(threading.Thread):
             self.data_df['num_low_go_down_in_low_go_down'] = self.data_df['cum_num_low_go_down'] - self.data_df['cum_num_low_go_down_for_low_go_down']
 
 
-
+            self.data_df['is_bull_dying'] = \
+                (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > period_lookback) & \
+                (self.data_df['num_low_go_up_in_high_go_up'] >= minimum_opposite_side_trend_num) & \
+                (self.data_df['num_low_go_down_in_high_go_up'] == 0) & \
+                (self.data_df['num_new_break_up_in_high_go_up'] >= minimum_break_bolling_num)
 
 
             self.data_df['is_bear_dying'] = \
                 (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > period_lookback) & \
                 (self.data_df['num_high_go_down_in_low_go_down'] >= minimum_opposite_side_trend_num) & \
+                (self.data_df['num_high_go_up_in_low_go_down'] == 0) & \
                 (self.data_df['num_new_break_down_in_low_go_down'] >= minimum_break_bolling_num)
 
-            self.data_df['is_bull_dying'] = \
-                (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > period_lookback) & \
-                (self.data_df['num_low_go_up_in_high_go_up'] >= minimum_opposite_side_trend_num) & \
-                (self.data_df['num_new_break_up_in_high_go_up'] >= minimum_break_bolling_num)
+
 
 
 
@@ -1320,7 +1335,7 @@ class CurrencyTrader(threading.Thread):
                       ((self.data_df['price_to_period_high_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_long_condition)))
                       #Buy price too high, should not enter
 
-            buy_c8 = self.data_df['is_bull_dying'] & (self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_relaxed)
+            buy_c8 = self.data_df['is_bull_dying'] & (self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_relaxed) & (~strongly_aligned_long_condition)
 
 
             if not self.remove_c12:
@@ -1441,7 +1456,7 @@ class CurrencyTrader(threading.Thread):
                      ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_strict) | \
                       ((self.data_df['price_to_period_low_pct'] < price_to_period_range_pct) & (~strongly_half_aligned_short_condition)))
 
-            sell_c8 = self.data_df['is_bear_dying'] & (self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_relaxed)
+            sell_c8 = self.data_df['is_bear_dying'] & (self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_relaxed) & (~strongly_aligned_short_condition)
 
             if not self.remove_c12:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
@@ -1591,7 +1606,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file + 'tmp6.csv', index=False)
+            self.data_df.to_csv(self.currency_file + 'tmp7.csv', index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 
