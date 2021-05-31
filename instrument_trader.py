@@ -1563,13 +1563,14 @@ class CurrencyTrader(threading.Thread):
                     "%.5f" % self.data_df.iloc[-1]['close']) + " with " + str("%.2f" % actual_enter_lot) + " lot"
                 self.log_msg(msg)
                 self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
-                self.log_msg("********************************")
 
                 additional_msg = " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
 
-                additional_msg2 = " Be careful" if buy_c6.iloc[-1] else ""
+                if additional_msg != "":
+                    self.log_msg(additional_msg)
+                self.log_msg("********************************")
 
-                sendEmail(msg, msg + additional_msg + additional_msg2)
+                sendEmail(msg, msg + additional_msg)
 
             elif self.data_df.iloc[-1]['first_buy_fire']:
                 msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str(
@@ -1613,13 +1614,14 @@ class CurrencyTrader(threading.Thread):
                     "%.5f" % self.data_df.iloc[-1]['close']) + " with " + str("%.2f" % actual_enter_lot) + " lot"
                 self.log_msg(msg)
                 self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
-                self.log_msg("********************************")
 
                 additional_msg = " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
 
-                additional_msg2 = " Be careful" if sell_c6.iloc[-1] else ""
+                if additional_msg != "":
+                    self.log_msg(additional_msg)
+                self.log_msg("********************************")
 
-                sendEmail(msg, msg + additional_msg + additional_msg2)
+                sendEmail(msg, msg + additional_msg)
 
             elif self.data_df.iloc[-1]['first_sell_fire']:
                 msg = "Short " + self.currency + " at " + current_time + ", last_price = " + str(

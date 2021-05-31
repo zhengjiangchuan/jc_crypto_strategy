@@ -38,6 +38,8 @@ for symbol_folder in symbol_folders:
     for file in files:
         file_path = os.path.join(chart_folder, file)
 
+        print("file_path = " + file_path)
+        print("dest_folder = " + dest_folder)
         shutil.copy2(file_path, dest_folder)
 
 
