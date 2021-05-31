@@ -41,14 +41,14 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-parser = OptionParser()
-
-parser.add_option("-m", "--mode", dest="mode",
-                  default="standalone")
-
-(options, args) = parser.parse_args()
-
-mode = options.mode
+# parser = OptionParser()
+#
+# parser.add_option("-m", "--mode", dest="mode",
+#                   default="standalone")
+#
+# (options, args) = parser.parse_args()
+#
+# mode = options.mode
 
 
 #
@@ -63,7 +63,7 @@ class CurrencyPair:
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
 
-
+print("Child process starts")
 root_folder = "C:\\Forex\\formal_trading"
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
@@ -92,7 +92,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
 
 currency_pairs = []
 for i in range(currency_df.shape[0]):
@@ -230,7 +230,7 @@ trial_numbers = [0] * len(currency_pairs)
 
 is_all_received = False
 
-maximum_trial_number = 5
+maximum_trial_number = 3
 
 for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file in list(
         zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files)):
@@ -247,7 +247,7 @@ for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file in l
 print("data_folders:")
 print(data_folders)
 
-
+is_first_time = True
 
 while not is_all_received:
     is_all_received = True
@@ -302,9 +302,11 @@ while not is_all_received:
                     data_df = pd.concat([data_df, incremental_data_df])
 
                     data_df.reset_index(inplace=True)
+
+                    data_df = data_df.drop(columns=['index'])
+
                     print("data_df:")
                     print(data_df.tail(10))
-                    data_df = data_df.drop(columns=['index'])
 
             else:
                 print("Currency file does not exit, query initial data from web")
@@ -330,13 +332,21 @@ while not is_all_received:
                 last_time = None
 
             print("last_time = " + str(last_time))
-            if last_time is not None and (last_time - datetime.now()).seconds < 7200:
+            if last_time is not None:
+                delta = last_time - datetime.now()
+            else:
+                delta = None
+            if (delta is not None and delta.seconds < 7200 and delta.days == 0) or is_first_time:
+                print("Received update-to-date data")
 
+                delta = last_time - datetime.now()
+
+                #print((last_time - datetime.now()))
                 currency_trader.feed_data(data_df)
                 is_new_data_received[i] = True
 
             else:
-
+                print("Go here 2")
                 if trial_numbers[i] <= maximum_trial_number + 1:
                     if trial_numbers[i] <= maximum_trial_number:
                         is_all_received = False
@@ -345,5 +355,6 @@ while not is_all_received:
                     else:
                         print("Reached maximum number of trials for " + currency + ", give up")
 
+    is_first_time = False
 
 print("Finished trading *********************************")

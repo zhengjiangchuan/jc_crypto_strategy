@@ -100,7 +100,9 @@ vagas_fast_support_threshold = 10
 period_lookback = 50
 
 minimum_opposite_side_trend_num = 1
-minimum_break_bolling_num = 2
+minimum_break_bolling_num = 1
+
+reverse_threshold = 0.1
 
 class CurrencyTrader(threading.Thread):
 
@@ -202,6 +204,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['period_high_low_range'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['period_low' + str(high_low_window)]
             self.data_df['price_to_period_low_pct'] = (self.data_df['close'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
             self.data_df['price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['close']) / self.data_df['period_high_low_range']
+
+            self.data_df['prev_price_to_period_low_pct'] = self.data_df['price_to_period_low_pct'].shift(1)
+            self.data_df['prev_price_to_period_high_pct'] = self.data_df['price_to_period_high_pct'].shift(1)
 
             # self.data_df['prev_open'] = self.data_df['open'].shift(1)
             # self.data_df['prev_close'] = self.data_df['close'].shift(1)
@@ -1344,7 +1349,6 @@ class CurrencyTrader(threading.Thread):
 
             buy_c8 = self.data_df['is_bull_dying'] & (self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_relaxed) & (~strongly_aligned_long_condition)
 
-
             if not self.remove_c12:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
@@ -1364,6 +1368,10 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c6'] = buy_c6
             self.data_df['buy_c7'] = buy_c7
             self.data_df['buy_c8'] = buy_c8
+
+
+            self.data_df['sell_real_fire2'] = self.data_df['is_bull_dying'] & (self.data_df['prev_price_to_period_high_pct'] < reverse_threshold) & \
+                                              (self.data_df['close'] - self.data_df['open'] < 0) & (self.data_df['close'] < self.data_df['prev1_min_price'])
 
             #
             # print("Fucking data df here:")
@@ -1389,6 +1397,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_buy_real_fire'] = False
             self.data_df['prev_buy_real_fire'] = pd.Series(list(self.data_df['prev_buy_real_fire']), dtype='bool')
             self.data_df['first_buy_real_fire'] = self.data_df['buy_real_fire'] & (~self.data_df['prev_buy_real_fire'])
+
+            self.data_df['prev_sell_real_fire2'] = self.data_df['sell_real_fire2'].shift(1)
+            self.data_df.at[0, 'prev_sell_real_fire2'] = False
+            self.data_df['prev_sell_real_fire2'] = pd.Series(list(self.data_df['prev_sell_real_fire2']), dtype='bool')
+            self.data_df['first_sell_real_fire2'] = self.data_df['sell_real_fire2'] & (~self.data_df['prev_sell_real_fire2'])
 
 
             # print(type(self.data_df.iloc[0]['first_buy_fire']))
@@ -1491,6 +1504,10 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_c7'] = sell_c7
             self.data_df['sell_c8'] = sell_c8
 
+            self.data_df['buy_real_fire2'] = self.data_df['is_bear_dying'] & (self.data_df['prev_price_to_period_low_pct'] < reverse_threshold) & \
+                                              (self.data_df['close'] - self.data_df['open'] > 0) & (self.data_df['close'] > self.data_df['prev1_max_price'])
+
+
 
             self.data_df['prev_sell_weak_fire'] = self.data_df['sell_weak_fire'].shift(1)
             self.data_df.at[0, 'prev_sell_weak_fire'] = False
@@ -1506,6 +1523,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_sell_real_fire'] = False
             self.data_df['prev_sell_real_fire'] = pd.Series(list(self.data_df['prev_sell_real_fire']), dtype='bool')
             self.data_df['first_sell_real_fire'] = self.data_df['sell_real_fire'] & (~self.data_df['prev_sell_real_fire'])
+
+            self.data_df['prev_buy_real_fire2'] = self.data_df['buy_real_fire2'].shift(1)
+            self.data_df.at[0, 'prev_buy_real_fire2'] = False
+            self.data_df['prev_buy_real_fire2'] = pd.Series(list(self.data_df['prev_buy_real_fire2']), dtype='bool')
+            self.data_df['first_buy_real_fire2'] = self.data_df['buy_real_fire2'] & (~self.data_df['prev_buy_real_fire2'])
 
 
             signal_msg = ','.join([signal_attr + "=" + str(self.data_df.iloc[-1][signal_attr]) for signal_attr in signal_attrs])
@@ -1526,7 +1548,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            if self.data_df.iloc[-1]['first_buy_real_fire']:
+            if self.data_df.iloc[-1]['first_buy_real_fire'] | self.data_df.iloc[-1]['first_buy_real_fire2']:
 
                 enter_price = self.data_df.iloc[-1]['close']
                 stop_loss_price = self.data_df.iloc[-1]['lower_vegas']
@@ -1545,7 +1567,7 @@ class CurrencyTrader(threading.Thread):
 
                 additional_msg = " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
 
-                additional_msg2 = " Be careful" if buy_c6[-1] else ""
+                additional_msg2 = " Be careful" if buy_c6.iloc[-1] else ""
 
                 sendEmail(msg, msg + additional_msg + additional_msg2)
 
@@ -1575,7 +1597,7 @@ class CurrencyTrader(threading.Thread):
                     #sendEmail(msg, msg)
 
 
-            if self.data_df.iloc[-1]['first_sell_real_fire']:
+            if self.data_df.iloc[-1]['first_sell_real_fire'] | self.data_df.iloc[-1]['first_sell_real_fire2']:
 
                 enter_price = self.data_df.iloc[-1]['close']
                 stop_loss_price = self.data_df.iloc[-1]['upper_vegas']
@@ -1595,7 +1617,7 @@ class CurrencyTrader(threading.Thread):
 
                 additional_msg = " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
 
-                additional_msg2 = " Be careful" if sell_c6[-1] else ""
+                additional_msg2 = " Be careful" if sell_c6.iloc[-1] else ""
 
                 sendEmail(msg, msg + additional_msg + additional_msg2)
 
@@ -1618,7 +1640,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file + '.csv', index=False)
+            self.data_df.to_csv(self.currency_file, index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 

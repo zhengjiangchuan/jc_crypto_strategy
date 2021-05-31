@@ -30,7 +30,10 @@ def wait_for_trigger():
         total_sleep_seconds += actual_sleep_seconds
         now = datetime.now()
         print("Current time: " + now.strftime("%Y-%m-%d %H:%M:%S"))
-        seconds_remaining -= actual_sleep_seconds
+
+        seconds_remaining = (next_hour - now).seconds
+
+        #seconds_remaining -= actual_sleep_seconds
         print("seconds_remaining = " + str(seconds_remaining))
         print("total_sleep_seconds = " + str(total_sleep_seconds))
 
