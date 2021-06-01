@@ -25,15 +25,15 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    # if symbol_folder[-6:] not in ['USDCAD']:
+    # if symbol_folder[-6:] not in ['AUDCAD', 'EURNZD', 'GBPNZD', 'NZDCAD', 'NZDJPY', 'AUDJPY', 'CHFJPY']:
     #     continue
 
     print(symbol_folder)
     chart_folder = os.path.join(symbol_folder, "simple_chart")
 
     files = os.listdir(chart_folder)
-    if len(files) > 1:
-        files = files[1:]
+    # if len(files) > 1:
+    #     files = files[1:]
 
     for file in files:
         file_path = os.path.join(chart_folder, file)
