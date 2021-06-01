@@ -1321,10 +1321,11 @@ class CurrencyTrader(threading.Thread):
             ################# Additional conditions for breaking bolling band to enter ###################
             breaking_up_cond1 = (~aligned_short_condition_go_on) | (self.data_df['min_price'] > self.data_df['highest_guppy'])
             breaking_up_cond2 = recent_tightly_supported_by_vegas | (~recent_fast_guppy_at_btm_go_down)
+            breaking_up_cond3 = ~self.data_df['upper_vegas_mostly_down']
 
             breaking_down_cond1 = (~aligned_long_condition_go_on) | (self.data_df['max_price'] < self.data_df['lowest_guppy'])
             breaking_down_cond2 = recent_tightly_suppressed_by_vegas | (~recent_fast_guppy_at_top_go_up)
-
+            breaking_down_cond3 = ~self.data_df['upper_vegas_mostly_up']
 
             ###############################################################################################
 
@@ -1417,10 +1418,10 @@ class CurrencyTrader(threading.Thread):
 
             if not self.remove_c12:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & \
-                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2 & breaking_up_cond3) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & \
-                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2) | ((buy_c13) & (~buy_c2)))
+                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2 & breaking_up_cond3) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -1438,6 +1439,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c8'] = buy_c8
             self.data_df['breaking_up_cond1'] = breaking_up_cond1
             self.data_df['breaking_up_cond2'] = breaking_up_cond2
+            self.data_df['breaking_up_cond3'] = breaking_up_cond3
 
 
             self.data_df['sell_real_fire2'] = self.data_df['is_bull_dying'] & (self.data_df['prev_price_to_period_high_pct'] < reverse_threshold) & \
@@ -1555,10 +1557,10 @@ class CurrencyTrader(threading.Thread):
 
             if not self.remove_c12:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & \
-                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2 & breaking_down_cond3) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & \
-                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2) | ((sell_c13) & (~sell_c2)))
+                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2 & breaking_down_cond3) | ((sell_c13) & (~sell_c2)))
 
 
 
@@ -1577,6 +1579,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_c8'] = sell_c8
             self.data_df['breaking_down_cond1'] = breaking_down_cond1
             self.data_df['breaking_down_cond2'] = breaking_down_cond2
+            self.data_df['breaking_down_cond3'] = breaking_down_cond3
 
             self.data_df['buy_real_fire2'] = self.data_df['is_bear_dying'] & (self.data_df['prev_price_to_period_low_pct'] < reverse_threshold) & \
                                               (self.data_df['close'] - self.data_df['open'] > 0) & (self.data_df['close'] > self.data_df['prev1_max_price'])
