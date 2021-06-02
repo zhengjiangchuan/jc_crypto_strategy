@@ -1736,7 +1736,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file + "hutong3.csv", index=False)
+            self.data_df.to_csv(self.currency_file, index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 

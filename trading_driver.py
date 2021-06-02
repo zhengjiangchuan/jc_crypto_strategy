@@ -53,7 +53,7 @@ def start_trader():
 
 
 if __name__ == '__main__':
-    print("Hello Hutong")
+
     while True:
 
         print("Waiting for the next trigger")
