@@ -99,7 +99,7 @@ vagas_fast_support_threshold = 10
 
 period_lookback = 50
 
-minimum_opposite_side_trend_num = 1
+minimum_opposite_side_trend_num = 0
 minimum_break_bolling_num = 1
 
 reverse_threshold = 0.1
@@ -358,12 +358,12 @@ class CurrencyTrader(threading.Thread):
             ################# features to detect trend approaching the end ###############
             self.data_df['period_high' + str(high_low_window) + '_gradient'] = self.data_df['period_high' + str(high_low_window)].diff()
             self.data_df['period_high' + str(high_low_window) + '_go_up'] = np.where(
-                self.data_df['period_high' + str(high_low_window) + '_gradient'] > 0,
+                self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate >= 20,
                 1,
                 0
             )
             self.data_df['period_high' + str(high_low_window) + '_go_down'] = np.where(
-                self.data_df['period_high' + str(high_low_window) + '_gradient'] < 0,
+                self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate <= -20,
                 1,
                 0
             )
@@ -1736,7 +1736,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file + "hutong2.csv", index=False)
+            self.data_df.to_csv(self.currency_file + "hutong3.csv", index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 

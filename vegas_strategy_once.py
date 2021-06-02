@@ -84,7 +84,7 @@ currency_df = pd.read_csv(currency_file)
 
 # Hutong
 # currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['CADJPY'])]
 
 # print("currency_df:")
 # print(currency_df)
