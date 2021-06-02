@@ -93,6 +93,10 @@ currency_df = pd.read_csv(currency_file)
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
 #currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
+print("currency_df:")
+print(currency_df)
+
+sendEmail("Trader process starts", "")
 
 currency_pairs = []
 for i in range(currency_df.shape[0]):
@@ -134,9 +138,10 @@ for currency_pair in currency_pairs:
         os.makedirs(simple_chart_folder)
 
     log_file = os.path.join(currency_folder, currency + "_log.txt")
-    # if not os.path.exists(log_file):
-    fd = open(log_file, 'w')
-    fd.close()
+    if not os.path.exists(log_file):
+        fd = open(log_file, 'w')
+        fd.close()
+
 
     currency_folders += [currency_folder]
     data_folders += [data_folder]
@@ -356,5 +361,7 @@ while not is_all_received:
                         print("Reached maximum number of trials for " + currency + ", give up")
 
     is_first_time = False
+
+sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")

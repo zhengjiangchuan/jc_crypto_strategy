@@ -1731,17 +1731,17 @@ class CurrencyTrader(threading.Thread):
                 file_path = os.path.join(self.simple_chart_folder, file)
                 os.remove(file_path)
 
-            plot_candle_bar_charts(self.currency, self.data_df, all_days,
-                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                                   is_plot_candle_buy_sell_points=True,
-                                   print_prefix=print_prefix,
-                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
-
-            plot_candle_bar_charts(self.currency, self.data_df, all_days,
-                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                                   is_plot_candle_buy_sell_points=True,
-                                   print_prefix=print_prefix,
-                                   bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
+            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
+            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+            #                        is_plot_candle_buy_sell_points=True,
+            #                        print_prefix=print_prefix,
+            #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
+            #
+            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
+            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+            #                        is_plot_candle_buy_sell_points=True,
+            #                        print_prefix=print_prefix,
+            #                        bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
 
 
             self.data_df = self.data_df[['currency', 'time','open','high','low','close']]
