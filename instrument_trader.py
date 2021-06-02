@@ -106,6 +106,8 @@ reverse_threshold = 0.1
 
 guppy_lookback = 24
 
+vegas_angle_threshold = 3
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -1416,12 +1418,18 @@ class CurrencyTrader(threading.Thread):
 
             buy_c8 = self.data_df['is_bull_dying'] & (self.data_df['price_to_period_high_pct'] < price_to_period_range_pct_relaxed) & (~strongly_aligned_long_condition)
 
+            #buy_c9 = self.data_df['upper_vegas_mostly_down']
+
+            buy_c9 = (self.data_df['upper_vegas_gradient'] * self.lot_size * self.exchange_rate > vegas_angle_threshold) | \
+                     (self.data_df['lower_vegas_gradient'] * self.lot_size * self.exchange_rate > vegas_angle_threshold) | \
+                     self.data_df['vegas_mostly_up']
+
             if not self.remove_c12:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & \
-                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2 & breaking_up_cond3) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
+                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & (buy_c9) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2 & breaking_up_cond3) | (((buy_c12) | (buy_c13)) & (~buy_c2)))
             else:
                 self.data_df['buy_real_fire'] = (self.data_df['buy_real_fire']) & \
-                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2 & breaking_up_cond3) | ((buy_c13) & (~buy_c2)))
+                                                (buy_c3) & (~buy_c5) & (~buy_c6) & (~buy_c7) & (~buy_c8) & (buy_c9) & ((buy_c4 & breaking_up_cond1 & breaking_up_cond2 & breaking_up_cond3) | ((buy_c13) & (~buy_c2)))
 
 
             self.data_df['buy_c11'] = buy_c11
@@ -1437,6 +1445,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_c6'] = buy_c6
             self.data_df['buy_c7'] = buy_c7
             self.data_df['buy_c8'] = buy_c8
+            self.data_df['buy_c9'] = buy_c9
             self.data_df['breaking_up_cond1'] = breaking_up_cond1
             self.data_df['breaking_up_cond2'] = breaking_up_cond2
             self.data_df['breaking_up_cond3'] = breaking_up_cond3
@@ -1555,12 +1564,19 @@ class CurrencyTrader(threading.Thread):
 
             sell_c8 = self.data_df['is_bear_dying'] & (self.data_df['price_to_period_low_pct'] < price_to_period_range_pct_relaxed) & (~strongly_aligned_short_condition)
 
+            #sell_c9 = self.data_df['upper_vegas_mostly_up']
+
+            sell_c9 = (self.data_df['upper_vegas_gradient'] * self.lot_size * self.exchange_rate < -vegas_angle_threshold) | \
+                      (self.data_df['lower_vegas_gradient'] * self.lot_size * self.exchange_rate < -vegas_angle_threshold) | \
+                      self.data_df['vegas_mostly_down']
+
+
             if not self.remove_c12:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & \
-                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2 & breaking_down_cond3) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
+                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & (sell_c9) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2 & breaking_down_cond3) | (((sell_c12) | (sell_c13)) & (~sell_c2)))
             else:
                 self.data_df['sell_real_fire'] = (self.data_df['sell_real_fire']) & \
-                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2 & breaking_down_cond3) | ((sell_c13) & (~sell_c2)))
+                                                 (sell_c3) & (~sell_c5) & (~sell_c6) & (~sell_c7) & (~sell_c8) & (sell_c9) & ((sell_c4 & breaking_down_cond1 & breaking_down_cond2 & breaking_down_cond3) | ((sell_c13) & (~sell_c2)))
 
 
 
@@ -1577,6 +1593,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_c6'] = sell_c6
             self.data_df['sell_c7'] = sell_c7
             self.data_df['sell_c8'] = sell_c8
+            #self.data_df['sell_c9'] = sell_c9
             self.data_df['breaking_down_cond1'] = breaking_down_cond1
             self.data_df['breaking_down_cond2'] = breaking_down_cond2
             self.data_df['breaking_down_cond3'] = breaking_down_cond3
@@ -1719,7 +1736,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file, index=False)
+            self.data_df.to_csv(self.currency_file + "hutong2.csv", index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 
@@ -1731,17 +1748,17 @@ class CurrencyTrader(threading.Thread):
                 file_path = os.path.join(self.simple_chart_folder, file)
                 os.remove(file_path)
 
-            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
-            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-            #                        is_plot_candle_buy_sell_points=True,
-            #                        print_prefix=print_prefix,
-            #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
-            #
-            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
-            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-            #                        is_plot_candle_buy_sell_points=True,
-            #                        print_prefix=print_prefix,
-            #                        bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
+            plot_candle_bar_charts(self.currency, self.data_df, all_days,
+                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                                   is_plot_candle_buy_sell_points=True,
+                                   print_prefix=print_prefix,
+                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
+
+            plot_candle_bar_charts(self.currency, self.data_df, all_days,
+                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                                   is_plot_candle_buy_sell_points=True,
+                                   print_prefix=print_prefix,
+                                   bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
 
 
             self.data_df = self.data_df[['currency', 'time','open','high','low','close']]
