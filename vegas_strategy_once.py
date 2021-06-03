@@ -65,9 +65,9 @@ class CurrencyPair:
 
 print("Child process starts")
 
-#root_folder = "C:\\Forex\\formal_trading"
+root_folder = "C:\\Forex\\formal_trading"
 
-root_folder = "/home/min/forex/formal_trading"
+#root_folder = "/home/min/forex/formal_trading"
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]
@@ -95,7 +95,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
+currency_df = currency_df[currency_df['currency'].isin(['GBPCAD'])]
 print("currency_df:")
 print(currency_df)
 
@@ -199,11 +199,11 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
         data_df = pd.read_csv(StringIO(data_str), sep=',')
 
-        # print("data_df:")
-        # print(data_df)
+        print("My My data_df:")
+        print(data_df)
 
-        # print("columns:")
-        # print(data_df.columns)
+        print("columns:")
+        print(data_df.columns)
 
         if is_convert_to_time:
             data_df['time'] = data_df['time'].apply(lambda x: convert_to_time(x))
@@ -249,6 +249,7 @@ for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file in l
 
     currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, data_folder,
                                      chart_folder, simple_chart_folder, log_file)
+    currency_trader.daemon = True
 
     currency_traders += [currency_trader]
 
@@ -368,3 +369,7 @@ while not is_all_received:
 sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
+
+sys.exit(0)
+
+print("All finished")

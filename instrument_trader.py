@@ -380,12 +380,12 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['period_low' + str(high_low_window) + '_gradient'] = self.data_df['period_low' + str(high_low_window)].diff()
             self.data_df['period_low' + str(high_low_window) + '_go_up'] = np.where(
-                self.data_df['period_low' + str(high_low_window) + '_gradient'] > 0,
+                self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate >= 20,
                 1,
                 0
             )
             self.data_df['period_low' + str(high_low_window) + '_go_down'] = np.where(
-                self.data_df['period_low' + str(high_low_window) + '_gradient'] < 0,
+                self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate <= -20,
                 1,
                 0
             )
