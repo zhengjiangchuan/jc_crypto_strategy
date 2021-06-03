@@ -204,13 +204,33 @@ class CurrencyTrader(threading.Thread):
             calc_bolling_bands(self.data_df, "close", bolling_width)
             calc_macd(self.data_df, "close")
 
+            self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
+            self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
+
 
             self.data_df['period_high_low_range'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['period_low' + str(high_low_window)]
+
             self.data_df['price_to_period_low_pct'] = (self.data_df['close'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
             self.data_df['price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['close']) / self.data_df['period_high_low_range']
 
             self.data_df['prev_price_to_period_low_pct'] = self.data_df['price_to_period_low_pct'].shift(1)
             self.data_df['prev_price_to_period_high_pct'] = self.data_df['price_to_period_high_pct'].shift(1)
+
+            self.data_df['prev2_price_to_period_low_pct'] = self.data_df['prev_price_to_period_low_pct'].shift(1)
+            self.data_df['prev2_price_to_period_high_pct'] = self.data_df['prev_price_to_period_high_pct'].shift(1)
+
+
+
+            self.data_df['min_price_to_period_low_pct'] = (self.data_df['min_price'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
+            self.data_df['max_price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['max_price']) / self.data_df['period_high_low_range']
+
+            self.data_df['prev_min_price_to_period_low_pct'] = self.data_df['min_price_to_period_low_pct'].shift(1)
+            self.data_df['prev_max_price_to_period_high_pct'] = self.data_df['max_price_to_period_high_pct'].shift(1)
+
+            self.data_df['prev2_min_price_to_period_low_pct'] = self.data_df['prev_min_price_to_period_low_pct'].shift(1)
+            self.data_df['prev2_max_price_to_period_high_pct'] = self.data_df['prev_max_price_to_period_high_pct'].shift(1)
+
+
 
             # self.data_df['prev_open'] = self.data_df['open'].shift(1)
             # self.data_df['prev_close'] = self.data_df['close'].shift(1)
@@ -235,8 +255,7 @@ class CurrencyTrader(threading.Thread):
                 # self.data_df['prev' + str(i) + '_is_negative'] = pd.Series(list(self.data_df['prev' + str(i) + '_is_negative']), dtype='bool')
 
 
-            self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
-            self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
+
             self.data_df['middle'] = (self.data_df['open'] + self.data_df['close']) / 2
 
             self.data_df['prev1_min_price'] = self.data_df['min_price'].shift(1)
@@ -1464,16 +1483,25 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_real_fire2'] = self.data_df['is_bull_dying'] & (self.data_df['prev_price_to_period_high_pct'] < reverse_threshold) & \
                                               (self.data_df['close'] - self.data_df['open'] < 0) & (self.data_df['close'] < self.data_df['prev1_min_price'])
 
-            #
-            # print("Fucking data df here:")
-            # print("length = " + str(self.data_df.shape[0]))
+
+
+            sell_good_cond1 = (self.data_df['prev_max_price_to_period_high_pct'] < reverse_threshold) | (self.data_df['prev2_max_price_to_period_high_pct'] < reverse_threshold)
+            sell_good_cond2 = (self.data_df['close'] - self.data_df['open'] < 0) & \
+                             (self.data_df['close'] < self.data_df['ma_close12']) #& \
+                             #(self.data_df['open'] > self.data_df['ma_close12'])
+            sell_good_cond3 = (self.data_df['ma12_gradient'] < 0)
+            sell_good_cond4 = (self.data_df['close'] > self.data_df['upper_vegas'])
+
+            self.data_df['sell_real_fire3'] = sell_good_cond1 & sell_good_cond2 & sell_good_cond3 & sell_good_cond4
+
+            self.data_df['sell_good_cond1'] = sell_good_cond1
+            self.data_df['sell_good_cond2'] = sell_good_cond2
+            self.data_df['sell_good_cond3'] = sell_good_cond3
+            self.data_df['sell_good_cond4'] = sell_good_cond4
 
 
 
             self.data_df['prev_buy_weak_fire'] = self.data_df['buy_weak_fire'].shift(1)
-
-            #print(self.data_df[['id', 'close', 'buy_weak_fire', 'prev_buy_weak_fire']].tail(10))
-
             self.data_df.at[0, 'prev_buy_weak_fire'] = False
             self.data_df['prev_buy_weak_fire'] = pd.Series(list(self.data_df['prev_buy_weak_fire']), dtype='bool')
             self.data_df['first_buy_weak_fire'] = self.data_df['buy_weak_fire'] & (~self.data_df['prev_buy_weak_fire'])
@@ -1493,6 +1521,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_sell_real_fire2'] = False
             self.data_df['prev_sell_real_fire2'] = pd.Series(list(self.data_df['prev_sell_real_fire2']), dtype='bool')
             self.data_df['first_sell_real_fire2'] = self.data_df['sell_real_fire2'] & (~self.data_df['prev_sell_real_fire2'])
+
+            self.data_df['prev_sell_real_fire3'] = self.data_df['sell_real_fire3'].shift(1)
+            self.data_df.at[0, 'prev_sell_real_fire3'] = False
+            self.data_df['prev_sell_real_fire3'] = pd.Series(list(self.data_df['prev_sell_real_fire3']), dtype='bool')
+            self.data_df['first_sell_real_fire3'] = self.data_df['sell_real_fire3'] & (~self.data_df['prev_sell_real_fire3'])
 
 
             # print(type(self.data_df.iloc[0]['first_buy_fire']))
@@ -1616,6 +1649,23 @@ class CurrencyTrader(threading.Thread):
 
 
 
+
+            buy_good_cond1 = (self.data_df['prev_min_price_to_period_low_pct'] < reverse_threshold) | (self.data_df['prev2_min_price_to_period_low_pct'] < reverse_threshold)
+            buy_good_cond2 = (self.data_df['close'] - self.data_df['open'] > 0) & \
+                             (self.data_df['close'] > self.data_df['ma_close12']) #& \
+                             #(self.data_df['open'] < self.data_df['ma_close12'])
+            buy_good_cond3 = (self.data_df['ma12_gradient'] > 0)
+            buy_good_cond4 = (self.data_df['close'] < self.data_df['lower_vegas'])
+
+            self.data_df['buy_real_fire3'] = buy_good_cond1 & buy_good_cond2 & buy_good_cond3 & buy_good_cond4
+
+            self.data_df['buy_good_cond1'] = buy_good_cond1
+            self.data_df['buy_good_cond2'] = buy_good_cond2
+            self.data_df['buy_good_cond3'] = buy_good_cond3
+            self.data_df['buy_good_cond4'] = buy_good_cond4
+
+
+
             self.data_df['prev_sell_weak_fire'] = self.data_df['sell_weak_fire'].shift(1)
             self.data_df.at[0, 'prev_sell_weak_fire'] = False
             self.data_df['prev_sell_weak_fire'] = pd.Series(list(self.data_df['prev_sell_weak_fire']), dtype='bool')
@@ -1635,6 +1685,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_buy_real_fire2'] = False
             self.data_df['prev_buy_real_fire2'] = pd.Series(list(self.data_df['prev_buy_real_fire2']), dtype='bool')
             self.data_df['first_buy_real_fire2'] = self.data_df['buy_real_fire2'] & (~self.data_df['prev_buy_real_fire2'])
+
+            self.data_df['prev_buy_real_fire3'] = self.data_df['buy_real_fire3'].shift(1)
+            self.data_df.at[0, 'prev_buy_real_fire3'] = False
+            self.data_df['prev_buy_real_fire3'] = pd.Series(list(self.data_df['prev_buy_real_fire3']), dtype='bool')
+            self.data_df['first_buy_real_fire3'] = self.data_df['buy_real_fire3'] & (~self.data_df['prev_buy_real_fire3'])
 
 
             signal_msg = ','.join([signal_attr + "=" + str(self.data_df.iloc[-1][signal_attr]) for signal_attr in signal_attrs])

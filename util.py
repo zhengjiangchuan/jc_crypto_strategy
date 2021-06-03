@@ -372,7 +372,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
 
 
-        buy_real_points = which(sub_data['first_buy_real_fire'] | sub_data['first_buy_real_fire2'])
+        buy_real_points = which(sub_data['first_buy_real_fire'] | sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
         buy_points = which(sub_data['first_buy_fire'] & (~sub_data['first_buy_real_fire']))
 
         # buy_real_points = which(sub_data['first_buy_real_fire2'])
@@ -385,7 +385,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         sell_ready_points = which(sub_data['sell_ready'])
 
-        sell_real_points = which(sub_data['first_sell_real_fire'] | sub_data['first_sell_real_fire2'])
+        sell_real_points = which(sub_data['first_sell_real_fire'] | sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
         sell_points = which(sub_data['first_sell_fire'] & (~sub_data['first_sell_real_fire']))
 
         # sell_real_points = which(sub_data['first_sell_real_fire2'])
