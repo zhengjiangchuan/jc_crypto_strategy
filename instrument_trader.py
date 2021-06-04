@@ -1710,7 +1710,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            if self.data_df.iloc[-1]['first_buy_real_fire'] | self.data_df.iloc[-1]['first_buy_real_fire2']:
+            if self.data_df.iloc[-1]['first_buy_real_fire'] | self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']:
 
                 enter_price = self.data_df.iloc[-1]['close']
                 stop_loss_price = self.data_df.iloc[-1]['lower_vegas']
@@ -1732,7 +1732,15 @@ class CurrencyTrader(threading.Thread):
                     self.log_msg(additional_msg)
                 self.log_msg("********************************")
 
-                sendEmail(msg, msg + additional_msg)
+                if (self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']):
+
+                    delta_point = (self.data_df.iloc[-1]['open'] - self.data_df.iloc[-1]['period_low' + str(high_low_window)]) * self.lot_size * self.exchange_rate
+
+                    stop_loss_msg = " Stop loss at " + str(delta_point) + " points below open price"
+                else:
+                    stop_loss_msg = ""
+
+                sendEmail(msg, msg + additional_msg + stop_loss_msg)
 
             elif self.data_df.iloc[-1]['first_buy_fire']:
                 msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str(
@@ -1760,7 +1768,7 @@ class CurrencyTrader(threading.Thread):
                     #sendEmail(msg, msg)
 
 
-            if self.data_df.iloc[-1]['first_sell_real_fire'] | self.data_df.iloc[-1]['first_sell_real_fire2']:
+            if self.data_df.iloc[-1]['first_sell_real_fire'] | self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']:
 
                 enter_price = self.data_df.iloc[-1]['close']
                 stop_loss_price = self.data_df.iloc[-1]['upper_vegas']
@@ -1783,7 +1791,15 @@ class CurrencyTrader(threading.Thread):
                     self.log_msg(additional_msg)
                 self.log_msg("********************************")
 
-                sendEmail(msg, msg + additional_msg)
+                if (self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']):
+
+                    delta_point = (-self.data_df.iloc[-1]['open'] + self.data_df.iloc[-1]['period_high' + str(high_low_window)]) * self.lot_size * self.exchange_rate
+
+                    stop_loss_msg = " Stop loss at " + str(delta_point) + " points above open price"
+                else:
+                    stop_loss_msg = ""
+
+                sendEmail(msg, msg + additional_msg + stop_loss_msg)
 
             elif self.data_df.iloc[-1]['first_sell_fire']:
                 msg = "Short " + self.currency + " at " + current_time + ", last_price = " + str(
