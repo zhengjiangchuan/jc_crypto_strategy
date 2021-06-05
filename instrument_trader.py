@@ -213,8 +213,11 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['period_high_low_range'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['period_low' + str(high_low_window)]
 
-            self.data_df['price_to_period_low_pct'] = (self.data_df['close'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
-            self.data_df['price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['close']) / self.data_df['period_high_low_range']
+            self.data_df['price_to_period_low'] = self.data_df['close'] - self.data_df['period_low' + str(high_low_window)]
+            self.data_df['price_to_period_high'] = self.data_df['period_high' + str(high_low_window)] - self.data_df['close']
+
+            self.data_df['price_to_period_low_pct'] = self.data_df['price_to_period_low'] / self.data_df['period_high_low_range']
+            self.data_df['price_to_period_high_pct'] = self.data_df['price_to_period_high'] / self.data_df['period_high_low_range']
 
             self.data_df['prev_price_to_period_low_pct'] = self.data_df['price_to_period_low_pct'].shift(1)
             self.data_df['prev_price_to_period_high_pct'] = self.data_df['price_to_period_high_pct'].shift(1)
@@ -227,11 +230,16 @@ class CurrencyTrader(threading.Thread):
             self.data_df['min_price_to_period_low_pct'] = (self.data_df['min_price'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
             self.data_df['max_price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['max_price']) / self.data_df['period_high_low_range']
 
-            self.data_df['prev_min_price_to_period_low_pct'] = self.data_df['min_price_to_period_low_pct'].shift(1)
-            self.data_df['prev_max_price_to_period_high_pct'] = self.data_df['max_price_to_period_high_pct'].shift(1)
 
-            self.data_df['prev2_min_price_to_period_low_pct'] = self.data_df['prev_min_price_to_period_low_pct'].shift(1)
-            self.data_df['prev2_max_price_to_period_high_pct'] = self.data_df['prev_max_price_to_period_high_pct'].shift(1)
+            self.data_df['prev1_min_price_to_period_low_pct'] = self.data_df['min_price_to_period_low_pct'].shift(1)
+            self.data_df['prev1_max_price_to_period_high_pct'] = self.data_df['max_price_to_period_high_pct'].shift(1)
+
+            for i in range(2, 11):
+                self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] = self.data_df['prev' + str(i-1) + '_min_price_to_period_low_pct'].shift(1)
+                self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] = self.data_df['prev' + str(i-1) + '_max_price_to_period_high_pct'].shift(1)
+
+            # self.data_df['prev2_min_price_to_period_low_pct'] = self.data_df['prev_min_price_to_period_low_pct'].shift(1)
+            # self.data_df['prev2_max_price_to_period_high_pct'] = self.data_df['prev_max_price_to_period_high_pct'].shift(1)
 
 
 
@@ -240,6 +248,9 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['is_positive'] = (self.data_df['close'] > self.data_df['open'])
             self.data_df['is_negative'] = (self.data_df['close'] < self.data_df['open'])
+
+            self.data_df['prev_high'] = self.data_df['high'].shift(1)
+            self.data_df['prev_low'] = self.data_df['low'].shift(1)
 
             self.data_df['prev1_open'] = self.data_df['open'].shift(1)
             self.data_df['prev1_close'] = self.data_df['close'].shift(1)
@@ -367,6 +378,9 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['highest_guppy'] = self.data_df['guppy6']
             self.data_df['lowest_guppy'] = self.data_df['guppy1']
+
+            self.data_df['second_highest_guppy'] = self.data_df['guppy5']
+            self.data_df['second_lowest_guppy'] = self.data_df['guppy2']
 
             self.data_df['prev1_highest_guppy'] = self.data_df['highest_guppy'].shift(1)
             for i in range(2, ma12_lookback + 1):
@@ -1207,10 +1221,10 @@ class CurrencyTrader(threading.Thread):
             self.data_df['distance_to_upper_vegas'] = self.data_df['ma_close12'] - self.data_df['upper_vegas']
             self.data_df['distance_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
 
-            self.data_df['price_to_upper_vegas'] = self.data_df['close'] - self.data_df['upper_vegas']
+            self.data_df['price_to_upper_vegas'] = self.data_df['upper_vegas'] - self.data_df['close']
             self.data_df['price_to_lower_vegas'] = self.data_df['close'] - self.data_df['lower_vegas']
 
-            self.data_df['price_to_bolling_upper'] = self.data_df['close'] - self.data_df['upper_band_close']
+            self.data_df['price_to_bolling_upper'] = self.data_df['upper_band_close'] - self.data_df['close']
             self.data_df['price_to_bolling_lower'] = self.data_df['close'] - self.data_df['lower_band_close']
 
 
@@ -1418,7 +1432,7 @@ class CurrencyTrader(threading.Thread):
 
             buy_c11 = self.data_df['price_to_lower_vegas'] * self.lot_size * self.exchange_rate < maximum_loss
             buy_c12 = self.data_df['price_to_bolling_upper'] * self.lot_size * self.exchange_rate < -minimum_profit
-            buy_c13 = (-self.data_df['price_to_bolling_upper'] / self.data_df['price_to_lower_vegas']) > minimum_profilt_loss_ratio
+            buy_c13 = (self.data_df['price_to_bolling_upper'] / self.data_df['price_to_lower_vegas']) > minimum_profilt_loss_ratio
 
             buy_c2 = self.data_df['is_guppy_aligned_short']
 
@@ -1499,12 +1513,19 @@ class CurrencyTrader(threading.Thread):
             self.data_df['breaking_up_cond3'] = breaking_up_cond3
 
 
-            sell_good_cond1 = (self.data_df['prev_max_price_to_period_high_pct'] < reverse_threshold) | (self.data_df['prev2_max_price_to_period_high_pct'] < reverse_threshold)
+            #sell_good_cond1 = (self.data_df['prev_max_price_to_period_high_pct'] < reverse_threshold) | (self.data_df['prev2_max_price_to_period_high_pct'] < reverse_threshold)
+
+            sell_good_cond1 = reduce(lambda left, right: left | right,
+                                     [(self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] < reverse_threshold)
+                                     for i in range(2, 11)])
+
             sell_good_cond2 = (self.data_df['close'] - self.data_df['open'] < 0) & \
                              (self.data_df['close'] < self.data_df['ma_close12']) #& \
-                             #(self.data_df['open'] > self.data_df['ma_close12'])
+                             #(self.data_df['close'] > self.data_df['second_lowest_guppy'])
+                             #(self.data_df['prev_high'] > self.data_df['ma_close12'])
             sell_good_cond3 = (self.data_df['ma12_gradient'] < 0)
             sell_good_cond4 = (self.data_df['close'] > self.data_df['upper_vegas'])
+            sell_good_cond5 = (self.data_df['price_to_lower_vegas']/self.data_df['price_to_period_high']) >= 0.7
 
             sell_bad_cond0 = (self.data_df['close'] - self.data_df['upper_vegas']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
             sell_bad_cond1 = self.data_df['price_to_upper_vegas_pct'] < reverse_trade_min_distance_to_vegas
@@ -1519,12 +1540,13 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_real_fire2'] = self.data_df['sell_real_fire2'] & (~(sell_bad_cond0 & sell_bad_cond1))
 
 
-            self.data_df['sell_real_fire3'] = sell_good_cond1 & sell_good_cond2 & sell_good_cond3 & sell_good_cond4 & (~sell_bad_cond)
+            self.data_df['sell_real_fire3'] = sell_good_cond1 & sell_good_cond2 & sell_good_cond3 & sell_good_cond4 & sell_good_cond5 & (~sell_bad_cond)
 
             self.data_df['sell_good_cond1'] = sell_good_cond1
             self.data_df['sell_good_cond2'] = sell_good_cond2
             self.data_df['sell_good_cond3'] = sell_good_cond3
             self.data_df['sell_good_cond4'] = sell_good_cond4
+            self.data_df['sell_good_cond5'] = sell_good_cond5
 
             self.data_df['sell_bad_cond0'] = sell_bad_cond0
             self.data_df['sell_bad_cond1'] = sell_bad_cond1
@@ -1596,7 +1618,7 @@ class CurrencyTrader(threading.Thread):
 
             sell_c11 = self.data_df['price_to_upper_vegas'] * self.lot_size * self.exchange_rate > -maximum_loss
             sell_c12 = self.data_df['price_to_bolling_lower'] * self.lot_size * self.exchange_rate > minimum_profit
-            sell_c13 = (-self.data_df['price_to_bolling_lower'] / self.data_df['price_to_upper_vegas']) > minimum_profilt_loss_ratio
+            sell_c13 = (self.data_df['price_to_bolling_lower'] / self.data_df['price_to_upper_vegas']) > minimum_profilt_loss_ratio
 
             sell_c2 = self.data_df['is_guppy_aligned_long']
 
@@ -1680,12 +1702,19 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            buy_good_cond1 = (self.data_df['prev_min_price_to_period_low_pct'] < reverse_threshold) | (self.data_df['prev2_min_price_to_period_low_pct'] < reverse_threshold)
+            #buy_good_cond1 = (self.data_df['prev_min_price_to_period_low_pct'] < reverse_threshold) | (self.data_df['prev2_min_price_to_period_low_pct'] < reverse_threshold)
+
+            buy_good_cond1 = reduce(lambda left, right: left | right,
+                                     [(self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] < reverse_threshold)
+                                     for i in range(2, 11)])
+
             buy_good_cond2 = (self.data_df['close'] - self.data_df['open'] > 0) & \
                              (self.data_df['close'] > self.data_df['ma_close12']) #& \
-                             #(self.data_df['open'] < self.data_df['ma_close12'])
+                             #(self.data_df['close'] < self.data_df['second_highest_guppy'])
+                             #(self.data_df['prev_low'] < self.data_df['ma_close12'])
             buy_good_cond3 = (self.data_df['ma12_gradient'] > 0)
             buy_good_cond4 = (self.data_df['close'] < self.data_df['lower_vegas'])
+            buy_good_cond5 = (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= 0.7
 
             buy_bad_cond0 = (self.data_df['lower_vegas'] - self.data_df['close']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
             buy_bad_cond1 = self.data_df['price_to_lower_vegas_pct'] < reverse_trade_min_distance_to_vegas
@@ -1700,12 +1729,13 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_real_fire2'] = self.data_df['buy_real_fire2'] & (~(buy_bad_cond0 & buy_bad_cond1))
 
 
-            self.data_df['buy_real_fire3'] = buy_good_cond1 & buy_good_cond2 & buy_good_cond3 & buy_good_cond4 & (~buy_bad_cond)
+            self.data_df['buy_real_fire3'] = buy_good_cond1 & buy_good_cond2 & buy_good_cond3 & buy_good_cond4 & buy_good_cond5 & (~buy_bad_cond)
 
             self.data_df['buy_good_cond1'] = buy_good_cond1
             self.data_df['buy_good_cond2'] = buy_good_cond2
             self.data_df['buy_good_cond3'] = buy_good_cond3
             self.data_df['buy_good_cond4'] = buy_good_cond4
+            self.data_df['buy_good_cond5'] = buy_good_cond5
 
             self.data_df['buy_bad_cond0'] = buy_bad_cond0
             self.data_df['buy_bad_cond1'] = buy_bad_cond1
@@ -1869,7 +1899,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df.to_csv(self.currency_file, index=False)
+            self.data_df.to_csv(self.currency_file+"tmp.csv", index=False)
 
             print_prefix = "[Currency " + self.currency + "] "
 
