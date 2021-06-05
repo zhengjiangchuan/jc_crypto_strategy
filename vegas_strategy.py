@@ -89,7 +89,8 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURCHF', 'EURJPY', 'EURNZD', 'EURUSD', 'AUDNZD', 'CADCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['GBPCAD', 'GBPNZD'])]
 
 
 currency_pairs = []
