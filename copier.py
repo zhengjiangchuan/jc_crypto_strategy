@@ -13,7 +13,7 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct"
 
-dest_folder = "C:\\Forex\\all_simple_charts_updated2_realtime_debug_correct_new_try3_compare6"
+dest_folder = "C:\\Forex\\all_simple_charts_updated2_realtime_debug_correct_new_try3_compare_final"
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_16RedefineFalseSignalEntryBar"
 

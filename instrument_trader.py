@@ -113,6 +113,8 @@ reverse_trade_min_distance_to_vegas = 0.15
 
 reverse_trade_look_back = 10
 
+macd_relaxed = True
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -210,6 +212,13 @@ class CurrencyTrader(threading.Thread):
             calc_jc_lines(self.data_df, "close", windows)
             calc_bolling_bands(self.data_df, "close", bolling_width)
             calc_macd(self.data_df, "close")
+
+            self.data_df['prev_macd'] = self.data_df['macd'].shift(1)
+            self.data_df['prev_msignal'] = self.data_df['msignal'].shift(1)
+            self.data_df['macd_cross_up'] = (self.data_df['prev_macd'] < self.data_df['prev_msignal']) & (self.data_df['macd'] >= self.data_df['msignal'])
+            self.data_df['macd_cross_down'] = (self.data_df['prev_macd'] > self.data_df['prev_msignal']) & (self.data_df['macd'] <= self.data_df['msignal'])
+
+
 
             self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
             self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
@@ -1563,6 +1572,18 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_bad_cond2'] = sell_bad_cond2
             self.data_df['sell_bad_cond3'] = sell_bad_cond3
 
+            self.data_df['sell_real_fire4'] = (self.data_df['ma_close12'] > self.data_df['upper_vegas']) & (self.data_df['macd_cross_down']) & \
+                                               (self.data_df['close'] > self.data_df['upper_vegas'])
+            macd_sell_cond1 = (self.data_df['price_to_lower_vegas']/self.data_df['price_to_period_high'] >= 0.7)
+            #macd_sell_cond2 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate < 0)
+            macd_sell_cond2 = ((self.data_df['is_vegas_down_trend']) & (self.data_df['ma_close144_gradient'] <= 0))
+
+            macd_sell_condition = (macd_sell_cond1 | macd_sell_cond2) if macd_relaxed else macd_sell_cond1
+
+            self.data_df['sell_real_fire4'] = self.data_df['sell_real_fire4'] & macd_sell_condition
+            self.data_df['macd_sell_cond1'] = macd_sell_cond1
+            self.data_df['macd_sell_cond2'] = macd_sell_cond2
+
 
 
             self.data_df['prev_buy_weak_fire'] = self.data_df['buy_weak_fire'].shift(1)
@@ -1590,6 +1611,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_sell_real_fire3'] = False
             self.data_df['prev_sell_real_fire3'] = pd.Series(list(self.data_df['prev_sell_real_fire3']), dtype='bool')
             self.data_df['first_sell_real_fire3'] = self.data_df['sell_real_fire3'] & (~self.data_df['prev_sell_real_fire3'])
+
+            self.data_df['prev_sell_real_fire4'] = self.data_df['sell_real_fire4'].shift(1)
+            self.data_df.at[0, 'prev_sell_real_fire4'] = False
+            self.data_df['prev_sell_real_fire4'] = pd.Series(list(self.data_df['prev_sell_real_fire4']), dtype='bool')
+            self.data_df['first_sell_real_fire4'] = self.data_df['sell_real_fire4'] & (~self.data_df['prev_sell_real_fire4'])
 
 
             # print(type(self.data_df.iloc[0]['first_buy_fire']))
@@ -1756,6 +1782,18 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_bad_cond3'] = buy_bad_cond3
 
 
+            self.data_df['buy_real_fire4'] = (self.data_df['ma_close12'] < self.data_df['lower_vegas']) & (self.data_df['macd_cross_up']) & \
+                                             (self.data_df['close'] < self.data_df['lower_vegas'])
+            macd_buy_cond1 = (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low'] >= 0.7)
+            #macd_buy_cond2 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate > 0)
+            macd_buy_cond2 = ((self.data_df['is_vegas_up_trend']) & (self.data_df['ma_close144_gradient'] >= 0))
+
+            macd_buy_condition = (macd_buy_cond1 | macd_buy_cond2) if macd_relaxed else macd_buy_cond1
+            self.data_df['buy_real_fire4'] = self.data_df['buy_real_fire4'] & macd_buy_condition
+            self.data_df['macd_buy_cond1'] = macd_buy_cond1
+            self.data_df['macd_buy_cond2'] = macd_buy_cond2
+
+
 
 
             self.data_df['prev_sell_weak_fire'] = self.data_df['sell_weak_fire'].shift(1)
@@ -1782,6 +1820,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_buy_real_fire3'] = False
             self.data_df['prev_buy_real_fire3'] = pd.Series(list(self.data_df['prev_buy_real_fire3']), dtype='bool')
             self.data_df['first_buy_real_fire3'] = self.data_df['buy_real_fire3'] & (~self.data_df['prev_buy_real_fire3'])
+
+            self.data_df['prev_buy_real_fire4'] = self.data_df['buy_real_fire4'].shift(1)
+            self.data_df.at[0, 'prev_buy_real_fire4'] = False
+            self.data_df['prev_buy_real_fire4'] = pd.Series(list(self.data_df['prev_buy_real_fire4']), dtype='bool')
+            self.data_df['first_buy_real_fire4'] = self.data_df['buy_real_fire4'] & (~self.data_df['prev_buy_real_fire4'])
 
 
             signal_msg = ','.join([signal_attr + "=" + str(self.data_df.iloc[-1][signal_attr]) for signal_attr in signal_attrs])
@@ -1928,12 +1971,14 @@ class CurrencyTrader(threading.Thread):
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
+                                   is_plot_aux = True,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days,
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
+                                   is_plot_aux=True,
                                    bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
 
 

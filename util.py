@@ -75,10 +75,14 @@ def calc_bolling_bands(df, attr, window):
 def calc_macd(df, attr):
 
     values = df[attr].values
-    macd, macdsignal, macdhist = talib.MACD(values, fastperiod = 6, slowperiod = 12, signalperiod = 9)
+    macd, macdsignal, macdhist = talib.MACD(values, fastperiod = 12, slowperiod = 26, signalperiod = 9)
 
     df['macd'] = macd
-
+    df['msignal'] = macdsignal
+    #
+    # print("macd:")
+    # print(df[['time', 'close', 'macd', 'msignal']].tail(30))
+    #
 
 
 
@@ -352,7 +356,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
         else:
             axes = fig.subplots(nrows = 1, ncols = 1)
 
-        candle_df = sub_data[['artificial_time', 'open', 'high', 'low', 'close', 'macd', 'time']
+        candle_df = sub_data[['artificial_time', 'open', 'high', 'low', 'close', 'macd', 'msignal', 'time']
                              + ['period_high' + str(high_low_window), 'period_low' + str(high_low_window)]
                              + ['ma_' + 'close' + str(window) for window in windows] + ['upper_band_close', 'lower_band_close', 'middle_band_close']]
         candle_df['artificial_time'] = candle_df['artificial_time'].apply(lambda x: mdates.date2num(x))
@@ -372,8 +376,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
 
 
-        buy_real_points = which(sub_data['first_buy_real_fire'] | sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
+        #buy_real_points = which(sub_data['first_buy_real_fire'] | sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
+        buy_real_points = which(sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
+        buy_real_points_macd = which(sub_data['first_buy_real_fire4'])
+
         buy_points = which(sub_data['first_buy_fire'] & (~sub_data['first_buy_real_fire']))
+
+        #buy_reverse_points = which(sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
+        buy_reverse_points = which(sub_data['first_buy_real_fire4'])
 
         # buy_real_points = which(sub_data['first_buy_real_fire2'])
         # buy_points = which(sub_data['first_buy_fire'] & (~sub_data['first_buy_real_fire']))
@@ -385,8 +395,13 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         sell_ready_points = which(sub_data['sell_ready'])
 
-        sell_real_points = which(sub_data['first_sell_real_fire'] | sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
+        #sell_real_points = which(sub_data['first_sell_real_fire'] | sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
+        sell_real_points = which(sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
+        sell_real_points_macd = which(sub_data['first_sell_real_fire4'])
         sell_points = which(sub_data['first_sell_fire'] & (~sub_data['first_sell_real_fire']))
+
+        #sell_reverse_points = which(sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
+        sell_reverse_points = which(sub_data['first_sell_real_fire4'])
 
         # sell_real_points = which(sub_data['first_sell_real_fire2'])
         # sell_points = which(sub_data['first_sell_fire'] & (~sub_data['first_sell_real_fire']))
@@ -401,6 +416,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             short_marker = 'v'
 
 
+            for buy_real_point in buy_real_points_macd:
+                axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'blue')
 
             for buy_real_point in buy_real_points:
                 axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'darkblue')
@@ -414,6 +431,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                     axes.plot(int_time_series[buy_weak_point], sub_data.iloc[buy_weak_point]['close'], marker = long_marker, markersize = 15, color = 'cornflowerblue')
 
 
+            for sell_real_point in sell_real_points_macd:
+                axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'red')
 
             for sell_real_point in sell_real_points:
                 axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'darkred')
@@ -485,7 +504,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
 
 
-        candle_df['signal'] = 'macd'
+        #candle_df['signal'] = 'macd'
+
         # print("candle_df:")
         # print(candle_df.head(20))
 
@@ -507,16 +527,44 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
             return my_time
 
-        sub_df = candle_df[['time_id', 'macd', 'signal']]
+        #Riccardo
+        sub_df1 = candle_df[['time_id', 'macd']]
+        sub_df2 = candle_df[['time_id', 'msignal']]
+
+        sub_df1 = sub_df1.rename(columns = {"macd" : "macd_indicator"})
+        sub_df2 = sub_df2.rename(columns={"msignal": "macd_indicator"})
+
+
+        # print("sub_df1:")
+        # print(sub_df1.tail(10))
+        # print("sub_df2:")
+        # print(sub_df2.tail(10))
+
+        sub_df1['signal'] = 'macd'
+        sub_df2['signal'] = 'msignal'
+
+        sub_df = pd.concat([sub_df1, sub_df2])
+
+        #sub_df = candle_df[['time_id', 'macd', 'signal']]
         # print("sub_df:")
         # print(sub_df.head(20))
         # print("row_number = " + str(sub_df.shape[0]))
 
         if is_plot_aux:
-            sns.lineplot(x = 'time_id', y = 'macd', hue = 'signal', data = sub_df, ax = aux_axes)
+
+
+
+            sns.lineplot(x = 'time_id', y = 'macd_indicator', hue = 'signal', data = sub_df, ax = aux_axes)
             plt.setp(aux_axes.get_xticklabels(), rotation=45)
             for day_point in d_data['start'].values[1:]:
                 aux_axes.axvline(time_id_array[day_point], ls = '--', color = 'black', linewidth = 1)
+
+            for buy_reverse_point in buy_reverse_points:
+                aux_axes.axvline(time_id_array[buy_reverse_point], ls='--', color='blue', linewidth=1)
+
+            for sell_reverse_point in sell_reverse_points:
+                aux_axes.axvline(time_id_array[sell_reverse_point], ls='--', color='red', linewidth=1)
+
             aux_axes.set_xlabel('time', size = 10)
             aux_axes.set_ylabel('macd', size = 10)
 
