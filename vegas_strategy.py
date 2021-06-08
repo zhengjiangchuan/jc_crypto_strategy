@@ -80,7 +80,7 @@ currency_df = pd.read_csv(currency_file)
 
 
 #Hutong
-#currency_df = currency_df[currency_df['currency'].isin(['EURGBP'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDUSD', 'CADJPY', 'EURCHF', 'EURUSD', 'USDJPY'])]
 
 # print("currency_df:")
@@ -272,6 +272,8 @@ for currency_pair,data_folder,chart_folder,simple_chart_folder,log_file in list(
             print("currency_file = " + currency_file)
             print("data_df:")
             print(data_df.tail(10))
+
+            #data_df = data_df[data_df['time'] < datetime(2021,6,5,1,0,0)]
 
 
             last_time = data_df.iloc[-1]['time']

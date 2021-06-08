@@ -1845,23 +1845,23 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            if self.data_df.iloc[-1]['first_buy_real_fire'] | self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']:
+            if self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']:
 
-                enter_price = self.data_df.iloc[-1]['close']
-                stop_loss_price = self.data_df.iloc[-1]['lower_vegas']
-
-                expected_loss = (enter_price - stop_loss_price) * self.lot_size * self.exchange_rate
-
-                actual_enter_lot = maximum_tolerable_loss / expected_loss * enter_lot
-                if actual_enter_lot > 1:
-                    actual_enter_lot = 1
+                # enter_price = self.data_df.iloc[-1]['close']
+                # stop_loss_price = self.data_df.iloc[-1]['lower_vegas']
+                #
+                # expected_loss = (enter_price - stop_loss_price) * self.lot_size * self.exchange_rate
+                #
+                # actual_enter_lot = maximum_tolerable_loss / expected_loss * enter_lot
+                # if actual_enter_lot > 1:
+                #     actual_enter_lot = 1
 
                 msg = "Strongly Long " + self.currency + " at " + current_time + ", last_price = " + str(
-                    "%.5f" % self.data_df.iloc[-1]['close']) + " with " + str("%.2f" % actual_enter_lot) + " lot"
+                    "%.5f" % self.data_df.iloc[-1]['close']) #+ " with " + str("%.2f" % actual_enter_lot) + " lot"
                 self.log_msg(msg)
-                self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
+                #self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
 
-                additional_msg = " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
+                additional_msg ="" # " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
 
                 if additional_msg != "":
                     self.log_msg(additional_msg)
@@ -1903,24 +1903,24 @@ class CurrencyTrader(threading.Thread):
                     #sendEmail(msg, msg)
 
 
-            if self.data_df.iloc[-1]['first_sell_real_fire'] | self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']:
+            if self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']:
 
-                enter_price = self.data_df.iloc[-1]['close']
-                stop_loss_price = self.data_df.iloc[-1]['upper_vegas']
-
-                expected_loss = (stop_loss_price - enter_price) * self.lot_size * self.exchange_rate
-
-                actual_enter_lot = maximum_tolerable_loss / expected_loss * enter_lot
-                if actual_enter_lot > 1:
-                    actual_enter_lot = 1
+                # enter_price = self.data_df.iloc[-1]['close']
+                # stop_loss_price = self.data_df.iloc[-1]['upper_vegas']
+                #
+                # expected_loss = (stop_loss_price - enter_price) * self.lot_size * self.exchange_rate
+                #
+                # actual_enter_lot = maximum_tolerable_loss / expected_loss * enter_lot
+                # if actual_enter_lot > 1:
+                #    actual_enter_lot = 1
 
 
                 msg = "Strongly Short " + self.currency + " at " + current_time + ", last_price = " + str(
-                    "%.5f" % self.data_df.iloc[-1]['close']) + " with " + str("%.2f" % actual_enter_lot) + " lot"
+                    "%.5f" % self.data_df.iloc[-1]['close'])# + " with " + str("%.2f" % actual_enter_lot) + " lot"
                 self.log_msg(msg)
-                self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
+                #self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
 
-                additional_msg = " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
+                additional_msg = "" # " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
 
                 if additional_msg != "":
                     self.log_msg(additional_msg)
@@ -1961,11 +1961,13 @@ class CurrencyTrader(threading.Thread):
 
             for file in os.listdir(self.chart_folder):
                 file_path = os.path.join(self.chart_folder, file)
-                os.remove(file_path)
+                if 'png' in file:
+                    os.remove(file_path)
 
             for file in os.listdir(self.simple_chart_folder):
                 file_path = os.path.join(self.simple_chart_folder, file)
-                os.remove(file_path)
+                if 'png' in file:
+                    os.remove(file_path)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days,
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,

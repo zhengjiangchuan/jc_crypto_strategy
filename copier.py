@@ -13,7 +13,7 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct"
 
-dest_folder = "C:\\Forex\\all_simple_charts_updated2_realtime_debug_correct_new_try3_compare_final"
+dest_folder = "C:\\Forex\\all_simple_charts_updated2_realtime_debug_correct_new_try3_compare_final_0608"
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_16RedefineFalseSignalEntryBar"
 
@@ -25,7 +25,7 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    # if symbol_folder[-6:] not in ['EURNZD', 'AUDNZD', 'GBPNZD', 'AUDUSD', 'EURJPY']:
+    # if symbol_folder[-6:] not in ['EURCAD']:
     #     continue
 
     print(symbol_folder)
