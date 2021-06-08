@@ -86,8 +86,8 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 # Hutong
-# currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['EURAUD'])]
 
 # print("currency_df:")
 # print(currency_df)
@@ -199,11 +199,11 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
         data_df = pd.read_csv(StringIO(data_str), sep=',')
 
-        print("My My data_df:")
-        print(data_df)
-
-        print("columns:")
-        print(data_df.columns)
+        # print("My My data_df:")
+        # print(data_df)
+        #
+        # print("columns:")
+        # print(data_df.columns)
 
         if is_convert_to_time:
             data_df['time'] = data_df['time'].apply(lambda x: convert_to_time(x))
@@ -257,7 +257,7 @@ print("data_folders:")
 print(data_folders)
 
 is_first_time = True
-
+original_data_df = None
 while not is_all_received:
     is_all_received = True
     for i in range(len(currency_traders)):
@@ -282,8 +282,12 @@ while not is_all_received:
             if os.path.exists(currency_file):
 
                 data_df = pd.read_csv(currency_file)
-                data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
                 data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+                original_data_df = data_df.copy()
+                print("Initial column number = " + str(len(data_df.columns)))
+                data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+
 
                 print("currency_file = " + currency_file)
                 print("data_df:")
@@ -308,14 +312,27 @@ while not is_all_received:
                 print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
                 if incremental_data_df.shape[0] > 0:
+
+                    # print("cruise incremental_data_df:")
+                    # print(incremental_data_df)
+                    # print("before concat data_df:")
+                    # print(data_df[['time','close','period_high100']].tail(10))
                     data_df = pd.concat([data_df, incremental_data_df])
 
-                    data_df.reset_index(inplace=True)
+                    # print("Just after concat")
+                    # print(data_df[['time','close','period_high100']].tail(50))
+                    #
+                    # data_df.reset_index(inplace = True)
+                    # data_df = data_df.drop(columns = ['index'])
+                    # print("data_df after concat")
+                    # print(data_df[['time','close','period_high100']].tail(50))
 
+                    data_df.reset_index(inplace=True)
                     data_df = data_df.drop(columns=['index'])
 
-                    print("data_df:")
-                    print(data_df.tail(10))
+                    # print("data_df:")
+                    # print("Correct column number = " + str(len(data_df.columns)))
+                    # print(data_df.tail(10))
 
             else:
                 print("Currency file does not exit, query initial data from web")
@@ -330,7 +347,7 @@ while not is_all_received:
 
 
             if data_df is not None and (not is_traded_first_time[i]):
-                currency_trader.feed_data(data_df)
+                currency_trader.feed_data(data_df, original_data_df)
                 currency_trader.start()
                 is_traded_first_time[i] = True
 
@@ -351,7 +368,7 @@ while not is_all_received:
                 delta = last_time - datetime.now()
 
                 #print((last_time - datetime.now()))
-                currency_trader.feed_data(data_df)
+                currency_trader.feed_data(data_df, original_data_df)
                 is_new_data_received[i] = True
 
             else:

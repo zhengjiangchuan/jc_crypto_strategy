@@ -140,6 +140,10 @@ class CurrencyTrader(threading.Thread):
 
         self.print_to_console = True
 
+        self.is_cut_data = True
+
+        self.data_df_backup = None
+
         self.log_msg("Initializing...")
 
 
@@ -158,14 +162,38 @@ class CurrencyTrader(threading.Thread):
     def get_last_time(self):
         return self.last_time
 
-    def feed_data(self, new_data_df):
+    def cut_data(self):
+
+        #self.data_df_backup = self.data_df.copy()
+        #self.data_df_backup = self.data_df_backup[self.data_df_backup['price_range'].notnull()]
+
+        self.data_df = self.data_df.iloc[-200:]
+        self.data_df.reset_index(inplace = True)
+        self.data_df = self.data_df.drop(columns = ['index'])
+
+
+
+    def feed_data(self, new_data_df, original_data_df = None):
         self.condition.acquire()
+
+        self.data_df_backup = original_data_df
+        if self.data_df_backup is not None:
+            self.data_df_backup['date'] = pd.DatetimeIndex(self.data_df_backup['time']).normalize()
 
         if new_data_df is not None and new_data_df.shape[0] > 0:
 
             if self.data_df is None or self.data_df.shape[0] == 0:
                 self.data_df = new_data_df
+
                 self.last_time = self.data_df.iloc[-1]['time']
+
+                #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
+
+                if self.is_cut_data:
+                    self.cut_data()
+
+                #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+
                 self.condition.notify()
             else:
                 new_last_time = new_data_df.iloc[-1]['time']
@@ -179,6 +207,14 @@ class CurrencyTrader(threading.Thread):
                     self.data_df = self.data_df.drop(columns = ['index'])
 
                     self.last_time = new_last_time
+
+                    #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
+
+                    if self.is_cut_data:
+                        self.cut_data()
+
+                    #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+
                     self.condition.notify()
 
         self.condition.release()
@@ -202,9 +238,12 @@ class CurrencyTrader(threading.Thread):
 
         while True:
 
+            print("Process data_df cut:")
+            print(self.data_df[['time','close']].head(10))
+
             self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
 
-            all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
+            #all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
             self.data_df['price_delta'] = self.data_df['close'] - self.data_df['open']
 
@@ -580,6 +619,8 @@ class CurrencyTrader(threading.Thread):
 
             #'period_high' + str(high_low_window) + '_go_up'
             self.data_df['cum_num_new_break_up'] = self.data_df['is_new_break_up_upper_band'].cumsum()
+
+
             self.data_df['cum_num_new_break_down'] = self.data_df['is_new_break_down_lower_band'].cumsum()
 
             self.data_df['cum_num_high_go_up'] = self.data_df['period_high' + str(high_low_window) + '_go_up'].cumsum()
@@ -615,6 +656,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['id'] = list(range(self.data_df.shape[0]))
 
             for col in cum_columns:
+                #print("col = " + col)
                 self.data_df[col] = self.data_df[col].astype(int)
 
             self.data_df['period_high' + str(high_low_window) + '_go_up_temp'] = np.nan
@@ -1954,9 +1996,67 @@ class CurrencyTrader(threading.Thread):
             self.log_msg("\n")
 
 
+            if self.is_cut_data:
+                # print("calculated data_df:")
+                # print(self.data_df[['time', 'close']].head(20))
+                # print("data_df_backup:")
+                # print(self.data_df_backup[['time', 'close']].head(20))
+                # print(self.data_df_backup[['time', 'close']].tail(20))
+                increment_data_df = self.data_df[self.data_df['time'] > self.data_df_backup.iloc[-1]['time']]
+                if increment_data_df.shape[0] > 0:
+                    print("Fucking here")
+                    print(type(self.data_df_backup['buy_ready']))
+                    print(self.data_df_backup['buy_ready'].tail(10))
+                    print(type(increment_data_df['buy_ready']))
+                    print(increment_data_df['buy_ready'].tail(10))
 
+                    print("Backup datetime:")
+                    print(self.data_df_backup['date'].head(10))
+                    print("incrementa_data_df datetime:")
+                    print(increment_data_df['date'].head(10))
+
+                    print("See 1:")
+                    print(self.data_df_backup[['time', 'buy_ready']].tail(10))
+                    print(type(self.data_df_backup.iloc[0]['buy_ready']))
+
+                    print("See 2:")
+                    print(increment_data_df[['time', 'buy_ready']].tail(10))
+                    print(type(increment_data_df.iloc[0]['buy_ready']))
+
+                    self.data_df = pd.concat([self.data_df_backup, increment_data_df])
+
+                    print("See 3:")
+                    print(self.data_df[['time', 'buy_ready']].tail(10))
+                    print(type(self.data_df.iloc[0]['buy_ready']))
+
+                    self.data_df.reset_index(inplace = True)
+                    self.data_df = self.data_df.drop(columns = ['index'])
+
+
+                else:
+                    # print("Copy copy here")
+                    # print("column number = "+ str(len(self.data_df.columns)))
+                    self.data_df = self.data_df_backup
+                    #print("after column number = " + str(len(self.data_df.columns)))
+                print("Final data_df:")
+                print(self.data_df[['time', 'close']].head(20))
+                print(self.data_df[['time', 'close']].tail(20))
+
+
+            print("to csv:")
             self.data_df.to_csv(self.currency_file, index=False)
+            print("after to csv:")
 
+            print("Process data_df final:")
+            print(self.data_df[['time', 'close']].head(10))
+
+            #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
+
+            print("buy_ready::")
+            print(type(self.data_df['buy_ready']))
+            print(self.data_df['buy_ready'].tail(10))
+
+            #print("Final column_number = " + str(len(self.data_df.columns)))
             print_prefix = "[Currency " + self.currency + "] "
 
             for file in os.listdir(self.chart_folder):
@@ -1968,6 +2068,35 @@ class CurrencyTrader(threading.Thread):
                 file_path = os.path.join(self.simple_chart_folder, file)
                 if 'png' in file:
                     os.remove(file_path)
+
+            print("Before executing")
+            # if self.is_cut_data and increment_data_df.shape[0] > 0:
+            #     for col in self.data_df.columns:
+            #                 if 'fire' in col or 'ready' in col:
+            #                     self.data_df[col] = pd.Series(list(self.data_df[col]), dtype='bool')
+
+            all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
+            print("all_days:")
+            print(all_days)
+
+            print("final buy_ready:")
+            print(type(self.data_df['buy_ready']))
+            print(self.data_df['buy_ready'].tail(100))
+
+            print("data_df Final Final:")
+            print(self.data_df[['time','close','price_range']].head(10))
+            print(self.data_df[['time','close','price_range']].tail(10))
+
+            print(self.data_df[['time', 'buy_ready']].tail(10))
+            print(type(self.data_df.iloc[0]['buy_ready']))
+
+            #if self.is_cut_data:
+            # print("Re-read data")
+            # self.data_df = pd.read_csv(self.currency_file)
+            # self.data_df['time'] = self.data_df['time'].apply(lambda x: preprocess_time(x))
+            # buy_ready_points = which(self.data_df['buy_ready'])
+            # print("buy ready points:")
+            # print(buy_ready_points)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days,
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
