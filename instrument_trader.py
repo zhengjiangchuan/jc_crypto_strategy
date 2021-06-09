@@ -41,7 +41,7 @@ warnings.filterwarnings("ignore")
 import threading
 
 windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
-high_low_window = 100
+high_low_window_options = [100, 200]
 bolling_width = 20
 
 bar_low_percentile = 0.5
@@ -115,6 +115,8 @@ reverse_trade_look_back = 10
 
 macd_relaxed = True
 
+price_range_look_back = 10
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -134,7 +136,7 @@ class CurrencyTrader(threading.Thread):
         self.is_require_m12_strictly_above_vegas = False
         self.remove_c12 = True
 
-        self.currency_file = os.path.join(data_folder, currency + ".csv")
+        #self.currency_file = os.path.join(data_folder, currency + "100.csv")
 
         self.log_fd = open(self.log_file, 'a')
 
@@ -142,7 +144,11 @@ class CurrencyTrader(threading.Thread):
 
         self.is_cut_data = False
 
-        self.data_df_backup = None
+        self.data_df_backup100 = None
+        self.data_df_backup200 = None
+
+        self.data_dfs_backup = []
+
 
         self.log_msg("Initializing...")
 
@@ -173,12 +179,24 @@ class CurrencyTrader(threading.Thread):
 
 
 
-    def feed_data(self, new_data_df, original_data_df = None):
+    def feed_data(self, new_data_df, original_data_df100 = None, original_data_df200 = None):
         self.condition.acquire()
 
-        self.data_df_backup = original_data_df
-        if self.data_df_backup is not None:
-            self.data_df_backup['date'] = pd.DatetimeIndex(self.data_df_backup['time']).normalize()
+        self.data_df_backup100 = original_data_df100
+        self.data_df_backup200 = original_data_df200
+
+        if self.data_df_backup100 is not None:
+            self.data_df_backup100['date'] = pd.DatetimeIndex(self.data_df_backup100['time']).normalize()
+
+        if self.data_df_backup200 is not None:
+            self.data_df_backup200['date'] = pd.DatetimeIndex(self.data_df_backup200['time']).normalize()
+
+        for high_low_window in high_low_window_options:
+            if high_low_window == 100:
+                self.data_dfs_backup += [self.data_df_backup100]
+            elif high_low_window == 200:
+                self.data_dfs_backup += [self.data_df_backup200]
+
 
         if new_data_df is not None and new_data_df.shape[0] > 0:
 
@@ -189,7 +207,7 @@ class CurrencyTrader(threading.Thread):
 
                 #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
 
-                if self.is_cut_data and original_data_df is not None:
+                if self.is_cut_data and original_data_df100 is not None and original_data_df200 is not None:
                     self.cut_data()
 
                 #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
@@ -210,7 +228,7 @@ class CurrencyTrader(threading.Thread):
 
                     #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
 
-                    if self.is_cut_data and original_data_df is not None:
+                    if self.is_cut_data and original_data_df100 is not None and original_data_df200 is not None:
                         self.cut_data()
 
                     #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
@@ -223,21 +241,16 @@ class CurrencyTrader(threading.Thread):
         print("Running...........")
         self.trade()
 
-    def trade(self):
 
-        print("Do trading............")
-        numerical_features = [ 'pct_to_upper_vegas', 'high_pct_price_buy', 'low_pct_price_buy', 'pct_to_lower_vegas', 'low_pct_price_sell', 'high_pct_price_sell',
-                        'ma_close12', 'ma12_gradient']
+    def calculate_signals(self, high_low_window):
 
-        bool_features = ['is_above_vegas',  'is_vegas_up_trend', 'is_below_vegas', 'is_vegas_down_trend']
+        numerical_features = ['pct_to_upper_vegas', 'high_pct_price_buy', 'low_pct_price_buy', 'pct_to_lower_vegas',
+                              'low_pct_price_sell', 'high_pct_price_sell',
+                              'ma_close12', 'ma12_gradient']
 
-        signal_attrs = ['buy_weak_ready', 'buy_weak_fire',  'buy_ready', 'buy_fire',
-                        'sell_weak_ready', 'sell_weak_fire',  'sell_ready', 'sell_fire']
+        bool_features = ['is_above_vegas', 'is_vegas_up_trend', 'is_below_vegas', 'is_vegas_down_trend']
 
-        self.condition.acquire()
-
-        while True:
-
+        if True:
             print("Process data_df cut:")
             print(self.data_df[['time','close']].head(10))
 
@@ -346,6 +359,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df['negative_price_range'] = np.where(self.data_df['close'] < self.data_df['open'],
                                                               self.data_df['price_range'],
                                                               0)
+
+            self.data_df['recent_max_price_range'] = self.data_df['price_range'].rolling(price_range_look_back, min_periods = price_range_look_back).max()
+            self.data_df['prev_recent_max_price_range'] = self.data_df['recent_max_price_range'].shift(1)
+
+
 
 
             guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
@@ -1569,6 +1587,8 @@ class CurrencyTrader(threading.Thread):
             self.data_df['breaking_up_cond2'] = breaking_up_cond2
             self.data_df['breaking_up_cond3'] = breaking_up_cond3
 
+            self.data_df['buy_real_fire5'] = (self.data_df['close'] > self.data_df['open']) & (self.data_df['price_range'] >= 2 * self.data_df['prev_recent_max_price_range'])
+
 
             #sell_good_cond1 = (self.data_df['prev_max_price_to_period_high_pct'] < reverse_threshold) | (self.data_df['prev2_max_price_to_period_high_pct'] < reverse_threshold)
 
@@ -1643,6 +1663,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_buy_real_fire'] = False
             self.data_df['prev_buy_real_fire'] = pd.Series(list(self.data_df['prev_buy_real_fire']), dtype='bool')
             self.data_df['first_buy_real_fire'] = self.data_df['buy_real_fire'] & (~self.data_df['prev_buy_real_fire'])
+
+            self.data_df['prev_buy_real_fire5'] = self.data_df['buy_real_fire5'].shift(1)
+            self.data_df.at[0, 'prev_buy_real_fire5'] = False
+            self.data_df['prev_buy_real_fire5'] = pd.Series(list(self.data_df['prev_buy_real_fire5']), dtype='bool')
+            self.data_df['first_buy_real_fire5'] = self.data_df['buy_real_fire5'] & (~self.data_df['prev_buy_real_fire5'])
 
             self.data_df['prev_sell_real_fire2'] = self.data_df['sell_real_fire2'].shift(1)
             self.data_df.at[0, 'prev_sell_real_fire2'] = False
@@ -1776,6 +1801,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['breaking_down_cond2'] = breaking_down_cond2
             self.data_df['breaking_down_cond3'] = breaking_down_cond3
 
+            self.data_df['sell_real_fire5'] = (self.data_df['close'] < self.data_df['open']) & (self.data_df['price_range'] >= 2 * self.data_df['prev_recent_max_price_range'])
 
 
 
@@ -1853,6 +1879,11 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev_sell_real_fire'] = pd.Series(list(self.data_df['prev_sell_real_fire']), dtype='bool')
             self.data_df['first_sell_real_fire'] = self.data_df['sell_real_fire'] & (~self.data_df['prev_sell_real_fire'])
 
+            self.data_df['prev_sell_real_fire5'] = self.data_df['sell_real_fire5'].shift(1)
+            self.data_df.at[0, 'prev_sell_real_fire5'] = False
+            self.data_df['prev_sell_real_fire5'] = pd.Series(list(self.data_df['prev_sell_real_fire5']), dtype='bool')
+            self.data_df['first_sell_real_fire5'] = self.data_df['sell_real_fire5'] & (~self.data_df['prev_sell_real_fire5'])
+
             self.data_df['prev_buy_real_fire2'] = self.data_df['buy_real_fire2'].shift(1)
             self.data_df.at[0, 'prev_buy_real_fire2'] = False
             self.data_df['prev_buy_real_fire2'] = pd.Series(list(self.data_df['prev_buy_real_fire2']), dtype='bool')
@@ -1867,6 +1898,148 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_buy_real_fire4'] = False
             self.data_df['prev_buy_real_fire4'] = pd.Series(list(self.data_df['prev_buy_real_fire4']), dtype='bool')
             self.data_df['first_buy_real_fire4'] = self.data_df['buy_real_fire4'] & (~self.data_df['prev_buy_real_fire4'])
+
+
+    def trade(self):
+
+        print("Do trading............")
+
+
+        signal_attrs = ['buy_weak_ready', 'buy_weak_fire',  'buy_ready', 'buy_fire',
+                        'sell_weak_ready', 'sell_weak_fire',  'sell_ready', 'sell_fire']
+
+        self.condition.acquire()
+
+        data_df100 = None
+        data_df200 = None
+
+        for file in os.listdir(self.chart_folder):
+            file_path = os.path.join(self.chart_folder, file)
+            if 'png' in file:
+                os.remove(file_path)
+
+        for file in os.listdir(self.simple_chart_folder):
+            file_path = os.path.join(self.simple_chart_folder, file)
+            if 'png' in file:
+                os.remove(file_path)
+
+
+        ##          use2TypeSignals  filter_option
+        #Option 0      False             0
+        #Option 1      True              0   Benchmark 100
+        #Option 2      False             1
+        #Option 3      False             2
+        #Option 4      True              1
+        #Option 5      True              2
+
+        use2TypeSignals = True
+        filter_option = 0
+
+        while True:
+
+            for high_low_window, data_df_backup in list(zip(high_low_window_options, self.data_dfs_backup)):
+
+                self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+
+                self.calculate_signals(high_low_window)
+
+
+                if self.is_cut_data:
+
+                    increment_data_df = self.data_df[self.data_df['time'] > data_df_backup.iloc[-1]['time']]
+                    if increment_data_df.shape[0] > 0:
+
+                        self.data_df = pd.concat([data_df_backup, increment_data_df])
+
+                        self.data_df.reset_index(inplace = True)
+                        self.data_df = self.data_df.drop(columns = ['index'])
+
+
+                    else:
+
+                        self.data_df = self.data_df_backup
+
+
+
+                print("to csv:")
+                self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + ".csv"), index=False)
+                print("after to csv:")
+
+                if len(high_low_window_options) > 1:
+                    if high_low_window == 100:
+                        data_df100 = self.data_df.copy()
+                    elif high_low_window == 200:
+                        data_df200 = self.data_df.copy()
+
+
+
+
+                print("Process data_df final:")
+                print(self.data_df[['time', 'close']].head(10))
+
+
+
+            if len(high_low_window_options) > 1:
+
+                self.data_df = data_df100
+
+                if use2TypeSignals:
+                    data_df100['final_buy_fire'] = data_df100['buy_real_fire3'] | data_df100['buy_real_fire2']
+
+                    data_df100['final_sell_fire'] = data_df100['sell_real_fire3'] | data_df100['sell_real_fire2']
+                else:
+                    data_df100['final_buy_fire'] = data_df100['buy_real_fire3']
+
+                    data_df100['final_sell_fire'] = data_df100['sell_real_fire3']
+
+                if filter_option > 0:
+                    if use2TypeSignals:
+                        data_df200['final_buy_fire'] = data_df200['buy_real_fire3'] | data_df200['buy_real_fire2']
+
+                        data_df200['final_sell_fire'] = data_df200['sell_real_fire3'] | data_df200['sell_real_fire2']
+                    else:
+                        data_df200['final_buy_fire'] = data_df200['buy_real_fire3']
+
+                        data_df200['final_sell_fire'] = data_df200['sell_real_fire3']
+
+                    if filter_option == 1:
+
+                        self.data_df['final_buy_fire_exclude'] = data_df100['final_buy_fire'] & (~data_df200['final_buy_fire']) & data_df100['strongly_aligned_short_condition']
+                        self.data_df['final_buy_fire'] = data_df100['final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
+
+                        self.data_df['final_sell_fire_exclude'] = data_df100['final_sell_fire'] & (~data_df200['final_sell_fire']) & data_df100['strongly_aligned_long_condition']
+                        self.data_df['final_sell_fire'] = data_df100['final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
+
+
+                    elif filter_option == 2:
+
+                        self.data_df['final_buy_fire'] = data_df100['final_buy_fire'] | data_df200['final_buy_fire']
+                        self.data_df['final_buy_fire_include'] = (data_df100['final_buy_fire'] & data_df200['final_buy_fire']) | (~data_df100['strongly_aligned_short_condition'])
+                        self.data_df['final_buy_fire'] = self.data_df['final_buy_fire'] & self.data_df['final_buy_fire_include']
+
+                        self.data_df['final_sell_fire'] = data_df100['final_sell_fire'] | data_df200['final_sell_fire']
+                        self.data_df['final_sell_fire_include'] = (data_df100['final_sell_fire'] & data_df200['final_sell_fire']) | (~data_df100['strongly_aligned_long_condition'])
+                        self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & self.data_df['final_sell_fire_include']
+
+            else:
+
+                self.data_df['final_buy_fire'] = self.data_df['buy_real_fire3'] | self.data_df['buy_real_fire2']
+                self.data_df['final_sell_fire'] = self.data_df['sell_real_fire3'] | self.data_df['sell_real_fire2']
+
+
+
+            self.data_df['prev_final_buy_fire'] = self.data_df['final_buy_fire'].shift(1)
+            self.data_df.at[0, 'prev_final_buy_fire'] = False
+            self.data_df['prev_final_buy_fire'] = pd.Series(list(self.data_df['prev_final_buy_fire']), dtype='bool')
+            self.data_df['first_final_buy_fire'] = self.data_df['final_buy_fire'] & (~self.data_df['prev_final_buy_fire'])
+
+            self.data_df['prev_final_sell_fire'] = self.data_df['final_sell_fire'].shift(1)
+            self.data_df.at[0, 'prev_final_sell_fire'] = False
+            self.data_df['prev_final_sell_fire'] = pd.Series(list(self.data_df['prev_final_sell_fire']), dtype='bool')
+            self.data_df['first_final_sell_fire'] = self.data_df['final_sell_fire'] & (~self.data_df['prev_final_sell_fire'])
+
+
+
 
 
             signal_msg = ','.join([signal_attr + "=" + str(self.data_df.iloc[-1][signal_attr]) for signal_attr in signal_attrs])
@@ -1887,7 +2060,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            if self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']:
+            if self.data_df.iloc[-1]['first_final_buy_fire']: # | self.data_df.iloc[-1]['first_buy_real_fire3']:
 
                 # enter_price = self.data_df.iloc[-1]['close']
                 # stop_loss_price = self.data_df.iloc[-1]['lower_vegas']
@@ -1911,7 +2084,7 @@ class CurrencyTrader(threading.Thread):
 
                 if (self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']):
 
-                    delta_point = (self.data_df.iloc[-1]['open'] - self.data_df.iloc[-1]['period_low' + str(high_low_window)]) * self.lot_size * self.exchange_rate
+                    delta_point = (self.data_df.iloc[-1]['open'] - self.data_df.iloc[-1]['period_low' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
 
                     stop_loss_msg = " Stop loss at " + str(delta_point) + " points below open price"
                 else:
@@ -1945,7 +2118,7 @@ class CurrencyTrader(threading.Thread):
                     #sendEmail(msg, msg)
 
 
-            if self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']:
+            if self.data_df.iloc[-1]['first_final_sell_fire']: # | self.data_df.iloc[-1]['first_sell_real_fire3']:
 
                 # enter_price = self.data_df.iloc[-1]['close']
                 # stop_loss_price = self.data_df.iloc[-1]['upper_vegas']
@@ -1970,7 +2143,7 @@ class CurrencyTrader(threading.Thread):
 
                 if (self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']):
 
-                    delta_point = (-self.data_df.iloc[-1]['open'] + self.data_df.iloc[-1]['period_high' + str(high_low_window)]) * self.lot_size * self.exchange_rate
+                    delta_point = (-self.data_df.iloc[-1]['open'] + self.data_df.iloc[-1]['period_high' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
 
                     stop_loss_msg = " Stop loss at " + str(delta_point) + " points above open price"
                 else:
@@ -1996,73 +2169,23 @@ class CurrencyTrader(threading.Thread):
             self.log_msg("\n")
 
 
-            if self.is_cut_data:
-                # print("calculated data_df:")
-                # print(self.data_df[['time', 'close']].head(20))
-                # print("data_df_backup:")
-                # print(self.data_df_backup[['time', 'close']].head(20))
-                # print(self.data_df_backup[['time', 'close']].tail(20))
-                increment_data_df = self.data_df[self.data_df['time'] > self.data_df_backup.iloc[-1]['time']]
-                if increment_data_df.shape[0] > 0:
-
-                    self.data_df = pd.concat([self.data_df_backup, increment_data_df])
-
-                    self.data_df.reset_index(inplace = True)
-                    self.data_df = self.data_df.drop(columns = ['index'])
 
 
-                else:
-                    # print("Copy copy here")
-                    # print("column number = "+ str(len(self.data_df.columns)))
-                    self.data_df = self.data_df_backup
-                    #print("after column number = " + str(len(self.data_df.columns)))
 
-
-            print("to csv:")
-            self.data_df.to_csv(self.currency_file, index=False)
-            print("after to csv:")
-
-            print("Process data_df final:")
-            print(self.data_df[['time', 'close']].head(10))
-
-            #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
-
-            #print("Final column_number = " + str(len(self.data_df.columns)))
             print_prefix = "[Currency " + self.currency + "] "
 
-            for file in os.listdir(self.chart_folder):
-                file_path = os.path.join(self.chart_folder, file)
-                if 'png' in file:
-                    os.remove(file_path)
 
-            for file in os.listdir(self.simple_chart_folder):
-                file_path = os.path.join(self.simple_chart_folder, file)
-                if 'png' in file:
-                    os.remove(file_path)
 
-            print("Before executing")
-            # if self.is_cut_data and increment_data_df.shape[0] > 0:
-            #     for col in self.data_df.columns:
-            #                 if 'fire' in col or 'ready' in col:
-            #                     self.data_df[col] = pd.Series(list(self.data_df[col]), dtype='bool')
 
             all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
 
-            #if self.is_cut_data:
-            # print("Re-read data")
-            # self.data_df = pd.read_csv(self.currency_file)
-            # self.data_df['time'] = self.data_df['time'].apply(lambda x: preprocess_time(x))
-            # buy_ready_points = which(self.data_df['buy_ready'])
-            # print("buy ready points:")
-            # print(buy_ready_points)
-
-            plot_candle_bar_charts(self.currency, self.data_df, all_days,
-                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                                   is_plot_candle_buy_sell_points=True,
-                                   print_prefix=print_prefix,
-                                   is_plot_aux = True,
-                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
+            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
+            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+            #                        is_plot_candle_buy_sell_points=True,
+            #                        print_prefix=print_prefix,
+            #                        is_plot_aux = True,
+            #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days,
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
@@ -2072,7 +2195,7 @@ class CurrencyTrader(threading.Thread):
                                    bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
 
 
-            self.data_df = self.data_df[['currency', 'time','open','high','low','close']]
+            #self.data_df = self.data_df[['currency', 'time','open','high','low','close']]
 
 
             print("Finish")

@@ -95,7 +95,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURCHF'])]
 print("currency_df:")
 print(currency_df)
 
@@ -257,7 +257,9 @@ print("data_folders:")
 print(data_folders)
 
 is_first_time = True
-original_data_df = None
+original_data_df100 = None
+original_data_df200 = None
+
 while not is_all_received:
     is_all_received = True
     for i in range(len(currency_traders)):
@@ -273,23 +275,34 @@ while not is_all_received:
             print("Query initial for currency pair " + currency)
 
             currency_file = os.path.join(data_folder, currency + ".csv")
+            currency_file100 = os.path.join(data_folder, currency + "100.csv")
+            currency_file200 = os.path.join(data_folder, currency + "200.csv")
 
             data_df = None
 
-            print("currency_file:")
-            print(currency_file)
+            # print("currency_file:")
+            # print(currency_file)
 
-            if os.path.exists(currency_file):
+            if (os.path.exists(currency_file100) and os.path.exists(currency_file200)) or os.path.exists(currency_file):
 
-                data_df = pd.read_csv(currency_file)
-                data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+                if os.path.exists(currency_file100) and os.path.exists(currency_file200):
+                    data_df100 = pd.read_csv(currency_file100)
+                    data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
 
-                original_data_df = data_df.copy()
-                print("Initial column number = " + str(len(data_df.columns)))
-                data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+                    data_df200 = pd.read_csv(currency_file200)
+                    data_df200['time'] = data_df200['time'].apply(lambda x: preprocess_time(x))
+
+                    original_data_df100 = data_df100.copy()
+                    original_data_df200 = data_df200.copy()
+
+                    #print("Initial column number = " + str(len(data_df.columns)))
+                    data_df = data_df100[['currency', 'time', 'open', 'high', 'low', 'close']]
+                else:
+                    data_df = pd.read_csv(currency_file)
+                    data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+                    data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
 
-                print("currency_file = " + currency_file)
                 print("data_df:")
                 print(data_df.tail(10))
 
@@ -347,7 +360,7 @@ while not is_all_received:
 
 
             if data_df is not None and (not is_traded_first_time[i]):
-                currency_trader.feed_data(data_df, original_data_df)
+                currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
                 currency_trader.start()
                 is_traded_first_time[i] = True
 
@@ -368,7 +381,7 @@ while not is_all_received:
                 delta = last_time - datetime.now()
 
                 #print((last_time - datetime.now()))
-                currency_trader.feed_data(data_df, original_data_df)
+                currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
                 is_new_data_received[i] = True
 
             else:
