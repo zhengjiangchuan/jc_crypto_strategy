@@ -136,8 +136,8 @@ def plot_jc_lines(df, attr, x, ax, legend, label = "", is_plot_high_low = False)
 
     if is_plot_high_low:
         high_low_windows = [high_low_window]
-        high_low_color = 'green'
-        high_low_width = 0.5
+        high_low_color = 'darkgreen'
+        high_low_width = 1
         plot_group_lines2(df, x, ax, legend, high_low_windows, high_low_width, high_low_color, label)
 
 

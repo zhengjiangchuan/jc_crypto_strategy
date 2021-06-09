@@ -251,7 +251,7 @@ class CurrencyTrader(threading.Thread):
         bool_features = ['is_above_vegas', 'is_vegas_up_trend', 'is_below_vegas', 'is_vegas_down_trend']
 
         if True:
-            print("Process data_df cut:")
+            print("Process data_df cut: high_low_window = " + str(high_low_window))
             print(self.data_df[['time','close']].head(10))
 
             self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
@@ -1933,7 +1933,7 @@ class CurrencyTrader(threading.Thread):
         #Option 5      True              2
 
         use2TypeSignals = True
-        filter_option = 0
+        filter_option = 1
 
         while True:
 
@@ -2023,8 +2023,8 @@ class CurrencyTrader(threading.Thread):
 
             else:
 
-                self.data_df['final_buy_fire'] = self.data_df['buy_real_fire3'] | self.data_df['buy_real_fire2']
-                self.data_df['final_sell_fire'] = self.data_df['sell_real_fire3'] | self.data_df['sell_real_fire2']
+                self.data_df['final_buy_fire'] = self.data_df['buy_real_fire3']# | self.data_df['buy_real_fire2']
+                self.data_df['final_sell_fire'] = self.data_df['sell_real_fire3']# | self.data_df['sell_real_fire2']
 
 
 
