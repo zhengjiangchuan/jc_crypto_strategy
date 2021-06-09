@@ -5,10 +5,26 @@ from datetime import datetime
 import os
 import numpy as np
 import random
+import sys
 
 random_id = int(random.random()*10000)
 
 root_folder = "C:\\Forex\\formal_trading"
+
+
+for file in os.listdir(root_folder):
+    #print(file)
+    if os.path.isdir(os.path.join(root_folder, file)):
+
+        symbol_folder = os.path.join(root_folder, file)
+        data_folder = os.path.join(symbol_folder, 'data')
+        data_files = os.listdir(data_folder)
+        for data_file in data_files:
+            if len(data_file) != 10:
+                os.remove(os.path.join(data_folder, data_file))
+                print("Remove " + data_file)
+
+sys.exit(0)
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]

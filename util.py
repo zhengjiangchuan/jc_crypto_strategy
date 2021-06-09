@@ -249,12 +249,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
     for i in range(0, len(trading_days) // num_days):
         periods += [(remaining + i * num_days, remaining + (i+1) * num_days)]
 
-    print("In plot charts:")
-    print("trading_days:")
-    print(trading_days)
-    print("periods:")
-    print(periods)
-
     y_tick_number = 10
 
     figs = []
@@ -277,14 +271,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         interval = start_date_simple_str + '-' + end_date_simple_str
         intervals += [interval]
-
-        print("start_date:")
-        print(start_date)
-        print(type(start_date))
-
-        print("data time:")
-        print(all_data_df.iloc[0]['time'])
-        print(type(all_data_df.iloc[0]['time']))
 
         sub_data = all_data_df[(all_data_df['time'] >= start_date) & (all_data_df['time'] < end_date)]
 

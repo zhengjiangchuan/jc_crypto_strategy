@@ -140,7 +140,7 @@ class CurrencyTrader(threading.Thread):
 
         self.print_to_console = True
 
-        self.is_cut_data = True
+        self.is_cut_data = False
 
         self.data_df_backup = None
 
@@ -189,7 +189,7 @@ class CurrencyTrader(threading.Thread):
 
                 #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
 
-                if self.is_cut_data:
+                if self.is_cut_data and original_data_df is not None:
                     self.cut_data()
 
                 #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
@@ -210,7 +210,7 @@ class CurrencyTrader(threading.Thread):
 
                     #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
 
-                    if self.is_cut_data:
+                    if self.is_cut_data and original_data_df is not None:
                         self.cut_data()
 
                     #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
@@ -2004,30 +2004,8 @@ class CurrencyTrader(threading.Thread):
                 # print(self.data_df_backup[['time', 'close']].tail(20))
                 increment_data_df = self.data_df[self.data_df['time'] > self.data_df_backup.iloc[-1]['time']]
                 if increment_data_df.shape[0] > 0:
-                    print("Fucking here")
-                    print(type(self.data_df_backup['buy_ready']))
-                    print(self.data_df_backup['buy_ready'].tail(10))
-                    print(type(increment_data_df['buy_ready']))
-                    print(increment_data_df['buy_ready'].tail(10))
-
-                    print("Backup datetime:")
-                    print(self.data_df_backup['date'].head(10))
-                    print("incrementa_data_df datetime:")
-                    print(increment_data_df['date'].head(10))
-
-                    print("See 1:")
-                    print(self.data_df_backup[['time', 'buy_ready']].tail(10))
-                    print(type(self.data_df_backup.iloc[0]['buy_ready']))
-
-                    print("See 2:")
-                    print(increment_data_df[['time', 'buy_ready']].tail(10))
-                    print(type(increment_data_df.iloc[0]['buy_ready']))
 
                     self.data_df = pd.concat([self.data_df_backup, increment_data_df])
-
-                    print("See 3:")
-                    print(self.data_df[['time', 'buy_ready']].tail(10))
-                    print(type(self.data_df.iloc[0]['buy_ready']))
 
                     self.data_df.reset_index(inplace = True)
                     self.data_df = self.data_df.drop(columns = ['index'])
@@ -2038,9 +2016,6 @@ class CurrencyTrader(threading.Thread):
                     # print("column number = "+ str(len(self.data_df.columns)))
                     self.data_df = self.data_df_backup
                     #print("after column number = " + str(len(self.data_df.columns)))
-                print("Final data_df:")
-                print(self.data_df[['time', 'close']].head(20))
-                print(self.data_df[['time', 'close']].tail(20))
 
 
             print("to csv:")
@@ -2051,10 +2026,6 @@ class CurrencyTrader(threading.Thread):
             print(self.data_df[['time', 'close']].head(10))
 
             #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
-
-            print("buy_ready::")
-            print(type(self.data_df['buy_ready']))
-            print(self.data_df['buy_ready'].tail(10))
 
             #print("Final column_number = " + str(len(self.data_df.columns)))
             print_prefix = "[Currency " + self.currency + "] "
@@ -2076,19 +2047,7 @@ class CurrencyTrader(threading.Thread):
             #                     self.data_df[col] = pd.Series(list(self.data_df[col]), dtype='bool')
 
             all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
-            print("all_days:")
-            print(all_days)
 
-            print("final buy_ready:")
-            print(type(self.data_df['buy_ready']))
-            print(self.data_df['buy_ready'].tail(100))
-
-            print("data_df Final Final:")
-            print(self.data_df[['time','close','price_range']].head(10))
-            print(self.data_df[['time','close','price_range']].tail(10))
-
-            print(self.data_df[['time', 'buy_ready']].tail(10))
-            print(type(self.data_df.iloc[0]['buy_ready']))
 
             #if self.is_cut_data:
             # print("Re-read data")
@@ -2115,6 +2074,8 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df = self.data_df[['currency', 'time','open','high','low','close']]
 
+
+            print("Finish")
 
             self.condition.wait()
 
