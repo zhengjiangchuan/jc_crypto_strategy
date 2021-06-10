@@ -15,7 +15,7 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\new_experiments\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200_win_check"
 
-dest_folder = "C:\\Forex\\new_experiments\\0610\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200"
+dest_folder = "C:\\Forex\\new_experiments\\0610\\star_filtered_by_macd_aligned"
 
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_16RedefineFalseSignalEntryBar"

@@ -267,6 +267,8 @@ class CurrencyTrader(threading.Thread):
             calc_bolling_bands(self.data_df, "close", bolling_width)
             calc_macd(self.data_df, "close")
 
+            self.data_df['macd_gradient'] = self.data_df['macd'].diff()
+
             self.data_df['prev_macd'] = self.data_df['macd'].shift(1)
             self.data_df['prev_msignal'] = self.data_df['msignal'].shift(1)
             self.data_df['macd_cross_up'] = (self.data_df['prev_macd'] < self.data_df['prev_msignal']) & (self.data_df['macd'] >= self.data_df['msignal'])
@@ -1622,8 +1624,13 @@ class CurrencyTrader(threading.Thread):
                                               (self.data_df['close'] - self.data_df['open'] < 0) & (self.data_df['close'] < self.data_df['prev1_min_price'])
             self.data_df['sell_real_fire2'] = self.data_df['sell_real_fire2'] & (~(sell_bad_cond0 & sell_bad_cond1))
 
+            #self.data_df['sell_real_fire2'] = self.data_df['sell_real_fire2'] & ((self.data_df['macd'] < self.data_df['msignal']) | (self.data_df['macd_gradient'] < 0))
+
 
             self.data_df['sell_real_fire3'] = sell_good_cond1 & sell_good_cond2 & sell_good_cond3 & sell_good_cond4 & sell_good_cond5 & (~sell_bad_cond)
+
+            #self.data_df['sell_real_fire3'] = self.data_df['sell_real_fire3'] & ((self.data_df['macd'] < self.data_df['msignal']) | (self.data_df['macd_gradient'] < 0))
+
 
             self.data_df['sell_good_cond1'] = sell_good_cond1
             self.data_df['sell_good_cond2'] = sell_good_cond2
@@ -1837,8 +1844,12 @@ class CurrencyTrader(threading.Thread):
                                               (self.data_df['close'] - self.data_df['open'] > 0) & (self.data_df['close'] > self.data_df['prev1_max_price'])
             self.data_df['buy_real_fire2'] = self.data_df['buy_real_fire2'] & (~(buy_bad_cond0 & buy_bad_cond1))
 
+            #self.data_df['buy_real_fire2'] = self.data_df['buy_real_fire2'] & ((self.data_df['macd'] > self.data_df['msignal']) | (self.data_df['macd_gradient'] > 0)) #added
 
             self.data_df['buy_real_fire3'] = buy_good_cond1 & buy_good_cond2 & buy_good_cond3 & buy_good_cond4 & buy_good_cond5 & (~buy_bad_cond)
+
+            #self.data_df['buy_real_fire3'] = self.data_df['buy_real_fire3'] & ((self.data_df['macd'] > self.data_df['msignal']) | (self.data_df['macd_gradient'] > 0)) #added
+
 
             self.data_df['buy_good_cond1'] = buy_good_cond1
             self.data_df['buy_good_cond2'] = buy_good_cond2
