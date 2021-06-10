@@ -160,6 +160,7 @@ class CurrencyTrader(threading.Thread):
     def log_msg(self, msg):
 
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        #current_time = (datetime.now() + timedelta(seconds = 28800)).strftime("%Y-%m-%d %H:%M:%S")
         print('[' + current_time + ' ' + self.currency + ']  ' + msg, file = self.log_fd)
         self.log_fd.flush()
 
@@ -2080,7 +2081,9 @@ class CurrencyTrader(threading.Thread):
             self.log_msg(signal_msg)
 
             current_time = self.data_df.iloc[-1]['time'] + timedelta(seconds = 3600)
+
             current_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
 
             if self.data_df.iloc[-1]['buy_weak_ready']:
                 if self.data_df.iloc[-1]['buy_ready']:

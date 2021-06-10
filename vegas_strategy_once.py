@@ -95,7 +95,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['NZDCAD'])]
+currency_df = currency_df[currency_df['currency'].isin(['EURGBP'])]
 
 print("currency_df:")
 print(currency_df)
