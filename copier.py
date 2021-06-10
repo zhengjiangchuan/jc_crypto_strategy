@@ -13,7 +13,10 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_realtime_debug_correct"
 
-dest_folder = "C:\\Forex\\new_experiments\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200_win_check"
+#dest_folder = "C:\\Forex\\new_experiments\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200_win_check"
+
+dest_folder = "C:\\Forex\\new_experiments\\0610\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200"
+
 
 #dest_folder = "C:\\Forex\\all_charts_updated2_16RedefineFalseSignalEntryBar"
 
@@ -25,8 +28,8 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    if symbol_folder[-6:] not in ['GBPCAD', 'GBPCHF']:
-        continue
+    # if symbol_folder[-6:] not in ['GBPCAD', 'GBPCHF']:
+    #     continue
 
     print(symbol_folder)
     chart_folder = os.path.join(symbol_folder, "simple_chart")

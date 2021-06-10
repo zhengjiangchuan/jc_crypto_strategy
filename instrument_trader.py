@@ -117,6 +117,8 @@ macd_relaxed = True
 
 price_range_look_back = 10
 
+is_plot_exclude = True
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -1983,6 +1985,14 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df = data_df100
 
+                self.data_df['period_high' + str(high_low_window_options[-1])] = data_df200['period_high' + str(high_low_window_options[-1])]
+                self.data_df['period_low' + str(high_low_window_options[-1])] = data_df200['period_low' + str(high_low_window_options[-1])]
+
+
+                # print("period_high200 here:")
+                # print(self.data_df[['time', 'close', 'period_high200']].tail(10))
+
+
                 if use2TypeSignals:
                     data_df100['final_buy_fire'] = data_df100['buy_real_fire3'] | data_df100['buy_real_fire2']
 
@@ -2023,8 +2033,8 @@ class CurrencyTrader(threading.Thread):
 
             else:
 
-                self.data_df['final_buy_fire'] = self.data_df['buy_real_fire3']# | self.data_df['buy_real_fire2']
-                self.data_df['final_sell_fire'] = self.data_df['sell_real_fire3']# | self.data_df['sell_real_fire2']
+                self.data_df['final_buy_fire'] = self.data_df['buy_real_fire3'] | self.data_df['buy_real_fire2']
+                self.data_df['final_sell_fire'] = self.data_df['sell_real_fire3'] | self.data_df['sell_real_fire2']
 
 
 
@@ -2037,6 +2047,19 @@ class CurrencyTrader(threading.Thread):
             self.data_df.at[0, 'prev_final_sell_fire'] = False
             self.data_df['prev_final_sell_fire'] = pd.Series(list(self.data_df['prev_final_sell_fire']), dtype='bool')
             self.data_df['first_final_sell_fire'] = self.data_df['final_sell_fire'] & (~self.data_df['prev_final_sell_fire'])
+
+            if is_plot_exclude:
+                if 'final_buy_fire_exclude' in self.data_df.columns:
+                    self.data_df['prev_final_buy_fire_exclude'] = self.data_df['final_buy_fire_exclude'].shift(1)
+                    self.data_df.at[0, 'prev_final_buy_fire_exclude'] = False
+                    self.data_df['prev_final_buy_fire_exclude'] = pd.Series(list(self.data_df['prev_final_buy_fire_exclude']), dtype='bool')
+                    self.data_df['first_final_buy_fire_exclude'] = self.data_df['final_buy_fire_exclude'] & (~self.data_df['prev_final_buy_fire_exclude'])
+
+                if 'final_sell_fire_exclude' in self.data_df.columns:
+                    self.data_df['prev_final_sell_fire_exclude'] = self.data_df['final_sell_fire_exclude'].shift(1)
+                    self.data_df.at[0, 'prev_final_sell_fire_exclude'] = False
+                    self.data_df['prev_final_sell_fire_exclude'] = pd.Series(list(self.data_df['prev_final_sell_fire_exclude']), dtype='bool')
+                    self.data_df['first_final_sell_fire_exclude'] = self.data_df['final_sell_fire_exclude'] & (~self.data_df['prev_final_sell_fire_exclude'])
 
 
 
@@ -2084,7 +2107,7 @@ class CurrencyTrader(threading.Thread):
 
                 if (self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']):
 
-                    delta_point = (self.data_df.iloc[-1]['open'] - self.data_df.iloc[-1]['period_low' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
+                    delta_point = (self.data_df.iloc[-1]['close'] - self.data_df.iloc[-1]['period_low' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
 
                     stop_loss_msg = " Stop loss at " + str(delta_point) + " points below open price"
                 else:
@@ -2143,7 +2166,7 @@ class CurrencyTrader(threading.Thread):
 
                 if (self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']):
 
-                    delta_point = (-self.data_df.iloc[-1]['open'] + self.data_df.iloc[-1]['period_high' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
+                    delta_point = (-self.data_df.iloc[-1]['close'] + self.data_df.iloc[-1]['period_high' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
 
                     stop_loss_msg = " Stop loss at " + str(delta_point) + " points above open price"
                 else:
@@ -2192,7 +2215,7 @@ class CurrencyTrader(threading.Thread):
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
                                    is_plot_aux=True,
-                                   bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True)
+                                   bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True, plot_exclude = is_plot_exclude)
 
 
             #self.data_df = self.data_df[['currency', 'time','open','high','low','close']]
