@@ -914,15 +914,17 @@ class CurrencyTrader(threading.Thread):
             self.data_df['is_bull_dying'] = \
                 (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > period_lookback) & \
                 (self.data_df['num_low_go_up_in_high_go_up'] >= minimum_opposite_side_trend_num) & \
-                (self.data_df['num_low_go_down_in_high_go_up'] == 0) & \
-                (self.data_df['num_new_break_up_in_high_go_up'] >= minimum_break_bolling_num)
+                (self.data_df['num_new_break_up_in_high_go_up'] >= minimum_break_bolling_num) #& \
+                #(self.data_df['num_low_go_down_in_high_go_up'] == 0)
+
 
 
             self.data_df['is_bear_dying'] = \
                 (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > period_lookback) & \
                 (self.data_df['num_high_go_down_in_low_go_down'] >= minimum_opposite_side_trend_num) & \
-                (self.data_df['num_high_go_up_in_low_go_down'] == 0) & \
-                (self.data_df['num_new_break_down_in_low_go_down'] >= minimum_break_bolling_num)
+                (self.data_df['num_new_break_down_in_low_go_down'] >= minimum_break_bolling_num) #& \
+                #(self.data_df['num_high_go_up_in_low_go_down'] == 0)
+
 
 
 
