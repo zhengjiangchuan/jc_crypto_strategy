@@ -1616,7 +1616,13 @@ class CurrencyTrader(threading.Thread):
                              #(self.data_df['prev_high'] > self.data_df['ma_close12'])
             sell_good_cond3 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate < 0)
             sell_good_cond4 = (self.data_df['close'] > self.data_df['upper_vegas'])
-            sell_good_cond5 = (self.data_df['price_to_lower_vegas']/self.data_df['price_to_period_high']) >= 0.7
+            #sell_good_cond5 = (self.data_df['price_to_lower_vegas']/self.data_df['price_to_period_high']) >= 0.7
+
+            sell_good_cond5 = np.where(
+                self.data_df['close'] < self.data_df['lowest_guppy'],
+                (-self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_high']) >= 0.7,
+                (self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_high']) >= 0.7
+            )
 
             sell_bad_cond0 = (self.data_df['close'] - self.data_df['upper_vegas']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
             sell_bad_cond1 = self.data_df['price_to_upper_vegas_pct'] < reverse_trade_min_distance_to_vegas
@@ -1843,7 +1849,13 @@ class CurrencyTrader(threading.Thread):
                              #(self.data_df['prev_low'] < self.data_df['ma_close12'])
             buy_good_cond3 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate > 0)
             buy_good_cond4 = (self.data_df['close'] < self.data_df['lower_vegas'])
-            buy_good_cond5 = (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= 0.7
+            #buy_good_cond5 = (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= 0.7
+
+            buy_good_cond5 = np.where(
+                self.data_df['close'] > self.data_df['highest_guppy'],
+                (-self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_low']) >= 0.7,
+                (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= 0.7
+            )
 
             buy_bad_cond0 = (self.data_df['lower_vegas'] - self.data_df['close']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
             buy_bad_cond1 = self.data_df['price_to_lower_vegas_pct'] < reverse_trade_min_distance_to_vegas
