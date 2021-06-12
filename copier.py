@@ -15,7 +15,7 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\new_experiments\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200_win_check"
 
-dest_folder = "C:\\Forex\\new_experiments\\0611\\fire2_fire3_100_filtered_by_fire2_fire3_200_filter_too_high_IMPROVE"
+dest_folder = "C:\\Forex\\new_experiments\\0611\\fire2_fire3_100_filtered_by_fire2_fire3_200_special_filter_by_highlow3"
 
 #dest_folder = "C:\\Forex\\new_experiments\\0611\\all_simple_charts_fire2_fire3_100_filtered_by_fire2_fire3_200_high_low_filter_simple"
 
@@ -30,8 +30,7 @@ symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_fo
 for symbol_folder in symbol_folders:
 
 
-    # if symbol_folder[-6:] not in ['CADCHF', 'CADJPY', 'EURCHF',  'EURNZD', 'EURUSD',
-    #                                                     'GBPJPY', 'NZDCHF', 'USDCHF']:
+    # if symbol_folder[-6:] not in ['EURCAD', 'GBPUSD']:
     #     continue
 
     print(symbol_folder)
