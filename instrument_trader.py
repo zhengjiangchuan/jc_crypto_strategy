@@ -356,6 +356,10 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
+            self.data_df['price_volatility'] = self.data_df['high'] - self.data_df['low']
+
+            self.data_df['is_needle_bar'] = self.data_df['price_range'] / self.data_df['price_volatility'] < 0.3
+
             self.data_df['prev_price_range'] = self.data_df['price_range'].shift(1)
 
             self.data_df['positive_price_range'] = np.where(self.data_df['close'] > self.data_df['open'],
@@ -690,7 +694,7 @@ class CurrencyTrader(threading.Thread):
             )
 
             df_high_go_up = self.data_df[self.data_df['period_high' + str(high_low_window) + '_go_up_temp'].notnull()]\
-                                        [['id'] + cum_columns]
+                                        [['id'] + cum_columns + ['period_low' + str(high_low_window)]]
             df_high_go_up.reset_index(inplace = True)
             df_high_go_up = df_high_go_up.drop(columns = ['index'])
 
@@ -708,7 +712,7 @@ class CurrencyTrader(threading.Thread):
             )
 
             df_high_go_down = self.data_df[self.data_df['period_high' + str(high_low_window) + '_go_down_temp'].notnull()]\
-                                          [['id'] + cum_columns]
+                                          [['id'] + cum_columns + ['period_low' + str(high_low_window)]]
 
             df_high_go_down.reset_index(inplace = True)
             df_high_go_down = df_high_go_down.drop(columns = ['index'])
@@ -722,7 +726,7 @@ class CurrencyTrader(threading.Thread):
             )
 
             df_low_go_up = self.data_df[self.data_df['period_low' + str(high_low_window) + '_go_up_temp'].notnull()]\
-                                       [['id'] + cum_columns]
+                                       [['id'] + cum_columns + ['period_high' + str(high_low_window)]]
 
             df_low_go_up.reset_index(inplace = True)
             df_low_go_up = df_low_go_up.drop(columns = ['index'])
@@ -736,7 +740,7 @@ class CurrencyTrader(threading.Thread):
             )
 
             df_low_go_down = self.data_df[self.data_df['period_low' + str(high_low_window) + '_go_down_temp'].notnull()]\
-                                         [['id'] + cum_columns]
+                                         [['id'] + cum_columns + ['period_high' + str(high_low_window)]]
 
 
             df_low_go_down.reset_index(inplace = True)
@@ -791,7 +795,8 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_high_go_up' : 'cum_num_high_go_up_for_high_go_up',
                 'cum_num_high_go_down': 'cum_num_high_go_down_for_high_go_up',
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_high_go_up',
-                'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_up'
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_up',
+                'period_low' + str(high_low_window) : 'period_low' + str(high_low_window) + "_for_high_go_up"
             })
 
             temp_df = temp_df.fillna(0)
@@ -813,7 +818,8 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_high_go_up': 'cum_num_high_go_up_for_high_go_down',
                 'cum_num_high_go_down': 'cum_num_high_go_down_for_high_go_down',
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_high_go_down',
-                'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_down'
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_high_go_down',
+                'period_low' + str(high_low_window): 'period_low' + str(high_low_window) + "_for_high_go_down"
             })
             temp_df = temp_df.fillna(0)
 
@@ -826,7 +832,8 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_high_go_up': 'cum_num_high_go_up_for_low_go_up',
                 'cum_num_high_go_down': 'cum_num_high_go_down_for_low_go_up',
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_low_go_up',
-                'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_up'
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_up',
+                'period_high' + str(high_low_window): 'period_high' + str(high_low_window) + "_for_low_go_up"
             })
             temp_df = temp_df.fillna(0)
 
@@ -838,7 +845,8 @@ class CurrencyTrader(threading.Thread):
                 'cum_num_high_go_up': 'cum_num_high_go_up_for_low_go_down',
                 'cum_num_high_go_down': 'cum_num_high_go_down_for_low_go_down',
                 'cum_num_low_go_up': 'cum_num_low_go_up_for_low_go_down',
-                'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_down'
+                'cum_num_low_go_down': 'cum_num_low_go_down_for_low_go_down',
+                'period_high' + str(high_low_window): 'period_high' + str(high_low_window) + "_for_low_go_down"
             })
             temp_df = temp_df.fillna(0)
 
@@ -874,7 +882,6 @@ class CurrencyTrader(threading.Thread):
             self.data_df['num_new_break_up_in_high_go_down'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_high_go_down']
             self.data_df['num_new_break_up_in_low_go_up'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_low_go_up']
             self.data_df['num_new_break_up_in_low_go_down'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_low_go_down']
-
 
 
             self.data_df['num_new_break_down_in_high_go_up'] = self.data_df['cum_num_new_break_down'] - self.data_df['cum_num_new_break_down_for_high_go_up']
@@ -1618,7 +1625,12 @@ class CurrencyTrader(threading.Thread):
 
             sell_bad_cond3 = strongly_half_aligned_long_condition & (self.data_df['highest_guppy'] > self.data_df['middle_vegas']) & (self.data_df['close'] > self.data_df['highest_guppy'])
 
-            sell_bad_cond = sell_bad_cond0 & sell_bad_cond1 & (sell_bad_cond2 | sell_bad_cond3)
+            #sell_bad_cond4 = self.data_df['close'] <= self.data_df['lowest_guppy']
+            sell_bad_cond4 = (~strongly_aligned_short_condition) & ((self.data_df['middle'] < self.data_df['lowest_guppy']) | \
+                                                                  ((self.data_df['close'] < self.data_df['lowest_guppy']) & (strongly_relaxed_aligned_long_condition)))
+
+
+            sell_bad_cond = (sell_bad_cond0 & sell_bad_cond1 & (sell_bad_cond2 | sell_bad_cond3)) | sell_bad_cond4
 
 
             self.data_df['sell_real_fire2'] = self.data_df['is_bull_dying'] & (self.data_df['prev_price_to_period_high_pct'] < reverse_threshold) & \
@@ -1643,6 +1655,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_bad_cond1'] = sell_bad_cond1
             self.data_df['sell_bad_cond2'] = sell_bad_cond2
             self.data_df['sell_bad_cond3'] = sell_bad_cond3
+            self.data_df['sell_bad_cond4'] = sell_bad_cond4
 
             self.data_df['sell_real_fire4'] = (self.data_df['ma_close12'] > self.data_df['upper_vegas']) & (self.data_df['macd_cross_down']) & \
                                                (self.data_df['close'] > self.data_df['upper_vegas'])
@@ -1838,7 +1851,12 @@ class CurrencyTrader(threading.Thread):
 
             buy_bad_cond3 = strongly_half_aligned_short_condition & (self.data_df['lowest_guppy'] < self.data_df['middle_vegas']) & (self.data_df['close'] < self.data_df['lowest_guppy'])
 
-            buy_bad_cond = buy_bad_cond0 & buy_bad_cond1 & (buy_bad_cond2 | buy_bad_cond3)
+            #buy_bad_cond4 = self.data_df['close'] >= self.data_df['highest_guppy']
+
+            buy_bad_cond4 = (~strongly_aligned_long_condition) & ((self.data_df['middle'] > self.data_df['highest_guppy']) | \
+                                                                  ((self.data_df['close'] > self.data_df['highest_guppy']) & (strongly_relaxed_aligned_short_condition)))
+
+            buy_bad_cond = (buy_bad_cond0 & buy_bad_cond1 & (buy_bad_cond2 | buy_bad_cond3)) | buy_bad_cond4
 
 
             self.data_df['buy_real_fire2'] = self.data_df['is_bear_dying'] & (self.data_df['prev_price_to_period_low_pct'] < reverse_threshold) & \
@@ -1862,6 +1880,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_bad_cond1'] = buy_bad_cond1
             self.data_df['buy_bad_cond2'] = buy_bad_cond2
             self.data_df['buy_bad_cond3'] = buy_bad_cond3
+            self.data_df['buy_bad_cond4'] = buy_bad_cond4
 
 
             self.data_df['buy_real_fire4'] = (self.data_df['ma_close12'] < self.data_df['lower_vegas']) & (self.data_df['macd_cross_up']) & \
@@ -1971,12 +1990,13 @@ class CurrencyTrader(threading.Thread):
 
                     else:
 
-                        self.data_df = self.data_df_backup
+                        self.data_df = data_df_backup
 
 
 
                 print("to csv:")
-                self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + ".csv"), index=False)
+                if high_low_window == 200:
+                    self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + ".csv"), index=False)
                 print("after to csv:")
 
                 if len(high_low_window_options) > 1:
@@ -2050,6 +2070,61 @@ class CurrencyTrader(threading.Thread):
 
 
 
+
+            ############# Magic Filter, oh yeah! #####################
+
+            # if 100 in high_low_window_options:
+            #     high_low_window = 100
+            #     self.data_df['buy_fire_magic_exclude'] = self.data_df['final_buy_fire'] & (self.data_df['num_high_go_down_in_low_go_down'] >= 1)
+            #
+            #     self.data_df['buy_exclude_exempt1'] = ~self.data_df['strongly_aligned_short_condition']
+            #     self.data_df['buy_exclude_exempt2'] = self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > period_lookback
+            #     self.data_df['buy_exclude_exempt3'] = self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] > 0.5 * self.data_df['period_low' + str(high_low_window) + '_go_down_duration']
+            #     self.data_df['buy_exclude_exempt4'] = self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] >= 24
+            #
+            #     # self.data_df['buy_exclude_exempt'] = self.data_df['buy_exclude_exempt1'] & self.data_df['buy_exclude_exempt2'] & \
+            #     #                                      (self.data_df['buy_exclude_exempt3'] | self.data_df['buy_exclude_exempt4'])
+            #
+            #     self.data_df['buy_exclude_exempt'] = self.data_df['buy_exclude_exempt3']
+            #
+            #     #
+            #     # self.data_df['buy_exclude_exempt1'] = self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] > period_lookback
+            #     # #self.data_df['buy_exclude_exempt2'] = self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] > period_lookback
+            #     # self.data_df['buy_exclude_exempt'] = self.data_df['buy_exclude_exempt1'] #& self.data_df['buy_exclude_exempt2']
+            #
+            #     self.data_df['buy_fire_magic_exclude'] = self.data_df['buy_fire_magic_exclude'] & (~self.data_df['buy_exclude_exempt'])
+            #     self.data_df['final_buy_fire'] = self.data_df['final_buy_fire'] & (~self.data_df['buy_fire_magic_exclude'])
+            #
+            #
+            #     self.data_df['sell_fire_magic_exclude'] = self.data_df['final_sell_fire'] & (self.data_df['num_low_go_up_in_high_go_up'] >= 1)
+            #
+            #     self.data_df['sell_exclude_exempt1'] = ~self.data_df['strongly_aligned_long_condition']
+            #     self.data_df['sell_exclude_exempt2'] = self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > period_lookback
+            #     self.data_df['sell_exclude_exempt3'] = self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] > 0.5 * self.data_df['period_high' + str(high_low_window) + '_go_up_duration']
+            #     self.data_df['sell_exclude_exempt4'] = self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] >= 24
+            #
+            #     # self.data_df['sell_exclude_exempt'] = self.data_df['sell_exclude_exempt1'] & self.data_df['sell_exclude_exempt2'] & \
+            #     #                                      (self.data_df['sell_exclude_exempt3'] | self.data_df['sell_exclude_exempt4'])
+            #
+            #     self.data_df['sell_exclude_exempt'] = self.data_df['sell_exclude_exempt3']
+            #     #
+            #     # self.data_df['sell_exclude_exempt1'] = self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] > period_lookback
+            #     # #self.data_df['sell_exclude_exempt2'] = self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] > period_lookback
+            #     # self.data_df['sell_exclude_exempt'] = self.data_df['sell_exclude_exempt1'] #& self.data_df['sell_exclude_exempt2']
+            #
+            #     self.data_df['sell_fire_magic_exclude'] = self.data_df['sell_fire_magic_exclude'] & (~self.data_df['sell_exclude_exempt'])
+            #     self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & (~self.data_df['sell_fire_magic_exclude'])
+            #
+
+            
+
+
+
+            ##########################################################
+
+
+
+
             self.data_df['prev_final_buy_fire'] = self.data_df['final_buy_fire'].shift(1)
             self.data_df.at[0, 'prev_final_buy_fire'] = False
             self.data_df['prev_final_buy_fire'] = pd.Series(list(self.data_df['prev_final_buy_fire']), dtype='bool')
@@ -2074,6 +2149,24 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['first_final_sell_fire_exclude'] = self.data_df['final_sell_fire_exclude'] & (~self.data_df['prev_final_sell_fire_exclude'])
 
 
+                if 'buy_fire_magic_exclude' in self.data_df.columns:
+                    self.data_df['prev_buy_fire_magic_exclude'] = self.data_df['buy_fire_magic_exclude'].shift(1)
+                    self.data_df.at[0, 'prev_buy_fire_magic_exclude'] = False
+                    self.data_df['prev_buy_fire_magic_exclude'] = pd.Series(list(self.data_df['prev_buy_fire_magic_exclude']), dtype='bool')
+                    self.data_df['first_buy_fire_magic_exclude'] = self.data_df['buy_fire_magic_exclude'] & (~self.data_df['prev_buy_fire_magic_exclude'])
+
+
+                if 'sell_fire_magic_exclude' in self.data_df.columns:
+                    self.data_df['prev_sell_fire_magic_exclude'] = self.data_df['sell_fire_magic_exclude'].shift(1)
+                    self.data_df.at[0, 'prev_sell_fire_magic_exclude'] = False
+                    self.data_df['prev_sell_fire_magic_exclude'] = pd.Series(list(self.data_df['prev_sell_fire_magic_exclude']), dtype='bool')
+                    self.data_df['first_sell_fire_magic_exclude'] = self.data_df['sell_fire_magic_exclude'] & (~self.data_df['prev_sell_fire_magic_exclude'])
+
+
+
+            print("to csv:")
+            self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + ".csv"), index=False)
+            print("after to csv:")
 
 
 
