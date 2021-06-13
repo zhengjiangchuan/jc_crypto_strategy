@@ -119,6 +119,8 @@ price_range_look_back = 10
 
 is_plot_exclude = True
 
+high_low_delta_threshold = 20
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -491,12 +493,12 @@ class CurrencyTrader(threading.Thread):
             ################# features to detect trend approaching the end ###############
             self.data_df['period_high' + str(high_low_window) + '_gradient'] = self.data_df['period_high' + str(high_low_window)].diff()
             self.data_df['period_high' + str(high_low_window) + '_go_up'] = np.where(
-                self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate >= 20,
+                self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate >= high_low_delta_threshold,
                 1,
                 0
             )
             self.data_df['period_high' + str(high_low_window) + '_go_down'] = np.where(
-                self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate <= -20,
+                self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate <= -high_low_delta_threshold,
                 1,
                 0
             )
@@ -513,12 +515,12 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['period_low' + str(high_low_window) + '_gradient'] = self.data_df['period_low' + str(high_low_window)].diff()
             self.data_df['period_low' + str(high_low_window) + '_go_up'] = np.where(
-                self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate >= 20,
+                self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate >= high_low_delta_threshold,
                 1,
                 0
             )
             self.data_df['period_low' + str(high_low_window) + '_go_down'] = np.where(
-                self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate <= -20,
+                self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate <= -high_low_delta_threshold,
                 1,
                 0
             )
