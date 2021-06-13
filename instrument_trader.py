@@ -399,6 +399,7 @@ class CurrencyTrader(threading.Thread):
             aligned_long_conditions3 = aligned_long_conditions1 + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
             aligned_long_conditions4 = aligned_long_conditions1 + \
                                        [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate > -1) for guppy_line in guppy_lines]
+            aligned_long_conditions5 = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
 
             #self.data_df['is_guppy_aligned_long'] = reduce(lambda left, right: left & right, aligned_long_conditions) # + all_up_conditions)
             aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1)
@@ -406,18 +407,20 @@ class CurrencyTrader(threading.Thread):
             aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions2)
             aligned_long_condition3 = reduce(lambda left, right: left & right, aligned_long_conditions3)
             aligned_long_condition4 = reduce(lambda left, right: left & right, aligned_long_conditions4)
+            aligned_long_condition5 = reduce(lambda left, right: left & right, aligned_long_conditions5)
 
             half_aligned_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:2])
             strongly_half_aligned_long_condition = aligned_long_condition2
             strongly_aligned_long_condition = aligned_long_condition3
             strongly_relaxed_aligned_long_condition = aligned_long_condition4
+            strongly_long_condition = aligned_long_condition5
 
             self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
             self.data_df['aligned_long_condition_go_on'] = aligned_long_condition_go_on
             self.data_df['strongly_half_aligned_long_condition'] = strongly_half_aligned_long_condition
             self.data_df['strongly_aligned_long_condition'] = strongly_aligned_long_condition
             self.data_df['strongly_relaxed_aligned_long_condition'] = strongly_relaxed_aligned_long_condition
-
+            self.data_df['strongly_long_condition'] = strongly_long_condition
 
             aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                         range(len(guppy_lines) - 1)]
@@ -428,7 +431,7 @@ class CurrencyTrader(threading.Thread):
             aligned_short_conditions3 = aligned_short_conditions1 + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
             aligned_short_conditions4 = aligned_short_conditions1 + \
                                        [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate < 1) for guppy_line in guppy_lines]
-
+            aligned_short_conditions5 = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
 
 
             #self.data_df['is_guppy_aligned_short'] = reduce(lambda left, right: left & right, aligned_short_conditions) # + all_down_conditions)
@@ -437,17 +440,20 @@ class CurrencyTrader(threading.Thread):
             aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions2)
             aligned_short_condition3 = reduce(lambda left, right: left & right, aligned_short_conditions3)
             aligned_short_condition4 = reduce(lambda left, right: left & right, aligned_short_conditions4)
+            aligned_short_condition5 = reduce(lambda left, right: left & right, aligned_short_conditions5)
 
             half_aligned_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:2])
             strongly_half_aligned_short_condition = aligned_short_condition2
             strongly_aligned_short_condition = aligned_short_condition3
             strongly_relaxed_aligned_short_condition = aligned_short_condition4
+            strongly_short_condition = aligned_short_condition5
 
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
             self.data_df['aligned_short_condition_go_on'] = aligned_short_condition_go_on
             self.data_df['strongly_half_aligned_short_condition'] = strongly_half_aligned_short_condition
             self.data_df['strongly_aligned_short_condition'] = strongly_aligned_short_condition
             self.data_df['strongly_relaxed_aligned_short_condition'] = strongly_relaxed_aligned_short_condition
+            self.data_df['strongly_short_condition'] = strongly_short_condition
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
@@ -2060,10 +2066,14 @@ class CurrencyTrader(threading.Thread):
 
                     if filter_option == 1:
 
-                        self.data_df['final_buy_fire_exclude'] = data_df100['final_buy_fire'] & (~data_df200['final_buy_fire']) & data_df100['strongly_aligned_short_condition']
+                        #self.data_df['final_buy_fire_exclude'] = data_df100['final_buy_fire'] & (~data_df200['final_buy_fire']) & data_df100['strongly_aligned_short_condition']
+                        self.data_df['final_buy_fire_exclude'] = data_df100['buy_real_fire3'] & (~data_df200['buy_real_fire3']) & data_df100['strongly_aligned_short_condition']
+
                         self.data_df['final_buy_fire'] = data_df100['final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
 
-                        self.data_df['final_sell_fire_exclude'] = data_df100['final_sell_fire'] & (~data_df200['final_sell_fire']) & data_df100['strongly_aligned_long_condition']
+                        #self.data_df['final_sell_fire_exclude'] = data_df100['final_sell_fire'] & (~data_df200['final_sell_fire']) & data_df100['strongly_aligned_long_condition']
+                        self.data_df['final_sell_fire_exclude'] = data_df100['sell_real_fire3'] & (~data_df200['sell_real_fire3']) & data_df100['strongly_aligned_long_condition']
+
                         self.data_df['final_sell_fire'] = data_df100['final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
 
 
@@ -2111,6 +2121,9 @@ class CurrencyTrader(threading.Thread):
                                                    ((~self.data_df['sell_fire_special_exclude']) | self.data_df['sell_fire_special_exclude_exempt'])
 
 
+
+            # self.data_df['final_buy_fire'] = self.data_df['final_buy_fire'] & (~self.data_df['strongly_aligned_short_condition'])
+            # self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & (~self.data_df['strongly_aligned_long_condition'])
 
 
             # if 100 in high_low_window_options:
