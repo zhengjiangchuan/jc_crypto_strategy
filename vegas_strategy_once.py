@@ -87,7 +87,7 @@ currency_df = pd.read_csv(currency_file)
 
 # Hutong
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['EURJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
 
 # print("currency_df:")
 # print(currency_df)
@@ -161,6 +161,7 @@ url = "http://api.forexfeed.net/data/162083550794289/n-240/f-csv/i-3600/s-EURUSD
 
 
 def convert_to_time(timestamp):
+   #return datetime.fromtimestamp(timestamp+28800)
     return datetime.fromtimestamp(timestamp)
 
 
@@ -309,7 +310,7 @@ while not is_all_received:
                 print(data_df.tail(10))
 
                 last_time = data_df.iloc[-1]['time']
-                last_timestamp = int(datetime.timestamp(last_time))
+                last_timestamp = int(datetime.timestamp(last_time)) #- 28800
                 # next_timestamp = last_timestamp + 3600
 
                 print("Here last time = " + str(last_time))
