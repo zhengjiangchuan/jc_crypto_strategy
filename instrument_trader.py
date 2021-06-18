@@ -268,7 +268,7 @@ class CurrencyTrader(threading.Thread):
             calc_high_Low(self.data_df, "close", high_low_window)
             calc_jc_lines(self.data_df, "close", windows)
             calc_bolling_bands(self.data_df, "close", bolling_width)
-            calc_macd(self.data_df, "close")
+            calc_macd(self.data_df, "close", high_low_window)
 
             self.data_df['macd_gradient'] = self.data_df['macd'].diff()
 
@@ -490,6 +490,10 @@ class CurrencyTrader(threading.Thread):
             self.data_df['strict_break_upper_bolling'] = self.data_df['close'] > self.data_df['upper_band_close']
             self.data_df['strict_break_lower_bolling'] = self.data_df['close'] < self.data_df['lower_band_close']
 
+
+            self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
+            self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
+
             ################# features to detect trend approaching the end ###############
             self.data_df['period_high' + str(high_low_window) + '_gradient'] = self.data_df['period_high' + str(high_low_window)].diff()
             self.data_df['period_high' + str(high_low_window) + '_go_up'] = np.where(
@@ -502,6 +506,29 @@ class CurrencyTrader(threading.Thread):
                 1,
                 0
             )
+
+
+            self.data_df['m12_to_upper_vegas'] = self.data_df['ma_close12'] - self.data_df['upper_vegas']
+            self.data_df['m12_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
+
+            self.data_df['prev_m12_to_upper_vegas'] = self.data_df['m12_to_upper_vegas'].shift(1)
+            self.data_df['prev_m12_to_lower_vegas'] = self.data_df['m12_to_lower_vegas'].shift(1)
+
+            self.data_df['cross_up_vegas'] = np.where(
+                (self.data_df['prev_m12_to_upper_vegas'] <= 0) & (self.data_df['m12_to_upper_vegas'] > 0),
+                1,
+                0
+            )
+
+            self.data_df['cross_down_vegas'] = np.where(
+                (self.data_df['prev_m12_to_lower_vegas'] >= 0) & (self.data_df['m12_to_lower_vegas'] < 0),
+                -1,
+                0
+            )
+
+
+
+
 
             self.data_df['period_high' + str(high_low_window) + '_go_up_num'] = \
                 self.data_df['period_high' + str(high_low_window) + '_go_up'].rolling(period_lookback, min_periods = period_lookback).sum()
@@ -528,6 +555,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['period_low' + str(high_low_window) + '_go_up'].rolling(period_lookback, min_periods = period_lookback).sum()
             self.data_df['period_low' + str(high_low_window) + '_go_down_num'] = \
                 self.data_df['period_low' + str(high_low_window) + '_go_down'].rolling(period_lookback, min_periods = period_lookback).sum()
+
+
+
+
+
+
 
             #self.data_df['period_low' + str(high_low_window) + '_go_up_num'] = self.data_df['period_low' + str(high_low_window) + '_go_up_num'].astype(int)
             #self.data_df['period_low' + str(high_low_window) + '_go_down_num'] = self.data_df['period_low' + str(high_low_window) + '_go_down_num'].astype(int)
@@ -690,6 +723,151 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['id'] = list(range(self.data_df.shape[0]))
 
+
+
+            #############################################################
+            self.data_df.at[0, 'period_high' + str(high_low_window) + '_cum_gradient'] = 0
+            self.data_df.at[0, 'period_low' + str(high_low_window) + '_cum_gradient'] = 0
+
+            self.data_df['period_high' + str(high_low_window) + '_cum_gradient'] = self.data_df['period_high' + str(high_low_window) + '_gradient'].cumsum()
+            self.data_df['period_low' + str(high_low_window) + '_cum_gradient'] = self.data_df['period_low' + str(high_low_window) + '_gradient'].cumsum()
+
+            self.data_df['period_high' + str(high_low_window) + '_cum_gradient'] = self.data_df['period_high' + str(high_low_window) + '_cum_gradient'].shift(1)
+            self.data_df['period_low' + str(high_low_window) + '_cum_gradient'] = self.data_df['period_low' + str(high_low_window) + '_cum_gradient'].shift(1)
+
+            self.data_df.at[0, 'period_high' + str(high_low_window) + '_cum_gradient'] = 0
+            self.data_df.at[0, 'period_low' + str(high_low_window) + '_cum_gradient'] = 0
+
+
+
+            self.data_df['cross_vegas'] = self.data_df['cross_up_vegas'] + self.data_df['cross_down_vegas']
+
+            # print("Previous cross_vegas:")
+            # print(self.data_df[self.data_df['cross_vegas'] != 0][['time','cross_vegas']])
+
+            temp_df = self.data_df[['id', 'cross_vegas']]
+            temp_df = temp_df[temp_df['cross_vegas'] != 0]
+            temp_df.reset_index(inplace = True)
+            temp_df = temp_df.drop(columns = ['index'])
+            temp_df['prev_cross_vegas'] = temp_df['cross_vegas'].shift(1)
+            temp_df = temp_df[temp_df['cross_vegas'] != temp_df['prev_cross_vegas']]
+            temp_df = temp_df[['id', 'cross_vegas']]
+            temp_df = temp_df.rename(columns = {'cross_vegas' : 'actual_cross_vegas'})
+            self.data_df = pd.merge(self.data_df, temp_df, on = ['id'], how = 'left')
+            self.data_df['cross_vegas'] = np.where(
+                self.data_df['actual_cross_vegas'].notnull(),
+                self.data_df['cross_vegas'],
+                0
+            )
+
+            # print("After cross_vegas:")
+            # print(self.data_df[self.data_df['cross_vegas'] != 0][['time', 'cross_vegas']])
+
+
+            # self.data_df['cross_vegas'] = self.data_df['cross_up_vegas'] + self.data_df['cross_down_vegas']
+            # self.data_df['cross_vegas'] = np.where(
+            #     self.data_df['cross_vegas'] == 2,
+            #     1,
+            #     self.data_df['cross_vegas']
+            # )
+            self.data_df['cross_vegas_temp'] = np.nan
+            self.data_df['cross_vegas_temp'] = np.where(
+                self.data_df['cross_vegas'] != 0,
+                self.data_df['id'],
+                self.data_df['cross_vegas_temp']
+            )
+
+            df_cross_vegas = self.data_df[self.data_df['cross_vegas_temp'].notnull()][['id',
+                                                                                       'period_high' + str(high_low_window) + '_cum_gradient',
+                                                                                       'period_low' + str(high_low_window) + '_cum_gradient'
+                                                                                       ]]
+            df_cross_vegas.reset_index(inplace = True)
+            df_cross_vegas = df_cross_vegas.drop(columns = ['index'])
+
+
+            ##############################################
+
+            temp_df = self.data_df[['id', 'cross_vegas_temp']]
+            temp_df = temp_df.fillna(method='ffill').fillna(0)
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+            temp_df['id'] = temp_df['cross_vegas_temp']
+
+            temp_df = pd.merge(temp_df, df_cross_vegas, on=['id'], how='left')
+            temp_df = temp_df.rename(columns={
+                'period_high' + str(high_low_window) + '_cum_gradient': 'period_high' + str(high_low_window) + '_cum_gradient_for_vegas',
+                'period_low' + str(high_low_window) + '_cum_gradient': 'period_low' + str(high_low_window) + '_cum_gradient_for_vegas'
+            })
+            temp_df = temp_df.fillna(0)
+
+            temp_df = temp_df[[col for col in temp_df.columns if 'cum_gradient' in col]]
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(float)
+
+            self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
+            self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])
+
+            #Gay
+            self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] = \
+                self.data_df['period_high' + str(high_low_window) + '_cum_gradient'] - self.data_df['period_high' + str(high_low_window) + '_cum_gradient_for_vegas']
+
+            self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] = \
+                self.data_df['period_low' + str(high_low_window) + '_cum_gradient'] - self.data_df['period_low' + str(high_low_window) + '_cum_gradient_for_vegas']
+
+
+            self.data_df['period_high_low_vegas_gradient_ratio'] = np.where(
+                self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] == 0,
+                10000,
+                self.data_df['period_high' + str(high_low_window) + '_vegas_gradient']/self.data_df['period_low' + str(high_low_window) + '_vegas_gradient']
+            )
+
+            self.data_df['period_high_low_vegas_gradient_ratio'] = np.where(
+                (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] == 0) & (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] == 0),
+                0,
+                self.data_df['period_high_low_vegas_gradient_ratio']
+            )
+
+
+            self.data_df['period_low_high_vegas_gradient_ratio'] = np.where(
+                self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] == 0,
+                10000,
+                self.data_df['period_low' + str(high_low_window) + '_vegas_gradient']/self.data_df['period_high' + str(high_low_window) + '_vegas_gradient']
+            )
+
+            self.data_df['period_low_high_vegas_gradient_ratio'] = np.where(
+                (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] == 0) & (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] == 0),
+                0,
+                self.data_df['period_low_high_vegas_gradient_ratio']
+            )
+
+
+
+
+            # print("Investigate gradient:")
+            # self.data_df['high_cum_gradient'] = self.data_df['period_high' + str(high_low_window) + '_cum_gradient']
+            # self.data_df['high_cum_gradient2'] = self.data_df['period_high' + str(high_low_window) + '_vegas_gradient']
+            #
+            # self.data_df['low_cum_gradient'] = self.data_df['period_low' + str(high_low_window) + '_cum_gradient']
+            # self.data_df['low_cum_gradient2'] = self.data_df['period_low' + str(high_low_window) + '_vegas_gradient']
+            #
+            # self.data_df['high_low'] = self.data_df['period_high_low_vegas_gradient_ratio']
+            # self.data_df['low_high'] = self.data_df['period_low_high_vegas_gradient_ratio']
+            #
+            # print(self.data_df[['time','cross_vegas',
+            #                     'high_cum_gradient', 'high_cum_gradient2', 'low_cum_gradient', 'low_cum_gradient2',
+            #                     'high_low', 'low_high']].tail(350))
+
+            ##############################################
+            #sys.exit(0)
+            #############################################################
+
+
+
+
+
+
+
             for col in cum_columns:
                 #print("col = " + col)
                 self.data_df[col] = self.data_df[col].astype(int)
@@ -759,6 +937,16 @@ class CurrencyTrader(threading.Thread):
             # print(df_low_go_down.tail(20))
 
 
+
+
+
+
+
+
+
+
+
+
             temp_df = self.data_df[['id',
                                     'period_high' + str(high_low_window) + '_go_up_temp',
                                     'period_high' + str(high_low_window) + '_go_down_temp',
@@ -778,22 +966,7 @@ class CurrencyTrader(threading.Thread):
             temp_df['period_low' + str(high_low_window) + '_go_down_duration'] = temp_df['id'] - temp_df['period_low' + str(high_low_window) + '_go_down_temp'] + 1
 
 
-
-
-
-
             temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_go_up_temp']
-
-            # print("temp_df:")
-            # print("length = " + str(temp_df.shape[0]))
-            # print(temp_df.head(100))
-            # print(temp_df.tail(100))
-            # print("df_high_go_up:")
-            # print("length = " + str(df_high_go_up.shape[0]))
-            # print(df_high_go_up.head(20))
-            # print(df_high_go_up.tail(20))
-            #sys.exit(0)
-
 
 
             temp_df = pd.merge(temp_df, df_high_go_up, on = ['id'], how = 'left')
@@ -809,13 +982,6 @@ class CurrencyTrader(threading.Thread):
 
             temp_df = temp_df.fillna(0)
 
-
-            # print("After merge:")
-            # print("temp_df length = " + str(temp_df.shape[0]))
-            # print(temp_df)
-
-
-            #sys.exit(0)
 
 
             temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_go_down_temp']
@@ -880,10 +1046,9 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])
 
-            # print("Final data_df:")
-            # print(self.data_df.head(10))
-            # print(self.data_df.tail(10))
-            #sys.exit(0)
+
+
+
 
 
             self.data_df['num_new_break_up_in_high_go_up'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_high_go_up']
@@ -958,8 +1123,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
-            self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
+
 
             self.data_df['middle_vegas'] = (self.data_df['upper_vegas'] + self.data_df['lower_vegas']) / 2
 
@@ -1320,6 +1484,14 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['price_to_upper_vegas'] = self.data_df['upper_vegas'] - self.data_df['close']
             self.data_df['price_to_lower_vegas'] = self.data_df['close'] - self.data_df['lower_vegas']
+
+            self.data_df['guppy_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['highest_guppy']
+            self.data_df['guppy_to_upper_vegas'] = self.data_df['lowest_guppy'] - self.data_df['upper_vegas']
+
+            self.data_df['guppy_to_lower_vegas_pct'] = self.data_df['guppy_to_lower_vegas'] / self.data_df['high_low_range']
+            self.data_df['guppy_to_upper_vegas_pct'] = self.data_df['guppy_to_upper_vegas'] / self.data_df['high_low_range']
+
+
 
             self.data_df['price_to_bolling_upper'] = self.data_df['upper_band_close'] - self.data_df['close']
             self.data_df['price_to_bolling_lower'] = self.data_df['close'] - self.data_df['lower_band_close']
@@ -1955,6 +2127,81 @@ class CurrencyTrader(threading.Thread):
             self.data_df['first_buy_real_fire4'] = self.data_df['buy_real_fire4'] & (~self.data_df['prev_buy_real_fire4'])
 
 
+
+            sell_close1_cond1 = self.data_df['fast_vegas'] > self.data_df['slow_vegas']
+            sell_close1_cond2 = (self.data_df['close'] > self.data_df['highest_guppy']) & (self.data_df['open'] <= self.data_df['highest_guppy']) & \
+                                (self.data_df['guppy_to_lower_vegas_pct'] > 0.15)
+            sell_close1_cond3 = (self.data_df['close'] > self.data_df['upper_vegas']) & (self.data_df['open'] <= self.data_df['upper_vegas'])
+            self.data_df['sell_close_position1'] = sell_close1_cond1 & (sell_close1_cond2 | sell_close1_cond3)
+
+
+            sell_close2_cond1 = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) #\
+                                # & (self.data_df['fast_vegas_gradient'] < 0) & \
+                                # (self.data_df['slow_vegas_gradient'] < 0)
+            sell_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
+                                (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
+                                (self.data_df['period_high_low_vegas_gradient_ratio'] >= 1.0)
+            sell_close2_cond3 = (self.data_df['price_to_period_low_pct'] < 0.1)
+            sell_close2_cond4 = (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] >= 12)
+            self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4) | sell_close1_cond3)
+
+            self.data_df['sell_close_position'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position1'] | self.data_df['sell_close_position2'])
+
+
+            self.data_df['sell_close1_cond1'] = sell_close1_cond1
+            self.data_df['sell_close1_cond2'] = sell_close1_cond2
+            self.data_df['sell_close1_cond3'] = sell_close1_cond3
+            self.data_df['sell_close2_cond1'] = sell_close2_cond1
+            self.data_df['sell_close2_cond2'] = sell_close2_cond2
+            self.data_df['sell_close2_cond3'] = sell_close2_cond3
+            self.data_df['sell_close2_cond4'] = sell_close2_cond4
+
+
+
+            buy_close1_cond1 = self.data_df['fast_vegas'] < self.data_df['slow_vegas']
+            buy_close1_cond2 = (self.data_df['close'] < self.data_df['lowest_guppy']) & (self.data_df['open'] >= self.data_df['lowest_guppy']) & \
+                                (self.data_df['guppy_to_upper_vegas_pct'] > 0.15)
+            buy_close1_cond3 = (self.data_df['close'] < self.data_df['lower_vegas']) & (self.data_df['open'] >= self.data_df['lower_vegas'])
+            self.data_df['buy_close_position1'] = buy_close1_cond1 & (buy_close1_cond2 | buy_close1_cond3)
+
+
+            buy_close2_cond1 = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) #\
+                               # & (self.data_df['fast_vegas_gradient'] > 0) & \
+                               #  (self.data_df['slow_vegas_gradient'] > 0)
+            buy_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] >= 0) & \
+                                (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] >= 0) & \
+                                (self.data_df['period_low_high_vegas_gradient_ratio'] >= 1.0)
+            buy_close2_cond3 = (self.data_df['price_to_period_high_pct'] < 0.1)
+            buy_close2_cond4 = (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] >= 12)
+            self.data_df['buy_close_position2'] = buy_close2_cond1 & ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4) | buy_close1_cond3)
+
+            self.data_df['buy_close_position'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position1'] | self.data_df['buy_close_position2'])
+
+            self.data_df['buy_close1_cond1'] = buy_close1_cond1
+            self.data_df['buy_close1_cond2'] = buy_close1_cond2
+            self.data_df['buy_close1_cond3'] = buy_close1_cond3
+            self.data_df['buy_close2_cond1'] = buy_close2_cond1
+            self.data_df['buy_close2_cond2'] = buy_close2_cond2
+            self.data_df['buy_close2_cond3'] = buy_close2_cond3
+            self.data_df['buy_close2_cond4'] = buy_close2_cond4
+
+
+
+            self.data_df['prev_sell_close_position'] = self.data_df['sell_close_position'].shift(1)
+            self.data_df.at[0, 'prev_sell_close_position'] = False
+            self.data_df['prev_sell_close_position'] = pd.Series(list(self.data_df['prev_sell_close_position']), dtype='bool')
+            self.data_df['first_sell_close_position'] = self.data_df['sell_close_position'] & (~self.data_df['prev_sell_close_position'])
+
+
+
+            self.data_df['prev_buy_close_position'] = self.data_df['buy_close_position'].shift(1)
+            self.data_df.at[0, 'prev_buy_close_position'] = False
+            self.data_df['prev_buy_close_position'] = pd.Series(list(self.data_df['prev_buy_close_position']), dtype='bool')
+            self.data_df['first_buy_close_position'] = self.data_df['buy_close_position'] & (~self.data_df['prev_buy_close_position'])
+
+
+
+
     def trade(self):
 
         print("Do trading............")
@@ -2041,6 +2288,10 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['period_high' + str(high_low_window_options[-1])] = data_df200['period_high' + str(high_low_window_options[-1])]
                 self.data_df['period_low' + str(high_low_window_options[-1])] = data_df200['period_low' + str(high_low_window_options[-1])]
+
+                self.data_df['macd_period_high' + str(high_low_window_options[-1])] = data_df200['macd_period_high' + str(high_low_window_options[-1])]
+                self.data_df['macd_period_low' + str(high_low_window_options[-1])] = data_df200['macd_period_low' + str(high_low_window_options[-1])]
+
 
 
                 # print("period_high200 here:")
@@ -2376,7 +2627,7 @@ class CurrencyTrader(threading.Thread):
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
-                                   is_plot_aux=False,
+                                   is_plot_aux=True,
                                    bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True, plot_exclude = is_plot_exclude)
 
 
