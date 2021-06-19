@@ -2141,11 +2141,22 @@ class CurrencyTrader(threading.Thread):
             sell_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
                                 (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
                                 (self.data_df['period_high_low_vegas_gradient_ratio'] >= 1.0)
-            sell_close2_cond3 = (self.data_df['price_to_period_low_pct'] < 0.1)
+            sell_close2_cond3 = (self.data_df['prev_price_to_period_low_pct'] < 0.1)
             sell_close2_cond4 = (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] >= 12)
-            self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4) | sell_close1_cond3)
+            sell_close2_cond5 = (self.data_df['is_positive']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
 
-            self.data_df['sell_close_position'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position1'] | self.data_df['sell_close_position2'])
+            #self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4) | sell_close1_cond3)
+
+            #self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5))
+
+            self.data_df['sell_close_position2_excessive'] = ((sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5))
+            self.data_df['sell_close_position_excessive'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position2_excessive'])
+
+            self.data_df['sell_close_position2_conservative'] = ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5))
+            self.data_df['sell_close_position_conservative'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position2_conservative'])
+
+            self.data_df['sell_stop_loss_excessive'] = sell_close1_cond3
+            self.data_df['sell_stop_loss_conservative'] = self.data_df['cross_vegas'] == 1
 
 
             self.data_df['sell_close1_cond1'] = sell_close1_cond1
@@ -2155,6 +2166,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_close2_cond2'] = sell_close2_cond2
             self.data_df['sell_close2_cond3'] = sell_close2_cond3
             self.data_df['sell_close2_cond4'] = sell_close2_cond4
+            self.data_df['sell_close2_cond5'] = sell_close2_cond5
 
 
 
@@ -2171,11 +2183,20 @@ class CurrencyTrader(threading.Thread):
             buy_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] >= 0) & \
                                 (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] >= 0) & \
                                 (self.data_df['period_low_high_vegas_gradient_ratio'] >= 1.0)
-            buy_close2_cond3 = (self.data_df['price_to_period_high_pct'] < 0.1)
+            buy_close2_cond3 = (self.data_df['prev_price_to_period_high_pct'] < 0.1)
             buy_close2_cond4 = (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] >= 12)
-            self.data_df['buy_close_position2'] = buy_close2_cond1 & ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4) | buy_close1_cond3)
+            buy_close2_cond5 = (self.data_df['is_negative']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
 
-            self.data_df['buy_close_position'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position1'] | self.data_df['buy_close_position2'])
+            #self.data_df['buy_close_position2'] = buy_close2_cond1 & ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4) | buy_close1_cond3)
+
+            self.data_df['buy_close_position2_excessive'] = ((buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5))
+            self.data_df['buy_close_position_excessive'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position2_excessive'])
+
+            self.data_df['buy_close_position2_conservative'] = ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5))
+            self.data_df['buy_close_position_conservative'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position2_conservative'])
+
+            self.data_df['buy_stop_loss_excessive'] = buy_close1_cond3
+            self.data_df['buy_stop_loss_conservative'] = self.data_df['cross_vegas'] == -1
 
             self.data_df['buy_close1_cond1'] = buy_close1_cond1
             self.data_df['buy_close1_cond2'] = buy_close1_cond2
@@ -2184,20 +2205,52 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_close2_cond2'] = buy_close2_cond2
             self.data_df['buy_close2_cond3'] = buy_close2_cond3
             self.data_df['buy_close2_cond4'] = buy_close2_cond4
+            self.data_df['buy_close2_cond5'] = buy_close2_cond5
+
+
+            self.data_df['prev_sell_close_position_excessive'] = self.data_df['sell_close_position_excessive'].shift(1)
+            self.data_df.at[0, 'prev_sell_close_position_excessive'] = False
+            self.data_df['prev_sell_close_position_excessive'] = pd.Series(list(self.data_df['prev_sell_close_position_excessive']), dtype='bool')
+            self.data_df['first_sell_close_position_excessive'] = self.data_df['sell_close_position_excessive'] & (~self.data_df['prev_sell_close_position_excessive'])
+
+            self.data_df['prev_sell_close_position_conservative'] = self.data_df['sell_close_position_conservative'].shift(1)
+            self.data_df.at[0, 'prev_sell_close_position_conservative'] = False
+            self.data_df['prev_sell_close_position_conservative'] = pd.Series(list(self.data_df['prev_sell_close_position_conservative']), dtype='bool')
+            self.data_df['first_sell_close_position_conservative'] = self.data_df['sell_close_position_conservative'] & (~self.data_df['prev_sell_close_position_conservative'])
+
+            self.data_df['prev_sell_stop_loss_excessive'] = self.data_df['sell_stop_loss_excessive'].shift(1)
+            self.data_df.at[0, 'prev_sell_stop_loss_excessive'] = False
+            self.data_df['prev_sell_stop_loss_excessive'] = pd.Series(list(self.data_df['prev_sell_stop_loss_excessive']), dtype='bool')
+            self.data_df['first_sell_stop_loss_excessive'] = self.data_df['sell_stop_loss_excessive'] & (~self.data_df['prev_sell_stop_loss_excessive'])
+
+            self.data_df['prev_sell_stop_loss_conservative'] = self.data_df['sell_stop_loss_conservative'].shift(1)
+            self.data_df.at[0, 'prev_sell_stop_loss_conservative'] = False
+            self.data_df['prev_sell_stop_loss_conservative'] = pd.Series(list(self.data_df['prev_sell_stop_loss_conservative']), dtype='bool')
+            self.data_df['first_sell_stop_loss_conservative'] = self.data_df['sell_stop_loss_conservative'] & (~self.data_df['prev_sell_stop_loss_conservative'])
 
 
 
-            self.data_df['prev_sell_close_position'] = self.data_df['sell_close_position'].shift(1)
-            self.data_df.at[0, 'prev_sell_close_position'] = False
-            self.data_df['prev_sell_close_position'] = pd.Series(list(self.data_df['prev_sell_close_position']), dtype='bool')
-            self.data_df['first_sell_close_position'] = self.data_df['sell_close_position'] & (~self.data_df['prev_sell_close_position'])
 
+            self.data_df['prev_buy_close_position_excessive'] = self.data_df['buy_close_position_excessive'].shift(1)
+            self.data_df.at[0, 'prev_buy_close_position_excessive'] = False
+            self.data_df['prev_buy_close_position_excessive'] = pd.Series(list(self.data_df['prev_buy_close_position_excessive']), dtype='bool')
+            self.data_df['first_buy_close_position_excessive'] = self.data_df['buy_close_position_excessive'] & (~self.data_df['prev_buy_close_position_excessive'])
 
+            self.data_df['prev_buy_close_position_conservative'] = self.data_df['buy_close_position_conservative'].shift(1)
+            self.data_df.at[0, 'prev_buy_close_position_conservative'] = False
+            self.data_df['prev_buy_close_position_conservative'] = pd.Series(list(self.data_df['prev_buy_close_position_conservative']), dtype='bool')
+            self.data_df['first_buy_close_position_conservative'] = self.data_df['buy_close_position_conservative'] & (~self.data_df['prev_buy_close_position_conservative'])
 
-            self.data_df['prev_buy_close_position'] = self.data_df['buy_close_position'].shift(1)
-            self.data_df.at[0, 'prev_buy_close_position'] = False
-            self.data_df['prev_buy_close_position'] = pd.Series(list(self.data_df['prev_buy_close_position']), dtype='bool')
-            self.data_df['first_buy_close_position'] = self.data_df['buy_close_position'] & (~self.data_df['prev_buy_close_position'])
+            self.data_df['prev_buy_stop_loss_excessive'] = self.data_df['buy_stop_loss_excessive'].shift(1)
+            self.data_df.at[0, 'prev_buy_stop_loss_excessive'] = False
+            self.data_df['prev_buy_stop_loss_excessive'] = pd.Series(list(self.data_df['prev_buy_stop_loss_excessive']), dtype='bool')
+            self.data_df['first_buy_stop_loss_excessive'] = self.data_df['buy_stop_loss_excessive'] & (~self.data_df['prev_buy_stop_loss_excessive'])
+
+            self.data_df['prev_buy_stop_loss_conservative'] = self.data_df['buy_stop_loss_conservative'].shift(1)
+            self.data_df.at[0, 'prev_buy_stop_loss_conservative'] = False
+            self.data_df['prev_buy_stop_loss_conservative'] = pd.Series(list(self.data_df['prev_buy_stop_loss_conservative']), dtype='bool')
+            self.data_df['first_buy_stop_loss_conservative'] = self.data_df['buy_stop_loss_conservative'] & (~self.data_df['prev_buy_stop_loss_conservative'])
+
 
 
 
@@ -2627,7 +2680,7 @@ class CurrencyTrader(threading.Thread):
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
-                                   is_plot_aux=True,
+                                   is_plot_aux=False,
                                    bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True, plot_exclude = is_plot_exclude)
 
 
