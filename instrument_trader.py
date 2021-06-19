@@ -121,7 +121,7 @@ is_plot_exclude = True
 
 high_low_delta_threshold = 20
 
-entry_risk_threshold = 0.7
+entry_risk_threshold = 0.6
 
 class CurrencyTrader(threading.Thread):
 
@@ -2143,7 +2143,7 @@ class CurrencyTrader(threading.Thread):
             sell_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
                                 (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
                                 (self.data_df['period_high_low_vegas_gradient_ratio'] >= 1.0)
-            sell_close2_cond3 = (self.data_df['prev_price_to_period_low_pct'] < 0.1)
+            sell_close2_cond3 = (self.data_df['prev_price_to_period_low_pct'] < 0.1) #Change to previous 10 such value at least one < 0.1
             sell_close2_cond4 = (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] >= 12)
             sell_close2_cond5 = (self.data_df['is_positive']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
 
