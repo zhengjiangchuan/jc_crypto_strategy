@@ -121,6 +121,8 @@ is_plot_exclude = True
 
 high_low_delta_threshold = 20
 
+entry_risk_threshold = 0.7
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -1800,8 +1802,8 @@ class CurrencyTrader(threading.Thread):
 
             sell_good_cond5 = np.where(
                 self.data_df['close'] < self.data_df['lowest_guppy'],
-                (-self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_high']) >= 0.7,
-                (self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_high']) >= 0.7
+                (-self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_high']) >= entry_risk_threshold,
+                (self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_high']) >= entry_risk_threshold
             )
 
             sell_bad_cond0 = (self.data_df['close'] - self.data_df['upper_vegas']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
@@ -2033,8 +2035,8 @@ class CurrencyTrader(threading.Thread):
 
             buy_good_cond5 = np.where(
                 self.data_df['close'] > self.data_df['highest_guppy'],
-                (-self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_low']) >= 0.7,
-                (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= 0.7
+                (-self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_low']) >= entry_risk_threshold,
+                (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= entry_risk_threshold
             )
 
             buy_bad_cond0 = (self.data_df['lower_vegas'] - self.data_df['close']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas

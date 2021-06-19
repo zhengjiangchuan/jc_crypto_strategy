@@ -18,7 +18,9 @@ root_folder = "C:\\Forex\\formal_trading"
 #dest_folder = "C:\\Forex\\new_experiments\\0611\\fire2_fire3_100_filtered_by_fire2_fire3_200_adjust_entry_too_high_cond"
 
 
-dest_folder = "C:\\Forex\\new_experiments\\close_positions2"
+#dest_folder = "C:\\Forex\\new_experiments\\close_positions2"
+
+dest_folder = "C:\\Forex\\new_experiments\\entry_risk_70pct"
 
 #dest_folder = "C:\\Users\\User\\Dropbox\\forex_results2"
 
