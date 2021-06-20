@@ -2418,6 +2418,172 @@ class CurrencyTrader(threading.Thread):
 
 
 
+
+
+
+            #################################################
+            self.data_df['buy_point'] = np.where(
+                self.data_df['first_buy_real_fire3'] | self.data_df['first_buy_real_fire2'],
+                1,
+                0
+            )
+
+
+            self.data_df['sell_point'] = np.where(
+                self.data_df['first_sell_real_fire3'] | self.data_df['first_sell_real_fire2'],
+                1,
+                0
+            )
+
+            self.data_df['large_positive_bar'] = self.data_df['is_positive'] & (self.data_df['price_range'] > 100)
+            self.data_df['large_negative_bar'] = self.data_df['is_negative'] & (self.data_df['price_range'] > 100)
+
+            self.data_df['cum_large_positive'] = self.data_df['large_positive_bar'].cumsum()
+            self.data_df['cum_large_negative'] = self.data_df['large_negative_bar'].cumsum()
+
+            self.data_df['cum_large_positive'] = self.data_df['cum_large_positive'].shift(1)
+            self.data_df.at[0, 'cum_large_positive'] = 0
+
+            self.data_df['cum_large_negative'] = self.data_df['cum_large_negative'].shift(1)
+            self.data_df.at[0, 'cum_large_negative'] = 0
+
+            for col in ['cum_large_positive', 'cum_large_negative']:
+                self.data_df[col] = self.data_df[col].astype(int)
+
+            self.data_df['buy_point_temp'] = np.nan
+            self.data_df['buy_point_temp'] = np.where(
+                self.data_df['buy_point'] == 1,
+                self.data_df['id'],
+                self.data_df['buy_point_temp']
+            )
+
+            self.data_df['sell_point_temp'] = np.nan
+            self.data_df['sell_point_temp'] = np.where(
+                self.data_df['sell_point'] == 1,
+                self.data_df['id'],
+                self.data_df['sell_point_temp']
+            )
+
+
+            df_buy_point = self.data_df[self.data_df['buy_point_temp'].notnull()][['id', 'cum_large_positive']]
+            df_buy_point.reset_index(inplace = True)
+            df_buy_point = df_buy_point.drop(columns = ['index'])
+
+            df_sell_point = self.data_df[self.data_df['sell_point_temp'].notnull()][['id', 'cum_large_negative']]
+            df_sell_point.reset_index(inplace = True)
+            df_sell_point = df_sell_point.drop(columns = ['index'])
+
+            temp_df = self.data_df[['id',
+                                    'buy_point_temp', 'sell_point_temp'
+                                    ]]
+
+            temp_df = temp_df.fillna(method = 'ffill').fillna(0)
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+            temp_df['id'] = temp_df['buy_point_temp']
+            temp_df = pd.merge(temp_df, df_buy_point, on=['id'], how ='left')
+            temp_df = temp_df.rename(columns = {
+                'cum_large_positive', 'cum_large_positive_for_buy'
+            })
+            temp_df = temp_df.fillna(0)
+
+            temp_df['id'] = temp_df['sell_point_temp']
+            temp_df = pd.merge(temp_df, df_sell_point, on=['id'], how ='left')
+            temp_df = temp_df.rename(columns = {
+                'cum_large_negative', 'cum_large_negative_for_sell'
+            })
+            temp_df = temp_df.fillna(0)
+
+            temp_df = temp_df[[col for col in temp_df.columns if 'cum' in col]]
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+            self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
+
+            self.data_df['num_large_positive_for_buy'] = self.data_df['cum_large_positive'] - self.data_df['cum_large_positive_for_buy']
+            self.data_df['num_large_negative_for_sell'] = self.data_df['cum_large_negative'] - self.data_df['cum_large_negative_for_sell']
+
+
+            self.data_df['special_buy_close_position'] = (self.data_df['num_large_positive_for_buy'] >= 3) & self.data_df['is_negative']
+            self.data_df['special_sell_close_position'] = (self.data_df['num_large_negative_for_sell'] >= 3) & self.data_df['is_positive']
+
+
+
+            #####################
+
+
+            self.data_df['cum_special_buy_close_position'] = self.data_df['special_buy_close_position'].cumsum()
+            self.data_df['cum_special_sell_close_position'] = self.data_df['special_sell_close_position'].cumsum()
+
+            self.data_df['cum_special_buy_close_position'] = self.data_df['cum_special_buy_close_position'].shift(1)
+            self.data_df.at[0, 'cum_special_buy_close_position'] = 0
+
+            self.data_df['cum_special_sell_close_position'] = self.data_df['cum_special_sell_close_position'].shift(1)
+            self.data_df.at[0, 'cum_special_sell_close_position'] = 0
+
+            for col in ['cum_special_buy_close_position', 'cum_special_sell_close_position']:
+                self.data_df[col] = self.data_df[col].astype(int)
+
+
+            df_buy_point = self.data_df[self.data_df['buy_point_temp'].notnull()][['id', 'cum_special_buy_close_position']]
+            df_buy_point.reset_index(inplace = True)
+            df_buy_point = df_buy_point.drop(columns = ['index'])
+
+            df_sell_point = self.data_df[self.data_df['sell_point_temp'].notnull()][['id', 'cum_special_sell_close_position']]
+            df_sell_point.reset_index(inplace = True)
+            df_sell_point = df_sell_point.drop(columns = ['index'])
+
+            temp_df = self.data_df[['id',
+                                    'buy_point_temp', 'sell_point_temp'
+                                    ]]
+
+            temp_df = temp_df.fillna(method = 'ffill').fillna(0)
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+
+
+
+
+            temp_df['id'] = temp_df['buy_point_temp']
+            temp_df = pd.merge(temp_df, df_buy_point, on=['id'], how ='left')
+            temp_df = temp_df.rename(columns = {
+                'cum_special_buy_close_position', 'cum_special_buy_close_position_for_buy'
+            })
+            temp_df = temp_df.fillna(0)
+
+            temp_df['id'] = temp_df['sell_point_temp']
+            temp_df = pd.merge(temp_df, df_sell_point, on=['id'], how ='left')
+            temp_df = temp_df.rename(columns = {
+                'cum_special_sell_close_position', 'cum_special_sell_close_position_for_sell'
+            })
+            temp_df = temp_df.fillna(0)
+
+            temp_df = temp_df[[col for col in temp_df.columns if 'cum' in col]]
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+            self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
+
+            self.data_df['num_special_buy_close_position_for_buy'] = self.data_df['cum_special_buy_close_position'] - self.data_df['cum_special_buy_close_position_for_buy']
+            self.data_df['num_special_sell_close_position_for_sell'] = self.data_df['cum_special_sell_close_position'] - self.data_df['cum_special_sell_close_position_for_sell']
+
+            self.data_df['first_actual_special_buy_close_position'] = self.data_df['special_buy_close_position'] & \
+                                                                      (self.data_df['num_special_buy_close_position_for_buy'] == 0)
+
+            self.data_df['first_actual_special_sell_close_position'] = self.data_df['special_sell_close_position'] & \
+                                                                      (self.data_df['num_special_sell_close_position_for_sell'] == 0)
+
+
+
+
+
+
     def trade(self):
 
         print("Do trading............")
