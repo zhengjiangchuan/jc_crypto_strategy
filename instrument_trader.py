@@ -322,6 +322,19 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] = self.data_df['prev' + str(i-1) + '_min_price_to_period_low_pct'].shift(1)
                 self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] = self.data_df['prev' + str(i-1) + '_max_price_to_period_high_pct'].shift(1)
 
+
+
+            self.data_df['low_price_to_period_low_pct'] = (self.data_df['low'] - self.data_df['period_low' + str(high_low_window)]) / self.data_df['period_high_low_range']
+            self.data_df['high_price_to_period_high_pct'] = (self.data_df['period_high' + str(high_low_window)] - self.data_df['high']) / self.data_df['period_high_low_range']
+
+            self.data_df['prev1_low_price_to_period_low_pct'] = self.data_df['low_price_to_period_low_pct'].shift(1)
+            self.data_df['prev1_high_price_to_period_high_pct'] = self.data_df['high_price_to_period_high_pct'].shift(1)
+
+            for i in range(2, max(reverse_trade_look_back, close_position_look_back)+1):
+                self.data_df['prev' + str(i) + '_low_price_to_period_low_pct'] = self.data_df['prev' + str(i-1) + '_low_price_to_period_low_pct'].shift(1)
+                self.data_df['prev' + str(i) + '_high_price_to_period_high_pct'] = self.data_df['prev' + str(i-1) + '_high_price_to_period_high_pct'].shift(1)
+
+
             # self.data_df['prev2_min_price_to_period_low_pct'] = self.data_df['prev_min_price_to_period_low_pct'].shift(1)
             # self.data_df['prev2_max_price_to_period_high_pct'] = self.data_df['prev_max_price_to_period_high_pct'].shift(1)
 
@@ -1800,7 +1813,7 @@ class CurrencyTrader(threading.Thread):
             #sell_good_cond1 = (self.data_df['prev_max_price_to_period_high_pct'] < reverse_threshold) | (self.data_df['prev2_max_price_to_period_high_pct'] < reverse_threshold)
 
             sell_good_cond1 = reduce(lambda left, right: left | right,
-                                     [(self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] < reverse_threshold)
+                                     [(self.data_df['prev' + str(i) + '_high_price_to_period_high_pct'] < reverse_threshold)
                                      for i in range(1, reverse_trade_look_back + 1)])
 
             sell_good_cond2 = (self.data_df['close'] - self.data_df['open'] < 0) & \
@@ -2033,7 +2046,7 @@ class CurrencyTrader(threading.Thread):
             #buy_good_cond1 = (self.data_df['prev_min_price_to_period_low_pct'] < reverse_threshold) | (self.data_df['prev2_min_price_to_period_low_pct'] < reverse_threshold)
 
             buy_good_cond1 = reduce(lambda left, right: left | right,
-                                     [(self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] < reverse_threshold)
+                                     [(self.data_df['prev' + str(i) + '_low_price_to_period_low_pct'] < reverse_threshold)
                                      for i in range(1, reverse_trade_look_back + 1)])
 
             buy_good_cond2 = (self.data_df['close'] - self.data_df['open'] > 0) & \
