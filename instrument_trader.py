@@ -568,8 +568,22 @@ class CurrencyTrader(threading.Thread):
                 0
             )
 
+            self.data_df['cross_up_lower_vegas'] = np.where(
+                (self.data_df['prev_m12_to_lower_vegas'] <= 0) & (self.data_df['m12_to_lower_vegas'] > 0),
+                1,
+                0
+            )
+
+
+
             self.data_df['cross_down_vegas'] = np.where(
                 (self.data_df['prev_m12_to_lower_vegas'] >= 0) & (self.data_df['m12_to_lower_vegas'] < 0),
+                -1,
+                0
+            )
+
+            self.data_df['cross_down_upper_vegas'] = np.where(
+                (self.data_df['prev_m12_to_upper_vegas'] >= 0) & (self.data_df['m12_to_upper_vegas'] < 0),
                 -1,
                 0
             )
@@ -2166,7 +2180,8 @@ class CurrencyTrader(threading.Thread):
             self.data_df['sell_close_position2_conservative'] = ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5 & sell_close2_cond6))
             self.data_df['sell_close_position_conservative'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position2_conservative'])
 
-            self.data_df['sell_stop_loss_excessive'] = sell_close1_cond3
+            self.data_df['sell_stop_loss_excessive'] = (self.data_df['cross_up_lower_vegas'] == 1) & \
+                                                       (~((self.data_df['fast_vegas_gradient'] < 0) & (self.data_df['slow_vegas_gradient'] < 0)))
             self.data_df['sell_stop_loss_conservative'] = self.data_df['cross_vegas'] == 1
 
 
@@ -2216,7 +2231,8 @@ class CurrencyTrader(threading.Thread):
             self.data_df['buy_close_position2_conservative'] = ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5 & buy_close2_cond6))
             self.data_df['buy_close_position_conservative'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position2_conservative'])
 
-            self.data_df['buy_stop_loss_excessive'] = buy_close1_cond3
+            self.data_df['buy_stop_loss_excessive'] = (self.data_df['cross_down_upper_vegas'] == -1) & \
+                                                       (~((self.data_df['fast_vegas_gradient'] > 0) & (self.data_df['slow_vegas_gradient'] > 0)))
             self.data_df['buy_stop_loss_conservative'] = self.data_df['cross_vegas'] == -1
 
             self.data_df['buy_close1_cond1'] = buy_close1_cond1

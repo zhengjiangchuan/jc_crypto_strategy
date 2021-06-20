@@ -516,13 +516,13 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'cadetblue')
 
 
-            # if 'first_sell_stop_loss_excessive' in sub_data.columns:
-            #     for sell_close_point in sell_stop_loss_excessive:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = 'o', markersize = 9, color = 'darkturquoise')
-            #
-            # if 'first_sell_stop_loss_conservative' in sub_data.columns:
-            #     for sell_close_point in sell_stop_loss_conservative:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = 'o', markersize = 9, color = 'cadetblue')
+            if 'first_sell_stop_loss_excessive' in sub_data.columns:
+                for sell_close_point in sell_stop_loss_excessive:
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = 'o', markersize = 9, color = 'darkturquoise')
+
+            if 'first_sell_stop_loss_conservative' in sub_data.columns:
+                for sell_close_point in sell_stop_loss_conservative:
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = 'o', markersize = 9, color = 'cadetblue')
 
 
 
@@ -568,14 +568,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                 for buy_close_point in buy_close_points_conservative:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'mediumorchid')
 
-            # if 'first_buy_stop_loss_excessive' in sub_data.columns:
-            #     for buy_close_point in buy_stop_loss_excessive:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = 'o', markersize = 9, color = 'violet')
-            #
-            # if 'first_buy_stop_loss_conservative' in sub_data.columns:
-            #     for buy_close_point in buy_stop_loss_conservative:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = 'o', markersize = 9, color = 'mediumorchid')
-            #
+            if 'first_buy_stop_loss_excessive' in sub_data.columns:
+                for buy_close_point in buy_stop_loss_excessive:
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = 'o', markersize = 9, color = 'violet')
+
+            if 'first_buy_stop_loss_conservative' in sub_data.columns:
+                for buy_close_point in buy_stop_loss_conservative:
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = 'o', markersize = 9, color = 'mediumorchid')
+
 
 
 
