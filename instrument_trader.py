@@ -1790,7 +1790,7 @@ class CurrencyTrader(threading.Thread):
 
             sell_good_cond1 = reduce(lambda left, right: left | right,
                                      [(self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] < reverse_threshold)
-                                     for i in range(2, reverse_trade_look_back + 1)])
+                                     for i in range(1, reverse_trade_look_back + 1)])
 
             sell_good_cond2 = (self.data_df['close'] - self.data_df['open'] < 0) & \
                              (self.data_df['close'] < self.data_df['ma_close12']) #& \
@@ -2023,7 +2023,7 @@ class CurrencyTrader(threading.Thread):
 
             buy_good_cond1 = reduce(lambda left, right: left | right,
                                      [(self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] < reverse_threshold)
-                                     for i in range(2, reverse_trade_look_back + 1)])
+                                     for i in range(1, reverse_trade_look_back + 1)])
 
             buy_good_cond2 = (self.data_df['close'] - self.data_df['open'] > 0) & \
                              (self.data_df['close'] > self.data_df['ma_close12']) #& \
