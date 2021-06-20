@@ -20,7 +20,7 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\new_experiments\\close_positions2"
 
-dest_folder = "C:\\Forex\\new_experiments\\0620\\minor_change1_close_position16"
+dest_folder = "C:\\Forex\\new_experiments\\0620\\minor_change1_close_position17"
 
 #dest_folder = "C:\\Users\\User\\Dropbox\\forex_results2"
 
