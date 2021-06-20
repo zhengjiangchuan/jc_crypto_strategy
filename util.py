@@ -410,10 +410,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             buy_real_points_reverse_exclude = which(sub_data['first_final_buy_fire_exclude'])
         if 'first_buy_fire_magic_exclude' in sub_data.columns:
             buy_real_points_magic_exclude = which(sub_data['first_buy_fire_magic_exclude'])
+
         if 'first_sell_close_position_excessive' in sub_data.columns:
-            sell_close_points_excessive = which(sub_data['first_sell_close_position_excessive'])
+            sell_close_points_excessive = which(sub_data['first_actual_sell_close_position_excessive'])
         if 'first_sell_close_position_conservative' in sub_data.columns:
-            sell_close_points_conservative = which(sub_data['first_sell_close_position_conservative'])
+            sell_close_points_conservative = which(sub_data['first_actual_sell_close_position_conservative'])
         if 'first_sell_stop_loss_excessive' in sub_data.columns:
             sell_stop_loss_excessive = which(sub_data['first_sell_stop_loss_excessive'])
         if 'first_sell_stop_loss_conservative' in sub_data.columns:
@@ -445,10 +446,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             sell_real_points_reverse_exclude = which(sub_data['first_final_sell_fire_exclude'])
         if 'first_sell_fire_magic_exclude' in sub_data.columns:
             sell_real_points_magic_exclude = which(sub_data['first_sell_fire_magic_exclude'])
+
         if 'first_buy_close_position_excessive' in sub_data.columns:
-            buy_close_points_excessive = which(sub_data['first_buy_close_position_excessive'])
+            buy_close_points_excessive = which(sub_data['first_actual_buy_close_position_excessive'])
         if 'first_buy_close_position_conservative' in sub_data.columns:
-            buy_close_points_conservative = which(sub_data['first_buy_close_position_conservative'])
+            buy_close_points_conservative = which(sub_data['first_actual_buy_close_position_conservative'])
         if 'first_buy_stop_loss_excessive' in sub_data.columns:
             buy_stop_loss_excessive = which(sub_data['first_buy_stop_loss_excessive'])
         if 'first_buy_stop_loss_conservative' in sub_data.columns:

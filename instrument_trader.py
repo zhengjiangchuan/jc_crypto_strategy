@@ -123,6 +123,8 @@ high_low_delta_threshold = 20
 
 entry_risk_threshold = 0.6
 
+close_position_look_back = 12
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -296,8 +298,16 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev_price_to_period_low_pct'] = self.data_df['price_to_period_low_pct'].shift(1)
             self.data_df['prev_price_to_period_high_pct'] = self.data_df['price_to_period_high_pct'].shift(1)
 
-            self.data_df['prev2_price_to_period_low_pct'] = self.data_df['prev_price_to_period_low_pct'].shift(1)
-            self.data_df['prev2_price_to_period_high_pct'] = self.data_df['prev_price_to_period_high_pct'].shift(1)
+            self.data_df['prev1_price_to_period_low_pct'] = self.data_df['prev_price_to_period_low_pct']
+            self.data_df['prev1_price_to_period_high_pct'] = self.data_df['prev_price_to_period_high_pct']
+
+            for i in range(2, close_position_look_back + 1):
+                self.data_df['prev' + str(i) + '_price_to_period_low_pct'] = self.data_df['prev' + str(i-1) + '_price_to_period_low_pct'].shift(1)
+                self.data_df['prev' + str(i) + '_price_to_period_high_pct'] = self.data_df['prev' + str(i-1) + '_price_to_period_high_pct'].shift(1)
+
+
+            #self.data_df['prev2_price_to_period_low_pct'] = self.data_df['prev_price_to_period_low_pct'].shift(1)
+            #self.data_df['prev2_price_to_period_high_pct'] = self.data_df['prev_price_to_period_high_pct'].shift(1)
 
 
 
@@ -308,7 +318,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev1_min_price_to_period_low_pct'] = self.data_df['min_price_to_period_low_pct'].shift(1)
             self.data_df['prev1_max_price_to_period_high_pct'] = self.data_df['max_price_to_period_high_pct'].shift(1)
 
-            for i in range(2, reverse_trade_look_back+1):
+            for i in range(2, max(reverse_trade_look_back, close_position_look_back)+1):
                 self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] = self.data_df['prev' + str(i-1) + '_min_price_to_period_low_pct'].shift(1)
                 self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] = self.data_df['prev' + str(i-1) + '_max_price_to_period_high_pct'].shift(1)
 
@@ -510,27 +520,6 @@ class CurrencyTrader(threading.Thread):
             )
 
 
-            self.data_df['m12_to_upper_vegas'] = self.data_df['ma_close12'] - self.data_df['upper_vegas']
-            self.data_df['m12_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
-
-            self.data_df['prev_m12_to_upper_vegas'] = self.data_df['m12_to_upper_vegas'].shift(1)
-            self.data_df['prev_m12_to_lower_vegas'] = self.data_df['m12_to_lower_vegas'].shift(1)
-
-            self.data_df['cross_up_vegas'] = np.where(
-                (self.data_df['prev_m12_to_upper_vegas'] <= 0) & (self.data_df['m12_to_upper_vegas'] > 0),
-                1,
-                0
-            )
-
-            self.data_df['cross_down_vegas'] = np.where(
-                (self.data_df['prev_m12_to_lower_vegas'] >= 0) & (self.data_df['m12_to_lower_vegas'] < 0),
-                -1,
-                0
-            )
-
-
-
-
 
             self.data_df['period_high' + str(high_low_window) + '_go_up_num'] = \
                 self.data_df['period_high' + str(high_low_window) + '_go_up'].rolling(period_lookback, min_periods = period_lookback).sum()
@@ -553,6 +542,9 @@ class CurrencyTrader(threading.Thread):
                 1,
                 0
             )
+
+
+
             self.data_df['period_low' + str(high_low_window) + '_go_up_num'] = \
                 self.data_df['period_low' + str(high_low_window) + '_go_up'].rolling(period_lookback, min_periods = period_lookback).sum()
             self.data_df['period_low' + str(high_low_window) + '_go_down_num'] = \
@@ -560,6 +552,27 @@ class CurrencyTrader(threading.Thread):
 
 
 
+
+
+
+
+            self.data_df['m12_to_upper_vegas'] = self.data_df['ma_close12'] - self.data_df['upper_vegas']
+            self.data_df['m12_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
+
+            self.data_df['prev_m12_to_upper_vegas'] = self.data_df['m12_to_upper_vegas'].shift(1)
+            self.data_df['prev_m12_to_lower_vegas'] = self.data_df['m12_to_lower_vegas'].shift(1)
+
+            self.data_df['cross_up_vegas'] = np.where(
+                (self.data_df['prev_m12_to_upper_vegas'] <= 0) & (self.data_df['m12_to_upper_vegas'] > 0),
+                1,
+                0
+            )
+
+            self.data_df['cross_down_vegas'] = np.where(
+                (self.data_df['prev_m12_to_lower_vegas'] >= 0) & (self.data_df['m12_to_lower_vegas'] < 0),
+                -1,
+                0
+            )
 
 
 
@@ -689,8 +702,6 @@ class CurrencyTrader(threading.Thread):
 
             #'period_high' + str(high_low_window) + '_go_up'
             self.data_df['cum_num_new_break_up'] = self.data_df['is_new_break_up_upper_band'].cumsum()
-
-
             self.data_df['cum_num_new_break_down'] = self.data_df['is_new_break_down_lower_band'].cumsum()
 
             self.data_df['cum_num_high_go_up'] = self.data_df['period_high' + str(high_low_window) + '_go_up'].cumsum()
@@ -939,16 +950,6 @@ class CurrencyTrader(threading.Thread):
             # print(df_low_go_down.tail(20))
 
 
-
-
-
-
-
-
-
-
-
-
             temp_df = self.data_df[['id',
                                     'period_high' + str(high_low_window) + '_go_up_temp',
                                     'period_high' + str(high_low_window) + '_go_down_temp',
@@ -1046,11 +1047,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
 
 
-            self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])
-
-
-
-
+            self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])  #Remove temp
 
 
             self.data_df['num_new_break_up_in_high_go_up'] = self.data_df['cum_num_new_break_up'] - self.data_df['cum_num_new_break_up_for_high_go_up']
@@ -2129,7 +2126,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['first_buy_real_fire4'] = self.data_df['buy_real_fire4'] & (~self.data_df['prev_buy_real_fire4'])
 
 
-
+            #Cruise
             sell_close1_cond1 = self.data_df['fast_vegas'] > self.data_df['slow_vegas']
             sell_close1_cond2 = (self.data_df['close'] > self.data_df['highest_guppy']) & (self.data_df['open'] <= self.data_df['highest_guppy']) & \
                                 (self.data_df['guppy_to_lower_vegas_pct'] > 0.15)
@@ -2143,18 +2140,29 @@ class CurrencyTrader(threading.Thread):
             sell_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
                                 (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] <= 0) & \
                                 (self.data_df['period_high_low_vegas_gradient_ratio'] >= 1.0)
-            sell_close2_cond3 = (self.data_df['prev_price_to_period_low_pct'] < 0.1) #Change to previous 10 such value at least one < 0.1
-            sell_close2_cond4 = (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] >= 12)
+
+
+            #sell_close2_cond3 = (self.data_df['prev_price_to_period_low_pct'] < 0.1) #Change to previous 10 such value at least one < 0.1
+
+            sell_close2_cond3 = reduce(lambda left, right: left | right,
+                                       [(self.data_df['prev' + str(i) + '_min_price_to_period_low_pct'] < 0.1)
+                                        for i in range(1, close_position_look_back)]
+                                       )
+
+
+            sell_close2_cond4 = (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] >= close_position_look_back)
             sell_close2_cond5 = (self.data_df['is_positive']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
+
+            sell_close2_cond6 = (self.data_df['price_to_lower_vegas_pct'] > 0.05)
 
             #self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4) | sell_close1_cond3)
 
             #self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5))
 
-            self.data_df['sell_close_position2_excessive'] = ((sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5))
+            self.data_df['sell_close_position2_excessive'] = ((sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5 & sell_close2_cond6))
             self.data_df['sell_close_position_excessive'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position2_excessive'])
 
-            self.data_df['sell_close_position2_conservative'] = ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5))
+            self.data_df['sell_close_position2_conservative'] = ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4 & sell_close2_cond5 & sell_close2_cond6))
             self.data_df['sell_close_position_conservative'] =(self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['sell_close_position2_conservative'])
 
             self.data_df['sell_stop_loss_excessive'] = sell_close1_cond3
@@ -2185,16 +2193,25 @@ class CurrencyTrader(threading.Thread):
             buy_close2_cond2 = (self.data_df['period_high' + str(high_low_window) + '_vegas_gradient'] >= 0) & \
                                 (self.data_df['period_low' + str(high_low_window) + '_vegas_gradient'] >= 0) & \
                                 (self.data_df['period_low_high_vegas_gradient_ratio'] >= 1.0)
-            buy_close2_cond3 = (self.data_df['prev_price_to_period_high_pct'] < 0.1)
-            buy_close2_cond4 = (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] >= 12)
+
+            #buy_close2_cond3 = (self.data_df['prev_price_to_period_high_pct'] < 0.1)
+
+            buy_close2_cond3 = reduce(lambda left, right: left | right,
+                                       [(self.data_df['prev' + str(i) + '_max_price_to_period_high_pct'] < 0.1)
+                                        for i in range(1, close_position_look_back)]
+                                       )
+
+            buy_close2_cond4 = (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] >= close_position_look_back)
             buy_close2_cond5 = (self.data_df['is_negative']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
+
+            buy_close2_cond6 = (self.data_df['price_to_upper_vegas_pct'] > 0.05)
 
             #self.data_df['buy_close_position2'] = buy_close2_cond1 & ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4) | buy_close1_cond3)
 
-            self.data_df['buy_close_position2_excessive'] = ((buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5))
+            self.data_df['buy_close_position2_excessive'] = ((buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5 & buy_close2_cond6))
             self.data_df['buy_close_position_excessive'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position2_excessive'])
 
-            self.data_df['buy_close_position2_conservative'] = ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5))
+            self.data_df['buy_close_position2_conservative'] = ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4 & buy_close2_cond5 & buy_close2_cond6))
             self.data_df['buy_close_position_conservative'] = (self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['buy_close_position2_conservative'])
 
             self.data_df['buy_stop_loss_excessive'] = buy_close1_cond3
@@ -2253,6 +2270,150 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev_buy_stop_loss_conservative'] = pd.Series(list(self.data_df['prev_buy_stop_loss_conservative']), dtype='bool')
             self.data_df['first_buy_stop_loss_conservative'] = self.data_df['buy_stop_loss_conservative'] & (~self.data_df['prev_buy_stop_loss_conservative'])
 
+
+
+
+            ##################################
+            ## Hutong Sauna
+
+            self.data_df['price_cross_down_vegas'] = np.where(
+                (self.data_df['close'] < self.data_df['lower_vegas']) & (self.data_df['open'] >= self.data_df['lower_vegas']),
+                1,
+                0
+            )
+
+            self.data_df['price_cross_up_vegas'] = np.where(
+                (self.data_df['close'] > self.data_df['upper_vegas']) & (self.data_df['open'] <= self.data_df['upper_vegas']),
+                1,
+                0
+            )
+
+
+            self.data_df['period_high' + str(high_low_window) + "_change"] = np.where(
+                np.abs(self.data_df['period_high' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate) >= high_low_delta_threshold,
+                1,
+                0
+            )
+
+            self.data_df['period_high' + str(high_low_window) + "_change"] = np.where(
+                (self.data_df['period_high' + str(high_low_window) + "_change"] == 1) | (self.data_df['price_cross_up_vegas'] == 1),
+                1,
+                0
+            )
+
+
+            self.data_df['period_low' + str(high_low_window) + "_change"] = np.where(
+                np.abs(self.data_df['period_low' + str(high_low_window) + '_gradient'] * self.lot_size * self.exchange_rate) >= high_low_delta_threshold,
+                1,
+                0
+            )
+
+            self.data_df['period_low' + str(high_low_window) + "_change"] = np.where(
+                (self.data_df['period_low' + str(high_low_window) + "_change"] == 1) | (self.data_df['price_cross_down_vegas'] == 1),
+                1,
+                0
+            )
+
+
+            self.data_df['cum_first_sell_close_position_excessive'] = self.data_df['first_sell_close_position_excessive'].cumsum()
+            self.data_df['cum_first_sell_close_position_conservative'] = self.data_df['first_sell_close_position_conservative'].cumsum()
+
+            self.data_df['cum_first_buy_close_position_excessive'] = self.data_df['first_buy_close_position_excessive'].cumsum()
+            self.data_df['cum_first_buy_close_position_conservative'] = self.data_df['first_buy_close_position_conservative'].cumsum()
+
+
+            low_period_cum_columns = ['cum_first_sell_close_position_excessive', 'cum_first_sell_close_position_conservative']
+            high_period_cum_columns = ['cum_first_buy_close_position_excessive', 'cum_first_buy_close_position_conservative']
+
+            for col in low_period_cum_columns + high_period_cum_columns:
+                self.data_df[col] = self.data_df[col].shift(1)
+                self.data_df.at[0, col] = 0
+
+
+            self.data_df['period_high' + str(high_low_window) + '_change_temp'] = np.nan
+            self.data_df['period_high' + str(high_low_window) + '_change_temp'] = np.where(
+                self.data_df['period_high' + str(high_low_window) + '_change'] == 1,
+                self.data_df['id'],
+                self.data_df['period_high' + str(high_low_window) + '_change_temp']
+            )
+
+            self.data_df['period_low' + str(high_low_window) + '_change_temp'] = np.nan
+            self.data_df['period_low' + str(high_low_window) + '_change_temp'] = np.where(
+                self.data_df['period_low' + str(high_low_window) + '_change'] == 1,
+                self.data_df['id'],
+                self.data_df['period_low' + str(high_low_window) + '_change_temp']
+            )
+
+
+            df_low_change = self.data_df[self.data_df['period_low' + str(high_low_window) + '_change_temp'].notnull()][['id'] + low_period_cum_columns]
+            df_low_change.reset_index(inplace = True)
+            df_low_change = df_low_change.drop(columns = ['index'])
+
+            df_high_change = self.data_df[self.data_df['period_high' + str(high_low_window) + '_change_temp'].notnull()][['id'] + high_period_cum_columns]
+            df_high_change.reset_index(inplace = True)
+            df_high_change = df_high_change.drop(columns = ['index'])
+
+            temp_df = self.data_df[['id', 'period_high' + str(high_low_window) + '_change_temp', 'period_low' + str(high_low_window) + '_change_temp']]
+            temp_df = temp_df.fillna(method = 'ffill').fillna(0)
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+
+            temp_df['id'] = temp_df['period_low' + str(high_low_window) + '_change_temp']
+            temp_df = pd.merge(temp_df, df_low_change, on = ['id'], how = 'left')
+            temp_df = temp_df.rename(columns = {
+                'cum_first_sell_close_position_excessive' : 'cum_first_sell_close_position_excessive_for_low_change',
+                'cum_first_sell_close_position_conservative': 'cum_first_sell_close_position_conservative_for_low_change'
+            })
+            temp_df = temp_df.fillna(0)
+
+
+            temp_df['id'] = temp_df['period_high' + str(high_low_window) + '_change_temp']
+            temp_df = pd.merge(temp_df, df_high_change, on = ['id'], how = 'left')
+            temp_df = temp_df.rename(columns = {
+                'cum_first_buy_close_position_excessive' : 'cum_first_buy_close_position_excessive_for_high_change',
+                'cum_first_buy_close_position_conservative': 'cum_first_buy_close_position_conservative_for_high_change'
+            })
+            temp_df = temp_df.fillna(0)
+
+            temp_df = temp_df[[col for col in temp_df.columns if 'cum' in col]]
+
+            for col in temp_df.columns:
+                temp_df[col] = temp_df[col].astype(int)
+
+            self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
+
+            self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col])
+
+            self.data_df['num_first_sell_close_position_excessive_in_low_change'] = \
+                self.data_df['cum_first_sell_close_position_excessive'] - self.data_df['cum_first_sell_close_position_excessive_for_low_change']
+
+            self.data_df['num_first_sell_close_position_conservative_in_low_change'] = \
+                self.data_df['cum_first_sell_close_position_conservative'] - self.data_df['cum_first_sell_close_position_conservative_for_low_change']
+
+
+            self.data_df['num_first_buy_close_position_excessive_in_high_change'] = \
+                self.data_df['cum_first_buy_close_position_excessive'] - self.data_df['cum_first_buy_close_position_excessive_for_high_change']
+
+
+            self.data_df['num_first_buy_close_position_conservative_in_high_change'] = \
+                self.data_df['cum_first_buy_close_position_conservative'] - self.data_df['cum_first_buy_close_position_conservative_for_high_change']
+
+
+
+            self.data_df['first_actual_sell_close_position_excessive'] = self.data_df['first_sell_close_position_excessive'] & \
+                                                                         (self.data_df['num_first_sell_close_position_excessive_in_low_change'] == 0)
+
+            self.data_df['first_actual_sell_close_position_conservative'] = self.data_df['first_sell_close_position_conservative'] & \
+                                                                         (self.data_df['num_first_sell_close_position_conservative_in_low_change'] == 0)
+
+
+            self.data_df['first_actual_buy_close_position_excessive'] = self.data_df['first_buy_close_position_excessive'] & \
+                                                                         (self.data_df['num_first_buy_close_position_excessive_in_high_change'] == 0)
+
+            self.data_df['first_actual_buy_close_position_conservative'] = self.data_df['first_buy_close_position_conservative'] & \
+                                                                         (self.data_df['num_first_buy_close_position_conservative_in_high_change'] == 0)
 
 
 
