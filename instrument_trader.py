@@ -2947,6 +2947,8 @@ class CurrencyTrader(threading.Thread):
 
 
 
+
+
             if self.data_df.iloc[-1]['first_final_buy_fire']: # | self.data_df.iloc[-1]['first_buy_real_fire3']:
 
                 # enter_price = self.data_df.iloc[-1]['close']
@@ -2993,6 +2995,24 @@ class CurrencyTrader(threading.Thread):
                 #sendEmail(msg, msg)
 
 
+            if self.data_df.iloc[-1]['first_actual_special_sell_close_position']:
+                msg = "Close Short Position (Special) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_sell_close_position_excessive']:
+                msg = "Close Short Position (Excessive) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_sell_close_position_conservative']:
+                msg = "Close Short Position (Conservative) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_sell_stop_loss_excessive']:
+                msg = "Close Short Position (Stop loss excessive) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_sell_stop_loss_conservative']:
+                msg = "Close Short Position (Stop loss conservative) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+
+
+
 
             if self.data_df.iloc[-1]['sell_weak_ready']:
                 if self.data_df.iloc[-1]['sell_ready']:
@@ -3003,6 +3023,11 @@ class CurrencyTrader(threading.Thread):
                     msg = "Ready to weakly short " + self.currency + " at " + current_time + ", last_price = " + str("%.5f" % self.data_df.iloc[-1]['close'])
                     self.log_msg(msg)
                     #sendEmail(msg, msg)
+
+
+
+
+
 
 
             if self.data_df.iloc[-1]['first_final_sell_fire']: # | self.data_df.iloc[-1]['first_sell_real_fire3']:
@@ -3050,6 +3075,23 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg(msg)
                 self.log_msg("********************************")
                 #sendEmail(msg, msg)
+
+
+            if self.data_df.iloc[-1]['first_actual_special_buy_close_position']:
+                msg = "Close Long Position (Special) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_buy_close_position_excessive']:
+                msg = "Close Long Position (Excessive) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_buy_close_position_conservative']:
+                msg = "Close Long Position (Conservative) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_buy_stop_loss_excessive']:
+                msg = "Close Long Position (Stop loss excessive) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
+            elif self.data_df.iloc[-1]['first_buy_stop_loss_conservative']:
+                msg = "Close Long Position (Stop loss conservative) for " + self.currency + " at " + current_time
+                sendEmail(msg, msg)
 
 
 
