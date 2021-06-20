@@ -2153,7 +2153,8 @@ class CurrencyTrader(threading.Thread):
             sell_close2_cond4 = (self.data_df['period_low' + str(high_low_window) + '_go_down_duration'] >= close_position_look_back)
             sell_close2_cond5 = (self.data_df['is_positive']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
 
-            sell_close2_cond6 = (self.data_df['price_to_lower_vegas_pct'] > 0.05)
+            sell_close2_cond6 = (self.data_df['price_to_lower_vegas_pct'] > 0.05) | \
+                                ((self.data_df['ma_close12'] > self.data_df['lower_vegas']) & (self.data_df['ma12_gradient'] > 0) )
 
             #self.data_df['sell_close_position2'] = sell_close2_cond1 & ((sell_close2_cond2 & sell_close2_cond3 & sell_close2_cond4) | sell_close1_cond3)
 
@@ -2204,7 +2205,8 @@ class CurrencyTrader(threading.Thread):
             buy_close2_cond4 = (self.data_df['period_high' + str(high_low_window) + '_go_up_duration'] >= close_position_look_back)
             buy_close2_cond5 = (self.data_df['is_negative']) #& (self.data_df['price_range'] / self.data_df['price_volatility'] >= 0.5)
 
-            buy_close2_cond6 = (self.data_df['price_to_upper_vegas_pct'] > 0.05)
+            buy_close2_cond6 = (self.data_df['price_to_upper_vegas_pct'] > 0.05) | \
+                               ((self.data_df['ma_close12'] < self.data_df['upper_vegas']) & (self.data_df['ma12_gradient'] < 0))
 
             #self.data_df['buy_close_position2'] = buy_close2_cond1 & ((buy_close2_cond2 & buy_close2_cond3 & buy_close2_cond4) | buy_close1_cond3)
 
