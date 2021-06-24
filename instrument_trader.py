@@ -2971,13 +2971,13 @@ class CurrencyTrader(threading.Thread):
                     self.log_msg(additional_msg)
                 self.log_msg("********************************")
 
-                if (self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']):
+                #if (self.data_df.iloc[-1]['first_buy_real_fire2'] | self.data_df.iloc[-1]['first_buy_real_fire3']):
 
-                    delta_point = (self.data_df.iloc[-1]['close'] - self.data_df.iloc[-1]['period_low' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
+                delta_point = (self.data_df.iloc[-1]['close'] - self.data_df.iloc[-1]['period_low' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
 
-                    stop_loss_msg = " Stop loss at " + str(delta_point) + " points below open price"
-                else:
-                    stop_loss_msg = ""
+                stop_loss_msg = " Stop loss at " + str(delta_point) + " points below open price"
+                #else:
+                #    stop_loss_msg = ""
 
                 sendEmail(msg, msg + additional_msg + stop_loss_msg)
 
@@ -2998,10 +2998,10 @@ class CurrencyTrader(threading.Thread):
             if self.data_df.iloc[-1]['first_actual_special_sell_close_position']:
                 msg = "Close Short Position (Special) for " + self.currency + " at " + current_time
                 sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_sell_close_position_excessive']:
+            elif self.data_df.iloc[-1]['first_actual_sell_close_position_excessive']:
                 msg = "Close Short Position (Excessive) for " + self.currency + " at " + current_time
                 sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_sell_close_position_conservative']:
+            elif self.data_df.iloc[-1]['first_actual_sell_close_position_conservative']:
                 msg = "Close Short Position (Conservative) for " + self.currency + " at " + current_time
                 sendEmail(msg, msg)
             elif self.data_df.iloc[-1]['first_sell_stop_loss_excessive']:
@@ -3053,13 +3053,13 @@ class CurrencyTrader(threading.Thread):
                     self.log_msg(additional_msg)
                 self.log_msg("********************************")
 
-                if (self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']):
+                #if (self.data_df.iloc[-1]['first_sell_real_fire2'] | self.data_df.iloc[-1]['first_sell_real_fire3']):
 
-                    delta_point = (-self.data_df.iloc[-1]['close'] + self.data_df.iloc[-1]['period_high' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
+                delta_point = (-self.data_df.iloc[-1]['close'] + self.data_df.iloc[-1]['period_high' + str(high_low_window_options[0])]) * self.lot_size * self.exchange_rate
 
-                    stop_loss_msg = " Stop loss at " + str(delta_point) + " points above open price"
-                else:
-                    stop_loss_msg = ""
+                stop_loss_msg = " Stop loss at " + str(delta_point) + " points above open price"
+                #else:
+                #    stop_loss_msg = ""
 
                 sendEmail(msg, msg + additional_msg + stop_loss_msg)
 
@@ -3080,10 +3080,10 @@ class CurrencyTrader(threading.Thread):
             if self.data_df.iloc[-1]['first_actual_special_buy_close_position']:
                 msg = "Close Long Position (Special) for " + self.currency + " at " + current_time
                 sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_buy_close_position_excessive']:
+            elif self.data_df.iloc[-1]['first_actual_buy_close_position_excessive']:
                 msg = "Close Long Position (Excessive) for " + self.currency + " at " + current_time
                 sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_buy_close_position_conservative']:
+            elif self.data_df.iloc[-1]['first_actual_buy_close_position_conservative']:
                 msg = "Close Long Position (Conservative) for " + self.currency + " at " + current_time
                 sendEmail(msg, msg)
             elif self.data_df.iloc[-1]['first_buy_stop_loss_excessive']:

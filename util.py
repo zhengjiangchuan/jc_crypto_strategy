@@ -498,10 +498,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             if 'first_buy_fire_magic_exclude' in sub_data.columns:
                 for buy_real_point_exclude in buy_real_points_magic_exclude:
                     axes.plot(int_time_series[buy_real_point_exclude], sub_data.iloc[buy_real_point_exclude]['close'], marker = long_marker, markersize = 15, color = 'darkturquoise')
+
             ####################################
 
-            # print("sell_close_points:")
-            # print(sell_close_points)
+
             if 'first_actual_special_sell_close_position' in sub_data.columns:
                 for sell_close_point in sell_special_close_points:
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkturquoise')
@@ -535,7 +535,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                 for buy_weak_point in buy_weak_points:
                     axes.plot(int_time_series[buy_weak_point], sub_data.iloc[buy_weak_point]['close'], marker = long_marker, markersize = 15, color = 'cornflowerblue')
 
-
+            #
             # for sell_real_point in sell_real_points_vegas: #sell_real_points_vegas
             #     axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'red')
 
@@ -550,10 +550,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             if 'first_sell_fire_magic_exclude' in sub_data.columns:
                 for sell_real_point_exclude in sell_real_points_magic_exclude:
                     axes.plot(int_time_series[sell_real_point_exclude], sub_data.iloc[sell_real_point_exclude]['close'], marker = short_marker, markersize = 15, color = 'violet')
+
             ####################################
 
-            # print("buy_close_points:")
-            # print(buy_close_points)
 
             if 'first_actual_special_buy_close_position' in sub_data.columns:
                 for buy_close_point in buy_special_close_points:
