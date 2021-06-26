@@ -1448,6 +1448,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['is_above_vegas'] = self.data_df['ma_close12'] > self.data_df['lower_vegas']
             self.data_df['is_above_vegas_strict'] = self.data_df['ma_close12'] > self.data_df['upper_vegas']
 
+
             self.data_df['is_above_vegas_tolerated'] = (self.data_df['ma_close12'] - self.data_df['lower_vegas']) * self.lot_size * self.exchange_rate > -vegas_tolerate
 
             self.data_df['is_above_vegas_prev1'] = self.data_df['is_above_vegas_tolerated'].shift(1)
@@ -3075,6 +3076,10 @@ class CurrencyTrader(threading.Thread):
 
 
                 ########################
+
+                self.data_df['is_above_vegas_tolerate'] = (self.data_df['ma_close12'] - self.data_df['upper_vegas']) * self.lot_size * self.exchange_rate > 20
+                self.data_df['is_below_vegas_tolerate'] = (self.data_df['ma_close12'] - self.data_df['lower_vegas']) * self.lot_size * self.exchange_rate < -20
+
                 self.data_df['bar_above_guppy'] = self.data_df['min_price'] > self.data_df['highest_guppy']
                 self.data_df['bar_below_guppy'] = self.data_df['max_price'] < self.data_df['lowest_guppy']
 
@@ -3093,8 +3098,8 @@ class CurrencyTrader(threading.Thread):
                 # self.data_df['cum_bar_above_vegas'] = self.data_df['bar_above_vegas'].cumsum()
                 # self.data_df['cum_bar_below_vegas'] = self.data_df['bar_below_vegas'].cumsum()
 
-                self.data_df['cum_above_vegas'] = self.data_df['is_above_vegas_strict'].cumsum()
-                self.data_df['cum_below_vegas'] = self.data_df['is_below_vegas_strict'].cumsum()
+                self.data_df['cum_above_vegas'] = self.data_df['is_above_vegas_tolerate'].cumsum()
+                self.data_df['cum_below_vegas'] = self.data_df['is_below_vegas_tolerate'].cumsum()
 
                 cum_buy_cols = ['cum_bar_above_guppy', 'cum_bar_above_passive_guppy',  'cum_above_vegas']
                 cum_sell_cols = ['cum_bar_below_guppy', 'cum_bar_below_passive_guppy',  'cum_below_vegas']
@@ -3184,17 +3189,7 @@ class CurrencyTrader(threading.Thread):
                                     ((self.data_df['min_price_to_upper_vegas']/self.data_df['price_range'] < 0.4) | (self.data_df['prev_min_price_to_upper_vegas']/self.data_df['prev_price_range'] < 0.4))
 
 
-                # self.data_df['critical_ratio_buy'] = np.abs(self.data_df['min_price_to_upper_vegas'])/self.data_df['price_range']
-                # self.data_df['critical_ratio_sell'] = np.abs(self.data_df['max_price_to_lower_vegas'])/self.data_df['price_range']
-                #
-                # self.data_df['critical_bool_buy'] = ((np.abs(self.data_df['min_price_to_upper_vegas'])/self.data_df['price_range'] < 0.4) | (np.abs(self.data_df['prev_min_price_to_upper_vegas'])/self.data_df['prev_price_range'] < 0.4))
-                #
-                # self.data_df['critical_bool_sell'] = ((np.abs(self.data_df['max_price_to_lower_vegas'])/self.data_df['price_range'] < 0.4) | (np.abs(self.data_df['prev_max_price_to_lower_vegas'])/self.data_df['prev_price_range'] < 0.4))
 
-                # print("Fucking you:")
-                # print(self.data_df.iloc[276:285][['time','id','max_price_to_lower_vegas', 'price_range', 'critical_ratio_sell', 'critical_bool_sell',
-                #                                   'sell_close_position_vegas']])
-                # sys.exit(0)
 
                 self.data_df['buy_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -150
                 self.data_df['sell_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 150
