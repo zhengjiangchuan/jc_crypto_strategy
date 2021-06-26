@@ -87,7 +87,7 @@ currency_df = pd.read_csv(currency_file)
 
 # Hutong
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['CADCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
 
 # print("currency_df:")
 # print(currency_df)
@@ -403,10 +403,10 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if False:
+if True:
     print("Sleeping")
     time.sleep(10)
-    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time"
+    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_compare"
 
     print("Wakeup")
 

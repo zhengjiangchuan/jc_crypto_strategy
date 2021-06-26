@@ -3178,15 +3178,15 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_close_position_vegas'] = (self.data_df['is_negative']) & \
                                                            ((self.data_df['close'] - self.data_df['lower_vegas'])*self.lot_size*self.exchange_rate < -20) &\
                                                            ((self.data_df['high'] > self.data_df['lower_vegas']) | (self.data_df['prev_high'] > self.data_df['lower_vegas'])) &\
-                                                           (self.data_df['num_above_vegas_for_buy'] == 0) &\
-                                    ((self.data_df['max_price_to_lower_vegas']/self.data_df['price_range'] < 0.4) | (self.data_df['prev_max_price_to_lower_vegas']/self.data_df['prev_price_range'] < 0.4))
+                                                           (self.data_df['num_above_vegas_for_buy'] == 0) #&\
+                                    #((self.data_df['max_price_to_lower_vegas']/self.data_df['price_range'] < 0.4) | (self.data_df['prev_max_price_to_lower_vegas']/self.data_df['prev_price_range'] < 0.4))
 
 
                 self.data_df['sell_close_position_vegas'] = (self.data_df['is_positive']) & \
                                                            ((self.data_df['close'] - self.data_df['upper_vegas'])*self.lot_size*self.exchange_rate > 20) &\
                                                            ((self.data_df['low'] < self.data_df['upper_vegas']) | (self.data_df['prev_low'] < self.data_df['upper_vegas'])) & \
-                                                            (self.data_df['num_below_vegas_for_sell'] == 0) &\
-                                    ((self.data_df['min_price_to_upper_vegas']/self.data_df['price_range'] < 0.4) | (self.data_df['prev_min_price_to_upper_vegas']/self.data_df['prev_price_range'] < 0.4))
+                                                            (self.data_df['num_below_vegas_for_sell'] == 0) #&\
+                                    #((self.data_df['min_price_to_upper_vegas']/self.data_df['price_range'] < 0.4) | (self.data_df['prev_min_price_to_upper_vegas']/self.data_df['prev_price_range'] < 0.4))
 
 
 
