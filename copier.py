@@ -20,7 +20,7 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\new_experiments\\close_positions2"
 
-dest_folder = "C:\\Forex\\new_experiments\\0625\\benchmark_clear_close_positions"
+dest_folder = "C:\\Forex\\new_experiments\\0626\\benchmark_clear_close_positions_improve"
 
 #dest_folder = "C:\\Users\\User\\Dropbox\\forex_results2"
 
@@ -31,6 +31,11 @@ dest_folder = "C:\\Forex\\new_experiments\\0625\\benchmark_clear_close_positions
 
 if not os.path.exists(dest_folder):
     os.makedirs(dest_folder)
+
+for file in os.listdir(dest_folder):
+    file_path = os.path.join(dest_folder, file)
+    os.remove(file_path)
+
 
 symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file))]
 
