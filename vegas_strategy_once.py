@@ -87,7 +87,7 @@ currency_df = pd.read_csv(currency_file)
 
 # Hutong
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['USDCHF'])]
 
 # print("currency_df:")
 # print(currency_df)
@@ -429,8 +429,8 @@ for symbol_folder in symbol_folders:
     chart_folder = os.path.join(symbol_folder, "simple_chart")
 
     files = os.listdir(chart_folder)
-    if len(files) == 3:
-        files = files[1:]
+    # if len(files) == 3:
+    #     files = files[1:]
 
     for file in files:
         file_path = os.path.join(chart_folder, file)

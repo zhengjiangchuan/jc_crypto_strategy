@@ -20,7 +20,9 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\new_experiments\\close_positions2"
 
-dest_folder = "C:\\Forex\\new_experiments\\0626\\benchmark_clear_close_positions_improve_with_phase1"
+#dest_folder = "C:\\Forex\\new_experiments\\0626\\benchmark_clear_close_positions_improve_with_phase1"
+
+dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time"
 
 #dest_folder = "C:\\Users\\User\\Dropbox\\forex_results2"
 
@@ -49,8 +51,8 @@ for symbol_folder in symbol_folders:
     chart_folder = os.path.join(symbol_folder, "simple_chart")
 
     files = os.listdir(chart_folder)
-    if len(files) == 3:
-        files = files[1:]
+    # if len(files) == 3:
+    #     files = files[1:]
 
     for file in files:
         file_path = os.path.join(chart_folder, file)

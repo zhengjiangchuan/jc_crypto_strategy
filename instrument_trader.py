@@ -3222,23 +3222,23 @@ class CurrencyTrader(threading.Thread):
                     for i in range(0, x.shape[0]):
                         row = x.iloc[i]
                         if row[guppy]:
-                            if total_guppy == 0 and total_excessive == 0 and total_conservative == 0:
+                            if total_guppy <= 1 and total_excessive == 0 and total_conservative == 0:
                                 x.at[x.index[i], selected_guppy] = 1
                                 total_guppy += 1
-                        elif row[vegas]:
+                        if row[vegas]:
                             if total_vegas <= 1 and total_excessive == 0 and total_conservative == 0:
                                 x.at[x.index[i], selected_vegas] = 1
                                 total_vegas += 1
-                        elif row[excessive]:
+                        if row[excessive]:
                             if total_guppy > 0 or total_vegas > 0:
                                 x.at[x.index[i], selected_excessive] = 1
                                 total_excessive += 1
-                        elif row[conservative]:
+                        if row[conservative]:
                             if total_guppy == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0:
                                 x.at[x.index[i], selected_conservative] = 1
                                 total_conservative += 1
 
-                    # if 'buy_point_id' in x.columns:
+                    # if 'sell_point_id' in x.columns:
                     #     y = x.copy()
                     #     y = y.rename(columns = {guppy: 'guppy', vegas : 'vegas', excessive : 'excessive', conservative : 'conservative',
                     #                             selected_guppy : 'selected_guppy', selected_vegas : 'selected_vegas', selected_excessive : 'selected_excessive',
@@ -3284,6 +3284,7 @@ class CurrencyTrader(threading.Thread):
                             True,
                             False
                         )
+
 
 
 
@@ -3503,7 +3504,6 @@ class CurrencyTrader(threading.Thread):
 
 
 
-
                 self.data_df['show_buy_close_position_guppy'] = self.data_df['first_selected_buy_close_position_guppy'] & (self.data_df['num_terminal_buy_close_position'] == 0)
                                                                 # (self.data_df['num_buy_close_position_guppy'] == 0) &\
                                                                 # (self.data_df['num_buy_close_position_vegas'] == 0) &\
@@ -3563,6 +3563,7 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['show_sell_close_position_final_conservative'] = self.data_df['first_selected_sell_close_position_final_conservative'] & (self.data_df['num_terminal_sell_close_position'] == 0)
                                                                              #((self.data_df['num_sell_close_position_guppy'] == 0) & (self.data_df['num_sell_close_position_vegas'] == 0)) &\
+
 
 
 
