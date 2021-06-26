@@ -3161,8 +3161,8 @@ class CurrencyTrader(threading.Thread):
                                                            ((self.data_df['low'] < self.data_df['upper_vegas']) | (self.data_df['prev_low'] < self.data_df['upper_vegas'])) & \
                                                             (self.data_df['num_below_vegas_for_sell'] == 0)
 
-                self.data_df['buy_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -50
-                self.data_df['sell_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 50
+                self.data_df['buy_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -100
+                self.data_df['sell_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 100
 
                 self.data_df['buy_close_position_final_conservative'] = (self.data_df['close'] - self.data_df['buy_point_support'])*self.lot_size*self.exchange_rate < -300
                 self.data_df['sell_close_position_final_conservative'] = (self.data_df['close'] - self.data_df['sell_point_support'])*self.lot_size*self.exchange_rate > 300
