@@ -1171,6 +1171,8 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['middle_vegas'] = (self.data_df['upper_vegas'] + self.data_df['lower_vegas']) / 2
 
+
+
             self.data_df['price_to_upper_vegas_pct'] = (self.data_df['close'] - self.data_df['upper_vegas']) / self.data_df['period_high_low_range']
             self.data_df['price_to_lower_vegas_pct'] = (self.data_df['lower_vegas'] - self.data_df['close']) / self.data_df['period_high_low_range']
 
@@ -1528,6 +1530,12 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['price_to_upper_vegas'] = self.data_df['upper_vegas'] - self.data_df['close']
             self.data_df['price_to_lower_vegas'] = self.data_df['close'] - self.data_df['lower_vegas']
+
+            self.data_df['min_price_to_upper_vegas'] = np.abs(self.data_df['upper_vegas'] - self.data_df['min_price'])
+            self.data_df['max_price_to_lower_vegas'] = np.abs(self.data_df['lower_vegas'] - self.data_df['max_price'])
+
+            self.data_df['prev_min_price_to_upper_vegas'] = self.data_df['min_price_to_upper_vegas'].shift(1)
+            self.data_df['prev_max_price_to_lower_vegas'] = self.data_df['max_price_to_lower_vegas'].shift(1)
 
             self.data_df['guppy_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['highest_guppy']
             self.data_df['guppy_to_upper_vegas'] = self.data_df['lowest_guppy'] - self.data_df['upper_vegas']
@@ -3154,12 +3162,28 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_close_position_vegas'] = (self.data_df['is_negative']) & \
                                                            ((self.data_df['close'] - self.data_df['lower_vegas'])*self.lot_size*self.exchange_rate < -20) &\
                                                            ((self.data_df['high'] > self.data_df['lower_vegas']) | (self.data_df['prev_high'] > self.data_df['lower_vegas'])) &\
-                                                           (self.data_df['num_above_vegas_for_buy'] == 0)
+                                                           (self.data_df['num_above_vegas_for_buy'] == 0) &\
+                                    ((np.abs(self.data_df['max_price_to_lower_vegas'])/self.data_df['price_range'] < 0.4) | (np.abs(self.data_df['prev_max_price_to_lower_vegas'])/self.data_df['prev_price_range'] < 0.4))
+
 
                 self.data_df['sell_close_position_vegas'] = (self.data_df['is_positive']) & \
                                                            ((self.data_df['close'] - self.data_df['upper_vegas'])*self.lot_size*self.exchange_rate > 20) &\
                                                            ((self.data_df['low'] < self.data_df['upper_vegas']) | (self.data_df['prev_low'] < self.data_df['upper_vegas'])) & \
-                                                            (self.data_df['num_below_vegas_for_sell'] == 0)
+                                                            (self.data_df['num_below_vegas_for_sell'] == 0) &\
+                                    ((np.abs(self.data_df['min_price_to_upper_vegas'])/self.data_df['price_range'] < 0.4) | (np.abs(self.data_df['prev_min_price_to_upper_vegas'])/self.data_df['prev_price_range'] < 0.4))
+
+
+                self.data_df['critical_ratio_buy'] = np.abs(self.data_df['min_price_to_upper_vegas'])/self.data_df['price_range']
+                self.data_df['critical_ratio_sell'] = np.abs(self.data_df['max_price_to_lower_vegas'])/self.data_df['price_range']
+
+                self.data_df['critical_bool_buy'] = ((np.abs(self.data_df['min_price_to_upper_vegas'])/self.data_df['price_range'] < 0.4) | (np.abs(self.data_df['prev_min_price_to_upper_vegas'])/self.data_df['prev_price_range'] < 0.4))
+
+                self.data_df['critical_bool_sell'] = ((np.abs(self.data_df['max_price_to_lower_vegas'])/self.data_df['price_range'] < 0.4) | (np.abs(self.data_df['prev_max_price_to_lower_vegas'])/self.data_df['prev_price_range'] < 0.4))
+
+                # print("Fucking you:")
+                # print(self.data_df.iloc[276:285][['time','id','max_price_to_lower_vegas', 'price_range', 'critical_ratio_sell', 'critical_bool_sell',
+                #                                   'sell_close_position_vegas']])
+                # sys.exit(0)
 
                 self.data_df['buy_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -100
                 self.data_df['sell_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 100
