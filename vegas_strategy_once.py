@@ -87,7 +87,7 @@ currency_df = pd.read_csv(currency_file)
 
 # Hutong
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
-#currency_df = currency_df[currency_df['currency'].isin(['USDCHF'])]
+currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
 
 # print("currency_df:")
 # print(currency_df)
@@ -403,41 +403,42 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-print("Sleeping")
-time.sleep(10)
-dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time"
+if False:
+    print("Sleeping")
+    time.sleep(10)
+    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time"
 
-print("Wakeup")
+    print("Wakeup")
 
-if not os.path.exists(dest_folder):
-    os.makedirs(dest_folder)
+    if not os.path.exists(dest_folder):
+        os.makedirs(dest_folder)
 
-for file in os.listdir(dest_folder):
-    file_path = os.path.join(dest_folder, file)
-    os.remove(file_path)
-
-
-symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file))]
-import shutil
-for symbol_folder in symbol_folders:
+    for file in os.listdir(dest_folder):
+        file_path = os.path.join(dest_folder, file)
+        os.remove(file_path)
 
 
-    # if symbol_folder[-6:] not in ['EURCHF']:
-    #     continue
+    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file))]
+    import shutil
+    for symbol_folder in symbol_folders:
 
-    print(symbol_folder)
-    chart_folder = os.path.join(symbol_folder, "simple_chart")
 
-    files = os.listdir(chart_folder)
-    # if len(files) == 3:
-    #     files = files[1:]
+        # if symbol_folder[-6:] not in ['EURCHF']:
+        #     continue
 
-    for file in files:
-        file_path = os.path.join(chart_folder, file)
+        print(symbol_folder)
+        chart_folder = os.path.join(symbol_folder, "simple_chart")
 
-        print("file_path = " + file_path)
-        print("dest_folder = " + dest_folder)
-        shutil.copy2(file_path, dest_folder)
+        files = os.listdir(chart_folder)
+        # if len(files) == 3:
+        #     files = files[1:]
+
+        for file in files:
+            file_path = os.path.join(chart_folder, file)
+
+            print("file_path = " + file_path)
+            print("dest_folder = " + dest_folder)
+            shutil.copy2(file_path, dest_folder)
 
 
 print("All finished")
