@@ -3150,6 +3150,7 @@ class CurrencyTrader(threading.Thread):
                                                            (~self.data_df['strongly_half_aligned_short_condition'])
 
 
+
                 self.data_df['buy_close_position_vegas'] = (self.data_df['is_negative']) & \
                                                            ((self.data_df['close'] - self.data_df['lower_vegas'])*self.lot_size*self.exchange_rate < -20) &\
                                                            ((self.data_df['high'] > self.data_df['lower_vegas']) | (self.data_df['prev_high'] > self.data_df['lower_vegas'])) &\
