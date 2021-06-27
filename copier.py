@@ -18,7 +18,7 @@ root_folder = "C:\\Forex\\formal_trading"
 #dest_folder = "C:\\Forex\\new_experiments\\0611\\fire2_fire3_100_filtered_by_fire2_fire3_200_adjust_entry_too_high_cond"
 
 
-dest_folder = "C:\\Forex\\new_experiments\\0627\\stop_loss_improve3"
+dest_folder = "C:\\Forex\\new_experiments\\0627\\stop_loss_improve_modifyGuppyClose_little_modify"
 
 #dest_folder = "C:\\Forex\\new_experiments\\0626\\benchmark_clear_close_positions_improve_with_phase1"
 
