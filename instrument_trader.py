@@ -2389,11 +2389,13 @@ class CurrencyTrader(threading.Thread):
 
 
             self.data_df['special_buy_close_position'] = (self.data_df['num_large_positive_for_buy'] >= 2) & \
-                                                         (self.data_df['num_negative_for_buy'] == 0) & \
                                                          self.data_df['is_negative'] & (self.data_df['low'] > self.data_df['upper_vegas'])
+                                                         #(self.data_df['num_negative_for_buy'] == 0) & \
+
             self.data_df['special_sell_close_position'] = (self.data_df['num_large_negative_for_sell'] >= 2) & \
-                                                          (self.data_df['num_positive_for_sell'] == 0) & \
                                                           self.data_df['is_positive'] & (self.data_df['high'] < self.data_df['lower_vegas'])
+                                                          #(self.data_df['num_positive_for_sell'] == 0) & \
+
 
 
 
@@ -3164,13 +3166,13 @@ class CurrencyTrader(threading.Thread):
                                                            (self.data_df['ma_close12'] < self.data_df['lower_vegas']) &\
                                                            (self.data_df['close'] < self.data_df['highest_guppy']) &\
                                                            (self.data_df['num_bar_above_guppy_for_buy'] > 1) &\
-                                                           (~self.data_df['strongly_half_aligned_long_condition'])
+                                                           (~(self.data_df['strongly_half_aligned_long_condition'] & self.data_df['fastest_guppy_at_top']))
 
                 self.data_df['sell_close_position_guppy'] = (self.data_df['open'] < self.data_df['lowest_guppy']) & \
                                                             (self.data_df['ma_close12'] > self.data_df['upper_vegas']) & \
                                                             (self.data_df['close'] > self.data_df['lowest_guppy']) & \
                                                             (self.data_df['num_bar_below_guppy_for_sell'] > 1) & \
-                                                            (~self.data_df['strongly_half_aligned_short_condition'])
+                                                            (~(self.data_df['strongly_half_aligned_short_condition'] & self.data_df['fastest_guppy_at_btm']))
 
 
 
