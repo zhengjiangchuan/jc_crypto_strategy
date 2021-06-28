@@ -435,8 +435,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_sell_stop_loss_conservative = which(sub_data['show_sell_stop_loss_conservative'])
 
 
-        if 'show_sell_close_position_guppy' in sub_data.columns:
-            show_sell_close_points_guppy = which(sub_data['show_sell_close_position_guppy'])
+        if 'show_sell_close_position_guppy1' in sub_data.columns:
+            show_sell_close_points_guppy1 = which(sub_data['show_sell_close_position_guppy1'])
+        if 'show_sell_close_position_guppy2' in sub_data.columns:
+            show_sell_close_points_guppy2 = which(sub_data['show_sell_close_position_guppy2'])
         if 'show_sell_close_position_vegas' in sub_data.columns:
             show_sell_close_points_vegas = which(sub_data['show_sell_close_position_vegas'])
         if 'show_sell_close_position_final_excessive' in sub_data.columns:
@@ -498,8 +500,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_buy_stop_loss_conservative = which(sub_data['show_buy_stop_loss_conservative'])
 
 
-        if 'show_buy_close_position_guppy' in sub_data.columns:
-            show_buy_close_points_guppy = which(sub_data['show_buy_close_position_guppy'])
+        if 'show_buy_close_position_guppy1' in sub_data.columns:
+            show_buy_close_points_guppy1 = which(sub_data['show_buy_close_position_guppy1'])
+        if 'show_buy_close_position_guppy2' in sub_data.columns:
+            show_buy_close_points_guppy2 = which(sub_data['show_buy_close_position_guppy2'])
         if 'show_buy_close_position_vegas' in sub_data.columns:
             show_buy_close_points_vegas = which(sub_data['show_buy_close_position_vegas'])
         if 'show_buy_close_position_final_excessive' in sub_data.columns:
@@ -597,9 +601,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
 
 
-            if 'show_sell_close_position_guppy' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_guppy:
+            if 'show_sell_close_position_guppy1' in sub_data.columns:
+                for sell_close_point in show_sell_close_points_guppy1:
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkgreen')
+
+            if 'show_sell_close_position_guppy2' in sub_data.columns:
+                for sell_close_point in show_sell_close_points_guppy2:
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkgreen')
+
 
             if 'show_sell_close_position_vegas' in sub_data.columns:
                 for sell_close_point in show_sell_close_points_vegas:
@@ -694,9 +703,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
 
 
-            if 'show_buy_close_position_guppy' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_guppy:
+            if 'show_buy_close_position_guppy1' in sub_data.columns:
+                for buy_close_point in show_buy_close_points_guppy1:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
+
+            if 'show_buy_close_position_guppy2' in sub_data.columns:
+                for buy_close_point in show_buy_close_points_guppy2:
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
+
 
             if 'show_buy_close_position_vegas' in sub_data.columns:
                 for buy_close_point in show_buy_close_points_vegas:
