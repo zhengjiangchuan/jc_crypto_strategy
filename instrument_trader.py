@@ -125,6 +125,8 @@ entry_risk_threshold = 0.6
 
 close_position_look_back = 12
 
+is_send_email = False
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -150,7 +152,7 @@ class CurrencyTrader(threading.Thread):
 
         self.print_to_console = True
 
-        self.is_cut_data = False
+        self.is_cut_data = True
 
         self.data_df_backup100 = None
         self.data_df_backup200 = None
@@ -260,6 +262,10 @@ class CurrencyTrader(threading.Thread):
         bool_features = ['is_above_vegas', 'is_vegas_up_trend', 'is_below_vegas', 'is_vegas_down_trend']
 
         if True:
+            # print("At begging")
+            # print("cum_bar_above_guppy_for_buy in data_df already? " + str(
+            #     'cum_bar_above_guppy_for_buy' in self.data_df.columns))
+
             print("Process data_df cut: high_low_window = " + str(high_low_window))
             print(self.data_df[['time','close']].head(10))
 
@@ -2737,7 +2743,7 @@ class CurrencyTrader(threading.Thread):
                 self.calculate_signals(high_low_window)
 
 
-                if self.is_cut_data:
+                if self.is_cut_data and high_low_window == 200:
 
                     increment_data_df = self.data_df[self.data_df['time'] > data_df_backup.iloc[-1]['time']]
                     if increment_data_df.shape[0] > 0:
@@ -2758,6 +2764,7 @@ class CurrencyTrader(threading.Thread):
                 if high_low_window == 200:
                     self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + ".csv"), index=False)
                 print("after to csv:")
+
 
                 if len(high_low_window_options) > 1:
                     if high_low_window == 100:
@@ -2864,7 +2871,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & \
                                                    ((~self.data_df['sell_fire_special_exclude']) | self.data_df['sell_fire_special_exclude_exempt'])
 
-
+            # print("At here1")
+            # print("cum_bar_above_guppy_for_buy in data_df already? " + str(
+            #     'cum_bar_above_guppy_for_buy' in self.data_df.columns))
 
             # self.data_df['final_buy_fire'] = self.data_df['final_buy_fire'] & (~self.data_df['strongly_aligned_short_condition'])
             # self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & (~self.data_df['strongly_aligned_long_condition'])
@@ -3028,6 +3037,12 @@ class CurrencyTrader(threading.Thread):
                 buy_df = temp_df[temp_df['buy_point'] == 1]
                 sell_df = temp_df[temp_df['sell_point'] == 1]
 
+                # print("buy_df:")
+                # print(buy_df)
+                #
+                # print("sell_df:")
+                # print(sell_df)
+
 
 
                 def calc_cum_min(x):
@@ -3041,8 +3056,18 @@ class CurrencyTrader(threading.Thread):
                     x['group_max_price'] = x['close'].cummax()
                     return x
 
-                buy_df = buy_df.groupby(['buy_group']).apply(lambda x: calc_cum_min(x))
-                sell_df = sell_df.groupby(['sell_group']).apply(lambda x: calc_cum_max(x))
+                if buy_df.shape[0] > 0:
+                    buy_df = buy_df.groupby(['buy_group']).apply(lambda x: calc_cum_min(x))
+                else:
+                    buy_df['group_min_price'] = 0
+
+                if sell_df.shape[0] > 0:
+                    sell_df = sell_df.groupby(['sell_group']).apply(lambda x: calc_cum_max(x))
+                else:
+                    sell_df['group_max_price'] = 0
+
+                # print("sell_df2:")
+                # print(sell_df)
 
                 buy_df = buy_df[['buy_point_id', 'group_min_price']]
                 sell_df = sell_df[['sell_point_id', 'group_max_price']]
@@ -3157,12 +3182,16 @@ class CurrencyTrader(threading.Thread):
 
                 temp_df['id'] = temp_df['buy_point_temp']
                 temp_df = pd.merge(temp_df, df_buy, on = ['id'], how = 'left')
+
+                #print("type here1: " + str(type(temp_df['cum_bar_above_guppy'])))
                 temp_df = temp_df.rename(columns = {
                     'cum_bar_above_guppy' : 'cum_bar_above_guppy_for_buy',
                     'cum_bar_above_passive_guppy' : 'cum_bar_above_passive_guppy_for_buy',
                     'cum_above_vegas' : 'cum_above_vegas_for_buy'
                 })
                 temp_df = temp_df.fillna(0)
+
+                #print("type here2: " + str(type(temp_df['cum_bar_above_guppy_for_buy'])))
 
 
                 temp_df['id'] = temp_df['sell_point_temp']
@@ -3179,7 +3208,16 @@ class CurrencyTrader(threading.Thread):
                 for col in temp_df.columns:
                     temp_df[col] = temp_df[col].astype(int)
 
+                # print("type here3: " + str(type(temp_df['cum_bar_above_guppy_for_buy'])))
+                #
+                # print("cum_bar_above_guppy_for_buy in data_df already? " + str('cum_bar_above_guppy_for_buy' in self.data_df.columns))
+
                 self.data_df = pd.concat([self.data_df, temp_df], axis = 1)
+
+                # print("Fucking Hutong")
+                # print(self.data_df[['id','time','close','cum_bar_above_guppy','cum_bar_above_guppy_for_buy']].tail(20))
+                # print("type 1: " + str(type(self.data_df['cum_bar_above_guppy'])))
+                # print("type 2: " + str(type(self.data_df['cum_bar_above_guppy_for_buy'])))
 
                 self.data_df['num_bar_above_guppy_for_buy'] = self.data_df['cum_bar_above_guppy'] - self.data_df['cum_bar_above_guppy_for_buy']
                 self.data_df['num_bar_above_passive_guppy_for_buy'] = self.data_df['cum_bar_above_passive_guppy'] - self.data_df['cum_bar_above_passive_guppy_for_buy']
@@ -3546,23 +3584,24 @@ class CurrencyTrader(threading.Thread):
                     # print("Before side_df:")
                     # print(side_df.tail(100))
 
-                    side_df =side_df.groupby([side + '_point_id']).apply(lambda x: select_close_positions(x,
-                                                'first_' + side + '_close_position_guppy1',
-                                                'first_' + side + '_close_position_guppy2',
-                                                'first_' + side + '_close_position_vegas',
-                                                'first_' + side + '_close_position_final_excessive', 'first_' + side + '_close_position_final_conservative',
-                                                'first_' + side + '_close_position_final_excessive_strict', 'first_' + side + '_close_position_final_conservative_strict',
-                                                                                                     'first_selected_' + side + '_close_position_guppy1',
-                                                                                                     'first_selected_' + side + '_close_position_guppy2',
-                                                                                                     'first_selected_' + side + '_close_position_vegas',
-                                                                                                     'first_selected_' + side + '_close_position_final_excessive',
-                                                                                                     'first_selected_' + side + '_close_position_final_conservative',
-                                                                                                    exceed_vegas,
-                                                                                                    num_guppy_bars,
-                                                                                                    group_most_passive_price, entry_point_price, side
-                                                                                                     ))
+                    if side_df.shape[0] > 0:
+                        side_df =side_df.groupby([side + '_point_id']).apply(lambda x: select_close_positions(x,
+                                                    'first_' + side + '_close_position_guppy1',
+                                                    'first_' + side + '_close_position_guppy2',
+                                                    'first_' + side + '_close_position_vegas',
+                                                    'first_' + side + '_close_position_final_excessive', 'first_' + side + '_close_position_final_conservative',
+                                                    'first_' + side + '_close_position_final_excessive_strict', 'first_' + side + '_close_position_final_conservative_strict',
+                                                                                                         'first_selected_' + side + '_close_position_guppy1',
+                                                                                                         'first_selected_' + side + '_close_position_guppy2',
+                                                                                                         'first_selected_' + side + '_close_position_vegas',
+                                                                                                         'first_selected_' + side + '_close_position_final_excessive',
+                                                                                                         'first_selected_' + side + '_close_position_final_conservative',
+                                                                                                        exceed_vegas,
+                                                                                                        num_guppy_bars,
+                                                                                                        group_most_passive_price, entry_point_price, side
+                                                                                                         ))
 
-                    # print("After side_df:")
+                    # print("After here side_df:")
                     # print(side_df.tail(100))
                     #
                     # print("id in side_df:" + str('id' in side_df.columns))
@@ -3905,8 +3944,21 @@ class CurrencyTrader(threading.Thread):
             ################################################################################################
 
 
+            #Write here
+            if self.is_cut_data:
+                data_df_backup = self.data_dfs_backup[0]
+                increment_data_df = self.data_df[self.data_df['time'] > data_df_backup.iloc[-1]['time']]
+                if increment_data_df.shape[0] > 0:
+
+                    self.data_df = pd.concat([data_df_backup, increment_data_df])
+
+                    self.data_df.reset_index(inplace = True)
+                    self.data_df = self.data_df.drop(columns = ['index'])
 
 
+                else:
+
+                    self.data_df = data_df_backup
 
 
 
@@ -3969,7 +4021,8 @@ class CurrencyTrader(threading.Thread):
                 #else:
                 #    stop_loss_msg = ""
 
-                sendEmail(msg, msg + additional_msg + stop_loss_msg) #Temporarily Remove
+                if is_send_email:
+                    sendEmail(msg, msg + additional_msg + stop_loss_msg) #Temporarily Remove
 
             elif self.data_df.iloc[-1]['first_buy_fire']:
                 msg = "Long " + self.currency + " at " + current_time + ", last_price = " + str(
@@ -3985,21 +4038,45 @@ class CurrencyTrader(threading.Thread):
                 #sendEmail(msg, msg)
 
 
-            if self.data_df.iloc[-1]['first_actual_special_sell_close_position']:
-                msg = "Close Short Position (Special) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_actual_sell_close_position_excessive']:
-                msg = "Close Short Position (Excessive) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_actual_sell_close_position_conservative']:
-                msg = "Close Short Position (Conservative) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_sell_stop_loss_excessive']:
-                msg = "Close Short Position (Stop loss excessive) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_sell_stop_loss_conservative']:
-                msg = "Close Short Position (Stop loss conservative) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
+            if self.data_df.iloc[-1]['show_sell_close_position_guppy1'] or self.data_df.iloc[-1]['show_sell_close_position_guppy2']:
+                msg = "Close Short Position Phase 1 based on Guppy for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close 1/3 of remaining position")
+            if self.data_df.iloc[-1]['show_sell_close_position_vegas']:
+                msg = "Close Short Position Phase 1 based on vegas for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close 1/3 of remaining position")
+            if self.data_df.iloc[-1]['show_sell_close_position_final_excessive']:
+                msg = "Close Short Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+            if self.data_df.iloc[-1]['show_sell_close_position_final_conservative']:
+                msg = "Close Short Position Phase 1 Stop loss conservative for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+
+
+
+            if self.data_df.iloc[-1]['show_special_sell_close_position']:
+                msg = "Close Short Position Phase 2 Special for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + " Close 1/4 of remaining position at the start of Phase 2")
+            if self.data_df.iloc[-1]['show_sell_close_position_excessive']:
+                msg = "Close Short Position Phase 2 Excessive for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + " Close 1/4 of remaining position at the start of Phase 2")
+            if self.data_df.iloc[-1]['show_sell_close_position_conservative']:
+                msg = "Close Short Position Phase 2 Conservative for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+            if self.data_df.iloc[-1]['show_sell_stop_loss_excessive']:
+                msg = "Close Short Position Phase 2 Stop loss excessive for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + " Close 1/4 of remaining position at the start of Phase 2")
+            if self.data_df.iloc[-1]['show_sell_stop_loss_conservative']:
+                msg = "Close Short Position Phase 2 Stop loss conservative for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
 
 
 
@@ -4050,8 +4127,8 @@ class CurrencyTrader(threading.Thread):
                 stop_loss_msg = " Stop loss at " + str(delta_point) + " points above open price"
                 #else:
                 #    stop_loss_msg = ""
-
-                sendEmail(msg, msg + additional_msg + stop_loss_msg) #Temporarily Remove
+                if is_send_email:
+                    sendEmail(msg, msg + additional_msg + stop_loss_msg) #Temporarily Remove
 
             elif self.data_df.iloc[-1]['first_sell_fire']:
                 msg = "Short " + self.currency + " at " + current_time + ", last_price = " + str(
@@ -4067,22 +4144,45 @@ class CurrencyTrader(threading.Thread):
                 #sendEmail(msg, msg)
 
 
-            if self.data_df.iloc[-1]['first_actual_special_buy_close_position']:
-                msg = "Close Long Position (Special) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_actual_buy_close_position_excessive']:
-                msg = "Close Long Position (Excessive) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_actual_buy_close_position_conservative']:
-                msg = "Close Long Position (Conservative) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_buy_stop_loss_excessive']:
-                msg = "Close Long Position (Stop loss excessive) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
-            elif self.data_df.iloc[-1]['first_buy_stop_loss_conservative']:
-                msg = "Close Long Position (Stop loss conservative) for " + self.currency + " at " + current_time
-                sendEmail(msg, msg)
+            if self.data_df.iloc[-1]['show_buy_close_position_guppy1'] or self.data_df.iloc[-1]['show_buy_close_position_guppy2']:
+                msg = "Close Long Position Phase 1 based on Guppy for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close 1/3 of remaining position")
+            if self.data_df.iloc[-1]['show_buy_close_position_vegas']:
+                msg = "Close Long Position Phase 1 based on vegas for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close 1/3 of remaining position")
+            if self.data_df.iloc[-1]['show_buy_close_position_final_excessive']:
+                msg = "Close Long Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+            if self.data_df.iloc[-1]['show_buy_close_position_final_conservative']:
+                msg = "Close Long Position Phase 1 Stop loss conservative for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
 
+
+
+            if self.data_df.iloc[-1]['show_special_buy_close_position']:
+                msg = "Close Long Position Phase 2 Special for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + " Close 1/4 of remaining position at the start of Phase 2")
+            if self.data_df.iloc[-1]['show_buy_close_position_excessive']:
+                msg = "Close Long Position Phase 2 Excessive for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + " Close 1/4 of remaining position at the start of Phase 2")
+            if self.data_df.iloc[-1]['show_buy_close_position_conservative']:
+                msg = "Close Long Position Phase 2 Conservative for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+            if self.data_df.iloc[-1]['show_buy_stop_loss_excessive']:
+                msg = "Close Long Position Phase 2 Stop loss excessive for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + " Close 1/4 of remaining position at the start of Phase 2")
+            if self.data_df.iloc[-1]['show_buy_stop_loss_conservative']:
+                msg = "Close Long Position Phase 2 Stop loss conservative for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
 
 
             self.log_msg("\n")

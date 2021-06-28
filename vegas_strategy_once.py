@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADJPY', 'CHFJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['GBPUSD'])]
 
 
 # print("currency_df:")
@@ -106,7 +106,7 @@ currency_df = pd.read_csv(currency_file)
 print("currency_df:")
 print(currency_df)
 
-sendEmail("Trader process starts", "")
+#sendEmail("Trader process starts", "")
 
 currency_pairs = []
 for i in range(currency_df.shape[0]):
@@ -408,10 +408,10 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if False:
+if True:
     print("Sleeping")
     time.sleep(10)
-    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_compare"
+    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new"
 
     print("Wakeup")
 
