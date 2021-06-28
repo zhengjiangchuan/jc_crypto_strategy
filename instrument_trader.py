@@ -529,6 +529,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
             self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
+            self.data_df['prev_upper_vegas'] = self.data_df['upper_vegas'].shift(1)
+            self.data_df['prev_lower_vegas'] = self.data_df['lower_vegas'].shift(1)
+
             ################# features to detect trend approaching the end ###############
             self.data_df['period_high' + str(high_low_window) + '_gradient'] = self.data_df['period_high' + str(high_low_window)].diff()
             self.data_df['period_high' + str(high_low_window) + '_go_up'] = np.where(
@@ -3195,6 +3198,7 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['buy_close_position_guppy2'] = self.data_df['is_negative'] & self.data_df['prev_is_positive'] & \
                                                             (self.data_df['close'] < self.data_df['lower_vegas']) &\
+                                                            (self.data_df['prev_close'] < self.data_df['prev_lower_vegas']) &\
                                                             (self.data_df['price_range']/self.data_df['price_volatility'] > 0.5) &\
                                                             (self.data_df['prev_price_range']/self.data_df['prev_price_volatility'] > 0.5) &\
                                                             (self.data_df['min_price'] < self.data_df['prev_max_price'] - 0.55 * self.data_df['prev_price_range']) &\
@@ -3211,6 +3215,7 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['sell_close_position_guppy2'] = self.data_df['is_positive'] & (self.data_df['prev_open'] > self.data_df['prev_close']) & \
                                                             (self.data_df['close'] > self.data_df['upper_vegas']) & \
+                                                            (self.data_df['prev_close'] > self.data_df['prev_upper_vegas']) &\
                                                             (self.data_df['price_range']/self.data_df['price_volatility'] > 0.5) &\
                                                             (self.data_df['prev_price_range']/self.data_df['prev_price_volatility'] > 0.5) &\
                                                             (self.data_df['max_price'] > self.data_df['prev_min_price'] + 0.55 * self.data_df['prev_price_range']) &\
