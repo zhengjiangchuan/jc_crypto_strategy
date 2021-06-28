@@ -152,7 +152,7 @@ class CurrencyTrader(threading.Thread):
 
         self.print_to_console = True
 
-        self.is_cut_data = True
+        self.is_cut_data = False
 
         self.data_df_backup100 = None
         self.data_df_backup200 = None
@@ -184,7 +184,7 @@ class CurrencyTrader(threading.Thread):
         #self.data_df_backup = self.data_df.copy()
         #self.data_df_backup = self.data_df_backup[self.data_df_backup['price_range'].notnull()]
 
-        self.data_df = self.data_df.iloc[-400:]
+        self.data_df = self.data_df.iloc[-1000:]
         self.data_df.reset_index(inplace = True)
         self.data_df = self.data_df.drop(columns = ['index'])
 
@@ -3028,7 +3028,7 @@ class CurrencyTrader(threading.Thread):
 
 
             if True:
-                temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'buy_point_id', 'sell_point_id', 'close',
+                temp_df = self.data_df[['id', 'time',  'buy_point', 'sell_point', 'buy_point_id', 'sell_point_id', 'close',
                                         'period_high' + str(high_low_window) + '_change', 'period_low' + str(high_low_window) + '_change']]
 
                 # print("temp_df:")
@@ -3053,7 +3053,7 @@ class CurrencyTrader(threading.Thread):
 
 
                 for col in temp_df.columns:
-                    if col != 'close':
+                    if col != 'close' and col != 'time':
                         temp_df[col] = temp_df[col].astype(int)
 
 
@@ -3076,6 +3076,10 @@ class CurrencyTrader(threading.Thread):
                     return x
 
                 def calc_cum_max(x):
+
+                    # print("Group sell")
+                    # print(x)
+
                     x['group_max_price'] = x['close'].cummax()
                     return x
 
@@ -3303,9 +3307,14 @@ class CurrencyTrader(threading.Thread):
 
 
 
-
+                #Singapore
                 self.data_df['buy_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -150
                 self.data_df['sell_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 150
+
+                # print("Final Excessive Debug:")
+                # #print(self.data_df.iloc[381:386][['id','time','close','group_max_price','sell_close_position_final_excessive']])
+                # print(self.data_df.iloc[1034:1038][['id','time','close','group_max_price','sell_close_position_final_excessive']])
+
 
                 self.data_df['buy_close_position_final_excessive_strict'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -600
                 self.data_df['sell_close_position_final_excessive_strict'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 600
@@ -3540,7 +3549,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                    # if 'buy_point_id' in x.columns:
+                    # if 'sell_point_id' in x.columns:
                     #     y = x.copy()
                     #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive : 'excessive', conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
@@ -3551,7 +3560,7 @@ class CurrencyTrader(threading.Thread):
                     #
                     #     print("Dig Goup:")
                     #     conditions = reduce(lambda left, right: left | right, [y[col] for col in ['guppy1', 'guppy2', 'vegas', 'excessive', 'conservative']])
-                    #     y = y[conditions]
+                    #     #y = y[conditions]
                     #     print(y)
 
                     return x

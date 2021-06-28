@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['CADJPY'])]
 
 
 # print("currency_df:")
@@ -106,7 +106,7 @@ currency_df = pd.read_csv(currency_file)
 print("currency_df:")
 print(currency_df)
 
-#sendEmail("Trader process starts", "")
+sendEmail("Trader process starts", "")
 
 currency_pairs = []
 for i in range(currency_df.shape[0]):
