@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
 
 
 # print("currency_df:")
@@ -300,9 +300,13 @@ while not is_all_received:
 
                 if os.path.exists(currency_file100) and os.path.exists(currency_file200):
                     data_df100 = pd.read_csv(currency_file100)
+                    #data_df100 = data_df100.iloc[0:-4]
+
                     data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
 
                     data_df200 = pd.read_csv(currency_file200)
+                    #data_df200 = data_df200.iloc[0:-4]
+
                     data_df200['time'] = data_df200['time'].apply(lambda x: preprocess_time(x))
 
                     original_data_df100 = data_df100.copy()

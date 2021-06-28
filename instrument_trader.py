@@ -184,7 +184,7 @@ class CurrencyTrader(threading.Thread):
         #self.data_df_backup = self.data_df.copy()
         #self.data_df_backup = self.data_df_backup[self.data_df_backup['price_range'].notnull()]
 
-        self.data_df = self.data_df.iloc[-300:]
+        self.data_df = self.data_df.iloc[-400:]
         self.data_df.reset_index(inplace = True)
         self.data_df = self.data_df.drop(columns = ['index'])
 
@@ -2752,6 +2752,7 @@ class CurrencyTrader(threading.Thread):
 
                         self.data_df.reset_index(inplace = True)
                         self.data_df = self.data_df.drop(columns = ['index'])
+                        self.data_df['id'] = list(range(self.data_df.shape[0]))
 
 
                     else:
@@ -2784,12 +2785,34 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df = data_df100
 
-                self.data_df['period_high' + str(high_low_window_options[-1])] = data_df200['period_high' + str(high_low_window_options[-1])]
-                self.data_df['period_low' + str(high_low_window_options[-1])] = data_df200['period_low' + str(high_low_window_options[-1])]
+                # print("data_df200 length = " + str(data_df200.shape[0]))
+                # print("data_df length = " + str(self.data_df.shape[0]))
+                data_df200_use = data_df200.iloc[-self.data_df.shape[0]:]
 
-                self.data_df['macd_period_high' + str(high_low_window_options[-1])] = data_df200['macd_period_high' + str(high_low_window_options[-1])]
-                self.data_df['macd_period_low' + str(high_low_window_options[-1])] = data_df200['macd_period_low' + str(high_low_window_options[-1])]
+                # print("data_df200_use length = " + str(data_df200_use.shape[0]))
+                #
+                # print("Before here:")
+                # print('period_high' + str(high_low_window_options[-1]))
+                # print('period_high' + str(high_low_window_options[-1]))
+                # print(data_df200[['id', 'time', 'period_high200', 'period_low200']])
+                #
+                # print(data_df200_use[['id', 'time', 'period_high200', 'period_low200']].tail(20))
 
+                data_df200_use.reset_index(inplace=True)
+                data_df200_use = data_df200_use.drop(columns=['index'])
+
+                self.data_df['period_high' + str(high_low_window_options[-1])] = data_df200_use['period_high' + str(high_low_window_options[-1])]
+                self.data_df['period_low' + str(high_low_window_options[-1])] = data_df200_use['period_low' + str(high_low_window_options[-1])]
+
+                # print("After here:")
+                # print(self.data_df[['id', 'time', 'period_high200', 'period_low200']].tail(20))
+
+                self.data_df['macd_period_high' + str(high_low_window_options[-1])] = data_df200_use['macd_period_high' + str(high_low_window_options[-1])]
+                self.data_df['macd_period_low' + str(high_low_window_options[-1])] = data_df200_use['macd_period_low' + str(high_low_window_options[-1])]
+
+                # print("last chuck:")
+                # print(data_df200[['id','time','period_high200', 'period_low200']].tail(20))
+                #
 
 
                 # print("period_high200 here:")
