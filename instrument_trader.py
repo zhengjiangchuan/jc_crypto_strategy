@@ -3194,7 +3194,8 @@ class CurrencyTrader(threading.Thread):
                                                            (self.data_df['ma_close12'] < self.data_df['lower_vegas']) &\
                                                            (self.data_df['close'] < self.data_df['highest_guppy']) &\
                                                            (self.data_df['num_bar_above_guppy_for_buy'] > 1) &\
-                                                           (~(self.data_df['strongly_half_aligned_long_condition'] & self.data_df['fastest_guppy_at_top']))
+                                                           (~(self.data_df['strongly_half_aligned_long_condition'] & self.data_df['fastest_guppy_at_top'])) & \
+                                                            (self.data_df['num_above_vegas_for_buy'] == 0)
 
                 self.data_df['buy_close_position_guppy2'] = self.data_df['is_negative'] & self.data_df['prev_is_positive'] & \
                                                             (self.data_df['close'] < self.data_df['lower_vegas']) &\
@@ -3203,7 +3204,8 @@ class CurrencyTrader(threading.Thread):
                                                             (self.data_df['prev_price_range']/self.data_df['prev_price_volatility'] > 0.5) &\
                                                             (self.data_df['min_price'] < self.data_df['prev_max_price'] - 0.55 * self.data_df['prev_price_range']) &\
                                                              (self.data_df['min_price'] > self.data_df['highest_guppy']) &\
-                                                             (self.data_df['prev_min_price'] > self.data_df['prev_highest_guppy'])
+                                                             (self.data_df['prev_min_price'] > self.data_df['prev_highest_guppy']) & \
+                                                            (self.data_df['num_above_vegas_for_buy'] == 0)
 
                 #self.data_df['buy_close_position_guppy'] = self.data_df['buy_close_position_guppy1'] | self.data_df['buy_close_position_guppy2']
 
@@ -3211,7 +3213,8 @@ class CurrencyTrader(threading.Thread):
                                                             (self.data_df['ma_close12'] > self.data_df['upper_vegas']) & \
                                                             (self.data_df['close'] > self.data_df['lowest_guppy']) & \
                                                             (self.data_df['num_bar_below_guppy_for_sell'] > 1) & \
-                                                            (~(self.data_df['strongly_half_aligned_short_condition'] & self.data_df['fastest_guppy_at_btm']))
+                                                            (~(self.data_df['strongly_half_aligned_short_condition'] & self.data_df['fastest_guppy_at_btm'])) & \
+                                                             (self.data_df['num_below_vegas_for_sell'] == 0)
 
                 self.data_df['sell_close_position_guppy2'] = self.data_df['is_positive'] & (self.data_df['prev_open'] > self.data_df['prev_close']) & \
                                                             (self.data_df['close'] > self.data_df['upper_vegas']) & \
@@ -3220,7 +3223,8 @@ class CurrencyTrader(threading.Thread):
                                                             (self.data_df['prev_price_range']/self.data_df['prev_price_volatility'] > 0.5) &\
                                                             (self.data_df['max_price'] > self.data_df['prev_min_price'] + 0.55 * self.data_df['prev_price_range']) &\
                                                              (self.data_df['max_price'] < self.data_df['lowest_guppy']) &\
-                                                             (self.data_df['prev_max_price'] < self.data_df['prev_lowest_guppy'])
+                                                             (self.data_df['prev_max_price'] < self.data_df['prev_lowest_guppy']) & \
+                                                             (self.data_df['num_below_vegas_for_sell'] == 0)
 
                 #self.data_df['sell_close_position_guppy'] = self.data_df['sell_close_position_guppy1'] | self.data_df['sell_close_position_guppy2']
 
