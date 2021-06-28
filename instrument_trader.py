@@ -184,7 +184,7 @@ class CurrencyTrader(threading.Thread):
         #self.data_df_backup = self.data_df.copy()
         #self.data_df_backup = self.data_df_backup[self.data_df_backup['price_range'].notnull()]
 
-        self.data_df = self.data_df.iloc[-200:]
+        self.data_df = self.data_df.iloc[-300:]
         self.data_df.reset_index(inplace = True)
         self.data_df = self.data_df.drop(columns = ['index'])
 

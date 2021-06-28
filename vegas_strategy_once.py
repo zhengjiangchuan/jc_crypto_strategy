@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['GBPUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['CADCHF'])]
 
 
 # print("currency_df:")
@@ -203,9 +203,14 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
         # print(data_str)
 
+
+
         data_str = "currency,dummy,time,open,high,low,close\n" + data_str
 
         data_df = pd.read_csv(StringIO(data_str), sep=',')
+
+        # print("strange data_df:")
+        # print(data_df)
 
         # print("My My data_df:")
         # print(data_df)
