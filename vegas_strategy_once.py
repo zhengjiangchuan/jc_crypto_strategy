@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
 
 
 # print("currency_df:")
@@ -420,7 +420,9 @@ print("Finished trading *********************************")
 if True:
     print("Sleeping")
     time.sleep(10)
-    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new"
+    #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new"
+
+    dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
     print("Wakeup")
 
@@ -453,6 +455,9 @@ if True:
             print("file_path = " + file_path)
             print("dest_folder = " + dest_folder)
             shutil.copy2(file_path, dest_folder)
+
+
+    sendEmail("Charts sent!", "")
 
 
 print("All finished")

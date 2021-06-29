@@ -127,6 +127,8 @@ close_position_look_back = 12
 
 is_send_email = False
 
+#support_half_stop_loss = False
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -3308,8 +3310,14 @@ class CurrencyTrader(threading.Thread):
 
 
                 #Singapore
-                self.data_df['buy_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -150
-                self.data_df['sell_close_position_final_excessive'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 150
+                self.data_df['buy_close_position_final_excessive1'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -150
+                self.data_df['sell_close_position_final_excessive1'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 150
+
+                self.data_df['buy_close_position_final_excessive2'] = (self.data_df['close'] - self.data_df['buy_point_support'])*self.lot_size*self.exchange_rate < -10
+                self.data_df['sell_close_position_final_excessive2'] = (self.data_df['close'] - self.data_df['sell_point_support'])*self.lot_size*self.exchange_rate > 10
+
+
+
 
                 # print("Final Excessive Debug:")
                 # #print(self.data_df.iloc[381:386][['id','time','close','group_max_price','sell_close_position_final_excessive']])
@@ -3413,10 +3421,17 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev_buy_close_position_vegas'] = pd.Series(list(self.data_df['prev_buy_close_position_vegas']), dtype='bool')
                 self.data_df['first_buy_close_position_vegas'] = self.data_df['buy_close_position_vegas'] & (~self.data_df['prev_buy_close_position_vegas'])
 
-                self.data_df['prev_buy_close_position_final_excessive'] = self.data_df['buy_close_position_final_excessive'].shift(1)
-                self.data_df.at[0, 'prev_buy_close_position_final_excessive'] = False
-                self.data_df['prev_buy_close_position_final_excessive'] = pd.Series(list(self.data_df['prev_buy_close_position_final_excessive']), dtype='bool')
-                self.data_df['first_buy_close_position_final_excessive'] = self.data_df['buy_close_position_final_excessive'] & (~self.data_df['prev_buy_close_position_final_excessive'])
+                self.data_df['prev_buy_close_position_final_excessive1'] = self.data_df['buy_close_position_final_excessive1'].shift(1)
+                self.data_df.at[0, 'prev_buy_close_position_final_excessive1'] = False
+                self.data_df['prev_buy_close_position_final_excessive1'] = pd.Series(list(self.data_df['prev_buy_close_position_final_excessive1']), dtype='bool')
+                self.data_df['first_buy_close_position_final_excessive1'] = self.data_df['buy_close_position_final_excessive1'] & (~self.data_df['prev_buy_close_position_final_excessive1'])
+
+                self.data_df['prev_buy_close_position_final_excessive2'] = self.data_df['buy_close_position_final_excessive2'].shift(1)
+                self.data_df.at[0, 'prev_buy_close_position_final_excessive2'] = False
+                self.data_df['prev_buy_close_position_final_excessive2'] = pd.Series(list(self.data_df['prev_buy_close_position_final_excessive2']), dtype='bool')
+                self.data_df['first_buy_close_position_final_excessive2'] = self.data_df['buy_close_position_final_excessive2'] & (~self.data_df['prev_buy_close_position_final_excessive2'])
+
+
 
                 self.data_df['prev_buy_close_position_final_conservative'] = self.data_df['buy_close_position_final_conservative'].shift(1)
                 self.data_df.at[0, 'prev_buy_close_position_final_conservative'] = False
@@ -3428,6 +3443,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df.at[0, 'prev_buy_close_position_final_excessive_strict'] = False
                 self.data_df['prev_buy_close_position_final_excessive_strict'] = pd.Series(list(self.data_df['prev_buy_close_position_final_excessive_strict']), dtype='bool')
                 self.data_df['first_buy_close_position_final_excessive_strict'] = self.data_df['buy_close_position_final_excessive_strict'] & (~self.data_df['prev_buy_close_position_final_excessive_strict'])
+
+
+
 
                 self.data_df['prev_buy_close_position_final_conservative_strict'] = self.data_df['buy_close_position_final_conservative_strict'].shift(1)
                 self.data_df.at[0, 'prev_buy_close_position_final_conservative_strict'] = False
@@ -3454,10 +3472,17 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev_sell_close_position_vegas'] = pd.Series(list(self.data_df['prev_sell_close_position_vegas']), dtype='bool')
                 self.data_df['first_sell_close_position_vegas'] = self.data_df['sell_close_position_vegas'] & (~self.data_df['prev_sell_close_position_vegas'])
 
-                self.data_df['prev_sell_close_position_final_excessive'] = self.data_df['sell_close_position_final_excessive'].shift(1)
-                self.data_df.at[0, 'prev_sell_close_position_final_excessive'] = False
-                self.data_df['prev_sell_close_position_final_excessive'] = pd.Series(list(self.data_df['prev_sell_close_position_final_excessive']), dtype='bool')
-                self.data_df['first_sell_close_position_final_excessive'] = self.data_df['sell_close_position_final_excessive'] & (~self.data_df['prev_sell_close_position_final_excessive'])
+                self.data_df['prev_sell_close_position_final_excessive1'] = self.data_df['sell_close_position_final_excessive1'].shift(1)
+                self.data_df.at[0, 'prev_sell_close_position_final_excessive1'] = False
+                self.data_df['prev_sell_close_position_final_excessive1'] = pd.Series(list(self.data_df['prev_sell_close_position_final_excessive1']), dtype='bool')
+                self.data_df['first_sell_close_position_final_excessive1'] = self.data_df['sell_close_position_final_excessive1'] & (~self.data_df['prev_sell_close_position_final_excessive1'])
+
+                self.data_df['prev_sell_close_position_final_excessive2'] = self.data_df['sell_close_position_final_excessive2'].shift(1)
+                self.data_df.at[0, 'prev_sell_close_position_final_excessive2'] = False
+                self.data_df['prev_sell_close_position_final_excessive2'] = pd.Series(list(self.data_df['prev_sell_close_position_final_excessive2']), dtype='bool')
+                self.data_df['first_sell_close_position_final_excessive2'] = self.data_df['sell_close_position_final_excessive2'] & (~self.data_df['prev_sell_close_position_final_excessive2'])
+
+
 
                 self.data_df['prev_sell_close_position_final_conservative'] = self.data_df['sell_close_position_final_conservative'].shift(1)
                 self.data_df.at[0, 'prev_sell_close_position_final_conservative'] = False
@@ -3483,8 +3508,8 @@ class CurrencyTrader(threading.Thread):
                     else:
                         return price1 < price2
 
-                def select_close_positions(x, guppy1, guppy2, vegas, excessive, conservative, excessive_strict, conservative_strict,
-                                               selected_guppy1, selected_guppy2, selected_vegas, selected_excessive, selected_conservative, exceed_vegas, num_guppy_bars,
+                def select_close_positions(x, guppy1, guppy2, vegas, excessive1, excessive2, conservative, excessive_strict, conservative_strict,
+                                               selected_guppy1, selected_guppy2, selected_vegas, selected_excessive1, selected_excessive2, selected_conservative, exceed_vegas, num_guppy_bars,
                                            group_most_passive_price, entry_point_price, side):
                     # print("In select_close_positions:")
                     # print(x)
@@ -3492,12 +3517,19 @@ class CurrencyTrader(threading.Thread):
                     total_guppy1 = 0
                     total_guppy2 = 0
                     total_vegas = 0
-                    raw_total_excessive = 0
+                    raw_total_excessive1 = 0
+                    raw_total_excessive2 = 0
                     raw_total_conservative = 0
+
+                    total_excessive1 = 0
                     total_excessive = 0
                     total_conservative = 0
-                    last_excessive = -1
+                    last_excessive1 = -1
+                    last_excessive2 = -1
                     last_conservative = -1
+
+
+
                     for i in range(0, x.shape[0]):
                         row = x.iloc[i]
 
@@ -3523,22 +3555,54 @@ class CurrencyTrader(threading.Thread):
                                 x.at[x.index[i], selected_vegas] = 1
                                 total_vegas += 1
 
-                        if row[excessive] or row[excessive_strict]:
+                        if row[excessive1] or row[excessive_strict]:
                             if (total_guppy1 + total_guppy2 > 0 or total_vegas > 0 or row[exceed_vegas] > 0 or row[num_guppy_bars] >= 3) and total_excessive == 0 and total_conservative == 0:
 
-                                gap = i - last_excessive
-                                if (raw_total_excessive > 0 and i > 0 and last_excessive > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
-                                    x.at[x.index[i], selected_excessive] = 1
-                                    total_excessive += 1
+                                gap = i - last_excessive1
+                                if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
+                                    x.at[x.index[i], selected_excessive1] = 1
 
-                                raw_total_excessive += 1
-                                last_excessive = i
+                                    if not support_half_stop_loss:
+                                        total_excessive += 1
+
+                                    total_excessive1 += 1
+
+                                raw_total_excessive1 += 1
+                                last_excessive1 = i
+
+
+                        if row[excessive2] or row[excessive_strict]:
+                            if (total_guppy1 + total_guppy2 > 0 or total_vegas > 0 or row[exceed_vegas] > 0 or row[num_guppy_bars] >= 3) and \
+                                    total_excessive == 0 and total_conservative == 0 and total_excessive1 > 0:
+
+                                gap = i - last_excessive2
+                                if (raw_total_excessive2 > 0 and i > 0 and last_excessive2 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
+                                    if support_half_stop_loss:
+                                        x.at[x.index[i], selected_excessive2] = 1
+                                        total_excessive += 1
+
+                                raw_total_excessive2 += 1
+                                last_excessive2 = i
+
 
 
                         if row[conservative] or row[conservative_strict]:
+                            # print("conservative:")
+                            # debug_df = pd.DataFrame({'total_guppy1' : [total_guppy1],
+                            #                          'total_guppy2' : [total_guppy2],
+                            #                          'total_vegas' : [total_vegas],
+                            #                          'total_excessive' : [total_excessive],
+                            #                          'total_conservative' : [total_conservative]})
+                            # print(debug_df)
                             if total_guppy1 == 0 and total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0:
 
                                 gap = i - last_conservative
+
+                                # print("i = " + str(i))
+                                # print("last_conservative = " + str(last_conservative))
+                                # print("gap = " + str(gap))
+                                # print("raw_total_conservative = " + str(raw_total_conservative))
+
                                 if (raw_total_conservative > 0 and i > 0 and last_conservative > 0 and (gap > 1 and gap < 12)) or row[conservative_strict]:
                                     x.at[x.index[i], selected_conservative] = 1
                                     total_conservative += 1
@@ -3549,17 +3613,17 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                    # if 'sell_point_id' in x.columns:
+                    # if 'buy_point_id' in x.columns:
                     #     y = x.copy()
-                    #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive : 'excessive', conservative : 'conservative',
+                    #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive1 : 'excessive1', excessive2 : 'excessive2',  conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
                     #                             selected_guppy1 : 'selected_guppy1',
                     #                             selected_guppy2: 'selected_guppy2',
-                    #                             selected_vegas : 'selected_vegas', selected_excessive : 'selected_excessive',
+                    #                             selected_vegas : 'selected_vegas', selected_excessive1 : 'selected_excessive1', selected_excessive2 : 'selected_excessive2',
                     #                             selected_conservative : 'selected_conservative'})
                     #
                     #     print("Dig Goup:")
-                    #     conditions = reduce(lambda left, right: left | right, [y[col] for col in ['guppy1', 'guppy2', 'vegas', 'excessive', 'conservative']])
+                    #     conditions = reduce(lambda left, right: left | right, [y[col] for col in ['guppy1', 'guppy2', 'vegas', 'excessive1', 'excessive2', 'conservative']])
                     #     #y = y[conditions]
                     #     print(y)
 
@@ -3570,7 +3634,9 @@ class CurrencyTrader(threading.Thread):
                     temp_df = self.data_df[['id', 'time', side + '_point_id',
                                             'first_' + side + '_close_position_guppy1', 'first_' + side + '_close_position_guppy2',
                                             'first_' + side + '_close_position_vegas',
-                                            'first_' + side + '_close_position_final_excessive', 'first_' + side + '_close_position_final_conservative',
+                                            'first_' + side + '_close_position_final_excessive1',
+                                            'first_' + side + '_close_position_final_excessive2',
+                                            'first_' + side + '_close_position_final_conservative',
                                             'first_' + side + '_close_position_final_excessive_strict', 'first_' + side + '_close_position_final_conservative_strict',
                                             'num_above_vegas_for_buy', 'num_below_vegas_for_sell',
                                             'num_bar_above_passive_guppy_for_buy', 'num_bar_below_passive_guppy_for_sell',
@@ -3601,7 +3667,8 @@ class CurrencyTrader(threading.Thread):
                     side_df['first_selected_' + side + '_close_position_guppy1'] = 0
                     side_df['first_selected_' + side + '_close_position_guppy2'] = 0
                     side_df['first_selected_' + side + '_close_position_vegas'] = 0
-                    side_df['first_selected_' + side + '_close_position_final_excessive'] = 0
+                    side_df['first_selected_' + side + '_close_position_final_excessive1'] = 0
+                    side_df['first_selected_' + side + '_close_position_final_excessive2'] = 0
                     side_df['first_selected_' + side + '_close_position_final_conservative'] = 0
 
 
@@ -3617,21 +3684,26 @@ class CurrencyTrader(threading.Thread):
                     # print(side_df.tail(100))
 
                     if side_df.shape[0] > 0:
+
                         side_df =side_df.groupby([side + '_point_id']).apply(lambda x: select_close_positions(x,
-                                                    'first_' + side + '_close_position_guppy1',
-                                                    'first_' + side + '_close_position_guppy2',
-                                                    'first_' + side + '_close_position_vegas',
-                                                    'first_' + side + '_close_position_final_excessive', 'first_' + side + '_close_position_final_conservative',
-                                                    'first_' + side + '_close_position_final_excessive_strict', 'first_' + side + '_close_position_final_conservative_strict',
-                                                                                                         'first_selected_' + side + '_close_position_guppy1',
-                                                                                                         'first_selected_' + side + '_close_position_guppy2',
-                                                                                                         'first_selected_' + side + '_close_position_vegas',
-                                                                                                         'first_selected_' + side + '_close_position_final_excessive',
-                                                                                                         'first_selected_' + side + '_close_position_final_conservative',
-                                                                                                        exceed_vegas,
-                                                                                                        num_guppy_bars,
-                                                                                                        group_most_passive_price, entry_point_price, side
-                                                                                                         ))
+                                                    guppy1 = 'first_' + side + '_close_position_guppy1',
+                                                    guppy2 = 'first_' + side + '_close_position_guppy2',
+                                                    vegas = 'first_' + side + '_close_position_vegas',
+                                                    excessive1 = 'first_' + side + '_close_position_final_excessive1',
+                                                    excessive2 = 'first_' + side + '_close_position_final_excessive2',
+                                                    conservative = 'first_' + side + '_close_position_final_conservative',
+                                                    excessive_strict = 'first_' + side + '_close_position_final_excessive_strict',
+                                                    conservative_strict = 'first_' + side + '_close_position_final_conservative_strict',
+                                                    selected_guppy1 = 'first_selected_' + side + '_close_position_guppy1',
+                                                    selected_guppy2 = 'first_selected_' + side + '_close_position_guppy2',
+                                                    selected_vegas = 'first_selected_' + side + '_close_position_vegas',
+                                                    selected_excessive1 = 'first_selected_' + side + '_close_position_final_excessive1',
+                                                    selected_excessive2 = 'first_selected_' + side + '_close_position_final_excessive2',
+                                                    selected_conservative = 'first_selected_' + side + '_close_position_final_conservative',
+                                                    exceed_vegas = exceed_vegas,
+                                                    num_guppy_bars = num_guppy_bars,
+                                                    group_most_passive_price = group_most_passive_price, entry_point_price = entry_point_price, side = side
+                                                     ))
 
                     # print("After here side_df:")
                     # print(side_df.tail(100))
@@ -3643,14 +3715,14 @@ class CurrencyTrader(threading.Thread):
                     temp_df = temp_df.fillna(0)
 
                     for col in ['first_selected_' + side + '_close_position_guppy1','first_selected_' + side + '_close_position_guppy2', 'first_selected_' + side + '_close_position_vegas',
-                                                                                                     'first_selected_' + side + '_close_position_final_excessive',
+                                                                                                     'first_selected_' + side + '_close_position_final_excessive1',
+                                                                                                     'first_selected_' + side + '_close_position_final_excessive2',
                                                                                                      'first_selected_' + side + '_close_position_final_conservative']:
                         self.data_df[col] = np.where(
                             temp_df[col] == 1,
                             True,
                             False
                         )
-
 
 
 
@@ -3724,7 +3796,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_sell_close_position_guppy1'] = self.data_df['first_selected_sell_close_position_guppy1'].cumsum()
                 self.data_df['cum_sell_close_position_guppy2'] = self.data_df['first_selected_sell_close_position_guppy2'].cumsum()
                 self.data_df['cum_sell_close_position_vegas'] = self.data_df['first_selected_sell_close_position_vegas'].cumsum()
-                self.data_df['cum_sell_close_position_final_excessive'] = self.data_df['first_selected_sell_close_position_final_excessive'].cumsum()
+                self.data_df['cum_sell_close_position_final_excessive1'] = self.data_df['first_selected_sell_close_position_final_excessive1'].cumsum()
+                self.data_df['cum_sell_close_position_final_excessive2'] = self.data_df['first_selected_sell_close_position_final_excessive2'].cumsum()
                 self.data_df['cum_sell_close_position_final_conservative'] = self.data_df['first_selected_sell_close_position_final_conservative'].cumsum()
 
                 self.data_df['cum_special2_sell_close_position'] = self.data_df['first_actual_special_sell_close_position'].cumsum()
@@ -3737,7 +3810,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_buy_close_position_guppy1'] = self.data_df['first_selected_buy_close_position_guppy1'].cumsum()
                 self.data_df['cum_buy_close_position_guppy2'] = self.data_df['first_selected_buy_close_position_guppy2'].cumsum()
                 self.data_df['cum_buy_close_position_vegas'] = self.data_df['first_selected_buy_close_position_vegas'].cumsum()
-                self.data_df['cum_buy_close_position_final_excessive'] = self.data_df['first_selected_buy_close_position_final_excessive'].cumsum()
+                self.data_df['cum_buy_close_position_final_excessive1'] = self.data_df['first_selected_buy_close_position_final_excessive1'].cumsum()
+                self.data_df['cum_buy_close_position_final_excessive2'] = self.data_df['first_selected_buy_close_position_final_excessive2'].cumsum()
                 self.data_df['cum_buy_close_position_final_conservative'] = self.data_df['first_selected_buy_close_position_final_conservative'].cumsum()
 
                 self.data_df['cum_special2_buy_close_position'] = self.data_df['first_actual_special_buy_close_position'].cumsum()
@@ -3747,13 +3821,15 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_buy_stop_loss_conservative'] = self.data_df['first_buy_stop_loss_conservative'].cumsum()
 
                 cum_sell_close_cols = [
-                                       'cum_sell_close_position_guppy1', 'cum_sell_close_position_guppy2', 'cum_sell_close_position_vegas', 'cum_sell_close_position_final_excessive',
+                                       'cum_sell_close_position_guppy1', 'cum_sell_close_position_guppy2', 'cum_sell_close_position_vegas',
+                                       'cum_sell_close_position_final_excessive1', 'cum_sell_close_position_final_excessive2',
                                        'cum_sell_close_position_final_conservative',
                                        'cum_special2_sell_close_position', 'cum_sell_close_position_excessive', 'cum_sell_close_position_conservative',
                                       'cum_sell_stop_loss_excessive', 'cum_sell_stop_loss_conservative']
 
                 cum_buy_close_cols = [
-                                      'cum_buy_close_position_guppy1', 'cum_buy_close_position_guppy2', 'cum_buy_close_position_vegas', 'cum_buy_close_position_final_excessive',
+                                      'cum_buy_close_position_guppy1', 'cum_buy_close_position_guppy2', 'cum_buy_close_position_vegas',
+                                      'cum_buy_close_position_final_excessive1', 'cum_buy_close_position_final_excessive2',
                                        'cum_buy_close_position_final_conservative',
                                       'cum_special2_buy_close_position', 'cum_buy_close_position_excessive', 'cum_buy_close_position_conservative',
                                       'cum_buy_stop_loss_excessive', 'cum_buy_stop_loss_conservative']
@@ -3789,7 +3865,8 @@ class CurrencyTrader(threading.Thread):
                     'cum_buy_close_position_guppy1' : 'cum_buy_close_position_guppy1_for_buy',
                     'cum_buy_close_position_guppy2' : 'cum_buy_close_position_guppy2_for_buy',
                     'cum_buy_close_position_vegas' : 'cum_buy_close_position_vegas_for_buy',
-                    'cum_buy_close_position_final_excessive' : 'cum_buy_close_position_final_excessive_for_buy',
+                    'cum_buy_close_position_final_excessive1' : 'cum_buy_close_position_final_excessive1_for_buy',
+                    'cum_buy_close_position_final_excessive2': 'cum_buy_close_position_final_excessive2_for_buy',
                     'cum_buy_close_position_final_conservative' : 'cum_buy_close_position_final_conservative_for_buy',
                     'cum_special2_buy_close_position' : 'cum_special2_buy_close_position_for_buy',
                     'cum_buy_close_position_excessive' : 'cum_buy_close_position_excessive_for_buy',
@@ -3809,7 +3886,8 @@ class CurrencyTrader(threading.Thread):
                     'cum_sell_close_position_guppy1' : 'cum_sell_close_position_guppy1_for_sell',
                     'cum_sell_close_position_guppy2' : 'cum_sell_close_position_guppy2_for_sell',
                     'cum_sell_close_position_vegas' : 'cum_sell_close_position_vegas_for_sell',
-                    'cum_sell_close_position_final_excessive' : 'cum_sell_close_position_final_excessive_for_sell',
+                    'cum_sell_close_position_final_excessive1' : 'cum_sell_close_position_final_excessive1_for_sell',
+                    'cum_sell_close_position_final_excessive2': 'cum_sell_close_position_final_excessive2_for_sell',
                     'cum_sell_close_position_final_conservative' : 'cum_sell_close_position_final_conservative_for_sell',
                     'cum_special2_sell_close_position' : 'cum_special2_sell_close_position_for_sell',
                     'cum_sell_close_position_excessive' : 'cum_sell_close_position_excessive_for_sell',
@@ -3832,7 +3910,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_buy_close_position_guppy1'] = self.data_df['cum_buy_close_position_guppy1'] - self.data_df['cum_buy_close_position_guppy1_for_buy']
                 self.data_df['num_buy_close_position_guppy2'] = self.data_df['cum_buy_close_position_guppy2'] - self.data_df['cum_buy_close_position_guppy2_for_buy']
                 self.data_df['num_buy_close_position_vegas'] = self.data_df['cum_buy_close_position_vegas'] - self.data_df['cum_buy_close_position_vegas_for_buy']
-                self.data_df['num_buy_close_position_final_excessive'] = self.data_df['cum_buy_close_position_final_excessive'] - self.data_df['cum_buy_close_position_final_excessive_for_buy']
+                self.data_df['num_buy_close_position_final_excessive1'] = self.data_df['cum_buy_close_position_final_excessive1'] - self.data_df['cum_buy_close_position_final_excessive1_for_buy']
+                self.data_df['num_buy_close_position_final_excessive2'] = self.data_df['cum_buy_close_position_final_excessive2'] - self.data_df['cum_buy_close_position_final_excessive2_for_buy']
                 self.data_df['num_buy_close_position_final_conservative'] = self.data_df['cum_buy_close_position_final_conservative'] - self.data_df['cum_buy_close_position_final_conservative_for_buy']
 
                 self.data_df['num_special_buy_close_position'] = self.data_df['cum_special2_buy_close_position'] - self.data_df['cum_special2_buy_close_position_for_buy']
@@ -3845,7 +3924,7 @@ class CurrencyTrader(threading.Thread):
                                                                      + self.data_df['num_buy_stop_loss_excessive']
                 self.data_df['num_terminal_buy_close_position'] = self.data_df['num_buy_close_position_conservative'] + \
                                                                   self.data_df['num_buy_stop_loss_conservative'] + \
-                                                                  self.data_df['num_buy_close_position_final_excessive'] +\
+                (self.data_df['num_buy_close_position_final_excessive2'] if support_half_stop_loss else self.data_df['num_buy_close_position_final_excessive1']) +\
                                                                   self.data_df['num_buy_close_position_final_conservative']
 
 
@@ -3854,7 +3933,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_sell_close_position_guppy1'] = self.data_df['cum_sell_close_position_guppy1'] - self.data_df['cum_sell_close_position_guppy1_for_sell']
                 self.data_df['num_sell_close_position_guppy2'] = self.data_df['cum_sell_close_position_guppy2'] - self.data_df['cum_sell_close_position_guppy2_for_sell']
                 self.data_df['num_sell_close_position_vegas'] = self.data_df['cum_sell_close_position_vegas'] - self.data_df['cum_sell_close_position_vegas_for_sell']
-                self.data_df['num_sell_close_position_final_excessive'] = self.data_df['cum_sell_close_position_final_excessive'] - self.data_df['cum_sell_close_position_final_excessive_for_sell']
+                self.data_df['num_sell_close_position_final_excessive1'] = self.data_df['cum_sell_close_position_final_excessive1'] - self.data_df['cum_sell_close_position_final_excessive1_for_sell']
+                self.data_df['num_sell_close_position_final_excessive2'] = self.data_df['cum_sell_close_position_final_excessive2'] - self.data_df['cum_sell_close_position_final_excessive2_for_sell']
                 self.data_df['num_sell_close_position_final_conservative'] = self.data_df['cum_sell_close_position_final_conservative'] - self.data_df['cum_sell_close_position_final_conservative_for_sell']
 
 
@@ -3868,7 +3948,7 @@ class CurrencyTrader(threading.Thread):
                                                                      + self.data_df['num_sell_stop_loss_excessive']
                 self.data_df['num_terminal_sell_close_position'] = self.data_df['num_sell_close_position_conservative'] + \
                                                                   self.data_df['num_sell_stop_loss_conservative'] + \
-                                                                  self.data_df['num_sell_close_position_final_excessive'] +\
+                    (self.data_df['num_sell_close_position_final_excessive2'] if support_half_stop_loss else self.data_df['num_sell_close_position_final_excessive1']) +\
                                                                   self.data_df['num_sell_close_position_final_conservative']
 
 
@@ -3887,8 +3967,9 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                self.data_df['show_buy_close_position_final_excessive'] = self.data_df['first_selected_buy_close_position_final_excessive'] & (self.data_df['num_terminal_buy_close_position'] == 0)
+                self.data_df['show_buy_close_position_final_excessive1'] = self.data_df['first_selected_buy_close_position_final_excessive1'] & (self.data_df['num_terminal_buy_close_position'] == 0)
                                                     #((self.data_df['num_buy_close_position_guppy'] > 0) | (self.data_df['num_buy_close_position_vegas'] > 0)) &\
+                self.data_df['show_buy_close_position_final_excessive2'] = self.data_df['first_selected_buy_close_position_final_excessive2'] & (self.data_df['num_terminal_buy_close_position'] == 0)
 
 
 
@@ -3932,15 +4013,14 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                self.data_df['show_sell_close_position_final_excessive'] = self.data_df['first_selected_sell_close_position_final_excessive'] & (self.data_df['num_terminal_sell_close_position'] == 0)
+                self.data_df['show_sell_close_position_final_excessive1'] = self.data_df['first_selected_sell_close_position_final_excessive1'] & (self.data_df['num_terminal_sell_close_position'] == 0)
                                                     #((self.data_df['num_sell_close_position_guppy'] > 0) | (self.data_df['num_sell_close_position_vegas'] > 0)) &\
+                self.data_df['show_sell_close_position_final_excessive2'] = self.data_df['first_selected_sell_close_position_final_excessive2'] & (self.data_df['num_terminal_sell_close_position'] == 0)
 
 
 
                 self.data_df['show_sell_close_position_final_conservative'] = self.data_df['first_selected_sell_close_position_final_conservative'] & (self.data_df['num_terminal_sell_close_position'] == 0)
                                                                              #((self.data_df['num_sell_close_position_guppy'] == 0) & (self.data_df['num_sell_close_position_vegas'] == 0)) &\
-
-
 
 
                 self.data_df['show_special_sell_close_position'] = self.data_df['first_actual_special_sell_close_position'] & \
@@ -4078,10 +4158,16 @@ class CurrencyTrader(threading.Thread):
                 msg = "Close Short Position Phase 1 based on vegas for " + self.currency + " at " + current_time
                 if is_send_email:
                     sendEmail(msg, msg + "  Close 1/3 of remaining position")
-            if self.data_df.iloc[-1]['show_sell_close_position_final_excessive']:
+            if self.data_df.iloc[-1]['show_sell_close_position_final_excessive1']:
+                msg = "Close Short Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
+                add_msg = " Close 1/2 of remaining position" if support_half_stop_loss else " Close all remaining position"
+                if is_send_email:
+                    sendEmail(msg, msg + add_msg)
+            if self.data_df.iloc[-1]['show_sell_close_position_final_excessive2']:
                 msg = "Close Short Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
                 if is_send_email:
                     sendEmail(msg, msg + "  Close all remaining position")
+
             if self.data_df.iloc[-1]['show_sell_close_position_final_conservative']:
                 msg = "Close Short Position Phase 1 Stop loss conservative for " + self.currency + " at " + current_time
                 if is_send_email:
@@ -4184,10 +4270,16 @@ class CurrencyTrader(threading.Thread):
                 msg = "Close Long Position Phase 1 based on vegas for " + self.currency + " at " + current_time
                 if is_send_email:
                     sendEmail(msg, msg + "  Close 1/3 of remaining position")
-            if self.data_df.iloc[-1]['show_buy_close_position_final_excessive']:
+            if self.data_df.iloc[-1]['show_buy_close_position_final_excessive1']:
+                msg = "Close Long Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
+                add_msg = " Close 1/2 of remaining position" if support_half_stop_loss else " Close all remaining position"
+                if is_send_email:
+                    sendEmail(msg, msg + add_msg)
+            if self.data_df.iloc[-1]['show_buy_close_position_final_excessive2']:
                 msg = "Close Long Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
                 if is_send_email:
                     sendEmail(msg, msg + "  Close all remaining position")
+
             if self.data_df.iloc[-1]['show_buy_close_position_final_conservative']:
                 msg = "Close Long Position Phase 1 Stop loss conservative for " + self.currency + " at " + current_time
                 if is_send_email:

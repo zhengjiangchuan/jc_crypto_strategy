@@ -23,6 +23,10 @@ import  matplotlib.ticker as plticker
 
 import matplotlib.dates as mdates
 
+#from instrument_trader import support_half_stop_loss
+
+support_half_stop_loss = False
+
 import gzip
 
 pd.set_option('display.max_rows', 1000)
@@ -441,8 +445,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_sell_close_points_guppy2 = which(sub_data['show_sell_close_position_guppy2'])
         if 'show_sell_close_position_vegas' in sub_data.columns:
             show_sell_close_points_vegas = which(sub_data['show_sell_close_position_vegas'])
-        if 'show_sell_close_position_final_excessive' in sub_data.columns:
-            show_sell_close_points_final_excessive = which(sub_data['show_sell_close_position_final_excessive'])
+        if 'show_sell_close_position_final_excessive1' in sub_data.columns:
+            show_sell_close_points_final_excessive1 = which(sub_data['show_sell_close_position_final_excessive1'])
+        if 'show_sell_close_position_final_excessive2' in sub_data.columns:
+            show_sell_close_points_final_excessive2 = which(sub_data['show_sell_close_position_final_excessive2'])
         if 'show_sell_close_position_final_conservative' in sub_data.columns:
             show_sell_close_points_final_conservative = which(sub_data['show_sell_close_position_final_conservative'])
 
@@ -506,8 +512,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_buy_close_points_guppy2 = which(sub_data['show_buy_close_position_guppy2'])
         if 'show_buy_close_position_vegas' in sub_data.columns:
             show_buy_close_points_vegas = which(sub_data['show_buy_close_position_vegas'])
-        if 'show_buy_close_position_final_excessive' in sub_data.columns:
-            show_buy_close_points_final_excessive = which(sub_data['show_buy_close_position_final_excessive'])
+        if 'show_buy_close_position_final_excessive1' in sub_data.columns:
+            show_buy_close_points_final_excessive1 = which(sub_data['show_buy_close_position_final_excessive1'])
+        if 'show_buy_close_position_final_excessive2' in sub_data.columns:
+            show_buy_close_points_final_excessive2 = which(sub_data['show_buy_close_position_final_excessive2'])
         if 'show_buy_close_position_final_conservative' in sub_data.columns:
             show_buy_close_points_final_conservative = which(sub_data['show_buy_close_position_final_conservative'])
 
@@ -614,9 +622,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                 for sell_close_point in show_sell_close_points_vegas:
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkgreen')
 
-            if 'show_sell_close_position_final_excessive' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_excessive:
+            if 'show_sell_close_position_final_excessive1' in sub_data.columns:
+                for sell_close_point in show_sell_close_points_final_excessive1:
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'dimgray' if support_half_stop_loss else 'black' )
+
+            if 'show_sell_close_position_final_excessive2' in sub_data.columns:
+                for sell_close_point in show_sell_close_points_final_excessive2:
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
+
 
             if 'show_sell_close_position_final_conservative' in sub_data.columns:
                 for sell_close_point in show_sell_close_points_final_conservative:
@@ -711,14 +724,18 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                 for buy_close_point in show_buy_close_points_guppy2:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
 
-
             if 'show_buy_close_position_vegas' in sub_data.columns:
                 for buy_close_point in show_buy_close_points_vegas:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
 
-            if 'show_buy_close_position_final_excessive' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_excessive:
+            if 'show_buy_close_position_final_excessive1' in sub_data.columns:
+                for buy_close_point in show_buy_close_points_final_excessive1:
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'dimgray' if support_half_stop_loss else 'black' )
+
+            if 'show_buy_close_position_final_excessive2' in sub_data.columns:
+                for buy_close_point in show_buy_close_points_final_excessive2:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
+
 
             if 'show_buy_close_position_final_conservative' in sub_data.columns:
                 for buy_close_point in show_buy_close_points_final_conservative:
