@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['NZDUSD'])]
 
 
 # print("currency_df:")
@@ -420,9 +420,9 @@ print("Finished trading *********************************")
 if True:
     print("Sleeping")
     time.sleep(10)
-    #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new"
+    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
+    #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
     print("Wakeup")
 
