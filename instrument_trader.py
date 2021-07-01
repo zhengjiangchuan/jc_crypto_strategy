@@ -154,7 +154,7 @@ class CurrencyTrader(threading.Thread):
 
         self.print_to_console = True
 
-        self.is_cut_data = True
+        self.is_cut_data = False
 
         self.data_df_backup100 = None
         self.data_df_backup200 = None
@@ -3613,7 +3613,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                    # if 'buy_point_id' in x.columns:
+                    # if 'sell_point_id' in x.columns:
                     #     y = x.copy()
                     #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive1 : 'excessive1', excessive2 : 'excessive2',  conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
@@ -3624,7 +3624,7 @@ class CurrencyTrader(threading.Thread):
                     #
                     #     print("Dig Goup:")
                     #     conditions = reduce(lambda left, right: left | right, [y[col] for col in ['guppy1', 'guppy2', 'vegas', 'excessive1', 'excessive2', 'conservative']])
-                    #     #y = y[conditions]
+                    #     y = y[conditions]
                     #     print(y)
 
                     return x
