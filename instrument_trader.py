@@ -154,7 +154,7 @@ class CurrencyTrader(threading.Thread):
 
         self.print_to_console = True
 
-        self.is_cut_data = True
+        self.is_cut_data = False
 
         self.data_df_backup100 = None
         self.data_df_backup200 = None
