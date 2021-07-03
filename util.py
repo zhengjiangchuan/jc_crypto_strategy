@@ -453,6 +453,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_sell_close_points_final_conservative = which(sub_data['show_sell_close_position_final_conservative'])
         if 'show_sell_close_position_final_simple' in sub_data.columns:
             show_sell_close_points_final_simple = which(sub_data['show_sell_close_position_final_simple'])
+        if 'show_sell_close_position_final_quick' in sub_data.columns:
+            show_sell_close_points_final_quick = which(sub_data['show_sell_close_position_final_quick'])
 
 
 
@@ -522,6 +524,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_buy_close_points_final_conservative = which(sub_data['show_buy_close_position_final_conservative'])
         if 'show_buy_close_position_final_simple' in sub_data.columns:
             show_buy_close_points_final_simple = which(sub_data['show_buy_close_position_final_simple'])
+        if 'show_buy_close_position_final_quick' in sub_data.columns:
+            show_buy_close_points_final_quick = which(sub_data['show_buy_close_position_final_quick'])
 
 
 
@@ -551,8 +555,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             #     axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'blue')
 
             ####################################
-            for buy_real_point in buy_real_points_reverse:
-                axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'darkblue')
 
             if 'first_final_buy_fire_exclude' in sub_data.columns:
                 for buy_real_point_exclude in buy_real_points_reverse_exclude:
@@ -561,6 +563,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             if 'first_buy_fire_magic_exclude' in sub_data.columns:
                 for buy_real_point_exclude in buy_real_points_magic_exclude:
                     axes.plot(int_time_series[buy_real_point_exclude], sub_data.iloc[buy_real_point_exclude]['close'], marker = long_marker, markersize = 15, color = 'darkturquoise')
+
+
+            for buy_real_point in buy_real_points_reverse:
+                axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'darkblue')
+
 
             ####################################
 
@@ -644,6 +651,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                 for sell_close_point in show_sell_close_points_final_simple:
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
 
+            if 'show_sell_close_position_final_quick' in sub_data.columns:
+                for sell_close_point in show_sell_close_points_final_quick:
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
+
 
 
 
@@ -662,8 +673,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             #     axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'red')
 
             ####################################
-            for sell_real_point in sell_real_points_reverse:
-                axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'darkred')
 
             if 'first_final_sell_fire_exclude' in sub_data.columns:
                 for sell_real_point_exclude in sell_real_points_reverse_exclude:
@@ -672,6 +681,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             if 'first_sell_fire_magic_exclude' in sub_data.columns:
                 for sell_real_point_exclude in sell_real_points_magic_exclude:
                     axes.plot(int_time_series[sell_real_point_exclude], sub_data.iloc[sell_real_point_exclude]['close'], marker = short_marker, markersize = 15, color = 'violet')
+
+
+            for sell_real_point in sell_real_points_reverse:
+                axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'darkred')
+
 
             ####################################
 
@@ -751,6 +765,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
             if 'show_buy_close_position_final_simple' in sub_data.columns:
                 for buy_close_point in show_buy_close_points_final_simple:
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
+
+            if 'show_buy_close_position_final_quick' in sub_data.columns:
+                for buy_close_point in show_buy_close_points_final_quick:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
 
 

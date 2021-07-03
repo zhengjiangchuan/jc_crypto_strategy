@@ -91,7 +91,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADJPY', 'EURCAD'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
+currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
 
 
 # print("currency_df:")
@@ -100,8 +100,10 @@ currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
 # currency_df = currency_df[currency_df['currency'].isin(['CHFJPY', 'EURUSD', 'GBPUSD', 'USDCAD', 'EURJPY',
 #                                                         'EURCHF', 'GBPCHF', 'USDCHF'])]
 
-# currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'CADJPY', 'EURCHF',  'EURNZD', 'EURUSD',
-#                                                         'GBPJPY', 'NZDCHF', 'USDCHF'])]
+#selected_ones = ['AUDCHF', 'AUDJPY','AUDUSD','EURGBP','EURJPY','EURUSD','GBPJPY','GBPUSD','NZDCAD','NZDUSD']
+selected_ones = ['AUDJPY']
+
+#currency_df = currency_df[currency_df['currency'].isin(selected_ones)]
 
 print("currency_df:")
 print(currency_df)
@@ -420,7 +422,7 @@ print("Finished trading *********************************")
 if False:
     print("Sleeping")
     time.sleep(10)
-    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2"
+    dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -439,7 +441,7 @@ if False:
     for symbol_folder in symbol_folders:
 
 
-        # if symbol_folder[-6:] not in ['EURCHF']:
+        # if symbol_folder[-6:] not in selected_ones:
         #     continue
 
         print(symbol_folder)
