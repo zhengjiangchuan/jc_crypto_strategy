@@ -133,6 +133,8 @@ use_quick_stop_loss = True
 
 quick_threshold = 15
 
+is_immediately_in = False
+
 #support_half_stop_loss = False
 
 class CurrencyTrader(threading.Thread):
@@ -3814,7 +3816,7 @@ class CurrencyTrader(threading.Thread):
                                     #x.at[x.index[i], selected_quick] = 1
                                     #total_quick += 1
 
-                            if quick_ready and i > last_quick_ready:
+                            if quick_ready and (is_immediately_in or i > last_quick_ready):
                                 # if row[enter_guppy]:
                                 #     quick_ready = False
                                 # elif row[passive_than_guppy]:
