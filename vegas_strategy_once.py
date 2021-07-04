@@ -428,7 +428,7 @@ if True:
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0704\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200"
+    dest_folder = "C:\\Forex\\new_experiments\\0704\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 

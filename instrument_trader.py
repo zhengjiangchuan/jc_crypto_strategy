@@ -3499,7 +3499,7 @@ class CurrencyTrader(threading.Thread):
                              ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0)
                 #  self.data_df['is_guppy_aligned_short']
 
-                self.data_df['buy_close_position_final_quick'] = (self.data_df['buy_close_position_final_quick1']) # | self.data_df['buy_close_position_final_quick2']) #&\
+                self.data_df['buy_close_position_final_quick'] = (self.data_df['buy_close_position_final_quick1'] | self.data_df['buy_close_position_final_quick2']) #&\
                                                                  #(~self.data_df['is_needle_bar'])
                 #((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
 
@@ -3518,7 +3518,7 @@ class CurrencyTrader(threading.Thread):
                             ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0) #&\
                 # self.data_df['is_guppy_aligned_long']
 
-                self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1']) # | self.data_df['sell_close_position_final_quick2']) #&\
+                self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1'] | self.data_df['sell_close_position_final_quick2'])
                                                                  #(~self.data_df['is_needle_bar'])
 
 
