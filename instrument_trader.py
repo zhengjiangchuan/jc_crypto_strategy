@@ -131,7 +131,7 @@ use_simple_stop_loss = False
 
 use_quick_stop_loss = True
 
-quick_threshold = 10
+quick_threshold = 15
 
 #support_half_stop_loss = False
 
@@ -3230,6 +3230,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['bar_above_guppy'] = self.data_df['min_price'] > self.data_df['highest_guppy']
                 self.data_df['bar_below_guppy'] = self.data_df['max_price'] < self.data_df['lowest_guppy']
 
+                self.data_df['bar_strict_above_guppy'] = self.data_df['low'] > self.data_df['highest_guppy']
+                self.data_df['bar_strict_below_guppy'] = self.data_df['high'] < self.data_df['lowest_guppy']
+
                 self.data_df['bar_above_passive_guppy'] = (self.data_df['low'] > self.data_df['lowest_guppy']) & (self.data_df['high'] > self.data_df['guppy4']) #Modify
                 self.data_df['bar_below_passive_guppy'] = (self.data_df['high'] < self.data_df['highest_guppy']) & (self.data_df['low'] < self.data_df['guppy3'])
 
@@ -3245,6 +3248,9 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['cum_bar_above_guppy'] = self.data_df['bar_above_guppy'].cumsum()
                 self.data_df['cum_bar_below_guppy'] = self.data_df['bar_below_guppy'].cumsum()
+
+                self.data_df['cum_bar_strict_above_guppy'] = self.data_df['bar_strict_above_guppy'].cumsum()
+                self.data_df['cum_bar_strict_below_guppy'] = self.data_df['bar_strict_below_guppy'].cumsum()
 
                 self.data_df['cum_bar_above_passive_guppy'] = self.data_df['bar_above_passive_guppy'].cumsum()
                 self.data_df['cum_bar_below_passive_guppy'] = self.data_df['bar_below_passive_guppy'].cumsum()
@@ -3266,13 +3272,13 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_is_trapped_in_long_guppy'] = self.data_df['is_trapped_in_long_guppy'].cumsum()
 
 
-                cum_buy_cols = ['cum_bar_above_guppy', 'cum_bar_above_passive_guppy',  'cum_above_vegas', 'cum_num_low_go_down_strict',
+                cum_buy_cols = ['cum_bar_above_guppy', 'cum_bar_strict_above_guppy', 'cum_bar_above_passive_guppy',  'cum_above_vegas', 'cum_num_low_go_down_strict',
                                 'cum_is_reach_vegas_from_btm', 'cum_is_trapped_in_short_guppy']
-                cum_sell_cols = ['cum_bar_below_guppy', 'cum_bar_below_passive_guppy',  'cum_below_vegas', 'cum_num_high_go_up_strict',
+                cum_sell_cols = ['cum_bar_below_guppy', 'cum_bar_strict_below_guppy', 'cum_bar_below_passive_guppy',  'cum_below_vegas', 'cum_num_high_go_up_strict',
                                  'cum_is_reach_vegas_from_top', 'cum_is_trapped_in_long_guppy']
 
                 for cum_col in cum_buy_cols + cum_sell_cols:
-                    if 'strict' not in cum_col:
+                    if 'strict' not in cum_col or 'go' not in cum_col:
                         self.data_df[cum_col] = self.data_df[cum_col].shift(1)
                         self.data_df.at[0, cum_col] = 0
                         self.data_df[cum_col] = self.data_df[cum_col].astype(int)
@@ -3299,6 +3305,7 @@ class CurrencyTrader(threading.Thread):
                 #print("type here1: " + str(type(temp_df['cum_bar_above_guppy'])))
                 temp_df = temp_df.rename(columns = {
                     'cum_bar_above_guppy' : 'cum_bar_above_guppy_for_buy',
+                    'cum_bar_strict_above_guppy': 'cum_bar_strict_above_guppy_for_buy',
                     'cum_bar_above_passive_guppy' : 'cum_bar_above_passive_guppy_for_buy',
                     'cum_above_vegas' : 'cum_above_vegas_for_buy',
                     'cum_num_low_go_down_strict' : 'cum_num_low_go_down_strict_for_buy',
@@ -3314,6 +3321,7 @@ class CurrencyTrader(threading.Thread):
                 temp_df = pd.merge(temp_df, df_sell, on = ['id'], how = 'left')
                 temp_df = temp_df.rename(columns = {
                     'cum_bar_below_guppy' : 'cum_bar_below_guppy_for_sell',
+                    'cum_bar_strict_below_guppy': 'cum_bar_strict_below_guppy_for_sell',
                     'cum_bar_below_passive_guppy' : 'cum_bar_below_passive_guppy_for_sell',
                     'cum_below_vegas' : 'cum_below_vegas_for_sell',
                     'cum_num_high_go_up_strict' : 'cum_num_high_go_up_strict_for_sell',
@@ -3339,6 +3347,7 @@ class CurrencyTrader(threading.Thread):
                 # print("type 2: " + str(type(self.data_df['cum_bar_above_guppy_for_buy'])))
 
                 self.data_df['num_bar_above_guppy_for_buy'] = self.data_df['cum_bar_above_guppy'] - self.data_df['cum_bar_above_guppy_for_buy']
+                self.data_df['num_bar_strict_above_guppy_for_buy'] = self.data_df['cum_bar_strict_above_guppy'] - self.data_df['cum_bar_strict_above_guppy_for_buy']
                 self.data_df['num_bar_above_passive_guppy_for_buy'] = self.data_df['cum_bar_above_passive_guppy'] - self.data_df['cum_bar_above_passive_guppy_for_buy']
                 self.data_df['num_above_vegas_for_buy'] = self.data_df['cum_above_vegas'] - self.data_df['cum_above_vegas_for_buy']
                 self.data_df['num_low_go_down_strict_for_buy'] = self.data_df['cum_num_low_go_down_strict'] - self.data_df['cum_num_low_go_down_strict_for_buy']
@@ -3347,6 +3356,7 @@ class CurrencyTrader(threading.Thread):
 
 
                 self.data_df['num_bar_below_guppy_for_sell'] = self.data_df['cum_bar_below_guppy'] - self.data_df['cum_bar_below_guppy_for_sell']
+                self.data_df['num_bar_strict_below_guppy_for_sell'] = self.data_df['cum_bar_strict_below_guppy'] - self.data_df['cum_bar_strict_below_guppy_for_sell']
                 self.data_df['num_bar_below_passive_guppy_for_sell'] = self.data_df['cum_bar_below_passive_guppy'] - self.data_df['cum_bar_below_passive_guppy_for_sell']
                 self.data_df['num_below_vegas_for_sell'] = self.data_df['cum_below_vegas'] - self.data_df['cum_below_vegas_for_sell']
                 self.data_df['num_high_go_up_strict_for_sell'] = self.data_df['cum_num_high_go_up_strict'] - self.data_df['cum_num_high_go_up_strict_for_sell']
@@ -3449,8 +3459,8 @@ class CurrencyTrader(threading.Thread):
                                                                   (self.data_df['open'] < self.data_df['highest_guppy']) &\
                                             (self.data_df['num_is_trapped_in_short_guppy'] > 0) & self.data_df['slowest_guppy_at_top'] &\
                 ((self.data_df['close'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < -quick_threshold) &\
-                ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0)
-                #(self.data_df['num_is_reach_vegas_from_btm_for_buy'] == 0) &\
+                ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0) &\
+                (self.data_df['num_is_reach_vegas_from_btm_for_buy'] == 0) & (self.data_df['num_bar_strict_above_guppy_for_buy'] == 0)
 
                 self.data_df['buy_close_position_final_quick2'] = self.data_df['is_negative'] &\
                               ((self.data_df['close'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < -quick_threshold) &\
@@ -3458,7 +3468,7 @@ class CurrencyTrader(threading.Thread):
                              ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0)
                 #  self.data_df['is_guppy_aligned_short']
 
-                self.data_df['buy_close_position_final_quick'] = (self.data_df['buy_close_position_final_quick1'] | self.data_df['buy_close_position_final_quick2']) #&\
+                self.data_df['buy_close_position_final_quick'] = (self.data_df['buy_close_position_final_quick1']) # | self.data_df['buy_close_position_final_quick2']) #&\
                                                                  #(~self.data_df['is_needle_bar'])
                 #((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
 
@@ -3468,8 +3478,8 @@ class CurrencyTrader(threading.Thread):
                                                                    (self.data_df['open'] > self.data_df['lowest_guppy']) &\
                                            (self.data_df['num_is_trapped_in_long_guppy'] > 0) & self.data_df['slowest_guppy_at_btm'] &\
                 ((self.data_df['close'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
-                ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0)
-                #(self.data_df['num_is_reach_vegas_from_top_for_sell'] == 0) &\
+                ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0) &\
+                (self.data_df['num_is_reach_vegas_from_top_for_sell'] == 0) & (self.data_df['num_bar_strict_below_guppy_for_sell'] == 0)
 
                 self.data_df['sell_close_position_final_quick2'] = self.data_df['is_positive'] &\
                               ((self.data_df['close'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
@@ -3477,7 +3487,7 @@ class CurrencyTrader(threading.Thread):
                             ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0) #&\
                 # self.data_df['is_guppy_aligned_long']
 
-                self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1'] | self.data_df['sell_close_position_final_quick2']) #&\
+                self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1']) # | self.data_df['sell_close_position_final_quick2']) #&\
                                                                  #(~self.data_df['is_needle_bar'])
 
 
@@ -3778,6 +3788,17 @@ class CurrencyTrader(threading.Thread):
 
                             #print("time = " + str(row['time']))
 
+
+                            # if row[quick]:# and not quick_ready:
+                            #     #if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0 and total_quick == 0):
+                            #     if (total_excessive == 0 and total_conservative == 0 and total_quick == 0):
+                            #         #print("quick_ready = true")
+                            #         #quick_ready = True
+                            #         #quick_ready_price = row['close']
+                            #         x.at[x.index[i], selected_quick] = 1
+                            #         total_quick += 1
+
+
                             if row[quick]:# and not quick_ready:
                                 #if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0 and total_quick == 0):
                                 if (total_excessive == 0 and total_conservative == 0 and total_quick == 0):
@@ -3805,7 +3826,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-
+                            #This will never be used
                             # if total_quick == 1 and total_excessive == 0 and total_conservative == 0:
                             #     if row[exceed_vegas] == 0 and row[enter_guppy]:
                             #         x.at[x.index[i], reentry] = 1
@@ -4418,9 +4439,10 @@ class CurrencyTrader(threading.Thread):
                 self.data_df = self.data_df.drop(columns = [col for col in self.data_df.columns if 'temp' in col and 'temporary' not in col])
 
 
-
-
-
+                #
+                # print("Debug here:")
+                # print(self.data_df[self.data_df['time'] == datetime(2021,6,1,7,0,0)][['time', 'show_sell_close_position_final_excessive1']])
+                #
 
 
 

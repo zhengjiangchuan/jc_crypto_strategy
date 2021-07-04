@@ -459,7 +459,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
 
 
-
         buy_real_points_macd = which(sub_data['first_buy_real_fire4'])
         buy_real_points_simple = which(sub_data['first_buy_real_fire5'])
 
