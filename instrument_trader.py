@@ -135,6 +135,8 @@ quick_threshold = 15
 
 is_immediately_in = False
 
+urgent_stop_loss_threshold = 200
+
 #support_half_stop_loss = False
 
 class CurrencyTrader(threading.Thread):
@@ -3246,6 +3248,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['is_trapped_in_long_guppy'] = self.data_df['bar_below_passive_guppy'] & self.data_df['aligned_long_condition_go_on']
 
 
+                self.data_df['cum_strongly_strict_half_aligned_short_condition'] = self.data_df['strongly_half_aligned_short_condition'].cumsum()
+                self.data_df['cum_strongly_strict_half_aligned_long_condition'] = self.data_df['strongly_half_aligned_long_condition'].cumsum()
+
+                self.data_df['cum_aligned_short_condition_go_on'] = self.data_df['aligned_short_condition_go_on'].cumsum()
+                self.data_df['cum_aligned_long_condition_go_on'] = self.data_df['aligned_long_condition_go_on'].cumsum()
+
 
 
                 self.data_df['cum_bar_above_guppy'] = self.data_df['bar_above_guppy'].cumsum()
@@ -3274,9 +3282,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_is_trapped_in_long_guppy'] = self.data_df['is_trapped_in_long_guppy'].cumsum()
 
 
-                cum_buy_cols = ['cum_bar_above_guppy', 'cum_bar_strict_above_guppy', 'cum_bar_above_passive_guppy',  'cum_above_vegas', 'cum_num_low_go_down_strict',
+                cum_buy_cols = ['cum_strongly_strict_half_aligned_short_condition', 'cum_aligned_short_condition_go_on',
+                                'cum_bar_above_guppy', 'cum_bar_strict_above_guppy', 'cum_bar_above_passive_guppy',  'cum_above_vegas', 'cum_num_low_go_down_strict',
                                 'cum_is_reach_vegas_from_btm', 'cum_is_trapped_in_short_guppy']
-                cum_sell_cols = ['cum_bar_below_guppy', 'cum_bar_strict_below_guppy', 'cum_bar_below_passive_guppy',  'cum_below_vegas', 'cum_num_high_go_up_strict',
+
+                cum_sell_cols = ['cum_strongly_strict_half_aligned_long_condition', 'cum_aligned_long_condition_go_on',
+                                 'cum_bar_below_guppy', 'cum_bar_strict_below_guppy', 'cum_bar_below_passive_guppy',  'cum_below_vegas', 'cum_num_high_go_up_strict',
                                  'cum_is_reach_vegas_from_top', 'cum_is_trapped_in_long_guppy']
 
                 for cum_col in cum_buy_cols + cum_sell_cols:
@@ -3297,6 +3308,9 @@ class CurrencyTrader(threading.Thread):
                 temp_df = self.data_df[['id', 'buy_point_temp', 'sell_point_temp']]
                 temp_df = temp_df.fillna(method = 'ffill').fillna(0)
 
+                temp_df['buy_point_duration'] = temp_df['id'] - temp_df['buy_point_temp'] + 1
+                temp_df['sell_point_duration'] = temp_df['id'] - temp_df['sell_point_temp'] + 1
+
                 for col in temp_df.columns:
                     temp_df[col] = temp_df[col].astype(int)
 
@@ -3306,6 +3320,8 @@ class CurrencyTrader(threading.Thread):
 
                 #print("type here1: " + str(type(temp_df['cum_bar_above_guppy'])))
                 temp_df = temp_df.rename(columns = {
+                    'cum_strongly_strict_half_aligned_short_condition' : 'cum_strongly_strict_half_aligned_short_condition_for_buy',
+                    'cum_aligned_short_condition_go_on' : 'cum_aligned_short_condition_go_on_for_buy',
                     'cum_bar_above_guppy' : 'cum_bar_above_guppy_for_buy',
                     'cum_bar_strict_above_guppy': 'cum_bar_strict_above_guppy_for_buy',
                     'cum_bar_above_passive_guppy' : 'cum_bar_above_passive_guppy_for_buy',
@@ -3322,6 +3338,8 @@ class CurrencyTrader(threading.Thread):
                 temp_df['id'] = temp_df['sell_point_temp']
                 temp_df = pd.merge(temp_df, df_sell, on = ['id'], how = 'left')
                 temp_df = temp_df.rename(columns = {
+                    'cum_strongly_strict_half_aligned_long_condition' : 'cum_strongly_strict_half_aligned_long_condition_for_sell',
+                    'cum_aligned_long_condition_go_on' : 'cum_aligned_long_condition_go_on_for_sell',
                     'cum_bar_below_guppy' : 'cum_bar_below_guppy_for_sell',
                     'cum_bar_strict_below_guppy': 'cum_bar_strict_below_guppy_for_sell',
                     'cum_bar_below_passive_guppy' : 'cum_bar_below_passive_guppy_for_sell',
@@ -3332,7 +3350,7 @@ class CurrencyTrader(threading.Thread):
                 })
                 temp_df = temp_df.fillna(0)
 
-                temp_df = temp_df[[col for col in temp_df.columns if 'cum' in col]]
+                temp_df = temp_df[[col for col in temp_df.columns if 'cum' in col or 'duration' in col]]
 
                 for col in temp_df.columns:
                     temp_df[col] = temp_df[col].astype(int)
@@ -3348,6 +3366,11 @@ class CurrencyTrader(threading.Thread):
                 # print("type 1: " + str(type(self.data_df['cum_bar_above_guppy'])))
                 # print("type 2: " + str(type(self.data_df['cum_bar_above_guppy_for_buy'])))
 
+                self.data_df['num_strongly_strict_half_aligned_short_condition_for_buy'] =\
+                    self.data_df['cum_strongly_strict_half_aligned_short_condition'] - self.data_df['cum_strongly_strict_half_aligned_short_condition_for_buy']
+                self.data_df['num_aligned_short_condition_go_on_for_buy'] =\
+                    self.data_df['cum_aligned_short_condition_go_on'] - self.data_df['cum_aligned_short_condition_go_on_for_buy']
+
                 self.data_df['num_bar_above_guppy_for_buy'] = self.data_df['cum_bar_above_guppy'] - self.data_df['cum_bar_above_guppy_for_buy']
                 self.data_df['num_bar_strict_above_guppy_for_buy'] = self.data_df['cum_bar_strict_above_guppy'] - self.data_df['cum_bar_strict_above_guppy_for_buy']
                 self.data_df['num_bar_above_passive_guppy_for_buy'] = self.data_df['cum_bar_above_passive_guppy'] - self.data_df['cum_bar_above_passive_guppy_for_buy']
@@ -3355,6 +3378,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_low_go_down_strict_for_buy'] = self.data_df['cum_num_low_go_down_strict'] - self.data_df['cum_num_low_go_down_strict_for_buy']
                 self.data_df['num_is_reach_vegas_from_btm_for_buy'] = self.data_df['cum_is_reach_vegas_from_btm'] - self.data_df['cum_is_reach_vegas_from_btm_for_buy']
                 self.data_df['num_is_trapped_in_short_guppy'] = self.data_df['cum_is_trapped_in_short_guppy'] - self.data_df['cum_is_trapped_in_short_guppy_for_buy']
+
+
+                self.data_df['num_strongly_strict_half_aligned_long_condition_for_sell'] =\
+                    self.data_df['cum_strongly_strict_half_aligned_long_condition'] - self.data_df['cum_strongly_strict_half_aligned_long_condition_for_sell']
+                self.data_df['num_aligned_long_condition_go_on_for_sell'] =\
+                    self.data_df['cum_aligned_long_condition_go_on'] - self.data_df['cum_aligned_long_condition_go_on_for_sell']
 
 
                 self.data_df['num_bar_below_guppy_for_sell'] = self.data_df['cum_bar_below_guppy'] - self.data_df['cum_bar_below_guppy_for_sell']
@@ -3494,6 +3523,30 @@ class CurrencyTrader(threading.Thread):
 
 
 
+                self.data_df['buy_close_position_final_urgent'] = self.data_df['is_negative'] &\
+                                ((self.data_df['close'] - self.data_df['buy_point_support'])*self.exchange_rate*self.lot_size < -urgent_stop_loss_threshold) &\
+                            (((self.data_df['num_strongly_strict_half_aligned_short_condition_for_buy']/(self.data_df['buy_point_duration']-1) > 0.95)
+                             & self.data_df['strongly_half_aligned_short_condition'])
+                             |\
+                             ((self.data_df['num_aligned_short_condition_go_on_for_buy']/self.data_df['buy_point_duration'] > 0.95)
+                             & self.data_df['aligned_short_condition_go_on'])
+                             )
+
+                self.data_df['sell_close_position_final_urgent'] = self.data_df['is_positive'] &\
+                                ((self.data_df['close'] - self.data_df['sell_point_support'])*self.exchange_rate*self.lot_size > urgent_stop_loss_threshold) &\
+                            (((self.data_df['num_strongly_strict_half_aligned_long_condition_for_sell']/(self.data_df['sell_point_duration']-1) > 0.95)
+                             & self.data_df['strongly_half_aligned_long_condition'])
+                             |\
+                             ((self.data_df['num_aligned_long_condition_go_on_for_sell']/self.data_df['sell_point_duration'] > 0.95)
+                             & self.data_df['aligned_long_condition_go_on'])
+                             )
+
+                #
+                # self.data_df['sell_close_position_final_urgent'] = self.data_df['is_positive'] & (self.data_df['close'] > self.data_df['sell_point_support']) &\
+                #             ((self.data_df['num_strongly_strict_half_aligned_long_condition_for_sell']/(self.data_df['sell_point_duration']-1) > 0.95) |\
+                #              (self.data_df['num_aligned_long_condition_go_on_for_sell']/self.data_df['sell_point_duration'] > 0.95))
+
+
 
 
 
@@ -3630,6 +3683,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['first_buy_close_position_final_quick'] = self.data_df['buy_close_position_final_quick'] & (~self.data_df['prev_buy_close_position_final_quick'])
 
 
+                self.data_df['prev_buy_close_position_final_urgent'] = self.data_df['buy_close_position_final_urgent'].shift(1)
+                self.data_df.at[0, 'prev_buy_close_position_final_urgent'] = False
+                self.data_df['prev_buy_close_position_final_urgent'] = pd.Series(list(self.data_df['prev_buy_close_position_final_urgent']), dtype='bool')
+                self.data_df['first_buy_close_position_final_urgent'] = self.data_df['buy_close_position_final_urgent'] & (~self.data_df['prev_buy_close_position_final_urgent'])
+
+
 
 
 
@@ -3691,6 +3750,11 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev_sell_close_position_final_quick'] = pd.Series(list(self.data_df['prev_sell_close_position_final_quick']), dtype='bool')
                 self.data_df['first_sell_close_position_final_quick'] = self.data_df['sell_close_position_final_quick'] & (~self.data_df['prev_sell_close_position_final_quick'])
 
+                self.data_df['prev_sell_close_position_final_urgent'] = self.data_df['sell_close_position_final_urgent'].shift(1)
+                self.data_df.at[0, 'prev_sell_close_position_final_urgent'] = False
+                self.data_df['prev_sell_close_position_final_urgent'] = pd.Series(list(self.data_df['prev_sell_close_position_final_urgent']), dtype='bool')
+                self.data_df['first_sell_close_position_final_urgent'] = self.data_df['sell_close_position_final_urgent'] & (~self.data_df['prev_sell_close_position_final_urgent'])
+
 
 
 
@@ -3700,9 +3764,9 @@ class CurrencyTrader(threading.Thread):
                     else:
                         return price1 < price2
 
-                def select_close_positions(x, guppy1, guppy2, vegas, excessive1, excessive2, conservative, excessive_strict, conservative_strict, simple, quick,
+                def select_close_positions(x, guppy1, guppy2, vegas, excessive1, excessive2, conservative, excessive_strict, conservative_strict, simple, quick, urgent,
                                                selected_guppy1, selected_guppy2, selected_vegas, selected_excessive1, selected_excessive2, selected_conservative,
-                                               selected_simple, selected_quick, reentry, close, open, most_passive_guppy, most_aggressive_guppy,
+                                               selected_simple, selected_quick, selected_urgent, reentry, close, open, most_passive_guppy, most_aggressive_guppy,
                                            exceed_vegas, enter_guppy, passive_than_guppy, num_guppy_bars,
                                            group_most_passive_price, entry_point_price, side):
                     # print("In select_close_positions:")
@@ -3725,6 +3789,7 @@ class CurrencyTrader(threading.Thread):
                     total_simple = 0
 
                     total_quick = 0
+                    total_urgent = 0
 
                     quick_ready = False
                     quick_ready_price = None
@@ -3745,28 +3810,28 @@ class CurrencyTrader(threading.Thread):
 
                             if row[guppy1]:
 
-                                if total_guppy1 + total_guppy2 <= 1 and total_simple == 0 and total_quick == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                if total_guppy1 + total_guppy2 <= 1 and total_simple == 0 and total_quick == 0 and total_urgent == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_guppy1] = 1
                                     total_guppy1 += 1
 
                             if row[guppy2]:
 
-                                if total_guppy1 + total_guppy2 <= 1 and total_simple == 0 and total_quick == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                if total_guppy1 + total_guppy2 <= 1 and total_simple == 0 and total_quick == 0 and total_urgent == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_guppy2] = 1
                                     total_guppy2 += 1
 
                             if row[vegas]:
-                                if total_vegas <= 1 and total_simple == 0 and total_quick == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                if total_vegas <= 1 and total_simple == 0 and total_quick == 0 and total_urgent == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_vegas] = 1
                                     total_vegas += 1
 
                             if row[quick]:
-                                if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_simple == 0 and total_quick == 0):
+                                if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_simple == 0 and total_quick == 0 and total_urgent == 0):
                                     x.at[x.index[i], selected_quick] = 1
                                     total_quick += 1
 
                             if row[simple]:
-                                if total_simple == 0 and total_quick == 0:
+                                if total_simple == 0 and total_quick == 0 and total_urgent == 0:
                                     x.at[x.index[i], selected_simple] = 1
                                     total_simple += 1
 
@@ -3775,18 +3840,18 @@ class CurrencyTrader(threading.Thread):
 
                             if row[guppy1]:
 
-                                if total_guppy1 + total_guppy2 <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                if total_guppy1 + total_guppy2 <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_guppy1] = 1
                                     total_guppy1 += 1
 
                             if row[guppy2]:
 
-                                if total_guppy1 + total_guppy2 <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                if total_guppy1 + total_guppy2 <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_guppy2] = 1
                                     total_guppy2 += 1
 
                             if row[vegas]:
-                                if total_vegas <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                if total_vegas <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_vegas] = 1
                                     total_vegas += 1
 
@@ -3808,7 +3873,7 @@ class CurrencyTrader(threading.Thread):
 
                             if row[quick]:# and not quick_ready:
                                 #if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0 and total_quick == 0):
-                                if (total_excessive == 0 and total_conservative == 0 and total_quick == 0):
+                                if (total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0):
                                     #print("quick_ready = true")
                                     quick_ready = True
                                     quick_ready_price = row['close']
@@ -3872,7 +3937,7 @@ class CurrencyTrader(threading.Thread):
 
                             if row[excessive1] or row[excessive_strict]:
                                 if (total_guppy1 + total_guppy2 > 0 or total_vegas > 0 or row[exceed_vegas] > 0 or row[num_guppy_bars] >= 3) and\
-                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0:
+                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0:
 
                                     gap = i - last_excessive1
                                     if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
@@ -3889,7 +3954,7 @@ class CurrencyTrader(threading.Thread):
 
                             if row[excessive2] or row[excessive_strict]:
                                 if (total_guppy1 + total_guppy2 > 0 or total_vegas > 0 or row[exceed_vegas] > 0 or row[num_guppy_bars] >= 3) and \
-                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_excessive1 > 0:
+                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_excessive1 > 0:
 
                                     gap = i - last_excessive2
                                     if (raw_total_excessive2 > 0 and i > 0 and last_excessive2 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
@@ -3911,7 +3976,7 @@ class CurrencyTrader(threading.Thread):
                                 #                          'total_conservative' : [total_conservative]})
                                 # print(debug_df)
                                 if total_guppy1 == 0 and total_guppy2 == 0 and total_vegas == 0 and \
-                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0:
+                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0:
 
                                     gap = i - last_conservative
 
@@ -3927,7 +3992,15 @@ class CurrencyTrader(threading.Thread):
                                     raw_total_conservative += 1
                                     last_conservative = i
 
-                        if total_excessive > 0 or total_conservative > 0 or total_quick > 0:
+
+                            if row[urgent]:
+
+                                if total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0:
+                                    x.at[x.index[i], selected_urgent] = 1
+                                    total_urgent += 1
+
+
+                        if total_excessive > 0 or total_conservative > 0 or total_quick > 0 and total_urgent > 0:
                             break
 
 
@@ -3936,8 +4009,9 @@ class CurrencyTrader(threading.Thread):
                     #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive1 : 'excessive1', excessive2 : 'excessive2',  conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
                     #                             simple : 'simple',
-                    #                             quick : 'quick',
+                    #                             quick : 'quick', urgent : 'urgent',
                     #                             selected_quick : 'selected_quick',
+                    #                             selected_urgent: 'selected_urgent',
                     #                             selected_guppy1 : 'selected_guppy1',
                     #                             selected_guppy2: 'selected_guppy2',
                     #                             selected_vegas : 'selected_vegas', selected_excessive1 : 'selected_excessive1', selected_excessive2 : 'selected_excessive2',
@@ -3964,6 +4038,7 @@ class CurrencyTrader(threading.Thread):
 
                                             'first_' + side + '_close_position_final_simple',
                                             'first_' + side + '_close_position_final_quick',
+                                            'first_' + side + '_close_position_final_urgent',
                                             side + '_enter_guppy',
                                             side + '_passive_than_guppy',
                                             
@@ -4004,6 +4079,7 @@ class CurrencyTrader(threading.Thread):
                     side_df['first_selected_' + side + '_close_position_final_conservative'] = 0
                     side_df['first_selected_' + side + '_close_position_final_simple'] = 0
                     side_df['first_selected_' + side + '_close_position_final_quick'] = 0
+                    side_df['first_selected_' + side + '_close_position_final_urgent'] = 0
                     side_df['reentry_' + side] = 0
 
 
@@ -4035,6 +4111,7 @@ class CurrencyTrader(threading.Thread):
                                                     conservative_strict = 'first_' + side + '_close_position_final_conservative_strict',
                                                     simple = 'first_' + side + '_close_position_final_simple',
                                                     quick = 'first_' + side + '_close_position_final_quick',
+                                                    urgent = 'first_' + side + '_close_position_final_urgent',
                                                     selected_guppy1 = 'first_selected_' + side + '_close_position_guppy1',
                                                     selected_guppy2 = 'first_selected_' + side + '_close_position_guppy2',
                                                     selected_vegas = 'first_selected_' + side + '_close_position_vegas',
@@ -4043,6 +4120,7 @@ class CurrencyTrader(threading.Thread):
                                                     selected_conservative = 'first_selected_' + side + '_close_position_final_conservative',
                                                     selected_simple = 'first_selected_' + side + '_close_position_final_simple',
                                                     selected_quick = 'first_selected_' + side + '_close_position_final_quick',
+                                                    selected_urgent = 'first_selected_' + side + '_close_position_final_urgent',
                                                     reentry = 'reentry_' + side,
                                                     close = 'close',
                                                     open = 'open',
@@ -4070,6 +4148,7 @@ class CurrencyTrader(threading.Thread):
                                  'first_selected_' + side + '_close_position_final_conservative',
                                  'first_selected_' + side + '_close_position_final_simple',
                                  'first_selected_' + side + '_close_position_final_quick',
+                                 'first_selected_' + side + '_close_position_final_urgent',
                                  'reentry_' + side]:
                         self.data_df[col] = np.where(
                             temp_df[col] == 1,
@@ -4194,6 +4273,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_sell_close_position_final_conservative'] = self.data_df['first_selected_sell_close_position_final_conservative'].cumsum()
                 self.data_df['cum_sell_close_position_final_simple'] = self.data_df['first_selected_sell_close_position_final_simple'].cumsum()
                 self.data_df['cum_sell_close_position_final_quick'] = self.data_df['first_selected_sell_close_position_final_quick'].cumsum()
+                self.data_df['cum_sell_close_position_final_urgent'] = self.data_df['first_selected_sell_close_position_final_urgent'].cumsum()
+
 
                 self.data_df['cum_special2_sell_close_position'] = self.data_df['first_actual_special_sell_close_position'].cumsum()
                 self.data_df['cum_sell_close_position_excessive'] = self.data_df['first_actual_sell_close_position_excessive'].cumsum()
@@ -4210,6 +4291,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['cum_buy_close_position_final_conservative'] = self.data_df['first_selected_buy_close_position_final_conservative'].cumsum()
                 self.data_df['cum_buy_close_position_final_simple'] = self.data_df['first_selected_buy_close_position_final_simple'].cumsum()
                 self.data_df['cum_buy_close_position_final_quick'] = self.data_df['first_selected_buy_close_position_final_quick'].cumsum()
+                self.data_df['cum_buy_close_position_final_urgent'] = self.data_df['first_selected_buy_close_position_final_urgent'].cumsum()
+
 
                 self.data_df['cum_special2_buy_close_position'] = self.data_df['first_actual_special_buy_close_position'].cumsum()
                 self.data_df['cum_buy_close_position_excessive'] = self.data_df['first_actual_buy_close_position_excessive'].cumsum()
@@ -4221,7 +4304,7 @@ class CurrencyTrader(threading.Thread):
                                        'cum_sell_close_position_guppy1', 'cum_sell_close_position_guppy2', 'cum_sell_close_position_vegas',
                                        'cum_sell_close_position_final_excessive1', 'cum_sell_close_position_final_excessive2',
                                        'cum_sell_close_position_final_conservative', 'cum_sell_close_position_final_simple',
-                                      'cum_sell_close_position_final_quick',
+                                      'cum_sell_close_position_final_quick', 'cum_sell_close_position_final_urgent',
                                        'cum_special2_sell_close_position', 'cum_sell_close_position_excessive', 'cum_sell_close_position_conservative',
                                       'cum_sell_stop_loss_excessive', 'cum_sell_stop_loss_conservative']
 
@@ -4229,7 +4312,7 @@ class CurrencyTrader(threading.Thread):
                                       'cum_buy_close_position_guppy1', 'cum_buy_close_position_guppy2', 'cum_buy_close_position_vegas',
                                       'cum_buy_close_position_final_excessive1', 'cum_buy_close_position_final_excessive2',
                                        'cum_buy_close_position_final_conservative', 'cum_buy_close_position_final_simple',
-                                       'cum_buy_close_position_final_quick',
+                                       'cum_buy_close_position_final_quick', 'cum_buy_close_position_final_urgent',
                                       'cum_special2_buy_close_position', 'cum_buy_close_position_excessive', 'cum_buy_close_position_conservative',
                                       'cum_buy_stop_loss_excessive', 'cum_buy_stop_loss_conservative']
 
@@ -4269,6 +4352,7 @@ class CurrencyTrader(threading.Thread):
                     'cum_buy_close_position_final_conservative' : 'cum_buy_close_position_final_conservative_for_buy',
                     'cum_buy_close_position_final_simple' : 'cum_buy_close_position_final_simple_for_buy',
                     'cum_buy_close_position_final_quick' : 'cum_buy_close_position_final_quick_for_buy',
+                    'cum_buy_close_position_final_urgent': 'cum_buy_close_position_final_urgent_for_buy',
                     'cum_special2_buy_close_position' : 'cum_special2_buy_close_position_for_buy',
                     'cum_buy_close_position_excessive' : 'cum_buy_close_position_excessive_for_buy',
                     'cum_buy_close_position_conservative' : 'cum_buy_close_position_conservative_for_buy',
@@ -4292,6 +4376,7 @@ class CurrencyTrader(threading.Thread):
                     'cum_sell_close_position_final_conservative' : 'cum_sell_close_position_final_conservative_for_sell',
                     'cum_sell_close_position_final_simple' : 'cum_sell_close_position_final_simple_for_sell',
                     'cum_sell_close_position_final_quick' : 'cum_sell_close_position_final_quick_for_sell',
+                    'cum_sell_close_position_final_urgent': 'cum_sell_close_position_final_urgent_for_sell',
                     'cum_special2_sell_close_position' : 'cum_special2_sell_close_position_for_sell',
                     'cum_sell_close_position_excessive' : 'cum_sell_close_position_excessive_for_sell',
                     'cum_sell_close_position_conservative' : 'cum_sell_close_position_conservative_for_sell',
@@ -4318,6 +4403,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_buy_close_position_final_conservative'] = self.data_df['cum_buy_close_position_final_conservative'] - self.data_df['cum_buy_close_position_final_conservative_for_buy']
                 self.data_df['num_buy_close_position_final_simple'] = self.data_df['cum_buy_close_position_final_simple'] - self.data_df['cum_buy_close_position_final_simple_for_buy']
                 self.data_df['num_buy_close_position_final_quick'] = self.data_df['cum_buy_close_position_final_quick'] - self.data_df['cum_buy_close_position_final_quick_for_buy']
+                self.data_df['num_buy_close_position_final_urgent'] = self.data_df['cum_buy_close_position_final_urgent'] - self.data_df['cum_buy_close_position_final_urgent_for_buy']
+
 
 
                 self.data_df['num_special_buy_close_position'] = self.data_df['cum_special2_buy_close_position'] - self.data_df['cum_special2_buy_close_position_for_buy']
@@ -4332,7 +4419,7 @@ class CurrencyTrader(threading.Thread):
                                                                   self.data_df['num_buy_stop_loss_conservative'] + \
                 (self.data_df['num_buy_close_position_final_excessive2'] if support_half_stop_loss else self.data_df['num_buy_close_position_final_excessive1']) +\
                                         self.data_df['num_buy_close_position_final_conservative'] + self.data_df['num_buy_close_position_final_simple'] +\
-                                        self.data_df['num_buy_close_position_final_quick']
+                                        self.data_df['num_buy_close_position_final_quick'] +  self.data_df['num_buy_close_position_final_urgent']
 
 
 
@@ -4345,6 +4432,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_sell_close_position_final_conservative'] = self.data_df['cum_sell_close_position_final_conservative'] - self.data_df['cum_sell_close_position_final_conservative_for_sell']
                 self.data_df['num_sell_close_position_final_simple'] = self.data_df['cum_sell_close_position_final_simple'] - self.data_df['cum_sell_close_position_final_simple_for_sell']
                 self.data_df['num_sell_close_position_final_quick'] = self.data_df['cum_sell_close_position_final_quick'] - self.data_df['cum_sell_close_position_final_quick_for_sell']
+                self.data_df['num_sell_close_position_final_urgent'] = self.data_df['cum_sell_close_position_final_urgent'] - self.data_df['cum_sell_close_position_final_urgent_for_sell']
 
 
 
@@ -4360,7 +4448,7 @@ class CurrencyTrader(threading.Thread):
                                                                   self.data_df['num_sell_stop_loss_conservative'] + \
                     (self.data_df['num_sell_close_position_final_excessive2'] if support_half_stop_loss else self.data_df['num_sell_close_position_final_excessive1']) +\
                                         self.data_df['num_sell_close_position_final_conservative'] + self.data_df['num_sell_close_position_final_simple'] + \
-                                        self.data_df['num_sell_close_position_final_quick']
+                                        self.data_df['num_sell_close_position_final_quick'] + self.data_df['num_sell_close_position_final_urgent']
 
 
 
@@ -4390,6 +4478,8 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['show_buy_close_position_final_simple'] = self.data_df['first_selected_buy_close_position_final_simple'] & (self.data_df['num_terminal_buy_close_position'] == 0)
                 self.data_df['show_buy_close_position_final_quick'] = self.data_df['first_selected_buy_close_position_final_quick'] & (self.data_df['num_terminal_buy_close_position'] == 0)
+                self.data_df['show_buy_close_position_final_urgent'] = self.data_df['first_selected_buy_close_position_final_urgent'] & (self.data_df['num_terminal_buy_close_position'] == 0)
+
 
 
 
@@ -4439,6 +4529,7 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['show_sell_close_position_final_simple'] = self.data_df['first_selected_sell_close_position_final_simple'] & (self.data_df['num_terminal_sell_close_position'] == 0)
                 self.data_df['show_sell_close_position_final_quick'] = self.data_df['first_selected_sell_close_position_final_quick'] & (self.data_df['num_terminal_sell_close_position'] == 0)
+                self.data_df['show_sell_close_position_final_urgent'] = self.data_df['first_selected_sell_close_position_final_urgent'] & (self.data_df['num_terminal_sell_close_position'] == 0)
 
 
 
@@ -4605,6 +4696,12 @@ class CurrencyTrader(threading.Thread):
                 if is_send_email:
                     sendEmail(msg, msg + "  Close all remaining position")
 
+            if self.data_df.iloc[-1]['show_sell_close_position_final_urgent']:
+                msg = "Close Short Position Phase 1 Stop loss urgent for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+
+
 
 
 
@@ -4725,6 +4822,12 @@ class CurrencyTrader(threading.Thread):
 
             if self.data_df.iloc[-1]['show_buy_close_position_final_quick']:
                 msg = "Close Long Position Phase 1 Stop loss quick for " + self.currency + " at " + current_time
+                if is_send_email:
+                    sendEmail(msg, msg + "  Close all remaining position")
+
+
+            if self.data_df.iloc[-1]['show_buy_close_position_final_urgent']:
+                msg = "Close Long Position Phase 1 Stop loss urgent for " + self.currency + " at " + current_time
                 if is_send_email:
                     sendEmail(msg, msg + "  Close all remaining position")
 

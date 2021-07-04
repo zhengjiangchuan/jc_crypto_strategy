@@ -455,6 +455,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_sell_close_points_final_simple = which(sub_data['show_sell_close_position_final_simple'])
         if 'show_sell_close_position_final_quick' in sub_data.columns:
             show_sell_close_points_final_quick = which(sub_data['show_sell_close_position_final_quick'])
+        if 'show_sell_close_position_final_urgent' in sub_data.columns:
+            show_sell_close_points_final_urgent = which(sub_data['show_sell_close_position_final_urgent'])
+
 
 
 
@@ -525,6 +528,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             show_buy_close_points_final_simple = which(sub_data['show_buy_close_position_final_simple'])
         if 'show_buy_close_position_final_quick' in sub_data.columns:
             show_buy_close_points_final_quick = which(sub_data['show_buy_close_position_final_quick'])
+        if 'show_buy_close_position_final_urgent' in sub_data.columns:
+            show_buy_close_points_final_urgent = which(sub_data['show_buy_close_position_final_urgent'])
+
 
 
 
@@ -654,6 +660,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
                 for sell_close_point in show_sell_close_points_final_quick:
                     axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
 
+            if 'show_sell_close_position_final_urgent' in sub_data.columns:
+                for sell_close_point in show_sell_close_points_final_urgent:
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
+
 
 
 
@@ -769,6 +779,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             if 'show_buy_close_position_final_quick' in sub_data.columns:
                 for buy_close_point in show_buy_close_points_final_quick:
                     axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
+
+            if 'show_buy_close_position_final_urgent' in sub_data.columns:
+                for buy_close_point in show_buy_close_points_final_urgent:
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
+
 
 
 
