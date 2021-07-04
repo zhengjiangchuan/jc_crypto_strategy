@@ -3700,7 +3700,7 @@ class CurrencyTrader(threading.Thread):
 
                 def select_close_positions(x, guppy1, guppy2, vegas, excessive1, excessive2, conservative, excessive_strict, conservative_strict, simple, quick,
                                                selected_guppy1, selected_guppy2, selected_vegas, selected_excessive1, selected_excessive2, selected_conservative,
-                                               selected_simple, selected_quick, reentry, close, open,
+                                               selected_simple, selected_quick, reentry, close, open, most_passive_guppy, most_aggressive_guppy,
                                            exceed_vegas, enter_guppy, passive_than_guppy, num_guppy_bars,
                                            group_most_passive_price, entry_point_price, side):
                     # print("In select_close_positions:")
@@ -3726,6 +3726,8 @@ class CurrencyTrader(threading.Thread):
 
                     quick_ready = False
                     quick_ready_price = None
+
+                    last_quick_ready = -1
 
 
 
@@ -3799,16 +3801,20 @@ class CurrencyTrader(threading.Thread):
                             #         total_quick += 1
 
 
+
+
+
                             if row[quick]:# and not quick_ready:
                                 #if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0 and total_quick == 0):
                                 if (total_excessive == 0 and total_conservative == 0 and total_quick == 0):
                                     #print("quick_ready = true")
                                     quick_ready = True
                                     quick_ready_price = row['close']
+                                    last_quick_ready = i
                                     #x.at[x.index[i], selected_quick] = 1
                                     #total_quick += 1
 
-                            if quick_ready:
+                            if quick_ready and i > last_quick_ready:
                                 # if row[enter_guppy]:
                                 #     quick_ready = False
                                 # elif row[passive_than_guppy]:
@@ -3816,13 +3822,26 @@ class CurrencyTrader(threading.Thread):
                                 #     x.at[x.index[i], selected_quick] = 1
                                 #     total_quick += 1
                                 #print("close = " + str(row['close']) + ", quick_ready_price = " + str(quick_ready_price))
+
+                                if is_more_aggressive(row['close'], row[most_aggressive_guppy], side):
+                                    quick_ready = False
+                                    last_quick_ready = -1
+
                                 if (side == 'buy' and row['close'] < row['open']) | (side == 'sell' and row['close'] > row['open']):
-                                    if is_more_aggressive(quick_ready_price, row['close'], side):
-                                        #print("Set selected_quick")
-                                        quick_ready = False
-                                        quick_ready_price = None
+                                    # if is_more_aggressive(quick_ready_price, row['close'], side):
+                                    #     #print("Set selected_quick")
+                                    #     quick_ready = False
+                                    #     quick_ready_price = None
+
+                                    if is_more_aggressive(row[most_passive_guppy], row['close'], side):
                                         x.at[x.index[i], selected_quick] = 1
                                         total_quick += 1
+
+                                        quick_ready = False
+                                        last_quick_ready = -1
+
+
+
 
 
 
@@ -3950,6 +3969,8 @@ class CurrencyTrader(threading.Thread):
                                             'num_bar_above_passive_guppy_for_buy', 'num_bar_below_passive_guppy_for_sell',
                                             'close',
                                             'open',
+                                            'highest_guppy',
+                                            'lowest_guppy',
                                             'group_min_price',
                                             'group_max_price',
                                             'buy_point_price','sell_point_price']]
@@ -3991,6 +4012,9 @@ class CurrencyTrader(threading.Thread):
                     group_most_passive_price = 'group_min_price' if side == 'buy' else 'group_max_price'
                     entry_point_price = 'buy_point_price' if side == 'buy' else 'sell_point_price'
 
+                    most_passive_guppy = 'lowest_guppy' if side == 'buy' else 'highest_guppy'
+                    most_aggressive_guppy = 'highest_guppy' if side == 'buy' else 'lowest_guppy'
+
                     # print("here id in side_df:" + str('id' in side_df.columns))
                     #
                     # print("Before side_df:")
@@ -4020,6 +4044,8 @@ class CurrencyTrader(threading.Thread):
                                                     reentry = 'reentry_' + side,
                                                     close = 'close',
                                                     open = 'open',
+                                                    most_passive_guppy = most_passive_guppy,
+                                                    most_aggressive_guppy = most_aggressive_guppy,
                                                     exceed_vegas = exceed_vegas,
                                                     enter_guppy = side + '_enter_guppy',
                                                     passive_than_guppy = side + '_passive_than_guppy',
