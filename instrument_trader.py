@@ -111,7 +111,7 @@ vegas_angle_threshold = 3
 reverse_trade_min_points_to_vegas = 150
 reverse_trade_min_distance_to_vegas = 0.15
 
-reverse_trade_look_back = 10
+reverse_trade_look_back = 20
 
 macd_relaxed = True
 
@@ -3548,7 +3548,7 @@ class CurrencyTrader(threading.Thread):
                 #
                 # self.data_df['sell_close_position_final_quick2'] = self.data_df['sell_close_position_final_quick21'] | self.data_df['sell_close_position_final_quick22']
 
-                self.data_df['sell_close_position_final_quick_immediate'] = False # self.data_df['sell_close_position_final_quick22']
+                self.data_df['sell_close_position_final_quick_immediate'] = False #self.data_df['sell_close_position_final_quick22']
 
 
                 self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1'] | self.data_df['sell_close_position_final_quick2'])
