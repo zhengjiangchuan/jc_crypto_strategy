@@ -3493,27 +3493,27 @@ class CurrencyTrader(threading.Thread):
                 ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0) &\
                 (self.data_df['num_is_reach_vegas_from_btm_for_buy'] == 0) & (self.data_df['num_bar_strict_above_guppy_for_buy'] == 0)
 
-                self.data_df['buy_close_position_final_quick21'] = self.data_df['is_negative'] &\
+                self.data_df['buy_close_position_final_quick2'] = self.data_df['is_negative'] &\
                               ((self.data_df['close'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < -quick_threshold) &\
                               self.data_df['strongly_strict_half_aligned_short_condition']  &\
                              ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0)
 
                 #  self.data_df['is_guppy_aligned_short']
 
-                self.data_df['buy_close_position_final_quick22'] = self.data_df['is_negative'] & self.data_df['strongly_strict_half_aligned_short_condition'] &\
-                                                (self.data_df['close'] < self.data_df['prev_min_price']) & (self.data_df['open'] > self.data_df['prev_max_price'])
+                # self.data_df['buy_close_position_final_quick22'] = self.data_df['is_negative'] & self.data_df['strongly_strict_half_aligned_short_condition'] &\
+                #                                 (self.data_df['close'] < self.data_df['prev_min_price']) & (self.data_df['open'] > self.data_df['prev_max_price'])
+                #
+                #
+                #
+                # self.data_df['buy_close_position_final_quick2_ready'] = self.data_df['is_negative'] &\
+                #             (self.data_df['strongly_aligned_short_condition']) & (self.data_df['max_price'] < self.data_df['ma_close12']) &\
+                #              (self.data_df['ma12_gradient']*self.exchange_rate*self.lot_size < -0) & (self.data_df['ma_close12'] < self.data_df['lowest_guppy'])
+                # self.data_df['prev_buy_close_position_final_quick2_ready'] = self.data_df['buy_close_position_final_quick2_ready'].shift(1)
+                # self.data_df['buy_close_position_final_quick22'] = self.data_df['buy_close_position_final_quick2_ready'] & self.data_df['prev_buy_close_position_final_quick2_ready']
+                #
+                # self.data_df['buy_close_position_final_quick2'] = self.data_df['buy_close_position_final_quick21'] | self.data_df['buy_close_position_final_quick22']
 
-
-
-                self.data_df['buy_close_position_final_quick2_ready'] = self.data_df['is_negative'] &\
-                            (self.data_df['strongly_aligned_short_condition']) & (self.data_df['max_price'] < self.data_df['ma_close12']) &\
-                             (self.data_df['ma12_gradient']*self.exchange_rate*self.lot_size < -0) & (self.data_df['ma_close12'] < self.data_df['lowest_guppy'])
-                self.data_df['prev_buy_close_position_final_quick2_ready'] = self.data_df['buy_close_position_final_quick2_ready'].shift(1)
-                self.data_df['buy_close_position_final_quick22'] = self.data_df['buy_close_position_final_quick2_ready'] & self.data_df['prev_buy_close_position_final_quick2_ready']
-
-                self.data_df['buy_close_position_final_quick2'] = self.data_df['buy_close_position_final_quick21'] | self.data_df['buy_close_position_final_quick22']
-
-                self.data_df['buy_close_position_final_quick_immediate'] = self.data_df['buy_close_position_final_quick22']
+                self.data_df['buy_close_position_final_quick_immediate'] = False # self.data_df['buy_close_position_final_quick22']
 
 
                 self.data_df['buy_close_position_final_quick'] = (self.data_df['buy_close_position_final_quick1'] | self.data_df['buy_close_position_final_quick2']) #&\
@@ -3529,26 +3529,26 @@ class CurrencyTrader(threading.Thread):
                 ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0) &\
                 (self.data_df['num_is_reach_vegas_from_top_for_sell'] == 0) & (self.data_df['num_bar_strict_below_guppy_for_sell'] == 0)
 
-                self.data_df['sell_close_position_final_quick21'] = self.data_df['is_positive'] &\
+                self.data_df['sell_close_position_final_quick2'] = self.data_df['is_positive'] &\
                               ((self.data_df['close'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
                               self.data_df['strongly_strict_half_aligned_long_condition'] &\
                             ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0) #&\
 
                 # self.data_df['is_guppy_aligned_long']
 
-                self.data_df['sell_close_position_final_quick22'] = self.data_df['is_positive'] & self.data_df['strongly_strict_half_aligned_long_condition'] &\
-                                                (self.data_df['close'] > self.data_df['prev_max_price']) & (self.data_df['open'] < self.data_df['prev_min_price'])
+                # self.data_df['sell_close_position_final_quick22'] = self.data_df['is_positive'] & self.data_df['strongly_strict_half_aligned_long_condition'] &\
+                #                                 (self.data_df['close'] > self.data_df['prev_max_price']) & (self.data_df['open'] < self.data_df['prev_min_price'])
+                #
+                #
+                # self.data_df['sell_close_position_final_quick2_ready'] = self.data_df['is_positive'] &\
+                #             (self.data_df['strongly_aligned_long_condition']) & (self.data_df['min_price'] > self.data_df['ma_close12']) &\
+                #             (self.data_df['ma12_gradient']*self.exchange_rate*self.lot_size > 0) & (self.data_df['ma_close12'] > self.data_df['highest_guppy'])
+                # self.data_df['prev_sell_close_position_final_quick2_ready'] = self.data_df['sell_close_position_final_quick2_ready'].shift(1)
+                # self.data_df['sell_close_position_final_quick22'] = self.data_df['sell_close_position_final_quick2_ready'] & self.data_df['prev_sell_close_position_final_quick2_ready']
+                #
+                # self.data_df['sell_close_position_final_quick2'] = self.data_df['sell_close_position_final_quick21'] | self.data_df['sell_close_position_final_quick22']
 
-
-                self.data_df['sell_close_position_final_quick2_ready'] = self.data_df['is_positive'] &\
-                            (self.data_df['strongly_aligned_long_condition']) & (self.data_df['min_price'] > self.data_df['ma_close12']) &\
-                            (self.data_df['ma12_gradient']*self.exchange_rate*self.lot_size > 0) & (self.data_df['ma_close12'] > self.data_df['highest_guppy'])
-                self.data_df['prev_sell_close_position_final_quick2_ready'] = self.data_df['sell_close_position_final_quick2_ready'].shift(1)
-                self.data_df['sell_close_position_final_quick22'] = self.data_df['sell_close_position_final_quick2_ready'] & self.data_df['prev_sell_close_position_final_quick2_ready']
-
-                self.data_df['sell_close_position_final_quick2'] = self.data_df['sell_close_position_final_quick21'] | self.data_df['sell_close_position_final_quick22']
-
-                self.data_df['sell_close_position_final_quick_immediate'] = self.data_df['sell_close_position_final_quick22']
+                self.data_df['sell_close_position_final_quick_immediate'] = False # self.data_df['sell_close_position_final_quick22']
 
 
                 self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1'] | self.data_df['sell_close_position_final_quick2'])
