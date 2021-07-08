@@ -93,7 +93,7 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['EURNZD', 'EURJPY', 'EURCHF', 'GBPCAD', 'AUDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['EURGBP'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURUSD', 'EURAUD'])]
 
 
 # print("currency_df:")
@@ -428,7 +428,7 @@ if True:
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0705\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_checkToday2"
+    dest_folder = "C:\\Forex\\new_experiments\\0708\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeStopLoss"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -454,8 +454,8 @@ if True:
         chart_folder = os.path.join(symbol_folder, "simple_chart")
 
         files = os.listdir(chart_folder)
-        # if len(files) == 3:
-        #     files = files[1:]
+        if len(files) == 4:
+            files = files[1:]
 
         for file in files:
             file_path = os.path.join(chart_folder, file)
