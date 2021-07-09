@@ -139,6 +139,10 @@ urgent_stop_loss_threshold = 200
 
 #support_half_stop_loss = False
 
+is_apply_innovative_filter_to_fire2 = True
+
+is_apply_innovative_filter_to_exclude = True
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -2912,12 +2916,14 @@ class CurrencyTrader(threading.Thread):
                         #self.data_df['final_buy_fire_exclude'] = data_df100['final_buy_fire'] & (~data_df200['final_buy_fire']) & data_df100['strongly_aligned_short_condition']
                         self.data_df['final_buy_fire_exclude'] = data_df100['buy_real_fire3'] & (~data_df200['buy_real_fire3']) & data_df100['strongly_aligned_short_condition']
 
-                        self.data_df['final_buy_fire'] = data_df100['final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
+                        if not is_apply_innovative_filter_to_exclude:
+                            self.data_df['final_buy_fire'] = data_df100['final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
 
                         #self.data_df['final_sell_fire_exclude'] = data_df100['final_sell_fire'] & (~data_df200['final_sell_fire']) & data_df100['strongly_aligned_long_condition']
                         self.data_df['final_sell_fire_exclude'] = data_df100['sell_real_fire3'] & (~data_df200['sell_real_fire3']) & data_df100['strongly_aligned_long_condition']
 
-                        self.data_df['final_sell_fire'] = data_df100['final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
+                        if not is_apply_innovative_filter_to_exclude:
+                            self.data_df['final_sell_fire'] = data_df100['final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
 
 
                     elif filter_option == 2:
@@ -3207,6 +3213,17 @@ class CurrencyTrader(threading.Thread):
                     temp_df['is_buy_fire2']
                 )
 
+                temp_df['is_buy_fire_exclude'] = np.nan
+                temp_df['is_buy_fire_exclude'] = np.where(
+                    self.data_df['buy_point'] == 1,
+                    np.where(
+                        self.data_df['final_buy_fire_exclude'],
+                        1,
+                        0
+                    ),
+                    temp_df['is_buy_fire_exclude']
+                )
+
 
                 temp_df['sell_point_support'] = np.nan
                 temp_df['sell_point_support'] = np.where(
@@ -3233,6 +3250,17 @@ class CurrencyTrader(threading.Thread):
                     temp_df['is_sell_fire2']
                 )
 
+                temp_df['is_sell_fire_exclude'] = np.nan
+                temp_df['is_sell_fire_exclude'] = np.where(
+                    self.data_df['sell_point'] == 1,
+                    np.where(
+                        self.data_df['final_sell_fire_exclude'],
+                        1,
+                        0
+                    ),
+                    temp_df['is_sell_fire_exclude']
+                )
+
 
 
                 temp_df = temp_df.fillna(method='ffill').fillna(0)
@@ -3247,6 +3275,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_point_price'] = temp_df['sell_point_price']
                 self.data_df['is_buy_fire2'] = temp_df['is_buy_fire2']
                 self.data_df['is_sell_fire2'] = temp_df['is_sell_fire2']
+
+                self.data_df['is_buy_fire_exclude'] = temp_df['is_buy_fire_exclude']
+                self.data_df['is_sell_fire_exclude'] = temp_df['is_sell_fire_exclude']
 
 
 
@@ -3537,13 +3568,25 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev_buy_close_position_final_quick2_ready'] = self.data_df['buy_close_position_final_quick2_ready'].shift(1)
                 self.data_df['buy_close_position_final_quick22'] = self.data_df['buy_close_position_final_quick2_ready'] & self.data_df['prev_buy_close_position_final_quick2_ready']
 
-                self.data_df['buy_close_position_final_quick22'] = self.data_df['buy_close_position_final_quick22'] & self.data_df['is_buy_fire2']
+
+
+                self.data_df['buy_close_position_final_quick22_on'] = False
+
+                if is_apply_innovative_filter_to_fire2:
+                    self.data_df['buy_close_position_final_quick22_on'] = self.data_df['buy_close_position_final_quick22_on'] | self.data_df['is_buy_fire2']
+
+                if is_apply_innovative_filter_to_exclude:
+                    self.data_df['buy_close_position_final_quick22_on'] = self.data_df['buy_close_position_final_quick22_on'] | self.data_df['is_buy_fire_exclude']
+
+                self.data_df['buy_close_position_final_quick22'] = self.data_df['buy_close_position_final_quick22'] & self.data_df['buy_close_position_final_quick22_on']
 
 
 
                 self.data_df['buy_close_position_final_quick2'] = self.data_df['buy_close_position_final_quick21'] | self.data_df['buy_close_position_final_quick22']
 
+
                 self.data_df['buy_close_position_final_quick_immediate'] = self.data_df['buy_close_position_final_quick22']
+
 
 
 
@@ -3578,10 +3621,21 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev_sell_close_position_final_quick2_ready'] = self.data_df['sell_close_position_final_quick2_ready'].shift(1)
                 self.data_df['sell_close_position_final_quick22'] = self.data_df['sell_close_position_final_quick2_ready'] & self.data_df['prev_sell_close_position_final_quick2_ready']
 
-                self.data_df['sell_close_position_final_quick22'] = self.data_df['sell_close_position_final_quick22'] & self.data_df['is_sell_fire2']
+
+                self.data_df['sell_close_position_final_quick22_on'] = False
+
+                if is_apply_innovative_filter_to_fire2:
+                    self.data_df['sell_close_position_final_quick22_on'] = self.data_df['sell_close_position_final_quick22_on'] | self.data_df['is_sell_fire2']
+
+                if is_apply_innovative_filter_to_exclude:
+                    self.data_df['sell_close_position_final_quick22_on'] = self.data_df['sell_close_position_final_quick22_on'] | self.data_df['is_sell_fire_exclude']
+
+                self.data_df['sell_close_position_final_quick22'] = self.data_df['sell_close_position_final_quick22'] & self.data_df['sell_close_position_final_quick22_on']
+
 
 
                 self.data_df['sell_close_position_final_quick2'] = self.data_df['sell_close_position_final_quick21'] | self.data_df['sell_close_position_final_quick22']
+
 
                 self.data_df['sell_close_position_final_quick_immediate'] = self.data_df['sell_close_position_final_quick22']
 
