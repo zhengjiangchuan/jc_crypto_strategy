@@ -4151,7 +4151,7 @@ class CurrencyTrader(threading.Thread):
                                         total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0:
 
                                     gap = i - last_excessive1
-                                    if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 14)) or row[excessive_strict]: # and (gap > 1 and gap < 14)
+                                    if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]: # and (gap > 1 and gap < 14)
                                         x.at[x.index[i], selected_excessive1] = 1
 
                                         if not support_half_stop_loss:
