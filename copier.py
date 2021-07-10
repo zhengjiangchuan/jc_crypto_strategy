@@ -17,8 +17,9 @@ root_folder = "C:\\Forex\\formal_trading"
 
 #dest_folder = "C:\\Forex\\new_experiments\\0611\\fire2_fire3_100_filtered_by_fire2_fire3_200_adjust_entry_too_high_cond"
 
+dest_folder = "C:\\Forex\\new_experiments\\0709\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_checkToday_innovativeFire2_doubleCheck"
 
-dest_folder = "C:\\Forex\\new_experiments\\0707\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_checkToday"
+#dest_folder = "C:\\Forex\\new_experiments\\0707\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_checkToday"
 
 #dest_folder = "C:\\Forex\\new_experiments\\0626\\benchmark_clear_close_positions_improve_with_phase1"
 
@@ -39,7 +40,7 @@ for file in os.listdir(dest_folder):
     os.remove(file_path)
 
 
-symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file))]
+symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file]
 
 for symbol_folder in symbol_folders:
 

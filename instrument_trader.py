@@ -285,11 +285,11 @@ class CurrencyTrader(threading.Thread):
                     delta_position = round(delta_position, 2)
                     data_df_side.at[i, 'position'] = delta_position
 
-                    print("time = " + str(row['time']) + " fire")
+                    #print("time = " + str(row['time']) + " fire")
 
                     cur_position += delta_position
-                    print("delta_position = " + str(delta_position))
-                    print("cur_position = " + str(cur_position))
+                    # print("delta_position = " + str(delta_position))
+                    # print("cur_position = " + str(cur_position))
             else:
                 cum_delta_position = 0.0
                 if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
@@ -303,7 +303,7 @@ class CurrencyTrader(threading.Thread):
 
                         start_position_phase2 = 0
 
-                        print("time = " + str(row['time']) + " phase 1 temporary close")
+                        #print("time = " + str(row['time']) + " phase 1 temporary close")
 
 
                 if row['show_special_' + side + '_close_position'] or row['show_' + side + '_close_position_excessive'] or row['show_' + side + '_stop_loss_excessive']:
@@ -330,7 +330,7 @@ class CurrencyTrader(threading.Thread):
                             # data_df_side.at[i, 'position'] = delta_position
                             cur_position += delta_position
 
-                        print("time = " + str(row['time']) + " phase 2 temporary close")
+                        #print("time = " + str(row['time']) + " phase 2 temporary close")
 
 
                 if row['show_' + side + '_close_position_final_excessive1'] or row['show_' + side + '_close_position_final_conservative'] or\
@@ -345,14 +345,14 @@ class CurrencyTrader(threading.Thread):
                         # data_df_side.at[i, 'position'] = round(delta_position, 2)
                         cur_position += delta_position
 
-                        print("time = " + str(row['time']) + " close all")
+                        #print("time = " + str(row['time']) + " close all")
 
 
                 data_df_side.at[i, 'position'] = round(cum_delta_position, 2)
 
 
-                print("delta_position = " + str(cum_delta_position))
-                print("cur_position = " + str(cur_position))
+                #print("delta_position = " + str(cum_delta_position))
+                #print("cur_position = " + str(cur_position))
 
 
     def calculate_signals(self, high_low_window):
@@ -4871,12 +4871,12 @@ class CurrencyTrader(threading.Thread):
             data_df_sell['cum_sell_position'] = data_df_sell['sell_position'].cumsum()
             data_df_sell['cum_sell_position'] = data_df_sell['cum_sell_position'].apply(lambda x: round(x, 2))
 
-            print("buy_positions.............")
-            print(data_df_buy[['time','id','buy_point_id','buy_position', 'cum_buy_position']])
-
-            print("")
-            print("sell_positions.............")
-            print(data_df_sell[['time', 'id', 'sell_point_id', 'sell_position', 'cum_sell_position']])
+            # print("buy_positions.............")
+            # print(data_df_buy[['time','id','buy_point_id','buy_position', 'cum_buy_position']])
+            #
+            # print("")
+            # print("sell_positions.............")
+            # print(data_df_sell[['time', 'id', 'sell_point_id', 'sell_position', 'cum_sell_position']])
 
 
 

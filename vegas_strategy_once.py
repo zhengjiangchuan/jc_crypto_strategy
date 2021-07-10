@@ -93,7 +93,7 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['EURNZD', 'EURJPY', 'EURCHF', 'GBPCAD', 'AUDCAD'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['AUDUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDUSD'])]
 
 
 # print("currency_df:")
@@ -421,14 +421,14 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if False:
+if True:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0709\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_checkToday_innovativeFire2AndExclude"
+    dest_folder = "C:\\Forex\\new_experiments\\0709\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_checkToday_innovativeFire2_doubleCheck"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -442,7 +442,7 @@ if False:
         os.remove(file_path)
 
 
-    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file))]
+    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file]
     import shutil
     for symbol_folder in symbol_folders:
 
