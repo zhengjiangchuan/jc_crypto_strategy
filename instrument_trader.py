@@ -141,7 +141,7 @@ urgent_stop_loss_threshold = 200
 
 is_apply_innovative_filter_to_fire2 = True
 
-is_apply_innovative_filter_to_exclude = True
+is_apply_innovative_filter_to_exclude = False
 
 class CurrencyTrader(threading.Thread):
 
@@ -267,6 +267,92 @@ class CurrencyTrader(threading.Thread):
     def run(self):
         print("Running...........")
         self.trade()
+
+
+
+    def calculate_position(self, data_df_side, side):
+        max_position = 1
+        cur_position = 0
+        start_position_phase2 = 0
+
+        data_df_side['position'] = 0.0
+        for i in range(data_df_side.shape[0]):
+            row = data_df_side.iloc[i]
+            if row['first_final_' + side + '_fire']:
+                if cur_position < max_position:
+                    start_position_phase2 = 0
+                    delta_position = max_position - cur_position
+                    delta_position = round(delta_position, 2)
+                    data_df_side.at[i, 'position'] = delta_position
+
+                    print("time = " + str(row['time']) + " fire")
+
+                    cur_position += delta_position
+                    print("delta_position = " + str(delta_position))
+                    print("cur_position = " + str(cur_position))
+            else:
+                cum_delta_position = 0.0
+                if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
+                    if cur_position > 0:
+                        delta_position = -cur_position/3.0
+                        delta_position = round(delta_position, 2)
+                        cum_delta_position += delta_position
+
+                        # data_df_side.at[i, 'position'] = delta_position
+                        cur_position += delta_position
+
+                        start_position_phase2 = 0
+
+                        print("time = " + str(row['time']) + " phase 1 temporary close")
+
+
+                if row['show_special_' + side + '_close_position'] or row['show_' + side + '_close_position_excessive'] or row['show_' + side + '_stop_loss_excessive']:
+                    if cur_position > 0:
+                        if start_position_phase2 <= 0:
+                            start_position_phase2 = cur_position
+
+                        if row['show_' + side + '_close_position_excessive_terminal'] or row['show_' + side + '_stop_loss_excessive_terminal']:
+                            start_position_phase2 = 0
+                            delta_position = -cur_position
+                            cum_delta_position += delta_position
+
+                            # data_df_side.at[i, 'position'] = round(delta_position, 2)
+                            cur_position += delta_position
+                        else:
+                            if row['show_special_' + side + '_close_position'] and row['show_' + side + '_close_position_excessive']:
+                                delta_position = -start_position_phase2/2.0
+                            else:
+                                delta_position = -start_position_phase2/4.0
+                            delta_position = round(delta_position, 2)
+
+                            cum_delta_position += delta_position
+
+                            # data_df_side.at[i, 'position'] = delta_position
+                            cur_position += delta_position
+
+                        print("time = " + str(row['time']) + " phase 2 temporary close")
+
+
+                if row['show_' + side + '_close_position_final_excessive1'] or row['show_' + side + '_close_position_final_conservative'] or\
+                    row['show_' + side + '_close_position_final_quick'] or row['show_' + side + '_close_position_final_urgent'] or\
+                    row['show_' + side + '_close_position_conservative'] or row['show_' + side + '_stop_loss_conservative']:
+
+                    if cur_position > 0:
+                        start_position_phase2 = 0
+                        delta_position = -cur_position
+                        cum_delta_position += delta_position
+
+                        # data_df_side.at[i, 'position'] = round(delta_position, 2)
+                        cur_position += delta_position
+
+                        print("time = " + str(row['time']) + " close all")
+
+
+                data_df_side.at[i, 'position'] = round(cum_delta_position, 2)
+
+
+                print("delta_position = " + str(cum_delta_position))
+                print("cur_position = " + str(cur_position))
 
 
     def calculate_signals(self, high_low_window):
@@ -4065,7 +4151,7 @@ class CurrencyTrader(threading.Thread):
                                         total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0:
 
                                     gap = i - last_excessive1
-                                    if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
+                                    if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 14)) or row[excessive_strict]: # and (gap > 1 and gap < 14)
                                         x.at[x.index[i], selected_excessive1] = 1
 
                                         if not support_half_stop_loss:
@@ -4129,7 +4215,7 @@ class CurrencyTrader(threading.Thread):
                             break
 
 
-                    # if 'sell_point_id' in x.columns:
+                    # if 'buy_point_id' in x.columns:
                     #     y = x.copy()
                     #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive1 : 'excessive1', excessive2 : 'excessive2',  conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
@@ -4617,6 +4703,10 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['first_actual_buy_close_position_excessive'] & (self.data_df['num_temporary_buy_close_position'] < 4) &\
                     (self.data_df['num_terminal_buy_close_position'] == 0) & (self.data_df['buy_point_id'] > 0)
 
+                self.data_df['show_buy_close_position_excessive_terminal'] = self.data_df['show_buy_close_position_excessive'] &\
+                                                                              (self.data_df['num_temporary_buy_close_position'] == 3)
+
+
                 self.data_df['show_buy_close_position_conservative'] = \
                     self.data_df['first_actual_buy_close_position_conservative'] & (self.data_df['num_temporary_buy_close_position'] < 4) &\
                     (self.data_df['num_terminal_buy_close_position'] == 0) & (self.data_df['buy_point_id'] > 0)
@@ -4624,6 +4714,10 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['show_buy_stop_loss_excessive'] = \
                     self.data_df['first_buy_stop_loss_excessive'] & (self.data_df['num_temporary_buy_close_position'] < 4) &\
                     (self.data_df['num_terminal_buy_close_position'] == 0) & (self.data_df['buy_point_id'] > 0)
+
+                self.data_df['show_buy_stop_loss_excessive_terminal'] =  self.data_df['show_buy_stop_loss_excessive'] &\
+                                                                          (self.data_df['num_temporary_buy_close_position'] == 3)
+
 
                 self.data_df['show_buy_stop_loss_conservative'] = \
                     self.data_df['first_buy_stop_loss_conservative'] & (self.data_df['num_temporary_buy_close_position'] < 4) &\
@@ -4668,6 +4762,9 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['first_actual_sell_close_position_excessive'] & (self.data_df['num_temporary_sell_close_position'] < 4) &\
                     (self.data_df['num_terminal_sell_close_position'] == 0) & (self.data_df['sell_point_id'] > 0)
 
+                self.data_df['show_sell_close_position_excessive_terminal'] = self.data_df['show_sell_close_position_excessive'] &\
+                                                                              (self.data_df['num_temporary_sell_close_position'] == 3)
+
                 self.data_df['show_sell_close_position_conservative'] = \
                     self.data_df['first_actual_sell_close_position_conservative'] & (self.data_df['num_temporary_sell_close_position'] < 4) &\
                      (self.data_df['num_terminal_sell_close_position'] == 0) & (self.data_df['sell_point_id'] > 0)
@@ -4675,6 +4772,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['show_sell_stop_loss_excessive'] = \
                     self.data_df['first_sell_stop_loss_excessive'] & (self.data_df['num_temporary_sell_close_position'] < 4) &\
                     (self.data_df['num_terminal_sell_close_position'] == 0) & (self.data_df['sell_point_id'] > 0)
+
+                self.data_df['show_sell_stop_loss_excessive_terminal'] =  self.data_df['show_sell_stop_loss_excessive'] &\
+                                                                          (self.data_df['num_temporary_sell_close_position'] == 3)
 
                 self.data_df['show_sell_stop_loss_conservative'] = \
                     self.data_df['first_sell_stop_loss_conservative'] & (self.data_df['num_temporary_sell_close_position'] < 4) &\
@@ -4713,6 +4813,94 @@ class CurrencyTrader(threading.Thread):
                     self.data_df = data_df_backup
 
 
+
+
+
+
+            ################################ Calculate Positions ########################
+
+            print("Calculate positions.........")
+
+            open_buy_positions = ['first_final_buy_fire']
+            open_sell_positions = ['first_final_sell_fire']
+
+
+            close_buy_positions = ['show_buy_close_position_guppy1', 'show_buy_close_position_guppy2',
+                                   'show_buy_close_position_vegas', 'show_buy_close_position_final_excessive1', 'show_buy_close_position_final_conservative',
+                                   'show_buy_close_position_final_quick', 'show_buy_close_position_final_urgent',
+                                   'show_special_buy_close_position', 'show_buy_close_position_excessive', 'show_buy_close_position_conservative',
+                                   'show_buy_stop_loss_excessive', 'show_buy_stop_loss_conservative']
+
+            close_sell_positions = ['show_sell_close_position_guppy1', 'show_sell_close_position_guppy2',
+                                   'show_sell_close_position_vegas', 'show_sell_close_position_final_excessive1', 'show_sell_close_position_final_conservative',
+                                   'show_sell_close_position_final_quick', 'show_sell_close_position_final_urgent',
+                                   'show_special_sell_close_position', 'show_sell_close_position_excessive', 'show_sell_close_position_conservative',
+                                   'show_sell_stop_loss_excessive', 'show_sell_stop_loss_conservative']
+
+
+            select_conditions_for_buy = reduce(lambda left, right: left | right, [self.data_df[condition] for condition in open_buy_positions + close_buy_positions])
+            select_conditions_for_sell = reduce(lambda left, right: left | right, [self.data_df[condition] for condition in open_sell_positions + close_sell_positions])
+
+            data_df_buy = self.data_df[select_conditions_for_buy][['time', 'id', 'buy_point_id'] + open_buy_positions + close_buy_positions +\
+                ['show_buy_close_position_excessive_terminal', 'show_buy_stop_loss_excessive_terminal']]
+            data_df_sell = self.data_df[select_conditions_for_sell][['time', 'id', 'sell_point_id'] + open_sell_positions + close_sell_positions +\
+                ['show_sell_close_position_excessive_terminal', 'show_sell_stop_loss_excessive_terminal']]
+
+            data_df_buy.reset_index(inplace = True)
+            data_df_buy = data_df_buy.drop(columns = ['index'])
+
+            data_df_sell.reset_index(inplace = True)
+            data_df_sell = data_df_sell.drop(columns = ['index'])
+
+
+
+            print("Calculate buy position:")
+            self.calculate_position(data_df_buy, 'buy')
+
+            print("")
+            print("Calculate sell position:")
+            self.calculate_position(data_df_sell, 'sell')
+
+            data_df_buy = data_df_buy.rename(columns = {'position' : 'buy_position'})
+            data_df_sell = data_df_sell.rename(columns = {'position' : 'sell_position'})
+            data_df_sell['sell_position'] = -data_df_sell['sell_position']
+
+            data_df_buy['cum_buy_position'] = data_df_buy['buy_position'].cumsum()
+            data_df_buy['cum_buy_position'] = data_df_buy['cum_buy_position'].apply(lambda x: round(x, 2))
+
+            data_df_sell['cum_sell_position'] = data_df_sell['sell_position'].cumsum()
+            data_df_sell['cum_sell_position'] = data_df_sell['cum_sell_position'].apply(lambda x: round(x, 2))
+
+            print("buy_positions.............")
+            print(data_df_buy[['time','id','buy_point_id','buy_position', 'cum_buy_position']])
+
+            print("")
+            print("sell_positions.............")
+            print(data_df_sell[['time', 'id', 'sell_point_id', 'sell_position', 'cum_sell_position']])
+
+
+
+            intermediate_df = self.data_df[['time','id']]
+
+            intermediate_df_buy = pd.merge(intermediate_df, data_df_buy[['id', 'buy_position']], on = ['id'], how = 'left')
+            intermediate_df_buy = intermediate_df_buy.fillna(0)
+
+            intermediate_df_sell = pd.merge(intermediate_df, data_df_sell[['id', 'sell_position']], on = ['id'], how = 'left')
+            intermediate_df_sell = intermediate_df_sell.fillna(0)
+
+            self.data_df['buy_position'] = intermediate_df_buy['buy_position']
+            self.data_df['sell_position'] = intermediate_df_sell['sell_position']
+
+            self.data_df['cum_buy_position'] = self.data_df['buy_position'].cumsum()
+            self.data_df['cum_sell_position'] = self.data_df['sell_position'].cumsum()
+
+            self.data_df['position'] = self.data_df['buy_position'] + self.data_df['sell_position']
+            self.data_df['cum_position'] = self.data_df['position'].cumsum()
+
+            self.data_df['cum_position'] = self.data_df['cum_position'].apply(lambda x: round(x, 2))
+
+
+            #############################################################################
 
 
             print("to csv:")
