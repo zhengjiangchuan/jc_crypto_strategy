@@ -72,7 +72,7 @@ meta_df = pd.read_csv(meta_file)
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl_summary')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl_summary_spread15_innovativeFire2_doubleCheck')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 
@@ -84,6 +84,7 @@ for i in range(meta_df.shape[0]):
     deposit_per_lot = row['deposit_per_lot']
     contract_size = row['contract_size']
     spread = row['spread']
+
 
     lot_size = contract_size * exchange_rate
 
