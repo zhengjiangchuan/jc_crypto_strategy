@@ -146,6 +146,7 @@ is_apply_innovative_filter_to_exclude = False
 
 
 
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
