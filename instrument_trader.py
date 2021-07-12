@@ -4025,6 +4025,7 @@ class CurrencyTrader(threading.Thread):
 
                     quick_immediate_stop_loss = False
                     quick_immediate_stop_loss_price = None
+                    last_row = None
 
                     for i in range(0, x.shape[0]):
                         row = x.iloc[i]
@@ -4121,6 +4122,8 @@ class CurrencyTrader(threading.Thread):
                                         quick_ready = False
                                         quick_ready_price = None
                                         last_quick_ready = -1
+                                        last_row = None
+
                                     quick_immediate_stop_loss = False
                                     quick_immediate_stop_loss_price = None
 
@@ -4148,13 +4151,20 @@ class CurrencyTrader(threading.Thread):
                                     quick_ready = False
                                     last_quick_ready = -1
 
-                                if (side == 'buy' and row['close'] < row['open']) | (side == 'sell' and row['close'] > row['open']):
+                                #if (side == 'buy' and row['close'] < row['open']) | (side == 'sell' and row['close'] > row['open']):
+                                if is_more_aggressive(row['open'], row['close'], side):
                                     # if is_more_aggressive(quick_ready_price, row['close'], side):
                                     #     #print("Set selected_quick")
                                     #     quick_ready = False
                                     #     quick_ready_price = None
 
                                     if is_more_aggressive(row[most_passive_guppy], row['close'], side):
+
+
+                                        # if row[quick_immediate] or (
+                                        #         is_more_aggressive(quick_ready_price, row['close'], side) and last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
+                                        # ):
+
                                         x.at[x.index[i], selected_quick] = 1
                                         total_quick += 1
 
@@ -4259,6 +4269,9 @@ class CurrencyTrader(threading.Thread):
 
                         if total_excessive > 0 or total_conservative > 0 or total_quick > 0 and total_urgent > 0:
                             break
+
+
+                        last_row = row
 
 
                     # if 'buy_point_id' in x.columns:
