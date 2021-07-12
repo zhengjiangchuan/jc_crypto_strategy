@@ -119,7 +119,7 @@ price_range_look_back = 10
 
 is_plot_exclude = True
 
-high_low_delta_threshold = 20
+high_low_delta_threshold = 20.001
 
 entry_risk_threshold = 0.6
 
@@ -140,8 +140,11 @@ urgent_stop_loss_threshold = 200
 #support_half_stop_loss = False
 
 is_apply_innovative_filter_to_fire2 = True
+is_reentry = False
 
 is_apply_innovative_filter_to_exclude = False
+
+
 
 class CurrencyTrader(threading.Thread):
 
@@ -4019,6 +4022,8 @@ class CurrencyTrader(threading.Thread):
                     last_quick_ready = -1
 
 
+                    quick_immediate_stop_loss = False
+                    quick_immediate_stop_loss_price = None
 
                     for i in range(0, x.shape[0]):
                         row = x.iloc[i]
@@ -4090,7 +4095,33 @@ class CurrencyTrader(threading.Thread):
                             #         total_quick += 1
 
 
+                            if is_reentry:
+                                if quick_immediate_stop_loss:
+                                    if (side == 'buy' and row['close'] > row['open'] and row['close'] > quick_immediate_stop_loss_price) |\
+                                            (side == 'sell' and row['close'] < row['open'] and row['close'] < quick_immediate_stop_loss_price):
+                                        x.at[x.index[i], reentry] = 1
 
+                                        total_guppy1 = 0
+                                        total_guppy2 = 0
+                                        total_vegas = 0
+                                        raw_total_excessive1 = 0
+                                        raw_total_excessive2 = 0
+                                        raw_total_conservative = 0
+
+                                        total_excessive1 = 0
+                                        total_excessive = 0
+                                        total_conservative = 0
+                                        last_excessive1 = -1
+                                        last_excessive2 = -1
+                                        last_conservative = -1
+                                        total_simple = 0
+                                        total_quick = 0
+                                        total_urgent = 0
+                                        quick_ready = False
+                                        quick_ready_price = None
+                                        last_quick_ready = -1
+                                    quick_immediate_stop_loss = False
+                                    quick_immediate_stop_loss_price = None
 
 
                             if row[quick]:# and not quick_ready:
@@ -4129,6 +4160,9 @@ class CurrencyTrader(threading.Thread):
                                         quick_ready = False
                                         last_quick_ready = -1
 
+                                        if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
+                                            quick_immediate_stop_loss = True
+                                            quick_immediate_stop_loss_price = row['open']
 
 
 
