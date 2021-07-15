@@ -72,9 +72,16 @@ meta_df = pd.read_csv(meta_file)
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl_summary_spread15_innovativeFire2_doubleCheck')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0712', 'pnl_summary_spread15_innovativeFire2_reentry_4pm')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
+
+
+symbols = []
+pnl = []
+return_rate = []
+max_drawdown = []
+max_drawdown_rate = []
 
 for i in range(meta_df.shape[0]):
     row = meta_df.iloc[i]
@@ -85,6 +92,7 @@ for i in range(meta_df.shape[0]):
     contract_size = row['contract_size']
     spread = row['spread']
 
+    symbols += [symbol]
 
     lot_size = contract_size * exchange_rate
 
@@ -119,11 +127,28 @@ for i in range(meta_df.shape[0]):
     data_df['acc_return'] = data_df['acc_pnl'] / float(principal)
     data_df['acc_return_bps'] = data_df['acc_return'] * 10000.0
 
+    pnl += [data_df.iloc[-1]['acc_pnl']]
+    return_rate += [data_df.iloc[-1]['acc_return']]
+
     data_df['abs_cum_position'] = np.abs(data_df['cum_position'])
 
     data_df['remaining_deposit'] = principal + data_df['acc_pnl'] - data_df['abs_cum_position'] * deposit_per_lot
 
     data_df['remaining_deposit_pct'] = data_df['remaining_deposit'] / float(principal)
+
+
+    ######## Calculate Max-drawdown ###########
+
+    data_df['max_acc_pnl'] = data_df['acc_pnl'].cummax()
+    data_df['drawdown'] = data_df['max_acc_pnl'] - data_df['acc_pnl']
+    symbol_max_drawdown = data_df['drawdown'].max()
+
+    max_drawdown += [symbol_max_drawdown]
+    max_drawdown_rate += [symbol_max_drawdown/float(principal)]
+
+    ###########################################
+
+
 
     pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
 
@@ -249,6 +274,19 @@ for i in range(meta_df.shape[0]):
         plt.close(fig)
 
 
+
+
+performance_summary = pd.DataFrame({'symbol' : symbols, 'pnl' : pnl, 'return(%)' : return_rate, 'max_drawdown' : max_drawdown,
+                                    'max_drawdown_rate(%)' : max_drawdown_rate})
+
+performance_summary['return(%)'] *= 100.0
+performance_summary['max_drawdown_rate(%)'] *= 100.0
+
+performance_summary['drawdown_adjusted_return'] = performance_summary['return(%)'] / performance_summary['max_drawdown_rate(%)']
+
+print("performance_summary:")
+print(performance_summary)
+performance_summary.to_csv(os.path.join(pnl_folder, 'performance_summary.csv'), index = False)
 
 
 

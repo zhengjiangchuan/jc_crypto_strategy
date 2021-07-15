@@ -139,6 +139,8 @@ urgent_stop_loss_threshold = 200
 
 #support_half_stop_loss = False
 
+tightened_quick_stop_loss = False
+
 is_apply_innovative_filter_to_fire2 = True
 is_reentry = False
 
@@ -4161,15 +4163,15 @@ class CurrencyTrader(threading.Thread):
                                     if is_more_aggressive(row[most_passive_guppy], row['close'], side):
 
 
-                                        # if row[quick_immediate] or (
-                                        #         is_more_aggressive(quick_ready_price, row['close'], side) and last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
-                                        # ):
+                                        if (not tightened_quick_stop_loss) or (row[quick_immediate] or (
+                                                is_more_aggressive(quick_ready_price, row['close'], side) and last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
+                                        )):
 
-                                        x.at[x.index[i], selected_quick] = 1
-                                        total_quick += 1
+                                            x.at[x.index[i], selected_quick] = 1
+                                            total_quick += 1
 
-                                        quick_ready = False
-                                        last_quick_ready = -1
+                                            quick_ready = False
+                                            last_quick_ready = -1
 
                                         if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
                                             quick_immediate_stop_loss = True
