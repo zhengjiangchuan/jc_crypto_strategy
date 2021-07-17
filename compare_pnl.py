@@ -47,11 +47,11 @@ import matplotlib.dates as mdates
 
 data_folder = "C:\\Forex\\formal_trading\\"
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0712')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0717')
 
-pnl_folder1 = os.path.join(pnl_folder, 'pnl_summary_spread15_innovativeFire2_4pm')
+pnl_folder1 = os.path.join(pnl_folder, 'pnl_summary_spread15_innovativeFire2_modifyStopLossABit')
 
-pnl_folder2 = os.path.join(pnl_folder, 'pnl_summary_spread15_innovativeFire2_reentry_4pm')
+pnl_folder2 = os.path.join(pnl_folder, 'pnl_summary_spread15_innovativeFire2_modifyStopLossABitCheck')
 
 
 
@@ -79,7 +79,7 @@ for col in pnl_df1.columns:
 compare_df = pd.concat([compare_df, pd.DataFrame(summary_dict)])
 
 
-compare_df.to_csv(os.path.join(pnl_folder, 'performance_comparison_innovativeFire2_innovativeFire2Reentry.csv'), index = False)
+compare_df.to_csv(os.path.join(pnl_folder, 'performance_comparison_innovativeFire2_innovativeFire2Checking.csv'), index = False)
 
 print("compare_df:")
 print(compare_df)

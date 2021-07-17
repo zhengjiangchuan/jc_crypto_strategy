@@ -72,7 +72,7 @@ meta_df = pd.read_csv(meta_file)
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0712', 'pnl_summary_spread15_innovativeFire2_reentry_4pm')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0717', 'pnl_summary_spread15_innovativeFire2_modifyStopLossABitCheck')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 

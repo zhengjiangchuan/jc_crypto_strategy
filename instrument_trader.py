@@ -147,7 +147,7 @@ is_reentry = False
 is_apply_innovative_filter_to_exclude = False
 
 
-
+possition_factor = 0.2
 
 class CurrencyTrader(threading.Thread):
 
@@ -3654,7 +3654,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_close_position_final_quick21'] = self.data_df['is_negative'] &\
                               ((self.data_df['close'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < -quick_threshold) &\
                               self.data_df['strongly_strict_half_aligned_short_condition']  &\
-                             ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0)
+                             ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > -1)  #Change here
 
                 #### Not used ########
                 #  self.data_df['is_guppy_aligned_short']
@@ -3709,7 +3709,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_close_position_final_quick21'] = self.data_df['is_positive'] &\
                               ((self.data_df['close'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
                               self.data_df['strongly_strict_half_aligned_long_condition'] &\
-                            ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < -0) #&\
+                            ((self.data_df['open'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate < 1) #Change here
 
                 #### Not used ###########
                 # self.data_df['is_guppy_aligned_long']
@@ -5008,7 +5008,7 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg(msg)
                 #self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
 
-                additional_msg =" Long " + str(self.data_df.iloc[-1]['buy_position']) + " lot" # " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
+                additional_msg =" Long " + str(round(self.data_df.iloc[-1]['buy_position'] * possition_factor, 2)) + " lot" # " Exit if next two bars are both negative" if buy_c2_aux.iloc[-1] else ""
 
                 if additional_msg != "":
                     self.log_msg(additional_msg)
@@ -5042,40 +5042,40 @@ class CurrencyTrader(threading.Thread):
             if self.data_df.iloc[-1]['show_sell_close_position_guppy1'] or self.data_df.iloc[-1]['show_sell_close_position_guppy2']:
                 msg = "Close Short Position Phase 1 based on Guppy for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_close_position_vegas']:
                 msg = "Close Short Position Phase 1 based on vegas for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_close_position_final_excessive1']:
                 msg = "Close Short Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
                 #add_msg = " Close 1/2 of remaining position" if support_half_stop_loss else " Close all remaining position"
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_close_position_final_excessive2']:
                 msg = "Close Short Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_sell_close_position_final_conservative']:
                 msg = "Close Short Position Phase 1 Stop loss conservative for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_sell_close_position_final_simple']:
                 msg = "Close Short Position Phase 1 Stop loss simple for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_sell_close_position_final_quick']:
                 msg = "Close Short Position Phase 1 Stop loss quick for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_sell_close_position_final_urgent']:
                 msg = "Close Short Position Phase 1 Stop loss urgent for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
 
 
 
@@ -5084,23 +5084,23 @@ class CurrencyTrader(threading.Thread):
             if self.data_df.iloc[-1]['show_special_sell_close_position']:
                 msg = "Close Short Position Phase 2 Special for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_close_position_excessive']:
                 msg = "Close Short Position Phase 2 Excessive for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_close_position_conservative']:
                 msg = "Close Short Position Phase 2 Conservative for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_stop_loss_excessive']:
                 msg = "Close Short Position Phase 2 Stop loss excessive for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_sell_stop_loss_conservative']:
                 msg = "Close Short Position Phase 2 Stop loss conservative for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(self.data_df.iloc[-1]['sell_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot")
 
 
 
@@ -5138,7 +5138,7 @@ class CurrencyTrader(threading.Thread):
                 self.log_msg(msg)
                 #self.log_msg("enter_price = " + str(enter_price) + " stop_loss_price = " + str(stop_loss_price) + " expected_loss = " + str(expected_loss))
 
-                additional_msg = " Short " + str(-self.data_df.iloc[-1]['sell_position']) + " lot" # " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
+                additional_msg = " Short " + str(round(-self.data_df.iloc[-1]['sell_position']*possition_factor, 2)) + " lot" # " Exit if next two bars are both positive" if sell_c2_aux.iloc[-1] else ""
 
                 if additional_msg != "":
                     self.log_msg(additional_msg)
@@ -5171,64 +5171,64 @@ class CurrencyTrader(threading.Thread):
             if self.data_df.iloc[-1]['show_buy_close_position_guppy1'] or self.data_df.iloc[-1]['show_buy_close_position_guppy2']:
                 msg = "Close Long Position Phase 1 based on Guppy for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_close_position_vegas']:
                 msg = "Close Long Position Phase 1 based on vegas for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_close_position_final_excessive1']:
                 msg = "Close Long Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
                 #add_msg = " Close 1/2 of remaining position" if support_half_stop_loss else " Close all remaining position"
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_close_position_final_excessive2']:
                 msg = "Close Long Position Phase 1 Stop loss excessive for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_buy_close_position_final_conservative']:
                 msg = "Close Long Position Phase 1 Stop loss conservative for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_buy_close_position_final_simple']:
                 msg = "Close Long Position Phase 1 Stop loss simple for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 
             if self.data_df.iloc[-1]['show_buy_close_position_final_quick']:
                 msg = "Close Long Position Phase 1 Stop loss quick for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 
 
             if self.data_df.iloc[-1]['show_buy_close_position_final_urgent']:
                 msg = "Close Long Position Phase 1 Stop loss urgent for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 
 
 
             if self.data_df.iloc[-1]['show_special_buy_close_position']:
                 msg = "Close Long Position Phase 2 Special for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_close_position_excessive']:
                 msg = "Close Long Position Phase 2 Excessive for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_close_position_conservative']:
                 msg = "Close Long Position Phase 2 Conservative for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_stop_loss_excessive']:
                 msg = "Close Long Position Phase 2 Stop loss excessive for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
             if self.data_df.iloc[-1]['show_buy_stop_loss_conservative']:
                 msg = "Close Long Position Phase 2 Stop loss conservative for " + self.currency + " at " + current_time
                 if is_send_email:
-                    sendEmail(msg, msg + "  Close " + str(-self.data_df.iloc[-1]['buy_position']) + " lot")
+                    sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 
 
             self.log_msg("\n")
