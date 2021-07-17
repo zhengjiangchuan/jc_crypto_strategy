@@ -45,6 +45,10 @@ from matplotlib.ticker import Formatter
 import  matplotlib.ticker as plticker
 import matplotlib.dates as mdates
 
+def which(bool_array):
+
+    a = np.arange(len(bool_array))
+    return a[bool_array]
 
 def preprocess_time(t):
 
@@ -55,6 +59,8 @@ def preprocess_time(t):
 
 is_subtract_commission = True
 
+recalculate_margin_level = True
+stop_level = 0.5
 # symbol = 'AUDUSD'
 # contract_size = 100000
 # exchange_rate = 1.0
@@ -72,22 +78,30 @@ meta_df = pd.read_csv(meta_file)
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0717', 'pnl_summary_spread15_innovativeFire2_modifyStopLossABitCheck')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0717', 'pnl_summary_spread15_innovativeFire2_modifyStopLossABitCheck_marginLevel1')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 
 
 symbols = []
+min_margin_levels = []
+restart_min_margin_levels = []
+drawdown_min_margin_levels = []
 pnl = []
 return_rate = []
 max_drawdown = []
 max_drawdown_rate = []
 
+initial_principal = 1000
+
+
+
+
 for i in range(meta_df.shape[0]):
     row = meta_df.iloc[i]
     symbol = row['symbol']
     exchange_rate = row['exchange_rate']
-    principal = row['principal']
+    principal = initial_principal
     deposit_per_lot = row['deposit_per_lot']
     contract_size = row['contract_size']
     spread = row['spread']
@@ -102,10 +116,14 @@ for i in range(meta_df.shape[0]):
 
     data_df = pd.read_csv(data_file)
 
+
+
     data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
     data_df = data_df[['time','id','buy_point_id', 'sell_point_id', 'close', 'buy_position','cum_buy_position','sell_position','cum_sell_position',
                        'position', 'cum_position']]
+
+    data_df['time_id'] = list(range(data_df.shape[0]))
 
     data_df['price'] = data_df['close']
 
@@ -132,9 +150,129 @@ for i in range(meta_df.shape[0]):
 
     data_df['abs_cum_position'] = np.abs(data_df['cum_position'])
 
-    data_df['remaining_deposit'] = principal + data_df['acc_pnl'] - data_df['abs_cum_position'] * deposit_per_lot
+    #data_df['remaining_deposit'] = principal + data_df['acc_pnl'] - data_df['abs_cum_position'] * deposit_per_lot
 
-    data_df['remaining_deposit_pct'] = data_df['remaining_deposit'] / float(principal)
+    #data_df['remaining_deposit_pct'] = data_df['remaining_deposit'] / float(principal)
+
+    data_df['equity'] = principal + data_df['acc_pnl']
+    data_df['used_margin'] = data_df['abs_cum_position'] * deposit_per_lot
+
+    temp_df = data_df[['abs_cum_position', 'equity', 'used_margin']]
+    temp_df['margin_level'] = np.nan
+    temp_df['margin_level'] = np.where(
+        np.abs(temp_df['abs_cum_position']) < 1e-5,
+        temp_df['margin_level'],
+        temp_df['equity'] / temp_df['used_margin']
+    )
+
+    temp_df2 = temp_df.copy()
+
+    # temp_df = temp_df.fillna(method='ffill').fillna(1)
+    # temp_df2 = temp_df2.fillna(method='ffill').fillna(1e9)
+
+    temp_df = temp_df.fillna(1)
+    temp_df2 = temp_df2.fillna(1e9)
+
+    data_df['margin_level'] = temp_df['margin_level']
+    data_df['real_margin_level'] = temp_df2['margin_level']
+
+    data_df['pre_margin_level'] = data_df['margin_level'].shift(1)
+    data_df['cross_down_stop_level'] = np.where(
+        (data_df['pre_margin_level'] > stop_level) & (data_df['margin_level'] <= stop_level),
+        1,
+        0
+    )
+    data_df['cross_up_stop_level'] = np.where(
+        (data_df['pre_margin_level'] <= stop_level) & (data_df['margin_level'] > stop_level),
+        1,
+        0
+    )
+
+    cross_down_points = which(data_df['cross_down_stop_level'] == 1)
+    cross_up_points = which(data_df['cross_up_stop_level'] == 1)
+
+    min_margin_levels += [data_df['real_margin_level'].min()]
+
+
+
+
+
+    data_df['pre_cum_position'] = data_df['cum_position'].shift(1)
+    data_df['create_position'] = np.where(
+        (np.abs(data_df['pre_cum_position']) <= 1e-5) & (np.abs(data_df['cum_position']) > 1e-5),
+        1,
+        0
+    )
+
+    data_df['create_position_temp'] = np.nan
+    data_df['create_position_temp'] = np.where(
+        data_df['create_position'] == 1,
+        data_df['time_id'],
+        data_df['create_position_temp']
+    )
+
+    temp_df = data_df[['time_id', 'create_position_temp', 'acc_pnl']]
+    acc_pnl_df = data_df[data_df['create_position_temp'].notnull()][['time_id', 'acc_pnl']]
+    acc_pnl_df.reset_index(inplace=True)
+    acc_pnl_df = acc_pnl_df.drop(columns=['index'])
+
+    temp_df = temp_df.drop(columns = ['acc_pnl'])
+    temp_df = temp_df.fillna(method = 'ffill').fillna(0)
+
+
+    temp_df['time_id'] = temp_df['create_position_temp']
+    temp_df = pd.merge(temp_df, acc_pnl_df, on = ['time_id'], how = 'left')
+    temp_df = temp_df.fillna(0)
+
+    data_df['acc_pnl_for_restart'] = temp_df['acc_pnl']
+    data_df['acc_pnl_restart'] = data_df['acc_pnl'] - data_df['acc_pnl_for_restart']
+
+
+    data_df['restart_equity'] = principal + data_df['acc_pnl_restart']
+    #data_df['used_margin'] = data_df['abs_cum_position'] * deposit_per_lot
+
+    temp_df = data_df[['abs_cum_position', 'restart_equity', 'used_margin']]
+    temp_df['restart_margin_level'] = np.nan
+    temp_df['restart_margin_level'] = np.where(
+        np.abs(temp_df['abs_cum_position']) < 1e-5,
+        temp_df['restart_margin_level'],
+        temp_df['restart_equity'] / temp_df['used_margin']
+    )
+
+    temp_df2 = temp_df.copy()
+
+    # temp_df = temp_df.fillna(method='ffill').fillna(1)
+    # temp_df2 = temp_df2.fillna(method='ffill').fillna(1e9)
+
+    temp_df = temp_df.fillna(1)
+    temp_df2 = temp_df2.fillna(1e9)
+
+    data_df['restart_margin_level'] = temp_df['restart_margin_level']
+    data_df['restart_real_margin_level'] = temp_df2['restart_margin_level']
+
+    data_df['pre_restart_margin_level'] = data_df['restart_margin_level'].shift(1)
+    data_df['restart_cross_down_stop_level'] = np.where(
+        (data_df['pre_restart_margin_level'] > stop_level) & (data_df['restart_margin_level'] <= stop_level),
+        1,
+        0
+    )
+    data_df['restart_cross_up_stop_level'] = np.where(
+        (data_df['pre_restart_margin_level'] <= stop_level) & (data_df['restart_margin_level'] > stop_level),
+        1,
+        0
+    )
+
+    restart_cross_down_points = which(data_df['restart_cross_down_stop_level'] == 1)
+    restart_cross_up_points = which(data_df['restart_cross_up_stop_level'] == 1)
+
+    restart_min_margin_levels += [data_df['restart_real_margin_level'].min()]
+
+
+
+
+
+
+
 
 
     ######## Calculate Max-drawdown ###########
@@ -143,8 +281,86 @@ for i in range(meta_df.shape[0]):
     data_df['drawdown'] = data_df['max_acc_pnl'] - data_df['acc_pnl']
     symbol_max_drawdown = data_df['drawdown'].max()
 
+    max_drawdown_end = np.array(data_df.iloc[1:]['drawdown']).argmax()+1
+
+    # print(np.array(data_df.iloc[-10:-1]['drawdown']))
+    #
+    # print("symbol_max_drawdown = " + str(symbol_max_drawdown))
+    # print("max_drawdown_end = " + str(max_drawdown_end))
+    # print("critical max_acc_pnl = " + str(data_df.iloc[max_drawdown_end]['max_acc_pnl']))
+
+    max_drawdown_start = which(np.abs(data_df['acc_pnl'] - data_df.iloc[max_drawdown_end]['max_acc_pnl']) < 1e-5)[0]
+
+    # print("max_drawdown_start = " + str(max_drawdown_start))
+    #
+    # sys.exit(0)
+
+
     max_drawdown += [symbol_max_drawdown]
     max_drawdown_rate += [symbol_max_drawdown/float(principal)]
+
+
+
+    ##############
+
+    start_create_position_id = which(data_df.iloc[0:max_drawdown_start]['create_position'] == 1)[-1]
+    acc_pnl_to_subtract = data_df.iloc[start_create_position_id]['acc_pnl']
+    data_df['acc_pnl_drawdown'] = data_df['acc_pnl'] - acc_pnl_to_subtract
+    data_df['acc_pnl_drawdown'] = np.where(
+        data_df['time_id'] < start_create_position_id,
+        0,
+        data_df['acc_pnl_drawdown']
+    )
+
+    data_df['abs_cum_position_drawdown'] = np.where(
+        data_df['time_id'] < start_create_position_id,
+        0,
+        data_df['abs_cum_position']
+    )
+
+
+    data_df['drawdown_equity'] = principal + data_df['acc_pnl_drawdown']
+    data_df['drawdown_used_margin'] = data_df['abs_cum_position_drawdown'] * deposit_per_lot
+
+    temp_df = data_df[['abs_cum_position_drawdown', 'drawdown_equity', 'drawdown_used_margin']]
+    temp_df['drawdown_margin_level'] = np.nan
+    temp_df['drawdown_margin_level'] = np.where(
+        np.abs(temp_df['abs_cum_position_drawdown']) < 1e-5,
+        temp_df['drawdown_margin_level'],
+        temp_df['drawdown_equity'] / temp_df['drawdown_used_margin']
+    )
+
+    temp_df2 = temp_df.copy()
+
+    # temp_df = temp_df.fillna(method='ffill').fillna(1)
+    # temp_df2 = temp_df2.fillna(method='ffill').fillna(1e9)
+
+    temp_df = temp_df.fillna(1)
+    temp_df2 = temp_df2.fillna(1e9)
+
+    data_df['drawdown_margin_level'] = temp_df['drawdown_margin_level']
+    data_df['drawdown_real_margin_level'] = temp_df2['drawdown_margin_level']
+
+    data_df['drawdown_pre_margin_level'] = data_df['drawdown_margin_level'].shift(1)
+    data_df['drawdown_cross_down_stop_level'] = np.where(
+        (data_df['drawdown_pre_margin_level'] > stop_level) & (data_df['drawdown_margin_level'] <= stop_level),
+        1,
+        0
+    )
+    data_df['drawdown_cross_up_stop_level'] = np.where(
+        (data_df['drawdown_pre_margin_level'] <= stop_level) & (data_df['drawdown_margin_level'] > stop_level),
+        1,
+        0
+    )
+
+    drawdown_cross_down_points = which(data_df['drawdown_cross_down_stop_level'] == 1)
+    drawdown_cross_up_points = which(data_df['drawdown_cross_up_stop_level'] == 1)
+
+    drawdown_min_margin_levels += [data_df['drawdown_real_margin_level'].min()]
+
+
+
+
 
     ###########################################
 
@@ -156,7 +372,7 @@ for i in range(meta_df.shape[0]):
 
 
     ################# Draw figure ###############
-    data_df['time_id'] = list(range(data_df.shape[0]))
+
 
     time_number = data_df.shape[0]
     trade_times = data_df['time']
@@ -207,40 +423,88 @@ for i in range(meta_df.shape[0]):
         axes[1].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
         axes[1].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
 
+
+
         if type == 'pct':
+            axes[1].axvline(max_drawdown_start, ls='--', color='blue', linewidth=1)
+            axes[1].axvline(max_drawdown_end, ls='--', color='blue', linewidth=1)
+
             axes[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
         plt.setp(axes[1].get_xticklabels(), rotation = angle)
 
 
         ## Figure 3: remaining deposit change curve
-        y_attr = 'remaining_deposit_pct' if type == 'pct' else 'remaining_deposit'
-        y_attr_simple = 'deposit_pct' if type == 'pct' else 'deposit'
-        max_deposit = data_df[y_attr].max()
-        min_deposit = data_df[y_attr].min()
+        # y_attr = 'remaining_deposit_pct' if type == 'pct' else 'remaining_deposit'
+        # y_attr_simple = 'deposit_pct' if type == 'pct' else 'deposit'
+        # max_deposit = data_df[y_attr].max()
+        # min_deposit = data_df[y_attr].min()
+        #
+        # #print("min_deposit = " + str(min_deposit))
+        #
+        #
+        # sns.lineplot(x = 'time_id', y = y_attr, color = 'blue', data = data_df, ax = axes[2])
+        # axes[2].set_title('FX ' + symbol + " Remaining Deposit ", fontsize = 18)
+        # axes[2].set_xlabel('time', size = font_size)
+        # axes[2].set_ylabel(y_attr_simple, size = font_size)
+        # axes[2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+        # axes[2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+        # axes[2].tick_params(labelsize = font_size)
+        #
+        # #y_lim_min = min([0, min_deposit])
+        # y_lim_min = min_deposit
+        # y_lim_max = max([0, max_deposit])
+        # if y_lim_max > 0:
+        #     y_lim_max = y_lim_max * 1.2
+        # axes[2].set_ylim([y_lim_min, y_lim_max])
+        #
+        # if type == 'pct':
+        #     axes[2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+        #
+        # plt.setp(axes[2].get_xticklabels(), rotation = angle)
 
-        #print("min_deposit = " + str(min_deposit))
 
 
-        sns.lineplot(x = 'time_id', y = y_attr, color = 'blue', data = data_df, ax = axes[2])
-        axes[2].set_title('FX ' + symbol + " Remaining Deposit ", fontsize = 18)
-        axes[2].set_xlabel('time', size = font_size)
-        axes[2].set_ylabel(y_attr_simple, size = font_size)
+        ##### Figure 3: margine_level change curve (Very important to monitor auto-stop) ############
+
+        y_attr = 'drawdown_margin_level' if type == 'pct' else 'margin_level'
+        max_margin_level = data_df[y_attr].max()
+        min_margin_level = min(0, data_df[y_attr].min())
+
+        # print("min_deposit = " + str(min_deposit))
+
+        sns.lineplot(x='time_id', y=y_attr, color='blue', data=data_df, ax=axes[2])
+        title = ('FX ' + symbol + " Drawdown Margin Level ") if type == 'pct' else ('FX ' + symbol + " Margin Level ")
+        axes[2].set_title(title, fontsize=18)
+        axes[2].set_xlabel('time', size=font_size)
+        axes[2].set_ylabel(y_attr, size=font_size)
         axes[2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
         axes[2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        axes[2].tick_params(labelsize = font_size)
+        axes[2].tick_params(labelsize=font_size)
 
-        #y_lim_min = min([0, min_deposit])
-        y_lim_min = min_deposit
-        y_lim_max = max([0, max_deposit])
+        used_cross_down_points = drawdown_cross_down_points if type == 'pct' else cross_down_points
+        used_cross_up_points = drawdown_cross_up_points if type == 'pct' else cross_up_points
+
+        axes[2].axhline(0.5, ls='--', color='black', linewidth=1)
+        for point_id in used_cross_down_points:
+            axes[2].axvline(point_id, ls = '--', color = 'red', linewidth=1)
+        for point_id in used_cross_up_points:
+            axes[2].axvline(point_id, ls = '--', color = 'blue', linewidth=1)
+
+
+        # y_lim_min = min([0, min_deposit])
+        y_lim_min = min_margin_level
+        y_lim_max = max([0, max_margin_level])
         if y_lim_max > 0:
             y_lim_max = y_lim_max * 1.2
         axes[2].set_ylim([y_lim_min, y_lim_max])
 
-        if type == 'pct':
-            axes[2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+        #if type == 'pct':
+        axes[2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
-        plt.setp(axes[2].get_xticklabels(), rotation = angle)
+        plt.setp(axes[2].get_xticklabels(), rotation=angle)
+
+
 
 
         ## Figure 4: position change curve
@@ -276,9 +540,12 @@ for i in range(meta_df.shape[0]):
 
 
 
-performance_summary = pd.DataFrame({'symbol' : symbols, 'pnl' : pnl, 'return(%)' : return_rate, 'max_drawdown' : max_drawdown,
+performance_summary = pd.DataFrame({'symbol' : symbols,  'min_margin_level(%)' : min_margin_levels, 'drawdown_min_margin_level(%)' : drawdown_min_margin_levels,
+                                    'pnl' : pnl, 'return(%)' : return_rate, 'max_drawdown' : max_drawdown,
                                     'max_drawdown_rate(%)' : max_drawdown_rate})
 
+performance_summary['min_margin_level(%)'] *= 100.0
+performance_summary['drawdown_min_margin_level(%)'] *= 100.0
 performance_summary['return(%)'] *= 100.0
 performance_summary['max_drawdown_rate(%)'] *= 100.0
 
@@ -288,6 +555,18 @@ print("performance_summary:")
 print(performance_summary)
 performance_summary.to_csv(os.path.join(pnl_folder, 'performance_summary.csv'), index = False)
 
+
+auto_stop_summary = performance_summary[performance_summary['min_margin_level(%)'] <= stop_level * 100.0]
+drawdown_auto_stop_summary = performance_summary[performance_summary['drawdown_min_margin_level(%)'] <= stop_level * 100.0]
+
+print("")
+
+print("These currency pairs will be forced to close all positions during trading due to margin_level below stop_level at some time")
+print(auto_stop_summary)
+
+
+print("These currency pairs will be forced to close all positions during trading (drawdown) due to margin_level below stop_level at some time")
+print(drawdown_auto_stop_summary)
 
 
 
