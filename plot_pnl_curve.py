@@ -78,7 +78,7 @@ meta_df = pd.read_csv(meta_file)
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0717', 'pnl_summary_spread15_innovativeFire2_modifyStopLossABitCheck_marginLevel1')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0717', 'pnl_summary_spread15_innovativeFire2_modifyStopLossABitCheck_marginLevel2.5')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 
@@ -92,7 +92,7 @@ return_rate = []
 max_drawdown = []
 max_drawdown_rate = []
 
-initial_principal = 1000
+initial_principal = 2500
 
 
 
