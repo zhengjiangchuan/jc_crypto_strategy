@@ -147,7 +147,7 @@ is_reentry = False
 is_apply_innovative_filter_to_exclude = False
 
 
-possition_factor = 0.2
+possition_factor = 0.1
 
 class CurrencyTrader(threading.Thread):
 
@@ -5198,6 +5198,7 @@ class CurrencyTrader(threading.Thread):
 
             if self.data_df.iloc[-1]['show_buy_close_position_final_quick']:
                 msg = "Close Long Position Phase 1 Stop loss quick for " + self.currency + " at " + current_time
+                #print("  ######Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
                 if is_send_email:
                     sendEmail(msg, msg + "  Close " + str(round(-self.data_df.iloc[-1]['buy_position']*possition_factor, 2)) + " lot")
 

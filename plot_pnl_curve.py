@@ -75,10 +75,15 @@ data_folder = "C:\\Forex\\formal_trading\\"
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
+meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'AUDUSD', 'EURAUD'])]
+
+#meta_df = meta_df[meta_df['symbol'].isin(['EURGBP', 'CADCHF'])]
+
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0720', 'pnl_summary_spread15_innovativeFire2new_marginLevel2.5_3pm_check2')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0720', 'pnl_summary_spread15_innovativeFire2new_marginLevel2.5_10pm')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 
@@ -92,54 +97,308 @@ return_rate = []
 max_drawdown = []
 max_drawdown_rate = []
 
-initial_principal = 2500
+initial_principal = 4000  #2500
+
+
+
+####################### Portfolio trading ####################################
+
+is_portfolio = True
+
+symbols = list(meta_df['symbol'])
+
+total_cum_positions = []
+if is_portfolio:
+
+    max_exposure = 4
+
+    print("Prepare overall_data_df")
+    symbol_data_dfs = []
+    for i in range(meta_df.shape[0]):
+
+        row = meta_df.iloc[i]
+        symbol = row['symbol']
+        print("Read symbol " + symbol)
+
+        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
+
+        data_df = pd.read_csv(data_file)
+
+        data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+        simple_data_df = data_df[['time', 'position', 'cum_position']]
+
+        simple_data_df = simple_data_df.rename(columns = {
+            'position' : symbol + '_position',
+            'cum_position' : symbol + '_cum_position'
+        })
+
+        print("Raw symbol = " + str(symbol))
+        print("data length = " + str(simple_data_df.shape[0]))
+        symbol_data_dfs += [simple_data_df]
+
+    overall_data_df = reduce(lambda left, right: pd.merge(left, right, on = ['time'], how = 'inner'), symbol_data_dfs)
+
+    overall_data_df.reset_index(inplace = True)
+    overall_data_df = overall_data_df.drop(columns = ['index'])
+
+    print("overall_data_df created")
+
+    print("Overall_data_df length = " + str(overall_data_df.shape[0]))
+
+    print("start_time = " + str(overall_data_df.iloc[0]['time']))
+    print("end_time = " + str(overall_data_df.iloc[-1]['time']))
+
+    #sys.exit(0)
+
+    symbol_actual_positions = {}
+    for symbol in symbols:
+        symbol_actual_positions[symbol] = []
+
+    symbol_factors = {}
+    for symbol in symbols:
+        symbol_factors[symbol] = 1
+
+    total_cum_position = 0
+    for i in range(overall_data_df.shape[0]):
+        #print("Process row " + str(i))
+        row = overall_data_df.iloc[i]
+        for symbol in symbols:
+            #print("    Process symbol " + symbol)
+
+
+            start = False
+            if abs(row[symbol + '_position']) > 1e-5 and (i == 0 or abs(overall_data_df.iloc[i-1][symbol + '_cum_position']) < 1e-5):
+                start = True
+
+            if start:
+                position = row[symbol + '_position']
+                attempt_total_cum_position = total_cum_position + position
+                if total_cum_position * position > 0 and abs(attempt_total_cum_position) > max_exposure:
+
+                    if abs(total_cum_position) > max_exposure:
+                        capped_position = 0
+                        symbol_factor = 0
+                    else:
+
+                        print("")
+                        print("i = " + str(i))
+                        print("symbol = " + symbol)
+
+                        print("total_cum_position = " + str(total_cum_position))
+                        print("position = " + str(position))
+                        print("attempt_total_cum_position = " + str(attempt_total_cum_position))
+                        print("max_exposure = " + str(max_exposure))
+
+                        max_position = max_exposure if position > 0 else -max_exposure
+                        print("max_position = " + str(max_position))
+                        capped_position = max_position - total_cum_position
+
+                        print("capped_position = " + str(capped_position))
+
+                        symbol_factor = capped_position / position
+
+                        print("symbol_factor = " + str(symbol_factor))
+
+                    assert(symbol_factor >= 0 and symbol_factor <= 1)
+                    symbol_factors[symbol] = symbol_factor
+
+                    # print("Here 0 position = " + str(position))
+                    # print("Here 0 capped_position = " + str(capped_position))
+
+                else:
+
+                    if i == 262:
+                        print("262 1:symbol = " + symbol)
+                        print("position = " + str(position))
+                        print("")
+
+                    capped_position = position
+                    # print("Here 1 position = " + str(position))
+                    # print("Here 1 capped_position = " + str(capped_position))
+            else:
+                position = row[symbol + '_position']
+                capped_position = position * symbol_factors[symbol]
+
+                if i == 262:
+                    print("262 2:symbol = " + symbol)
+                    print("position = " + str(position))
+                    print("factor = " + str(symbol_factors[symbol]))
+                    print("capped_position = " + str(capped_position))
+                    print("")
+
+                # print("Here 2 position = " + str(position))
+                # print("Here 2 capped_position = " + str(capped_position))
+
+            # if i == 262:
+            #     print('Before total_cum_position = ' + str(total_cum_position))
+
+            total_cum_position += capped_position
+
+            # if i == 262:
+            #     print('After total_cum_position = ' + str(total_cum_position))
+
+
+            #print("Calculated total_cum_position = " + str(total_cum_position))
+
+            symbol_actual_positions[symbol] += [capped_position]
+
+
+
+            if abs(row[symbol + '_cum_position']) < 1e-5:
+                if symbol_factors[symbol] < 1:
+                    symbol_factors[symbol] = 1
+
+        total_cum_positions += [total_cum_position]
+
+    final_data_df = overall_data_df[['time']]
+
+    for symbol in symbols:
+        print("Final process symbol " + symbol)
+        print("final_data_df length = " + str(final_data_df.shape[0]))
+        final_data_df[symbol+'_position'] = overall_data_df[symbol+'_position']
+        final_data_df[symbol+'_cum_position'] = overall_data_df[symbol+'_cum_position']
+
+        print("actual_positions length = " + str(len(symbol_actual_positions[symbol])))
+        final_data_df[symbol+'_actual_position'] = symbol_actual_positions[symbol]
+        final_data_df[symbol+'_actual_cum_position'] = final_data_df[symbol+'_actual_position'].cumsum()
+
+
+    final_data_df['actual_cum_position'] = 0
+    for symbol in symbols:
+        final_data_df['actual_cum_position'] += final_data_df[symbol + '_actual_cum_position']
+
+    # check_sum = 0
+    # check_row = final_data_df.iloc[747]
+    # for symbol in symbols:
+    #     check_cum_position = check_row[symbol + '_actual_cum_position']
+    #     print(symbol + ":")
+    #     check_sum += check_cum_position
+    #     print("check_cum_position = " + str(check_cum_position))
+    #     print("check_sum = " + str(check_sum))
+    # print("final check_sum = " + str(check_sum))
+    # sys.exit(0)
+
+
+
+    final_data_df['total_cum_position'] = total_cum_positions
+
+    start_time = final_data_df.iloc[0]['time']
+    end_time = final_data_df.iloc[-1]['time']
+
+
+    final_data_df.to_csv(os.path.join(pnl_folder, 'portfolio_position.csv'), index = False)
+
+
+#sys.exit(0)
 
 
 
 
-for i in range(meta_df.shape[0]):
-    row = meta_df.iloc[i]
-    symbol = row['symbol']
-    exchange_rate = row['exchange_rate']
-    principal = initial_principal
-    deposit_per_lot = row['deposit_per_lot']
-    contract_size = row['contract_size']
-    spread = row['spread']
 
-    symbols += [symbol]
 
-    lot_size = contract_size * exchange_rate
+##############################################################################
+
+if is_portfolio:
+    pnl_df = final_data_df[['time']]
 
 
 
-    data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
 
-    data_df = pd.read_csv(data_file)
+for i in range(meta_df.shape[0] + 1):
+
+    if i == meta_df.shape[0] and not is_portfolio:
+        break
+
+    if i < meta_df.shape[0]:
+
+        row = meta_df.iloc[i]
+        symbol = row['symbol']
+        exchange_rate = row['exchange_rate']
+        principal = initial_principal
+        deposit_per_lot = row['deposit_per_lot']
+        contract_size = row['contract_size']
+        spread = row['spread']
+
+        #symbols += [symbol]
+
+        lot_size = contract_size * exchange_rate
 
 
 
-    data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
 
-    data_df = data_df[['time','id','buy_point_id', 'sell_point_id', 'close', 'buy_position','cum_buy_position','sell_position','cum_sell_position',
-                       'position', 'cum_position']]
+        data_df = pd.read_csv(data_file)
 
-    data_df['time_id'] = list(range(data_df.shape[0]))
 
-    data_df['price'] = data_df['close']
 
-    data_df['pre_pos'] = data_df['cum_position'].shift(1)
-    data_df['pre_price'] = data_df['price'].shift(1)
-    data_df['pre_pos'].iloc[0] = 0
+        data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
-    data_df['pnl'] = (data_df['price'] - data_df['pre_price']) * lot_size * data_df['pre_pos']
+        if is_portfolio:
 
-    if is_subtract_commission:
-        data_df['pre_pos_increment'] = data_df['pre_pos'].diff()
-        data_df['pre_pos_increment'].iloc[0] = 0
-        data_df['pnl'] = np.where(data_df['pre_pos_increment'] > 0,
-                                   data_df['pnl'] - spread * data_df['pre_pos_increment'],
-                                   data_df['pnl']
-                                  )
+            print("symbol = " + symbol)
+            print("Old length = " + str(data_df.shape[0]))
+
+            data_df = data_df[(data_df['time'] >= start_time) & (data_df['time'] <= end_time)]
+
+            print("New length = " + str(data_df.shape[0]))
+
+        data_df = data_df[['time','id','buy_point_id', 'sell_point_id', 'close', 'buy_position','cum_buy_position','sell_position','cum_sell_position',
+                           'position', 'cum_position']]
+
+        if is_portfolio:
+            data_df['position'] = final_data_df[symbol+'_actual_position']
+            data_df['cum_position'] = final_data_df[symbol+'_actual_cum_position']
+
+            # if symbol == 'USDJPY':
+            #     print("Check USDJPY:")
+            #     print(data_df.iloc[1277:1287][['time','position','cum_position']])
+            #     sys.exit(0)
+
+
+
+
+        data_df['time_id'] = list(range(data_df.shape[0]))
+
+        data_df['price'] = data_df['close']
+
+        data_df['pre_pos'] = data_df['cum_position'].shift(1)
+        data_df['pre_price'] = data_df['price'].shift(1)
+        data_df['pre_pos'].iloc[0] = 0
+
+        data_df['pnl'] = (data_df['price'] - data_df['pre_price']) * lot_size * data_df['pre_pos']
+
+        if is_subtract_commission:
+            data_df['pre_pos_increment'] = data_df['pre_pos'].diff()
+            data_df['pre_pos_increment'].iloc[0] = 0
+            data_df['pnl'] = np.where(data_df['pre_pos_increment'] > 0,
+                                       data_df['pnl'] - spread * data_df['pre_pos_increment'],
+                                       data_df['pnl']
+                                      )
+
+
+        if is_portfolio:
+            pnl_df[symbol + '_pnl'] = data_df['pnl']
+
+    else:
+
+        data_df = final_data_df[['time', 'actual_cum_position']]
+        data_df['pnl'] = 0
+        for symbol in symbols:
+            data_df['pnl'] += pnl_df[symbol + '_pnl']
+
+        data_df['time_id'] = list(range(data_df.shape[0]))
+
+        data_df = data_df.rename(columns = {'actual_cum_position' : 'cum_position'})
+
+
+        deposit_per_lot = 1000
+        principal = initial_principal * max_exposure
+
+
+
+
+
 
     data_df['acc_pnl'] = data_df['pnl'].cumsum()
     data_df['acc_return'] = data_df['acc_pnl'] / float(principal)
@@ -289,6 +548,9 @@ for i in range(meta_df.shape[0]):
     # print("max_drawdown_end = " + str(max_drawdown_end))
     # print("critical max_acc_pnl = " + str(data_df.iloc[max_drawdown_end]['max_acc_pnl']))
 
+    print("symbol = " + symbol)
+    print("data_df length = " + str(data_df.shape[0]))
+    print("max_drawdown_end = " + str(max_drawdown_end))
     max_drawdown_start = which(np.abs(data_df['acc_pnl'] - data_df.iloc[max_drawdown_end]['max_acc_pnl']) < 1e-5)[0]
 
     # print("max_drawdown_start = " + str(max_drawdown_start))
@@ -365,8 +627,14 @@ for i in range(meta_df.shape[0]):
     ###########################################
 
 
+    if i == meta_df.shape[0]:
+        portfolio_folder = os.path.join(data_folder, 'portfolio', 'data')
+        if not os.path.exists(portfolio_folder):
+            os.makedirs(portfolio_folder)
+        pnl_file = os.path.join(data_folder, 'portfolio', 'data', 'portfolio' + '_pnl.csv')
 
-    pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
+    else:
+        pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
 
     data_df.to_csv(pnl_file, index = False)
 
@@ -392,7 +660,7 @@ for i in range(meta_df.shape[0]):
 
         fig = plt.figure(figsize=(28, 18))
         col_num = 1
-        row_num = 4
+        row_num = 3 if i == meta_df.shape[0] else 4
 
         angle = 30
 
@@ -400,38 +668,46 @@ for i in range(meta_df.shape[0]):
 
         axes = fig.subplots(nrows=row_num, ncols=col_num)
 
-        ## Figure 1: market price curve and our buy/sell points
-        sns.lineplot(x='time_id', y='price', color='black', data=data_df, ax=axes[0])
-        axes[0].set_title('FX ' + symbol + " Market Price", fontsize=18)
-        axes[0].set_xlabel('time', size=font_size)
-        axes[0].set_ylabel('price', size=font_size)
-        axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
-        axes[0].tick_params(labelsize=font_size)
+        start_id = -1 if i == meta_df.shape[0] else 0
 
-        plt.setp(axes[0].get_xticklabels(), rotation=angle)
+        if i < meta_df.shape[0]:
+            ## Figure 1: market price curve and our buy/sell points
+            sns.lineplot(x='time_id', y='price', color='black', data=data_df, ax=axes[0])
+            axes[0].set_title('FX ' + symbol + " Market Price", fontsize=18)
+            axes[0].set_xlabel('time', size=font_size)
+            axes[0].set_ylabel('price', size=font_size)
+            axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+            axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+            axes[0].tick_params(labelsize=font_size)
 
+            plt.setp(axes[0].get_xticklabels(), rotation=angle)
+
+
+        if i == meta_df.shape[0]:
+            ticker_name = "Portfolio"
+        else:
+            ticker_name = symbol
 
         ## Figure 2: mark-to-market pnl curve
         y_attr = 'acc_return' if type == 'pct' else 'acc_pnl'
-        sns.lineplot(x = 'time_id', y = y_attr, markers = 'o', color = 'red', data = data_df, ax = axes[1])
-        axes[1].set_title('FX ' + symbol + " Strategy Return ", fontsize = 18)
-        axes[1].set_xlabel('time', size = font_size)
-        axes[1].set_ylabel(y_attr, size = font_size)
-        axes[1].tick_params(labelsize = font_size)
-        axes[1].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[1].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+        sns.lineplot(x = 'time_id', y = y_attr, markers = 'o', color = 'red', data = data_df, ax = axes[start_id + 1])
+        axes[start_id + 1].set_title('FX ' + ticker_name + " Strategy Return ", fontsize = 18)
+        axes[start_id + 1].set_xlabel('time', size = font_size)
+        axes[start_id + 1].set_ylabel(y_attr, size = font_size)
+        axes[start_id + 1].tick_params(labelsize = font_size)
+        axes[start_id + 1].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+        axes[start_id + 1].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
 
 
 
         if type == 'pct':
-            axes[1].axvline(max_drawdown_start, ls='--', color='blue', linewidth=1)
-            axes[1].axvline(max_drawdown_end, ls='--', color='blue', linewidth=1)
+            axes[start_id + 1].axvline(max_drawdown_start, ls='--', color='blue', linewidth=1)
+            axes[start_id + 1].axvline(max_drawdown_end, ls='--', color='blue', linewidth=1)
 
-            axes[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+            axes[start_id + 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
-        plt.setp(axes[1].get_xticklabels(), rotation = angle)
+        plt.setp(axes[start_id + 1].get_xticklabels(), rotation = angle)
 
 
         ## Figure 3: remaining deposit change curve
@@ -473,23 +749,23 @@ for i in range(meta_df.shape[0]):
 
         # print("min_deposit = " + str(min_deposit))
 
-        sns.lineplot(x='time_id', y=y_attr, color='blue', data=data_df, ax=axes[2])
-        title = ('FX ' + symbol + " Drawdown Margin Level ") if type == 'pct' else ('FX ' + symbol + " Margin Level ")
-        axes[2].set_title(title, fontsize=18)
-        axes[2].set_xlabel('time', size=font_size)
-        axes[2].set_ylabel(y_attr, size=font_size)
-        axes[2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        axes[2].tick_params(labelsize=font_size)
+        sns.lineplot(x='time_id', y=y_attr, color='blue', data=data_df, ax=axes[start_id + 2])
+        title = ('FX ' + ticker_name + " Drawdown Margin Level ") if type == 'pct' else ('FX ' + symbol + " Margin Level ")
+        axes[start_id + 2].set_title(title, fontsize=18)
+        axes[start_id + 2].set_xlabel('time', size=font_size)
+        axes[start_id + 2].set_ylabel(y_attr, size=font_size)
+        axes[start_id + 2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+        axes[start_id + 2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+        axes[start_id + 2].tick_params(labelsize=font_size)
 
         used_cross_down_points = drawdown_cross_down_points if type == 'pct' else cross_down_points
         used_cross_up_points = drawdown_cross_up_points if type == 'pct' else cross_up_points
 
-        axes[2].axhline(0.5, ls='--', color='black', linewidth=1)
+        axes[start_id + 2].axhline(0.5, ls='--', color='black', linewidth=1)
         for point_id in used_cross_down_points:
-            axes[2].axvline(point_id, ls = '--', color = 'red', linewidth=1)
+            axes[start_id + 2].axvline(point_id, ls = '--', color = 'red', linewidth=1)
         for point_id in used_cross_up_points:
-            axes[2].axvline(point_id, ls = '--', color = 'blue', linewidth=1)
+            axes[start_id + 2].axvline(point_id, ls = '--', color = 'blue', linewidth=1)
 
 
         # y_lim_min = min([0, min_deposit])
@@ -497,47 +773,60 @@ for i in range(meta_df.shape[0]):
         y_lim_max = max([0, max_margin_level])
         if y_lim_max > 0:
             y_lim_max = y_lim_max * 1.2
-        axes[2].set_ylim([y_lim_min, y_lim_max])
+        axes[start_id + 2].set_ylim([y_lim_min, y_lim_max])
 
         #if type == 'pct':
-        axes[2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+        axes[start_id + 2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
-        plt.setp(axes[2].get_xticklabels(), rotation=angle)
+        plt.setp(axes[start_id + 2].get_xticklabels(), rotation=angle)
 
 
 
 
         ## Figure 4: position change curve
         max_position = data_df['abs_cum_position'].max()
-        sns.lineplot(x = 'time_id', y = 'abs_cum_position', color = 'purple', data = data_df, ax = axes[3])
-        axes[3].set_title('FX ' + symbol + " Position ", fontsize = 18)
-        axes[3].set_xlabel('time', size = font_size)
-        axes[3].set_ylabel('position', size = font_size)
-        axes[3].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[3].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        axes[3].tick_params(labelsize = font_size)
-        axes[3].set_ylim([-1, max_position * 2])
-        plt.setp(axes[3].get_xticklabels(), rotation = angle)
+        sns.lineplot(x = 'time_id', y = 'abs_cum_position', color = 'purple', data = data_df, ax = axes[start_id + 3])
+        axes[start_id + 3].set_title('FX ' + ticker_name + " Position ", fontsize = 18)
+        axes[start_id + 3].set_xlabel('time', size = font_size)
+        axes[start_id + 3].set_ylabel('position', size = font_size)
+        axes[start_id + 3].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+        axes[start_id + 3].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+        axes[start_id + 3].tick_params(labelsize = font_size)
+        axes[start_id + 3].set_ylim([-1, max_position * 2])
+        plt.setp(axes[start_id + 3].get_xticklabels(), rotation = angle)
 
 
         plt.subplots_adjust(hspace = 0.5)
 
+        if i < meta_df.shape[0]:
 
-        figure_file_path = os.path.join(data_folder, symbol, 'data', symbol + '_' + type + '_pnl.png')
-        print("figure_file_path:")
-        print(figure_file_path)
+            figure_file_path = os.path.join(data_folder, symbol, 'data', symbol + '_' + type + '_pnl.png')
+            print("figure_file_path:")
+            print(figure_file_path)
 
+            fig.savefig(figure_file_path)
 
-        fig.savefig(figure_file_path)
+        prefix = symbol if i < meta_df.shape[0] else "Portfolio"
 
-        summary_path = os.path.join(pnl_folder, symbol + '_' + type + '_pnl.png')
+        summary_path = os.path.join(pnl_folder, prefix + '_' + type + '_pnl.png')
         print("summary_path:")
         print(summary_path)
         fig.savefig(summary_path)
 
         plt.close(fig)
 
+if is_portfolio:
+    symbols += ['Portfolio']
 
+print("symbols:")
+print(symbols)
+print("symbols = " + str(len(symbols)))
+print("min_margin_levels = " + str(len(min_margin_levels)))
+print("drawdown_min_margin_levels = " + str(len(drawdown_min_margin_levels)))
+print("pnl = " + str(len(pnl)))
+print("return_rate = " + str(len(return_rate)))
+print("max_drawdown = " + str(len(max_drawdown)))
+print("max_drawdown_rate = " + str(len(max_drawdown_rate)))
 
 
 performance_summary = pd.DataFrame({'symbol' : symbols,  'min_margin_level(%)' : min_margin_levels, 'drawdown_min_margin_level(%)' : drawdown_min_margin_levels,

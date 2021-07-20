@@ -91,9 +91,10 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['EURNZD', 'EURJPY', 'EURCHF', 'GBPCAD', 'AUDCAD'])]
+# currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+#                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['GBPCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURJPY'])]
 
 
 # print("currency_df:")
@@ -229,8 +230,6 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
         # print("final data_df:")
         # print(data_df)
-
-        #data_df = data_df.iloc[0:-1]
 
         print("data number: " + str(data_df.shape[0]))
 
@@ -423,14 +422,14 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if False:
+if True:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0717\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_3pm_check2"
+    dest_folder = "C:\\Forex\\new_experiments\\0720\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_9pm"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
