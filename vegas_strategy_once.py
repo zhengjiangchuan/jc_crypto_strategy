@@ -94,7 +94,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['EURJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURAUD'])]
 
 
 # print("currency_df:")
@@ -222,6 +222,9 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
         #
         # print("columns:")
         # print(data_df.columns)
+
+        # print("data_df:")
+        # print(data_df)
 
         if is_convert_to_time:
             data_df['time'] = data_df['time'].apply(lambda x: convert_to_time(x))
@@ -429,7 +432,7 @@ if True:
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0720\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_9pm"
+    dest_folder = "C:\\Forex\\new_experiments\\0721\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_11pm"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -443,7 +446,7 @@ if True:
         os.remove(file_path)
 
 
-    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file]
+    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file and 'portfolio' not in file]
     import shutil
     for symbol_folder in symbol_folders:
 

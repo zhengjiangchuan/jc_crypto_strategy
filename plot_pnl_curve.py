@@ -76,14 +76,14 @@ meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
 meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'AUDUSD', 'EURAUD'])]
+                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'EURAUD', 'AUDUSD'])]
 
 #meta_df = meta_df[meta_df['symbol'].isin(['EURGBP', 'CADCHF'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0720', 'pnl_summary_spread15_innovativeFire2new_marginLevel2.5_10pm')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0721', 'pnl_summary_spread15_innovativeFire2new_marginLevel2.5_11pm_portfolio')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 
@@ -137,7 +137,9 @@ if is_portfolio:
         print("data length = " + str(simple_data_df.shape[0]))
         symbol_data_dfs += [simple_data_df]
 
-    overall_data_df = reduce(lambda left, right: pd.merge(left, right, on = ['time'], how = 'inner'), symbol_data_dfs)
+    overall_data_df = reduce(lambda left, right: pd.merge(left, right, on = ['time'], how = 'outer'), symbol_data_dfs)
+
+    overall_data_df = overall_data_df.fillna(0)
 
     overall_data_df.reset_index(inplace = True)
     overall_data_df = overall_data_df.drop(columns = ['index'])
@@ -148,6 +150,8 @@ if is_portfolio:
 
     print("start_time = " + str(overall_data_df.iloc[0]['time']))
     print("end_time = " + str(overall_data_df.iloc[-1]['time']))
+
+    #print(overall_data_df[['time', 'EURUSD_position', 'EURUSD_cum_position', 'AUDUSD_position', 'AUDUSD_cum_position']].head(400))
 
     #sys.exit(0)
 
@@ -208,10 +212,10 @@ if is_portfolio:
 
                 else:
 
-                    if i == 262:
-                        print("262 1:symbol = " + symbol)
-                        print("position = " + str(position))
-                        print("")
+                    # if i == 262:
+                    #     print("262 1:symbol = " + symbol)
+                    #     print("position = " + str(position))
+                    #     print("")
 
                     capped_position = position
                     # print("Here 1 position = " + str(position))
@@ -229,6 +233,8 @@ if is_portfolio:
 
                 # print("Here 2 position = " + str(position))
                 # print("Here 2 capped_position = " + str(capped_position))
+
+            capped_position = round(capped_position, 2)
 
             # if i == 262:
             #     print('Before total_cum_position = ' + str(total_cum_position))
@@ -303,7 +309,7 @@ if is_portfolio:
     pnl_df = final_data_df[['time']]
 
 
-
+sample_data_df = None
 
 for i in range(meta_df.shape[0] + 1):
 
@@ -345,6 +351,30 @@ for i in range(meta_df.shape[0] + 1):
 
         data_df = data_df[['time','id','buy_point_id', 'sell_point_id', 'close', 'buy_position','cum_buy_position','sell_position','cum_sell_position',
                            'position', 'cum_position']]
+
+        if sample_data_df is None and data_df.shape[0] == final_data_df.shape[0]:
+            sample_data_df = data_df.copy()
+            print("Copy sample data_df")
+            #sys.exit(0)
+
+        # if symbol == 'AUDUSD':
+        #     print("AUDUSD data_df length = " + str(data_df.shape[0]))
+        #     print("final_data_df length = " + str(final_data_df.shape[0]))
+            #sys.exit(0)
+
+        if sample_data_df is not None and data_df.shape[0] < final_data_df.shape[0]:
+            data_df = pd.merge(sample_data_df[['time']], data_df, on = ['time'], how = 'outer')
+            data_df = data_df.fillna(0)
+
+            data_df.reset_index(inplace=True)
+            data_df = data_df.drop(columns=['index'])
+
+            #
+            # print("Critical symbol = " + symbol)
+            # print(data_df.head(300))
+            # sys.exit(0)
+
+
 
         if is_portfolio:
             data_df['position'] = final_data_df[symbol+'_actual_position']
@@ -551,9 +581,14 @@ for i in range(meta_df.shape[0] + 1):
     print("symbol = " + symbol)
     print("data_df length = " + str(data_df.shape[0]))
     print("max_drawdown_end = " + str(max_drawdown_end))
+
+    # if i == meta_df.shape[0]:
+    #     pnl_file = os.path.join(data_folder, 'portfolio', 'data', 'portfolio' + '_pnl_debug.csv')
+    #     data_df.to_csv(pnl_file, index = False)
+
     max_drawdown_start = which(np.abs(data_df['acc_pnl'] - data_df.iloc[max_drawdown_end]['max_acc_pnl']) < 1e-5)[0]
 
-    # print("max_drawdown_start = " + str(max_drawdown_start))
+    print("max_drawdown_start = " + str(max_drawdown_start))
     #
     # sys.exit(0)
 
@@ -631,7 +666,7 @@ for i in range(meta_df.shape[0] + 1):
         portfolio_folder = os.path.join(data_folder, 'portfolio', 'data')
         if not os.path.exists(portfolio_folder):
             os.makedirs(portfolio_folder)
-        pnl_file = os.path.join(data_folder, 'portfolio', 'data', 'portfolio' + '_pnl.csv')
+        pnl_file = os.path.join(data_folder, 'portfolio', 'data', 'portfolio' + '_pnl_final.csv')
 
     else:
         pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
