@@ -76,14 +76,16 @@ meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
 meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'EURAUD', 'AUDUSD'])]
+                                                        'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
 #meta_df = meta_df[meta_df['symbol'].isin(['EURGBP', 'CADCHF'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0721', 'pnl_summary_spread15_innovativeFire2new_marginLevel2.5_11pm_portfolio')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio2_correct_positioning_exposure10_hk')
+
+#pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
     os.makedirs(pnl_folder)
 
@@ -97,20 +99,29 @@ return_rate = []
 max_drawdown = []
 max_drawdown_rate = []
 
-initial_principal = 4000  #2500
+initial_principal = 2500  #2500
 
-
+use_correct_positioning = True
 
 ####################### Portfolio trading ####################################
 
 is_portfolio = True
 
+plot_hk_pnl = True
+initial_deposit_hk = 31000
+
+
+
 symbols = list(meta_df['symbol'])
 
 total_cum_positions = []
+total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 4
+    max_exposure = 10
+    initial_principal_magnifier = 8
+
+
 
     print("Prepare overall_data_df")
     symbol_data_dfs = []
@@ -156,14 +167,19 @@ if is_portfolio:
     #sys.exit(0)
 
     symbol_actual_positions = {}
+    symbol_actual_cum_positions = {}
     for symbol in symbols:
         symbol_actual_positions[symbol] = []
+        symbol_actual_cum_positions[symbol] = []
 
     symbol_factors = {}
     for symbol in symbols:
         symbol_factors[symbol] = 1
 
     total_cum_position = 0
+
+    total_cum_abs_position = 0
+
     for i in range(overall_data_df.shape[0]):
         #print("Process row " + str(i))
         row = overall_data_df.iloc[i]
@@ -177,12 +193,39 @@ if is_portfolio:
 
             if start:
                 position = row[symbol + '_position']
-                attempt_total_cum_position = total_cum_position + position
-                if total_cum_position * position > 0 and abs(attempt_total_cum_position) > max_exposure:
 
-                    if abs(total_cum_position) > max_exposure:
+                if not use_correct_positioning:
+                    attempt_total_cum_position = total_cum_position + position
+                else:
+
+                    attempt_total_cum_position = total_cum_abs_position + abs(position)
+                    assert(attempt_total_cum_position > 0)
+
+                is_exceed_max_exposure = False
+                if not use_correct_positioning:
+                    is_exceed_max_exposure = total_cum_position * position > 0 and abs(attempt_total_cum_position) > max_exposure
+                else:
+                    is_exceed_max_exposure = attempt_total_cum_position > max_exposure
+
+                if is_exceed_max_exposure:
+
+                    already_exceed_max_exposure = False
+
+                    if not use_correct_positioning:
+                        already_exceed_max_exposure = abs(total_cum_position) > max_exposure
+                    else:
+                        already_exceed_max_exposure = total_cum_abs_position >= max_exposure
+
+                    if already_exceed_max_exposure:
                         capped_position = 0
                         symbol_factor = 0
+
+                        print("")
+                        print("i = " + str(i))
+                        print("symbol = " + symbol)
+                        print("total_cum_abs_position = " + str(total_cum_abs_position))
+                        print("Here 00 position = " + str(position))
+                        print("Here 00 capped_position = " + str(capped_position))
                     else:
 
                         print("")
@@ -194,21 +237,42 @@ if is_portfolio:
                         print("attempt_total_cum_position = " + str(attempt_total_cum_position))
                         print("max_exposure = " + str(max_exposure))
 
-                        max_position = max_exposure if position > 0 else -max_exposure
-                        print("max_position = " + str(max_position))
-                        capped_position = max_position - total_cum_position
+                        if not use_correct_positioning:
+                            max_position = max_exposure if position > 0 else -max_exposure
+                            print("max_position = " + str(max_position))
+                            capped_position = max_position - total_cum_position
 
-                        print("capped_position = " + str(capped_position))
+                            print("capped_position = " + str(capped_position))
 
-                        symbol_factor = capped_position / position
+                            symbol_factor = capped_position / position
+
+                        else:
+                            capped_abs_position = max_exposure - total_cum_abs_position
+                            assert(capped_abs_position > 0)
+
+                            print("capped_abs_position = " + str(capped_abs_position))
+
+                            symbol_factor = capped_abs_position / position if position > 0 else -capped_abs_position / position
+
+                            if position > 0:
+                                capped_position = capped_abs_position
+                            else:
+                                capped_position = -capped_abs_position
+
+
+
 
                         print("symbol_factor = " + str(symbol_factor))
 
                     assert(symbol_factor >= 0 and symbol_factor <= 1)
                     symbol_factors[symbol] = symbol_factor
 
-                    # print("Here 0 position = " + str(position))
-                    # print("Here 0 capped_position = " + str(capped_position))
+                    print("")
+                    print("i = " + str(i))
+                    print("symbol = " + symbol)
+                    print("total_cum_abs_position = " + str(total_cum_abs_position))
+                    print("Here 0 position = " + str(position))
+                    print("Here 0 capped_position = " + str(capped_position))
 
                 else:
 
@@ -218,28 +282,54 @@ if is_portfolio:
                     #     print("")
 
                     capped_position = position
-                    # print("Here 1 position = " + str(position))
-                    # print("Here 1 capped_position = " + str(capped_position))
+
+                    print("")
+                    print("i = " + str(i))
+                    print("symbol = " + symbol)
+                    print("total_cum_abs_position = " + str(total_cum_abs_position))
+                    print("Here 1 position = " + str(position))
+                    print("Here 1 capped_position = " + str(capped_position))
             else:
                 position = row[symbol + '_position']
                 capped_position = position * symbol_factors[symbol]
 
-                if i == 262:
-                    print("262 2:symbol = " + symbol)
-                    print("position = " + str(position))
-                    print("factor = " + str(symbol_factors[symbol]))
-                    print("capped_position = " + str(capped_position))
-                    print("")
+
+                # if i == 262:
+                #     print("262 2:symbol = " + symbol)
+                #     print("position = " + str(position))
+                #     print("factor = " + str(symbol_factors[symbol]))
+                #     print("capped_position = " + str(capped_position))
+                #     print("")
 
                 # print("Here 2 position = " + str(position))
                 # print("Here 2 capped_position = " + str(capped_position))
 
             capped_position = round(capped_position, 2)
 
+
+            # if (position != 0 and capped_position == 0):
+            #     print("i = " + str(i))
+            #     print("position = " + str(position))
+            #     print("capped_position = " + str(capped_position))
+            #     print("symbol = " + symbol)
+            #     sys.exit(0)
+
+            # print("position = " + str(position))
+            # print("capped_position = " + str(capped_position))
+
+            assert(capped_position * position >= 0)
+
             # if i == 262:
             #     print('Before total_cum_position = ' + str(total_cum_position))
 
             total_cum_position += capped_position
+            #total_cum_abs_position += abs(capped_position)
+
+            if abs(row[symbol + '_cum_position']) < 1e-5:
+                if len(symbol_actual_cum_positions[symbol]) > 0:
+                    capped_position = -symbol_actual_cum_positions[symbol][-1]
+
+
 
             # if i == 262:
             #     print('After total_cum_position = ' + str(total_cum_position))
@@ -249,13 +339,45 @@ if is_portfolio:
 
             symbol_actual_positions[symbol] += [capped_position]
 
+            if len(symbol_actual_cum_positions[symbol]) > 0:
+                symbol_last_cum_position = symbol_actual_cum_positions[symbol][-1]
+            else:
+                symbol_last_cum_position = 0
+
+            symbol_cur_cum_position = symbol_last_cum_position + capped_position
+
+            symbol_position_delta = abs(symbol_cur_cum_position) - abs(symbol_last_cum_position)
+
+            symbol_actual_cum_positions[symbol] += [symbol_cur_cum_position]
+
+            total_cum_abs_position += symbol_position_delta
+
+
+            if abs(capped_position) > 0:
+                print("")
+                print("i = " + str(i))
+                print("symbol = " + symbol)
+                print("capped_position = " + str(capped_position))
+                print("symbol_last_cum_position = " + str(symbol_last_cum_position))
+                print("symbol_cur_cum_position = " + str(symbol_cur_cum_position))
+                print("symbol_position_delta = " + str(symbol_position_delta))
+
+                print("Update total_cum_abs_position = " + str(total_cum_abs_position))
+
 
 
             if abs(row[symbol + '_cum_position']) < 1e-5:
                 if symbol_factors[symbol] < 1:
                     symbol_factors[symbol] = 1
 
+
+
+
+
+
+
         total_cum_positions += [total_cum_position]
+        total_cum_abs_positions += [total_cum_abs_position]
 
     final_data_df = overall_data_df[['time']]
 
@@ -270,9 +392,24 @@ if is_portfolio:
         final_data_df[symbol+'_actual_cum_position'] = final_data_df[symbol+'_actual_position'].cumsum()
 
 
+    #IMportant assertions
+    for symbol in symbols:
+        cum_position_zero = np.abs(final_data_df[symbol+'_cum_position']) < 1e-5
+        actual_cum_position_not_zero = np.abs(final_data_df[symbol+'_actual_cum_position']) > 1e-5
+
+        problem_idx = which(cum_position_zero & actual_cum_position_not_zero)
+        if len(problem_idx) > 0:
+            print("")
+            print("Problem detected!")
+            print("symbol " + str(symbol))
+            print("idx:")
+            print(problem_idx)
+            assert(False)
+
+
     final_data_df['actual_cum_position'] = 0
     for symbol in symbols:
-        final_data_df['actual_cum_position'] += final_data_df[symbol + '_actual_cum_position']
+        final_data_df['actual_cum_position'] += np.abs(final_data_df[symbol + '_actual_cum_position'])
 
     # check_sum = 0
     # check_row = final_data_df.iloc[747]
@@ -288,6 +425,7 @@ if is_portfolio:
 
 
     final_data_df['total_cum_position'] = total_cum_positions
+    final_data_df['total_cum_abs_position'] = total_cum_abs_positions
 
     start_time = final_data_df.iloc[0]['time']
     end_time = final_data_df.iloc[-1]['time']
@@ -310,6 +448,10 @@ if is_portfolio:
 
 
 sample_data_df = None
+
+
+# print("meta_df:")
+# print(meta_df)
 
 for i in range(meta_df.shape[0] + 1):
 
@@ -352,7 +494,7 @@ for i in range(meta_df.shape[0] + 1):
         data_df = data_df[['time','id','buy_point_id', 'sell_point_id', 'close', 'buy_position','cum_buy_position','sell_position','cum_sell_position',
                            'position', 'cum_position']]
 
-        if sample_data_df is None and data_df.shape[0] == final_data_df.shape[0]:
+        if is_portfolio and sample_data_df is None and data_df.shape[0] == final_data_df.shape[0]:
             sample_data_df = data_df.copy()
             print("Copy sample data_df")
             #sys.exit(0)
@@ -362,7 +504,7 @@ for i in range(meta_df.shape[0] + 1):
         #     print("final_data_df length = " + str(final_data_df.shape[0]))
             #sys.exit(0)
 
-        if sample_data_df is not None and data_df.shape[0] < final_data_df.shape[0]:
+        if is_portfolio and sample_data_df is not None and data_df.shape[0] < final_data_df.shape[0]:
             data_df = pd.merge(sample_data_df[['time']], data_df, on = ['time'], how = 'outer')
             data_df = data_df.fillna(0)
 
@@ -423,7 +565,7 @@ for i in range(meta_df.shape[0] + 1):
 
 
         deposit_per_lot = 1000
-        principal = initial_principal * max_exposure
+        principal = initial_principal * initial_principal_magnifier
 
 
 
@@ -434,10 +576,20 @@ for i in range(meta_df.shape[0] + 1):
     data_df['acc_return'] = data_df['acc_pnl'] / float(principal)
     data_df['acc_return_bps'] = data_df['acc_return'] * 10000.0
 
+    data_df['acc_pnl_hk'] = data_df['acc_pnl'] * initial_deposit_hk/principal
+
+    lot_per_unit = round(initial_deposit_hk / (principal * 7.77), 2)
+
+
+
+
     pnl += [data_df.iloc[-1]['acc_pnl']]
     return_rate += [data_df.iloc[-1]['acc_return']]
 
     data_df['abs_cum_position'] = np.abs(data_df['cum_position'])
+
+    data_df['abs_cum_position_hk'] = data_df['abs_cum_position'] * lot_per_unit
+
 
     #data_df['remaining_deposit'] = principal + data_df['acc_pnl'] - data_df['abs_cum_position'] * deposit_per_lot
 
@@ -707,6 +859,12 @@ for i in range(meta_df.shape[0] + 1):
 
         if i < meta_df.shape[0]:
             ## Figure 1: market price curve and our buy/sell points
+            data_df['price'] = np.where(
+                np.abs(data_df['price']) < 1e-5,
+                np.nan,
+                data_df['price']
+            )
+
             sns.lineplot(x='time_id', y='price', color='black', data=data_df, ax=axes[0])
             axes[0].set_title('FX ' + symbol + " Market Price", fontsize=18)
             axes[0].set_xlabel('time', size=font_size)
@@ -726,6 +884,9 @@ for i in range(meta_df.shape[0] + 1):
 
         ## Figure 2: mark-to-market pnl curve
         y_attr = 'acc_return' if type == 'pct' else 'acc_pnl'
+        if type != 'pct' and plot_hk_pnl:
+            y_attr = 'acc_pnl_hk'
+
         sns.lineplot(x = 'time_id', y = y_attr, markers = 'o', color = 'red', data = data_df, ax = axes[start_id + 1])
         axes[start_id + 1].set_title('FX ' + ticker_name + " Strategy Return ", fontsize = 18)
         axes[start_id + 1].set_xlabel('time', size = font_size)
@@ -819,15 +980,21 @@ for i in range(meta_df.shape[0] + 1):
 
 
         ## Figure 4: position change curve
-        max_position = data_df['abs_cum_position'].max()
-        sns.lineplot(x = 'time_id', y = 'abs_cum_position', color = 'purple', data = data_df, ax = axes[start_id + 3])
+
+        if plot_hk_pnl:
+            position_attr = 'abs_cum_position_hk'
+        else:
+            position_attr = 'abs_cum_position'
+
+        max_position = data_df[position_attr].max()
+        sns.lineplot(x = 'time_id', y = position_attr, color = 'purple', data = data_df, ax = axes[start_id + 3])
         axes[start_id + 3].set_title('FX ' + ticker_name + " Position ", fontsize = 18)
         axes[start_id + 3].set_xlabel('time', size = font_size)
         axes[start_id + 3].set_ylabel('position', size = font_size)
         axes[start_id + 3].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
         axes[start_id + 3].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
         axes[start_id + 3].tick_params(labelsize = font_size)
-        axes[start_id + 3].set_ylim([-1, max_position * 2])
+        axes[start_id + 3].set_ylim([-0.5, max_position * 2])
         plt.setp(axes[start_id + 3].get_xticklabels(), rotation = angle)
 
 
@@ -880,6 +1047,11 @@ print(performance_summary)
 performance_summary.to_csv(os.path.join(pnl_folder, 'performance_summary.csv'), index = False)
 
 
+
+config_df = pd.DataFrame({'initial_principal' : [initial_principal], 'max_exposure' : [max_exposure], 'initial_principal_magnifier' : [initial_principal_magnifier]})
+config_df.to_csv(os.path.join(pnl_folder, 'config.csv'), index = False)
+
+
 auto_stop_summary = performance_summary[performance_summary['min_margin_level(%)'] <= stop_level * 100.0]
 drawdown_auto_stop_summary = performance_summary[performance_summary['drawdown_min_margin_level(%)'] <= stop_level * 100.0]
 
@@ -891,6 +1063,10 @@ print(auto_stop_summary)
 
 print("These currency pairs will be forced to close all positions during trading (drawdown) due to margin_level below stop_level at some time")
 print(drawdown_auto_stop_summary)
+
+
+lot_per_unit = initial_deposit_hk/(principal*7.77)
+print("Under this model, you should enter " + str(round(lot_per_unit, 2)) + " lot per signal, and the maximum position is roughly restricted to " + str(round(lot_per_unit * max_exposure, 2)) + " lot")
 
 
 
