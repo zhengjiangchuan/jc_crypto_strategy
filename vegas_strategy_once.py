@@ -94,7 +94,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['GBPUSD'])]
+currency_df = currency_df[currency_df['currency'].isin(['CADCHF'])]
 
 
 # print("currency_df:")
@@ -425,7 +425,7 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if True:
+if False:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
