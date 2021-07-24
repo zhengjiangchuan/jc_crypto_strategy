@@ -150,12 +150,12 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 
-is_intraday_strategy = False
+is_intraday_strategy = True
 
 min_hour_open_position = 5
 max_hour_open_position = 18
 
-hours_close_position = [21, 22, 23]
+hours_close_position = [23]
 
 
 class CurrencyTrader(threading.Thread):
@@ -5431,12 +5431,12 @@ class CurrencyTrader(threading.Thread):
             #                        is_plot_aux = True,
             #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
 
-            plot_candle_bar_charts(self.currency, self.data_df, all_days,
-                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                                   is_plot_candle_buy_sell_points=True,
-                                   print_prefix=print_prefix,
-                                   is_plot_aux=False,
-                                   bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True, plot_exclude = is_plot_exclude)
+            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
+            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+            #                        is_plot_candle_buy_sell_points=True,
+            #                        print_prefix=print_prefix,
+            #                        is_plot_aux=False,
+            #                        bar_fig_folder=self.simple_chart_folder, is_plot_simple_chart=True, plot_exclude = is_plot_exclude)
 
 
             #self.data_df = self.data_df[['currency', 'time','open','high','low','close']]

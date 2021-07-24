@@ -16,7 +16,7 @@ import os
 
 from util import *
 import gzip
-
+from util import *
 from datetime import datetime, timedelta
 import math
 
@@ -26,6 +26,7 @@ import matplotlib.ticker as ticker
 import urllib.request
 
 from io import StringIO
+
 
 
 pd.set_option('display.max_rows', 10000)
@@ -70,7 +71,14 @@ stop_level = 0.5
 # deposit_per_lot = 1000
 selected_symbols = []
 
-data_folder = "C:\\Forex\\formal_trading\\"
+is_gege_server = False
+
+if is_gege_server:
+    data_folder = "/home/min/forex/formal_trading"
+else:
+    data_folder = "C:\\Forex\\formal_trading"
+
+#data_folder = "C:\\Forex\\formal_trading\\"
 
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
@@ -83,7 +91,10 @@ meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD'
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_exposure6')
+if is_gege_server:
+    pnl_folder = os.path.join(data_folder, 'pnl')
+else:
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_intraday_exposure6_closeAtEnd_check2_largerPrincipal')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -110,7 +121,7 @@ is_portfolio = True
 plot_hk_pnl = True
 initial_deposit_hk = 31000
 
-
+is_send_email = True
 
 symbols = list(meta_df['symbol'])
 
@@ -119,7 +130,7 @@ total_cum_abs_positions = []
 if is_portfolio:
 
     max_exposure = 6
-    initial_principal_magnifier = 8
+    initial_principal_magnifier = 16
 
 
 
@@ -220,22 +231,22 @@ if is_portfolio:
                         capped_position = 0
                         symbol_factor = 0
 
-                        print("")
-                        print("i = " + str(i))
-                        print("symbol = " + symbol)
-                        print("total_cum_abs_position = " + str(total_cum_abs_position))
-                        print("Here 00 position = " + str(position))
-                        print("Here 00 capped_position = " + str(capped_position))
+                        # print("")
+                        # print("i = " + str(i))
+                        # print("symbol = " + symbol)
+                        # print("total_cum_abs_position = " + str(total_cum_abs_position))
+                        # print("Here 00 position = " + str(position))
+                        # print("Here 00 capped_position = " + str(capped_position))
                     else:
 
-                        print("")
-                        print("i = " + str(i))
-                        print("symbol = " + symbol)
-
-                        print("total_cum_position = " + str(total_cum_position))
-                        print("position = " + str(position))
-                        print("attempt_total_cum_position = " + str(attempt_total_cum_position))
-                        print("max_exposure = " + str(max_exposure))
+                        # print("")
+                        # print("i = " + str(i))
+                        # print("symbol = " + symbol)
+                        #
+                        # print("total_cum_position = " + str(total_cum_position))
+                        # print("position = " + str(position))
+                        # print("attempt_total_cum_position = " + str(attempt_total_cum_position))
+                        # print("max_exposure = " + str(max_exposure))
 
                         if not use_correct_positioning:
                             max_position = max_exposure if position > 0 else -max_exposure
@@ -250,7 +261,7 @@ if is_portfolio:
                             capped_abs_position = max_exposure - total_cum_abs_position
                             assert(capped_abs_position > 0)
 
-                            print("capped_abs_position = " + str(capped_abs_position))
+                            #print("capped_abs_position = " + str(capped_abs_position))
 
                             symbol_factor = capped_abs_position / position if position > 0 else -capped_abs_position / position
 
@@ -262,17 +273,17 @@ if is_portfolio:
 
 
 
-                        print("symbol_factor = " + str(symbol_factor))
+                        #print("symbol_factor = " + str(symbol_factor))
 
                     assert(symbol_factor >= 0 and symbol_factor <= 1)
                     symbol_factors[symbol] = symbol_factor
 
-                    print("")
-                    print("i = " + str(i))
-                    print("symbol = " + symbol)
-                    print("total_cum_abs_position = " + str(total_cum_abs_position))
-                    print("Here 0 position = " + str(position))
-                    print("Here 0 capped_position = " + str(capped_position))
+                    # print("")
+                    # print("i = " + str(i))
+                    # print("symbol = " + symbol)
+                    # print("total_cum_abs_position = " + str(total_cum_abs_position))
+                    # print("Here 0 position = " + str(position))
+                    # print("Here 0 capped_position = " + str(capped_position))
 
                 else:
 
@@ -283,12 +294,12 @@ if is_portfolio:
 
                     capped_position = position
 
-                    print("")
-                    print("i = " + str(i))
-                    print("symbol = " + symbol)
-                    print("total_cum_abs_position = " + str(total_cum_abs_position))
-                    print("Here 1 position = " + str(position))
-                    print("Here 1 capped_position = " + str(capped_position))
+                    # print("")
+                    # print("i = " + str(i))
+                    # print("symbol = " + symbol)
+                    # print("total_cum_abs_position = " + str(total_cum_abs_position))
+                    # print("Here 1 position = " + str(position))
+                    # print("Here 1 capped_position = " + str(capped_position))
             else:
                 position = row[symbol + '_position']
                 capped_position = position * symbol_factors[symbol]
@@ -353,16 +364,16 @@ if is_portfolio:
             total_cum_abs_position += symbol_position_delta
 
 
-            if abs(capped_position) > 0:
-                print("")
-                print("i = " + str(i))
-                print("symbol = " + symbol)
-                print("capped_position = " + str(capped_position))
-                print("symbol_last_cum_position = " + str(symbol_last_cum_position))
-                print("symbol_cur_cum_position = " + str(symbol_cur_cum_position))
-                print("symbol_position_delta = " + str(symbol_position_delta))
-
-                print("Update total_cum_abs_position = " + str(total_cum_abs_position))
+            # if abs(capped_position) > 0:
+            #     print("")
+            #     print("i = " + str(i))
+            #     print("symbol = " + symbol)
+            #     print("capped_position = " + str(capped_position))
+            #     print("symbol_last_cum_position = " + str(symbol_last_cum_position))
+            #     print("symbol_cur_cum_position = " + str(symbol_cur_cum_position))
+            #     print("symbol_position_delta = " + str(symbol_position_delta))
+            #
+            #     print("Update total_cum_abs_position = " + str(total_cum_abs_position))
 
 
 
@@ -382,12 +393,12 @@ if is_portfolio:
     final_data_df = overall_data_df[['time']]
 
     for symbol in symbols:
-        print("Final process symbol " + symbol)
-        print("final_data_df length = " + str(final_data_df.shape[0]))
+        #print("Final process symbol " + symbol)
+        #print("final_data_df length = " + str(final_data_df.shape[0]))
         final_data_df[symbol+'_position'] = overall_data_df[symbol+'_position']
         final_data_df[symbol+'_cum_position'] = overall_data_df[symbol+'_cum_position']
 
-        print("actual_positions length = " + str(len(symbol_actual_positions[symbol])))
+        #print("actual_positions length = " + str(len(symbol_actual_positions[symbol])))
         final_data_df[symbol+'_actual_position'] = symbol_actual_positions[symbol]
         final_data_df[symbol+'_actual_cum_position'] = final_data_df[symbol+'_actual_position'].cumsum()
 
@@ -435,8 +446,28 @@ if is_portfolio:
 
 
 #sys.exit(0)
+if is_portfolio and is_send_email:
+    lot_per_unit = round(initial_deposit_hk / (initial_principal * initial_principal_magnifier * 7.77), 2)
 
+    last_row = final_data_df.iloc[-1]
 
+    message_array = []
+    for symbol in symbols:
+        symbol_position = last_row[symbol + '_actual_position']
+        if abs(symbol_position) > 1e-5:
+            symbol_position = round(symbol_position * lot_per_unit, 2)
+            operation = "Long" if symbol_position > 1e-5 else "Short"
+
+            symbol_position = abs(symbol_position)
+
+            message_array += [operation + ' ' + symbol + ' ' + str(symbol_position) + ' lot']
+
+    trading_message = ', '.join(message_array)
+
+    print("Trading_message:")
+    print(trading_message)
+
+    sendEmail("Trading Operations", trading_message)
 
 
 
@@ -975,18 +1006,55 @@ for i in range(meta_df.shape[0] + 1):
 
         simple_data_df = data_df[['time', 'cum_position', 'intraday_acc_pnl_hk']]
         simple_data_df['cum_position_hk'] = simple_data_df['cum_position'] * lot_per_unit
+
+        simple_data_df['cum_position_hk'] = simple_data_df['cum_position_hk'].apply(lambda x : round(x, 2))
+
         simple_data_df = simple_data_df.drop(columns = ['cum_position'])
 
         if i == meta_df.shape[0]:
             for symbol in symbols:
                 simple_data_df[symbol + '_intraday_acc_pnl_hk'] = pnl_df[symbol + '_intraday_acc_pnl'] * initial_deposit_hk / principal
                 simple_data_df[symbol + '_cum_position_hk'] = pnl_df[symbol + '_cum_position'] * lot_per_unit
+                simple_data_df[symbol + '_cum_position_hk'] = simple_data_df[symbol + '_cum_position_hk'].apply(lambda x: round(x, 2))
 
 
         if i < meta_df.shape[0]:
             simple_file = os.path.join(data_folder, symbol, 'data', symbol + '_intraday_pnl.csv')
         else:
             simple_file = os.path.join(pnl_folder, 'portfolio_intraday_pnl.csv')
+
+
+        if i == meta_df.shape[0] and is_send_email:
+
+            last_row = simple_data_df.iloc[-1]
+            # intraday_acc_pnl_hk
+            # cum_position_hk
+
+            # EURUSD_intraday_acc_pnl_hk
+            # EURUSD_cum_position_hk intraday_acc_pnl_hk
+            message_array = ['Symbol  Intraday Pnl($HK)  Position on hold(Lot)']
+            message_array += ['Portfolio  ' + str(round(last_row['intraday_acc_pnl_hk'], 2)) + '  ' + str(round(last_row['cum_position_hk'], 2))]
+
+            for symbol in symbols:
+                symbol_intraday_acc_pnl = round(last_row[symbol + '_intraday_acc_pnl_hk'], 2)
+                symbol_cum_position = round(last_row[symbol + '_cum_position_hk'], 2)
+
+                if abs(symbol_intraday_acc_pnl) > 1e-5 or abs(symbol_cum_position) > 1e-5:
+                    message_array += [symbol + '  ' + str(symbol_intraday_acc_pnl) + '  ' + str(symbol_cum_position)]
+
+            message_body = '\n'.join(message_array)
+
+            print("")
+            print("Portfolio message:")
+            print(message_body)
+
+            sendEmail("Portfolio Current Status", message_body)
+
+
+
+
+
+
 
         simple_data_df.to_csv(simple_file, index = False)
 

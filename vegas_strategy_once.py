@@ -41,20 +41,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# parser = OptionParser()
-#
-# parser.add_option("-m", "--mode", dest="mode",
-#                   default="standalone")
-#
-# (options, args) = parser.parse_args()
-#
-# mode = options.mode
-
-
-#
-# symbol = str(options.symbol)
-#
-# print("Start process symbol " + symbol)
 
 class CurrencyPair:
 
@@ -65,9 +51,15 @@ class CurrencyPair:
 
 print("Child process starts")
 
-root_folder = "C:\\Forex\\formal_trading"
+is_gege_server = False
 
-#root_folder = "/home/min/forex/formal_trading"
+is_do_portfolio_trading = True
+
+if is_gege_server:
+    root_folder = "/home/min/forex/formal_trading"
+else:
+    root_folder = "C:\\Forex\\formal_trading"
+
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]
@@ -425,14 +417,14 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if True:
+if False:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0724\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_intraday"
+    dest_folder = "C:\\Forex\\new_experiments\\0724\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_intraday_closeAtEnd_check"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -471,6 +463,9 @@ if True:
 
     sendEmail("Charts sent!", "")
 
+
+if is_do_portfolio_trading:
+    os.system('python plot_pnl_curve.py')
 
 print("All finished")
 sys.exit(0)
