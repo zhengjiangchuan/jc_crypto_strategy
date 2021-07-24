@@ -83,7 +83,7 @@ meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning3_intraday')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):

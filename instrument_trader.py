@@ -150,12 +150,12 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 
-is_intraday_strategy = False
+is_intraday_strategy = True
 
 min_hour_open_position = 5
 max_hour_open_position = 18
 
-hours_close_position = [23]
+hours_close_position = [20, 21, 22, 23]
 
 
 class CurrencyTrader(threading.Thread):
@@ -300,9 +300,11 @@ class CurrencyTrader(threading.Thread):
                     delta_position = round(delta_position, 2)
                     data_df_side.at[i, 'position'] = delta_position
 
-                    #print("time = " + str(row['time']) + " fire")
 
                     cur_position += delta_position
+                    cur_position = round(cur_position, 2)
+
+                    # print("time = " + str(row['time']) + " fire")
                     # print("delta_position = " + str(delta_position))
                     # print("cur_position = " + str(cur_position))
             else:
@@ -315,8 +317,13 @@ class CurrencyTrader(threading.Thread):
 
                         # data_df_side.at[i, 'position'] = delta_position
                         cur_position += delta_position
+                        cur_position = round(cur_position, 2)
 
                         start_position_phase2 = 0
+
+                        # print("time = " + str(row['time']) + " fire")
+                        # print("delta_position = " + str(delta_position))
+                        # print("cur_position = " + str(cur_position))
 
                         #print("time = " + str(row['time']) + " phase 1 temporary close")
 
@@ -329,10 +336,16 @@ class CurrencyTrader(threading.Thread):
                         if row['show_' + side + '_close_position_excessive_terminal'] or row['show_' + side + '_stop_loss_excessive_terminal']:
                             start_position_phase2 = 0
                             delta_position = -cur_position
+                            delta_position = round(delta_position, 2) #Added
                             cum_delta_position += delta_position
 
                             # data_df_side.at[i, 'position'] = round(delta_position, 2)
                             cur_position += delta_position
+                            cur_position = round(cur_position, 2)
+
+                            # print("time = " + str(row['time']) + " fire")
+                            # print("delta_position = " + str(delta_position))
+                            # print("cur_position = " + str(cur_position))
                         else:
                             if row['show_special_' + side + '_close_position'] and row['show_' + side + '_close_position_excessive']:
                                 delta_position = -start_position_phase2/2.0
@@ -344,6 +357,11 @@ class CurrencyTrader(threading.Thread):
 
                             # data_df_side.at[i, 'position'] = delta_position
                             cur_position += delta_position
+                            cur_position = round(cur_position, 2)
+
+                            # print("time = " + str(row['time']) + " fire")
+                            # print("delta_position = " + str(delta_position))
+                            # print("cur_position = " + str(cur_position))
 
                         #print("time = " + str(row['time']) + " phase 2 temporary close")
 
@@ -355,10 +373,16 @@ class CurrencyTrader(threading.Thread):
                     if cur_position > 0:
                         start_position_phase2 = 0
                         delta_position = -cur_position
+                        delta_position = round(delta_position, 2) #Added
                         cum_delta_position += delta_position
 
                         # data_df_side.at[i, 'position'] = round(delta_position, 2)
                         cur_position += delta_position
+                        cur_position = round(cur_position, 2)
+
+                        # print("time = " + str(row['time']) + " fire")
+                        # print("delta_position = " + str(delta_position))
+                        # print("cur_position = " + str(cur_position))
 
                         #print("time = " + str(row['time']) + " close all")
 
@@ -367,17 +391,38 @@ class CurrencyTrader(threading.Thread):
                     if cur_position > 0:
                         assert(row['selected_' + side + '_close_position_fixed_time'] > 0)
                         delta_position = -cur_position/row['selected_' + side + '_close_position_fixed_time']
+                        delta_position = round(delta_position, 2)
+
+                        # print("")
+                        # print(side + '_close_position_fixed_time_temporary')
+                        # print("time = " + str(row['time']))
+                        # print("cur_position = " + str(cur_position))
+                        # print("denominator = " + str(row['selected_' + side + '_close_position_fixed_time']))
+                        # print("delta_position = " + str(delta_position))
+
+
                         cum_delta_position += delta_position
 
                         cur_position += delta_position
+                        cur_position = round(cur_position, 2)
+
+                        # print("cum_delta_position = " + str(cum_delta_position))
+                        # print("cur_position = " + str(cur_position))
 
                 if row['show_' + side + '_close_position_fixed_time_terminal']:
                     if cur_position > 0:
                         start_position_phase2 = 0
                         delta_position = -cur_position
+
+                        delta_position = round(delta_position, 2)
                         cum_delta_position += delta_position
 
                         cur_position += delta_position
+                        cur_position = round(cur_position, 2)
+
+                        # print("time = " + str(row['time']) + " fire")
+                        # print("delta_position = " + str(delta_position))
+                        # print("cur_position = " + str(cur_position))
 
 
                 data_df_side.at[i, 'position'] = round(cum_delta_position, 2)
@@ -4686,7 +4731,7 @@ class CurrencyTrader(threading.Thread):
                                       'cum_buy_close_position_guppy1', 'cum_buy_close_position_guppy2', 'cum_buy_close_position_vegas',
                                       'cum_buy_close_position_final_excessive1', 'cum_buy_close_position_final_excessive2',
                                        'cum_buy_close_position_final_conservative', 'cum_buy_close_position_final_simple',
-                                       'cum_buy_close_position_final_quick', 'cum_buy_close_position_final_urgent', 'cum_buy_close_position_fixed_time_terminal'
+                                       'cum_buy_close_position_final_quick', 'cum_buy_close_position_final_urgent', 'cum_buy_close_position_fixed_time_terminal',
                                       'cum_special2_buy_close_position', 'cum_buy_close_position_excessive', 'cum_buy_close_position_conservative',
                                       'cum_buy_stop_loss_excessive', 'cum_buy_stop_loss_conservative']
 
@@ -4810,7 +4855,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_sell_close_position_final_simple'] = self.data_df['cum_sell_close_position_final_simple'] - self.data_df['cum_sell_close_position_final_simple_for_sell']
                 self.data_df['num_sell_close_position_final_quick'] = self.data_df['cum_sell_close_position_final_quick'] - self.data_df['cum_sell_close_position_final_quick_for_sell']
                 self.data_df['num_sell_close_position_final_urgent'] = self.data_df['cum_sell_close_position_final_urgent'] - self.data_df['cum_sell_close_position_final_urgent_for_sell']
-                self.data_df['num_sell_close_position_fixed_time_terminal'] = self.data_df['cum_sell_close_position_fixed_time_terminal'] - self.data_df['cum_sell_close_position_fixed_time_terminal_for_buy']
+                self.data_df['num_sell_close_position_fixed_time_terminal'] = self.data_df['cum_sell_close_position_fixed_time_terminal'] - self.data_df['cum_sell_close_position_fixed_time_terminal_for_sell']
 
 
 
