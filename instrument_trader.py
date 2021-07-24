@@ -150,12 +150,12 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 
-is_intraday_strategy = True
+is_intraday_strategy = False
 
 min_hour_open_position = 5
 max_hour_open_position = 18
 
-hours_close_position = [20, 21, 22, 23]
+hours_close_position = [21, 22, 23]
 
 
 class CurrencyTrader(threading.Thread):

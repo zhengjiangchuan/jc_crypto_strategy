@@ -83,7 +83,7 @@ meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD'
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_intraday_exposure6')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_exposure6')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -521,6 +521,7 @@ for i in range(meta_df.shape[0] + 1):
         if is_portfolio:
             data_df['position'] = final_data_df[symbol+'_actual_position']
             data_df['cum_position'] = final_data_df[symbol+'_actual_cum_position']
+            pnl_df[symbol + '_cum_position'] = data_df['cum_position']
 
             # if symbol == 'USDJPY':
             #     print("Check USDJPY:")
@@ -817,6 +818,179 @@ for i in range(meta_df.shape[0] + 1):
 
 
 
+    ########### Calculate intraday pnl and floating pnl ###################
+
+    if i <= meta_df.shape[0]:
+        data_df['date'] = pd.DatetimeIndex(data_df['time']).normalize()
+
+        data_df['prev_acc_pnl'] = data_df['acc_pnl'].shift(1)
+
+        acc_pnl_df = data_df[['date', 'acc_pnl', 'prev_acc_pnl']]
+        acc_pnl_df = acc_pnl_df.fillna(0)
+
+        acc_pnl_df_summary = acc_pnl_df.groupby(['date']).agg(
+            {
+                'acc_pnl' : 'last',
+                'prev_acc_pnl' : 'first'
+            }
+        )
+
+        acc_pnl_df_summary = acc_pnl_df_summary.rename(columns = {
+            'prev_acc_pnl' : 'last_day_acc_pnl',
+            'acc_pnl' : 'current_day_acc_pnl'
+        })
+
+        acc_pnl_df_summary['daily_pnl'] = acc_pnl_df_summary['current_day_acc_pnl'] - acc_pnl_df_summary['last_day_acc_pnl']
+
+        # print("acc_pnl_df_summary:")
+        # print(acc_pnl_df_summary)
+
+        acc_pnl_df_summary.reset_index(inplace=True)
+
+        # print("acc_pnl_df_summary2:")
+        # print(acc_pnl_df_summary)
+        #acc_pnl_df_summary = acc_pnl_df_summary.drop(columns=['index'])
+
+        data_df = pd.merge(data_df, acc_pnl_df_summary[['date', 'last_day_acc_pnl']], on = ['date'], how = 'left')
+        data_df['intraday_acc_pnl'] = data_df['acc_pnl'] - data_df['last_day_acc_pnl']
+
+        if i < meta_df.shape[0]: ######################################IMportant  IMportant IMportant IMportant IMportant
+            pnl_df[symbol + '_intraday_acc_pnl'] = data_df['intraday_acc_pnl']
+
+        intraday_pnl_df = data_df[['date', 'intraday_acc_pnl']]
+        intraday_pnl_df['intraday_min_pnl'] = intraday_pnl_df['intraday_acc_pnl']
+        intraday_pnl_df['intraday_max_pnl'] = intraday_pnl_df['intraday_acc_pnl']
+        intraday_pnl_df['intraday_final_pnl'] = intraday_pnl_df['intraday_acc_pnl']
+
+        intraday_pnl_df_summary = intraday_pnl_df.groupby(['date']).agg(
+            {
+                'intraday_min_pnl' : 'min',
+                'intraday_max_pnl' : 'max',
+                'intraday_final_pnl' : 'last'
+            }
+        )
+
+        intraday_pnl_df_summary.reset_index(inplace=True)
+
+        data_df = pd.merge(data_df, intraday_pnl_df_summary[['date', 'intraday_min_pnl', 'intraday_max_pnl', 'intraday_final_pnl']], on = ['date'], how = 'left')
+
+        #data_df['acc_pnl_hk'] = data_df['acc_pnl'] * initial_deposit_hk / principal
+
+        data_df['intraday_acc_pnl_hk'] = data_df['intraday_acc_pnl'] * initial_deposit_hk / principal
+        data_df['intraday_min_pnl_hk'] = data_df['intraday_min_pnl'] * initial_deposit_hk / principal
+        data_df['intraday_max_pnl_hk'] = data_df['intraday_max_pnl'] * initial_deposit_hk / principal
+        data_df['intraday_final_pnl_hk'] = data_df['intraday_final_pnl'] * initial_deposit_hk / principal
+
+        data_df['is_intraday_min_pnl'] = np.abs(data_df['intraday_acc_pnl'] - data_df['intraday_min_pnl']) < 1e-5
+        data_df['is_intraday_max_pnl'] = np.abs(data_df['intraday_acc_pnl'] - data_df['intraday_max_pnl']) < 1e-5
+
+
+        intraday_pnl_df_summary['intraday_min_pnl_hk'] = intraday_pnl_df_summary['intraday_min_pnl'] * initial_deposit_hk / principal
+        intraday_pnl_df_summary['intraday_max_pnl_hk'] = intraday_pnl_df_summary['intraday_max_pnl'] * initial_deposit_hk / principal
+        intraday_pnl_df_summary['intraday_final_pnl_hk'] = intraday_pnl_df_summary['intraday_final_pnl'] * initial_deposit_hk / principal
+
+
+
+        intraday_min_pnl_df = data_df[data_df['is_intraday_min_pnl']][['date', 'time', 'intraday_acc_pnl_hk', 'intraday_min_pnl_hk', 'intraday_max_pnl_hk', 'intraday_final_pnl_hk']]
+        intraday_max_pnl_df = data_df[data_df['is_intraday_max_pnl']][['date', 'time', 'intraday_acc_pnl_hk', 'intraday_min_pnl_hk', 'intraday_max_pnl_hk', 'intraday_final_pnl_hk']]
+
+        intraday_min_pnl_df['count'] = 1
+        intraday_min_pnl_df_summary = intraday_min_pnl_df.groupby(['date']).agg({
+            'time' : 'first',
+            'intraday_acc_pnl_hk' : 'first',
+            'intraday_min_pnl_hk' : 'first',
+            'intraday_max_pnl_hk' : 'first',
+            'intraday_final_pnl_hk' : 'first',
+            'count' : 'count'
+        })
+        intraday_min_pnl_df_summary.reset_index(inplace = True)
+        intraday_min_pnl_df_summary = intraday_min_pnl_df_summary[intraday_min_pnl_df_summary['count'] == 1]
+
+        intraday_max_pnl_df['count'] = 1
+        intraday_max_pnl_df_summary = intraday_max_pnl_df.groupby(['date']).agg({
+            'time' : 'first',
+            'intraday_acc_pnl_hk' : 'first',
+            'intraday_min_pnl_hk' : 'first',
+            'intraday_max_pnl_hk' : 'first',
+            'intraday_final_pnl_hk' : 'first',
+            'count' : 'count'
+        })
+        intraday_max_pnl_df_summary.reset_index(inplace = True)
+        intraday_max_pnl_df_summary = intraday_max_pnl_df_summary[intraday_max_pnl_df_summary['count'] == 1]
+
+        intraday_min_pnl_df_summary_temp = intraday_min_pnl_df_summary[['date', 'time', 'intraday_min_pnl_hk', 'intraday_final_pnl_hk']]
+        intraday_min_pnl_df_summary_temp = intraday_min_pnl_df_summary_temp.rename(columns = {
+            'time' : 'min_pnl_time',
+            'intraday_final_pnl_hk' : 'intraday_final_pnl_hk1'
+        })
+
+        intraday_max_pnl_df_summary_temp = intraday_max_pnl_df_summary[['date', 'time', 'intraday_max_pnl_hk', 'intraday_final_pnl_hk']]
+        intraday_max_pnl_df_summary_temp = intraday_max_pnl_df_summary_temp.rename(columns = {
+            'time' : 'max_pnl_time',
+            'intraday_final_pnl_hk' : 'intraday_final_pnl_hk2'
+        })
+
+        merged_intraday_pnl_summary = pd.merge(intraday_min_pnl_df_summary_temp, intraday_max_pnl_df_summary_temp, on = ['date'], how = 'outer')
+        merged_intraday_pnl_summary['intraday_final_pnl_hk'] = np.where(
+            merged_intraday_pnl_summary['intraday_final_pnl_hk1'].notnull(),
+            merged_intraday_pnl_summary['intraday_final_pnl_hk1'],
+            merged_intraday_pnl_summary['intraday_final_pnl_hk2']
+        )
+        merged_intraday_pnl_summary = merged_intraday_pnl_summary.drop(columns = ['intraday_final_pnl_hk1', 'intraday_final_pnl_hk2'])
+
+
+
+        if i < meta_df.shape[0]:
+            min_pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_min_pnl.csv')
+        else:
+            min_pnl_file = os.path.join(pnl_folder, 'portfolio_min_pnl.csv')
+
+
+        intraday_min_pnl_df_summary.to_csv(min_pnl_file, index = False)
+
+        #max_pnl_file = os.path.join(pnl_folder, 'portfolio_max_pnl.csv')
+
+        if i < meta_df.shape[0]:
+            max_pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_max_pnl.csv')
+        else:
+            max_pnl_file = os.path.join(pnl_folder, 'portfolio_min_pnl.csv')
+
+        intraday_max_pnl_df_summary.to_csv(max_pnl_file, index = False)
+
+
+        final_pnl_file = os.path.join(pnl_folder, 'portfolio_daily_final_pnl.csv')
+        intraday_pnl_df_summary[['date', 'intraday_min_pnl_hk', 'intraday_max_pnl_hk', 'intraday_final_pnl_hk']].to_csv(final_pnl_file, index = False)
+
+        merged_intraday_pnl_summary = merged_intraday_pnl_summary.sort_values(by = ['date'])
+
+
+        if i < meta_df.shape[0]:
+            min_max_file = os.path.join(data_folder, symbol, 'data', symbol + '_min_max_pnl.csv')
+        else:
+            min_max_file = os.path.join(pnl_folder, 'portfolio_min_max_pnl.csv')
+
+        merged_intraday_pnl_summary[['date', 'min_pnl_time','max_pnl_time','intraday_min_pnl_hk',
+                                     'intraday_max_pnl_hk', 'intraday_final_pnl_hk']].to_csv(min_max_file, index = False)
+
+
+        simple_data_df = data_df[['time', 'cum_position', 'intraday_acc_pnl_hk']]
+        simple_data_df['cum_position_hk'] = simple_data_df['cum_position'] * lot_per_unit
+        simple_data_df = simple_data_df.drop(columns = ['cum_position'])
+
+        if i == meta_df.shape[0]:
+            for symbol in symbols:
+                simple_data_df[symbol + '_intraday_acc_pnl_hk'] = pnl_df[symbol + '_intraday_acc_pnl'] * initial_deposit_hk / principal
+                simple_data_df[symbol + '_cum_position_hk'] = pnl_df[symbol + '_cum_position'] * lot_per_unit
+
+
+        if i < meta_df.shape[0]:
+            simple_file = os.path.join(data_folder, symbol, 'data', symbol + '_intraday_pnl.csv')
+        else:
+            simple_file = os.path.join(pnl_folder, 'portfolio_intraday_pnl.csv')
+
+        simple_data_df.to_csv(simple_file, index = False)
+
+
 
     ###########################################
 
@@ -839,13 +1013,25 @@ for i in range(meta_df.shape[0] + 1):
     time_number = data_df.shape[0]
     trade_times = data_df['time']
 
+    if i == meta_df.shape[0]:
+        trade_dates = intraday_pnl_df_summary['date']
+        date_number = intraday_pnl_df_summary.shape[0]
+
 
     def format_date(x, pos=None):
         thisind = np.clip(int(x + 0.5), 0, time_number - 1)
         return trade_times[thisind].strftime('%y%m%d-%H')
 
+    def format_actual_date(x, pos=None):
+        thisind = np.clip(int(x + 0.5), 0, date_number - 1)
+        return trade_dates[thisind].strftime('%y%m%d')
+
     tick_number = 20
     tick_interval = time_number / tick_number
+
+    if i == meta_df.shape[0]:
+        tick_number2 = 20
+        tick_interval2 = date_number / tick_number2
 
 
     types = ['pct', 'non_pct']
@@ -854,7 +1040,8 @@ for i in range(meta_df.shape[0] + 1):
 
         fig = plt.figure(figsize=(28, 18))
         col_num = 1
-        row_num = 3 if i == meta_df.shape[0] else 4
+        #row_num = 3 if i == meta_df.shape[0] else 4
+        row_num = 4
 
         angle = 30
 
@@ -862,7 +1049,9 @@ for i in range(meta_df.shape[0] + 1):
 
         axes = fig.subplots(nrows=row_num, ncols=col_num)
 
-        start_id = -1 if i == meta_df.shape[0] else 0
+        #start_id = -1 if i == meta_df.shape[0] else 0
+
+        start_id = 0
 
         if i < meta_df.shape[0]:
             ## Figure 1: market price curve and our buy/sell points
@@ -882,6 +1071,55 @@ for i in range(meta_df.shape[0] + 1):
             axes[0].tick_params(labelsize=font_size)
 
             plt.setp(axes[0].get_xticklabels(), rotation=angle)
+
+        else:
+
+            if plot_hk_pnl:
+                intraday_final_pnl = 'intraday_final_pnl_hk'
+                intraday_min_pnl = 'intraday_min_pnl_hk'
+                intraday_pnl = 'intraday_pnl_hk'
+                pnl_attr = 'pnl_hk'
+            else:
+                intraday_final_pnl = 'intraday_final_pnl'
+                intraday_min_pnl = 'intraday_min_pnl'
+                intraday_pnl = 'intraday_pnl'
+                pnl_attr = 'pnl'
+
+            intraday_pnl_df_summary['time_id'] = list(range(intraday_pnl_df_summary.shape[0]))
+
+            intraday_final_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_final_pnl]]
+            intraday_min_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_min_pnl]]
+
+            # print("before intraday_final_pnl_df:")
+            # print(intraday_final_pnl_df.head(10))
+
+            intraday_final_pnl_df = intraday_final_pnl_df.rename(columns = {intraday_final_pnl : intraday_pnl})
+            intraday_final_pnl_df[pnl_attr] = intraday_final_pnl
+
+            # print("after intraday_final_pnl_df:")
+            # print(intraday_final_pnl_df.head(10))
+
+
+
+            intraday_min_pnl_df = intraday_min_pnl_df.rename(columns = {intraday_min_pnl : intraday_pnl})
+            intraday_min_pnl_df[pnl_attr] = intraday_min_pnl
+
+            intraday_summary = pd.concat([intraday_final_pnl_df, intraday_min_pnl_df])
+
+            # print("intraday_summary:")
+            # print(intraday_summary)
+
+            sns.lineplot(x='time_id', y=intraday_pnl, hue = pnl_attr, color='black', data=intraday_summary, ax=axes[0])
+            axes[0].set_title('FX ' + "Portfolio" + " Intraday Pnl", fontsize=18)
+            axes[0].set_xlabel('time', size=font_size)
+            axes[0].set_ylabel(pnl_attr, size=font_size)
+            axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval2))
+            axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_actual_date))
+            #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+            axes[0].tick_params(labelsize=font_size)
+
+            plt.setp(axes[0].get_xticklabels(), rotation=angle)
+
 
 
         if i == meta_df.shape[0]:
