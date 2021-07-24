@@ -75,15 +75,15 @@ data_folder = "C:\\Forex\\formal_trading\\"
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
-# meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-#                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
+meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+                                                        'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
+#meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning3_intraday')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_intraday_exposure6')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -105,7 +105,7 @@ use_correct_positioning = True
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = False
+is_portfolio = True
 
 plot_hk_pnl = True
 initial_deposit_hk = 31000
@@ -118,7 +118,7 @@ total_cum_positions = []
 total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 16
+    max_exposure = 6
     initial_principal_magnifier = 8
 
 
@@ -752,8 +752,15 @@ for i in range(meta_df.shape[0] + 1):
 
     ##############
 
-    start_create_position_id = which(data_df.iloc[0:max_drawdown_start]['create_position'] == 1)[-1]
-    acc_pnl_to_subtract = data_df.iloc[start_create_position_id]['acc_pnl']
+    create_position_ids = which(data_df.iloc[0:max_drawdown_start]['create_position'] == 1)
+    if len(create_position_ids) > 0:
+        start_create_position_id = create_position_ids[-1]
+    else:
+        start_create_position_id = 0
+
+    acc_pnl_to_subtract = 0
+    if start_create_position_id > 0:
+        acc_pnl_to_subtract = data_df.iloc[start_create_position_id]['acc_pnl']
     data_df['acc_pnl_drawdown'] = data_df['acc_pnl'] - acc_pnl_to_subtract
     data_df['acc_pnl_drawdown'] = np.where(
         data_df['time_id'] < start_create_position_id,
