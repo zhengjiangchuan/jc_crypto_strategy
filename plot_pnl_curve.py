@@ -75,15 +75,15 @@ data_folder = "C:\\Forex\\formal_trading\\"
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
-meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-                                                        'GBPCAD', 'GBPCHF', 'USDCAD'])]
+# meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+#                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#meta_df = meta_df[meta_df['symbol'].isin(['EURGBP', 'CADCHF'])]
+meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
 
-pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio2_correct_positioning_exposure16_hk')
+pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -105,7 +105,7 @@ use_correct_positioning = True
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = True
+is_portfolio = False
 
 plot_hk_pnl = True
 initial_deposit_hk = 31000
@@ -1047,9 +1047,9 @@ print(performance_summary)
 performance_summary.to_csv(os.path.join(pnl_folder, 'performance_summary.csv'), index = False)
 
 
-
-config_df = pd.DataFrame({'initial_principal' : [initial_principal], 'max_exposure' : [max_exposure], 'initial_principal_magnifier' : [initial_principal_magnifier]})
-config_df.to_csv(os.path.join(pnl_folder, 'config.csv'), index = False)
+if is_portfolio:
+    config_df = pd.DataFrame({'initial_principal' : [initial_principal], 'max_exposure' : [max_exposure], 'initial_principal_magnifier' : [initial_principal_magnifier]})
+    config_df.to_csv(os.path.join(pnl_folder, 'config.csv'), index = False)
 
 
 auto_stop_summary = performance_summary[performance_summary['min_margin_level(%)'] <= stop_level * 100.0]
@@ -1064,9 +1064,9 @@ print(auto_stop_summary)
 print("These currency pairs will be forced to close all positions during trading (drawdown) due to margin_level below stop_level at some time")
 print(drawdown_auto_stop_summary)
 
-
-lot_per_unit = initial_deposit_hk/(principal*7.77)
-print("Under this model, you should enter " + str(round(lot_per_unit, 2)) + " lot per signal, and the maximum position is roughly restricted to " + str(round(lot_per_unit * max_exposure, 2)) + " lot")
+if is_portfolio:
+    lot_per_unit = initial_deposit_hk/(principal*7.77)
+    print("Under this model, you should enter " + str(round(lot_per_unit, 2)) + " lot per signal, and the maximum position is roughly restricted to " + str(round(lot_per_unit * max_exposure, 2)) + " lot")
 
 
 
