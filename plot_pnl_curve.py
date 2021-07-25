@@ -94,7 +94,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0724', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_intraday_exposure6_closeAtEnd_check2_largerPrincipal')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0725', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_intraday_closeAtEnd_exposure6_maxPnl_25000')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -119,7 +119,7 @@ use_correct_positioning = True
 is_portfolio = True
 
 plot_hk_pnl = True
-initial_deposit_hk = 31000
+initial_deposit_hk = 25000   #31000
 
 is_send_email = True
 
@@ -129,8 +129,8 @@ total_cum_positions = []
 total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 6
-    initial_principal_magnifier = 16
+    max_exposure = 6 #6
+    initial_principal_magnifier = 6.435 #8
 
 
 
@@ -462,12 +462,13 @@ if is_portfolio and is_send_email:
 
             message_array += [operation + ' ' + symbol + ' ' + str(symbol_position) + ' lot']
 
-    trading_message = ', '.join(message_array)
+    if len(message_array) > 0:
+        trading_message = ', '.join(message_array)
 
-    print("Trading_message:")
-    print(trading_message)
+        print("Trading_message:")
+        print(trading_message)
 
-    sendEmail("Trading Operations", trading_message)
+        sendEmail("Trading Operations", trading_message)
 
 
 
@@ -1067,7 +1068,7 @@ for i in range(meta_df.shape[0] + 1):
         portfolio_folder = os.path.join(data_folder, 'portfolio', 'data')
         if not os.path.exists(portfolio_folder):
             os.makedirs(portfolio_folder)
-        pnl_file = os.path.join(data_folder, 'portfolio', 'data', 'portfolio' + '_pnl_final.csv')
+        pnl_file = os.path.join(pnl_folder, 'portfolio' + '_pnl_final.csv')
 
     else:
         pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
@@ -1145,11 +1146,13 @@ for i in range(meta_df.shape[0] + 1):
             if plot_hk_pnl:
                 intraday_final_pnl = 'intraday_final_pnl_hk'
                 intraday_min_pnl = 'intraday_min_pnl_hk'
+                intraday_max_pnl = 'intraday_max_pnl_hk'
                 intraday_pnl = 'intraday_pnl_hk'
                 pnl_attr = 'pnl_hk'
             else:
                 intraday_final_pnl = 'intraday_final_pnl'
                 intraday_min_pnl = 'intraday_min_pnl'
+                intraday_max_pnl = 'intraday_max_pnl'
                 intraday_pnl = 'intraday_pnl'
                 pnl_attr = 'pnl'
 
@@ -1157,6 +1160,7 @@ for i in range(meta_df.shape[0] + 1):
 
             intraday_final_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_final_pnl]]
             intraday_min_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_min_pnl]]
+            intraday_max_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_max_pnl]]
 
             # print("before intraday_final_pnl_df:")
             # print(intraday_final_pnl_df.head(10))
@@ -1172,7 +1176,10 @@ for i in range(meta_df.shape[0] + 1):
             intraday_min_pnl_df = intraday_min_pnl_df.rename(columns = {intraday_min_pnl : intraday_pnl})
             intraday_min_pnl_df[pnl_attr] = intraday_min_pnl
 
-            intraday_summary = pd.concat([intraday_final_pnl_df, intraday_min_pnl_df])
+            intraday_max_pnl_df = intraday_max_pnl_df.rename(columns={intraday_max_pnl: intraday_pnl})
+            intraday_max_pnl_df[pnl_attr] = intraday_max_pnl
+
+            intraday_summary = pd.concat([intraday_min_pnl_df, intraday_max_pnl_df, intraday_final_pnl_df])
 
             # print("intraday_summary:")
             # print(intraday_summary)

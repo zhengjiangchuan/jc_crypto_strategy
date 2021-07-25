@@ -417,14 +417,14 @@ sendEmail("Trader process ends", "")
 
 print("Finished trading *********************************")
 
-if False:
+if True:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0724\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_intraday_closeAtEnd_check"
+    dest_folder = "C:\\Forex\\new_experiments\\0725\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_intraday_CloseAtEnd"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
