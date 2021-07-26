@@ -125,7 +125,7 @@ entry_risk_threshold = 0.6
 
 close_position_look_back = 12
 
-is_send_email = False
+is_send_email = True
 
 use_simple_stop_loss = False
 
@@ -150,11 +150,13 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 
-is_intraday_strategy = True
+is_intraday_strategy = False
+is_intraday_quick = False
 
 min_hour_open_position = 5
 max_hour_open_position = 18 #18
 
+hours_close_position_quick = [15]
 hours_close_position = [23]
 
 
@@ -3800,6 +3802,10 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['buy_close_position_fixed_time'] = 0
                 self.data_df['sell_close_position_fixed_time'] = 0
+
+                self.data_df['buy_close_position_quick_fixed_time'] = 0
+                self.data_df['sell_close_position_quick_fixed_time'] = 0
+
                 if is_intraday_strategy:
                     for i in range(len(hours_close_position)):
                         close_time = hours_close_position[i]
@@ -3816,6 +3822,23 @@ class CurrencyTrader(threading.Thread):
                             len(hours_close_position) - i,
                             self.data_df['sell_close_position_fixed_time']
                         )
+
+                    if is_intraday_quick:
+                        for i in range(len(hours_close_position_quick)):
+                            close_time = hours_close_position_quick[i]
+                            self.data_df['buy_close_position_quick_fixed_time'] = np.where(
+                                self.data_df['hour'] == close_time,
+                                len(hours_close_position_quick) - i,
+                                self.data_df['buy_close_position_quick_fixed_time']
+                            )
+
+                        for i in range(len(hours_close_position_quick)):
+                            close_time = hours_close_position_quick[i]
+                            self.data_df['sell_close_position_quick_fixed_time'] = np.where(
+                                self.data_df['hour'] == close_time,
+                                len(hours_close_position_quick) - i,
+                                self.data_df['sell_close_position_quick_fixed_time']
+                            )
 
 
 
@@ -4111,15 +4134,28 @@ class CurrencyTrader(threading.Thread):
                     else:
                         return price1 < price2
 
+                def calculate_pnl(entry_price, exit_price, side):
+
+                    # print("entry_price = " + str(entry_price))
+                    # print("exit_price = " + str(exit_price))
+
+                    if side == 'buy':
+                        period_pnl = (exit_price - entry_price) * self.lot_size * self.exchange_rate
+                    else:
+                        period_pnl = (entry_price - exit_price) * self.lot_size * self.exchange_rate
+
+                    return period_pnl
+
                 def select_close_positions(x, guppy1, guppy2, vegas, excessive1, excessive2, conservative, excessive_strict, conservative_strict, simple,
-                                               quick, quick_immediate, urgent, fixed_time,
+                                               quick, quick_immediate, urgent, fixed_time, quick_fixed_time,
                                                selected_guppy1, selected_guppy2, selected_vegas, selected_excessive1, selected_excessive2, selected_conservative,
                                                selected_simple, selected_quick, selected_urgent, reentry, selected_fixed_time,
                                            close, open, most_passive_guppy, most_aggressive_guppy,
                                            exceed_vegas, enter_guppy, passive_than_guppy, num_guppy_bars,
                                            group_most_passive_price, entry_point_price, side):
-                    # print("In select_close_positions:")
-                    # print(x)
+                    # if side == 'buy':
+                    #     print("In select_close_positions:")
+                    #     print(x)
 
                     total_guppy1 = 0
                     total_guppy2 = 0
@@ -4140,6 +4176,7 @@ class CurrencyTrader(threading.Thread):
                     total_quick = 0
                     total_urgent = 0
                     total_fixed_time = 0
+                    total_quick_fixed_time = 0
 
                     quick_ready = False
                     quick_ready_price = None
@@ -4194,20 +4231,20 @@ class CurrencyTrader(threading.Thread):
                             if row[guppy1]:
 
                                 if total_guppy1 + total_guppy2 <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and\
-                                        total_fixed_time == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                        total_fixed_time == 0 and total_quick_fixed_time == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_guppy1] = 1
                                     total_guppy1 += 1
 
                             if row[guppy2]:
 
                                 if total_guppy1 + total_guppy2 <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and\
-                                         total_fixed_time == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                         total_fixed_time == 0 and total_quick_fixed_time == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_guppy2] = 1
                                     total_guppy2 += 1
 
                             if row[vegas]:
                                 if total_vegas <= 1 and total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and\
-                                         total_fixed_time == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
+                                         total_fixed_time == 0 and total_quick_fixed_time == 0 and is_more_aggressive(row['close'], row[group_most_passive_price], side):
                                     x.at[x.index[i], selected_vegas] = 1
                                     total_vegas += 1
 
@@ -4247,6 +4284,7 @@ class CurrencyTrader(threading.Thread):
                                         total_quick = 0
                                         total_urgent = 0
                                         total_fixed_time = 0
+                                        total_quick_fixed_time = 0
                                         quick_ready = False
                                         quick_ready_price = None
                                         last_quick_ready = -1
@@ -4258,7 +4296,7 @@ class CurrencyTrader(threading.Thread):
 
                             if row[quick]:# and not quick_ready:
                                 #if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0 and total_quick == 0):
-                                if (total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0):
+                                if (total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0):
                                     #print("quick_ready = true")
                                     quick_ready = True
                                     quick_ready_price = row['close']
@@ -4332,7 +4370,7 @@ class CurrencyTrader(threading.Thread):
 
                             if row[excessive1] or row[excessive_strict]:
                                 if (total_guppy1 + total_guppy2 > 0 or total_vegas > 0 or row[exceed_vegas] > 0 or row[num_guppy_bars] >= 3) and\
-                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0:
+                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0:
 
                                     gap = i - last_excessive1
                                     if (raw_total_excessive1 > 0 and i > 0 and last_excessive1 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]: # and (gap > 1 and gap < 14)
@@ -4349,7 +4387,7 @@ class CurrencyTrader(threading.Thread):
 
                             if row[excessive2] or row[excessive_strict]:
                                 if (total_guppy1 + total_guppy2 > 0 or total_vegas > 0 or row[exceed_vegas] > 0 or row[num_guppy_bars] >= 3) and \
-                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_excessive1 > 0 and total_fixed_time == 0:
+                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_excessive1 > 0 and total_fixed_time == 0 and total_quick_fixed_time == 0:
 
                                     gap = i - last_excessive2
                                     if (raw_total_excessive2 > 0 and i > 0 and last_excessive2 > 0 and (gap > 1 and gap < 12)) or row[excessive_strict]:
@@ -4371,7 +4409,7 @@ class CurrencyTrader(threading.Thread):
                                 #                          'total_conservative' : [total_conservative]})
                                 # print(debug_df)
                                 if total_guppy1 == 0 and total_guppy2 == 0 and total_vegas == 0 and \
-                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0:
+                                        total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0:
 
                                     gap = i - last_conservative
 
@@ -4390,14 +4428,35 @@ class CurrencyTrader(threading.Thread):
 
                             if row[urgent]:
 
-                                if total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0:
+                                if total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0:
                                     x.at[x.index[i], selected_urgent] = 1
                                     total_urgent += 1
 
 
+                            if row[quick_fixed_time] > 0:
+                                if total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0:
+                                    current_pnl = calculate_pnl(row[entry_point_price], row[close], side)
+
+                                    # print("")
+                                    # print("In calculate period pnl")
+                                    # print("quick_fixed_time = " + quick_fixed_time)
+                                    # print("time = " + str(row['time']))
+                                    # print("entry_point_price = " + str(row[entry_point_price]))
+                                    # print("exit_price = " + str(row[close]))
+                                    # print("current_pnl = " + str(current_pnl))
+                                    # print("")
+
+                                    #if current_pnl > 100:
+                                    if is_more_aggressive(row[close], row[most_aggressive_guppy], side):
+                                        #print("Passed current_pnl test")
+                                        x.at[x.index[i], selected_fixed_time] = row[quick_fixed_time]
+                                        if row[quick_fixed_time] == 1:
+                                            total_quick_fixed_time += 1
+                                        
+
                             if row[fixed_time] > 0:
 
-                                if total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0:
+                                if total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0:
                                     x.at[x.index[i], selected_fixed_time] = row[fixed_time]
                                     if row[fixed_time] == 1:
                                         total_fixed_time += 1
@@ -4406,21 +4465,23 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                        if total_excessive > 0 or total_conservative > 0 or total_quick > 0 and total_urgent > 0 and total_fixed_time > 0:
+                        if total_excessive > 0 or total_conservative > 0 or total_quick > 0 and total_urgent > 0 and total_fixed_time > 0 and total_quick_fixed_time > 0:
                             break
 
 
                         last_row = row
 
 
-                    # if 'buy_point_id' in x.columns:
+                    # if 'sell_point_id' in x.columns:
                     #     y = x.copy()
                     #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive1 : 'excessive1', excessive2 : 'excessive2',  conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
                     #                             simple : 'simple',
-                    #                             quick : 'quick', urgent : 'urgent',
+                    #                             quick : 'quick', quick_immediate : 'quick_immediate',  urgent : 'urgent',
+                    #                             fixed_time : 'fixed_time', quick_fixed_time : 'quick_fixed_time',
                     #                             selected_quick : 'selected_quick',
                     #                             selected_urgent: 'selected_urgent',
+                    #                             #selected_fixed_time : 'selected_fixed_time',
                     #                             selected_guppy1 : 'selected_guppy1',
                     #                             selected_guppy2: 'selected_guppy2',
                     #                             selected_vegas : 'selected_vegas', selected_excessive1 : 'selected_excessive1', selected_excessive2 : 'selected_excessive2',
@@ -4450,6 +4511,7 @@ class CurrencyTrader(threading.Thread):
                                              side + '_close_position_final_quick_immediate',
                                             'first_' + side + '_close_position_final_urgent',
                                             side + '_close_position_fixed_time',
+                                            side + '_close_position_quick_fixed_time',
                                             side + '_enter_guppy',
                                             side + '_passive_than_guppy',
                                             
@@ -4526,6 +4588,7 @@ class CurrencyTrader(threading.Thread):
                                                     quick_immediate = side + '_close_position_final_quick_immediate',
                                                     urgent = 'first_' + side + '_close_position_final_urgent',
                                                     fixed_time = side + '_close_position_fixed_time',
+                                                    quick_fixed_time = side + '_close_position_quick_fixed_time',
                                                     selected_guppy1 = 'first_selected_' + side + '_close_position_guppy1',
                                                     selected_guppy2 = 'first_selected_' + side + '_close_position_guppy2',
                                                     selected_vegas = 'first_selected_' + side + '_close_position_vegas',
@@ -4570,6 +4633,13 @@ class CurrencyTrader(threading.Thread):
                             True,
                             False
                         )
+
+                    # print("")
+                    # print("Debug DataFrame here:")
+                    # # print("temp_df columns:")
+                    # # print(temp_df.columns)
+                    # print(temp_df[['time_x', 'time_y', 'selected_' + side + '_close_position_fixed_time']].tail(50))
+                    # print("")
 
                     self.data_df['selected_' + side + '_close_position_fixed_time'] = temp_df['selected_' + side + '_close_position_fixed_time']
                     self.data_df['selected_' + side + '_close_position_fixed_time_terminal'] = temp_df['selected_' + side + '_close_position_fixed_time'] == 1

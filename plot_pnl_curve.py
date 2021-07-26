@@ -94,7 +94,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0725', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_intraday_closeAtEnd_exposure6_maxPnl_25000')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0726', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_exposure6_maxPnl_25000_10pm')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -451,6 +451,10 @@ if is_portfolio and is_send_email:
 
     last_row = final_data_df.iloc[-1]
 
+    current_time = final_data_df.iloc[-1]['time'] + timedelta(seconds=3600)
+
+    current_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
     message_array = []
     for symbol in symbols:
         symbol_position = last_row[symbol + '_actual_position']
@@ -468,7 +472,7 @@ if is_portfolio and is_send_email:
         print("Trading_message:")
         print(trading_message)
 
-        sendEmail("Trading Operations", trading_message)
+        sendEmail("Trading Operations at " + current_time, trading_message)
 
 
 
@@ -1049,7 +1053,7 @@ for i in range(meta_df.shape[0] + 1):
             print("Portfolio message:")
             print(message_body)
 
-            sendEmail("Portfolio Current Status", message_body)
+            sendEmail("Portfolio Current Status at " + current_time, message_body)
 
 
 

@@ -81,12 +81,12 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
-#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURCAD'])]
 
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADCHF', 'EURCAD', 'EURGBP', 'EURJPY', 'GBPUSD'])]
 
 
 # print("currency_df:")
@@ -424,7 +424,7 @@ if True:
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0725\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_intraday_CloseAtEnd"
+    dest_folder = "C:\\Forex\\new_experiments\\0726\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_10pm"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -465,7 +465,10 @@ if True:
 
 
 if is_do_portfolio_trading:
+    print("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
     os.system('python plot_pnl_curve.py')
+else:
+    print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
 
 print("All finished")
 sys.exit(0)
