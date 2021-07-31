@@ -81,7 +81,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
-#currency_df = currency_df[currency_df['currency'].isin(['EURCAD'])]
+currency_df = currency_df[currency_df['currency'].isin(['EURGBP'])]
 
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
@@ -273,158 +273,161 @@ is_first_time = True
 original_data_df100 = None
 original_data_df200 = None
 
-while not is_all_received:
-    is_all_received = True
-    for i in range(len(currency_traders)):
-        if not is_new_data_received[i]:
-            currency_trader = currency_traders[i]
+is_do_trading = True
 
-            data_folder = data_folders[i]
+if is_do_trading:
+    while not is_all_received:
+        is_all_received = True
+        for i in range(len(currency_traders)):
+            if not is_new_data_received[i]:
+                currency_trader = currency_traders[i]
 
-            currency = currency_trader.currency
+                data_folder = data_folders[i]
 
-            print_prefix = "[Currency " + currency + "] "
+                currency = currency_trader.currency
 
-            print("Query initial for currency pair " + currency)
+                print_prefix = "[Currency " + currency + "] "
 
-            currency_file = os.path.join(data_folder, currency + ".csv")
-            currency_file100 = os.path.join(data_folder, currency + "100.csv")
-            currency_file200 = os.path.join(data_folder, currency + "200.csv")
+                print("Query initial for currency pair " + currency)
 
-            data_df = None
+                currency_file = os.path.join(data_folder, currency + ".csv")
+                currency_file100 = os.path.join(data_folder, currency + "100.csv")
+                currency_file200 = os.path.join(data_folder, currency + "200.csv")
 
-            # print("currency_file:")
-            # print(currency_file)
+                data_df = None
 
-            if (os.path.exists(currency_file100) and os.path.exists(currency_file200)) or os.path.exists(currency_file):
+                # print("currency_file:")
+                # print(currency_file)
 
-                if os.path.exists(currency_file100) and os.path.exists(currency_file200):
-                    data_df100 = pd.read_csv(currency_file100)
-                    #data_df100 = data_df100.iloc[0:-4]
+                if (os.path.exists(currency_file100) and os.path.exists(currency_file200)) or os.path.exists(currency_file):
 
-                    data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
+                    if os.path.exists(currency_file100) and os.path.exists(currency_file200):
+                        data_df100 = pd.read_csv(currency_file100)
+                        #data_df100 = data_df100.iloc[0:-4]
 
-                    data_df200 = pd.read_csv(currency_file200)
-                    #data_df200 = data_df200.iloc[0:-4]
+                        data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
 
-                    data_df200['time'] = data_df200['time'].apply(lambda x: preprocess_time(x))
+                        data_df200 = pd.read_csv(currency_file200)
+                        #data_df200 = data_df200.iloc[0:-4]
 
-                    original_data_df100 = data_df100.copy()
-                    original_data_df200 = data_df200.copy()
+                        data_df200['time'] = data_df200['time'].apply(lambda x: preprocess_time(x))
 
-                    #print("Initial column number = " + str(len(data_df.columns)))
-                    data_df = data_df100[['currency', 'time', 'open', 'high', 'low', 'close']]
-                else:
-                    data_df = pd.read_csv(currency_file)
-                    data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
-                    data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+                        original_data_df100 = data_df100.copy()
+                        original_data_df200 = data_df200.copy()
 
-
-                print("data_df:")
-                print(data_df.tail(10))
-
-                last_time = data_df.iloc[-1]['time']
-                last_timestamp = int(datetime.timestamp(last_time)) #- 28800
-                # next_timestamp = last_timestamp + 3600
-
-                print("Here last time = " + str(last_time))
-                print("last_timestamp = " + str(last_timestamp))
-                # time.sleep(15)
-
-                incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
-                print("incremental_data_df:")
-                print(incremental_data_df.tail(10))
-
-                incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
-
-                # incremental_data_df = incremental_data_df.iloc[1:-1]
-
-                print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
-
-                if incremental_data_df.shape[0] > 0:
-
-                    # print("cruise incremental_data_df:")
-                    # print(incremental_data_df)
-                    # print("before concat data_df:")
-                    # print(data_df[['time','close','period_high100']].tail(10))
-                    data_df = pd.concat([data_df, incremental_data_df])
-
-                    # print("Just after concat")
-                    # print(data_df[['time','close','period_high100']].tail(50))
-                    #
-                    # data_df.reset_index(inplace = True)
-                    # data_df = data_df.drop(columns = ['index'])
-                    # print("data_df after concat")
-                    # print(data_df[['time','close','period_high100']].tail(50))
-
-                    data_df.reset_index(inplace=True)
-                    data_df = data_df.drop(columns=['index'])
-
-                    # print("data_df:")
-                    # print("Correct column number = " + str(len(data_df.columns)))
-                    # print(data_df.tail(10))
-
-            else:
-                print("Currency file does not exit, query initial data from web")
-                temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
-                last_timestamp = temp_data_df.iloc[-1]['time']
-                start_timestamp = last_timestamp - 3600 * initial_bar_number
-
-                print("last_timestamp = " + str(last_timestamp))
-                print("start_timestamp = " + str(start_timestamp))
-
-                data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
-
-
-            if data_df is not None and (not is_traded_first_time[i]):
-                currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
-                currency_trader.start()
-                is_traded_first_time[i] = True
-
-
-            if data_df is not None and data_df.shape[0] > 0:
-                last_time = data_df.iloc[-1]['time']
-            else:
-                last_time = None
-
-            print("last_time = " + str(last_time))
-            if last_time is not None:
-                delta = last_time - datetime.now()
-            else:
-                delta = None
-            if (delta is not None and delta.seconds < 7200 and delta.days == 0) or is_first_time:
-                print("Received update-to-date data")
-
-                delta = last_time - datetime.now()
-
-                #print((last_time - datetime.now()))
-                currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
-                is_new_data_received[i] = True
-
-            else:
-                print("Go here 2")
-                if trial_numbers[i] <= maximum_trial_number + 1:
-                    if trial_numbers[i] <= maximum_trial_number:
-                        is_all_received = False
-                        print("Not received data update for " + currency + ", will try again")
-                        trial_numbers[i] += 1
+                        #print("Initial column number = " + str(len(data_df.columns)))
+                        data_df = data_df100[['currency', 'time', 'open', 'high', 'low', 'close']]
                     else:
-                        print("Reached maximum number of trials for " + currency + ", give up")
+                        data_df = pd.read_csv(currency_file)
+                        data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+                        data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-    is_first_time = False
 
-sendEmail("Trader process ends", "")
+                    print("data_df:")
+                    print(data_df.tail(10))
 
-print("Finished trading *********************************")
+                    last_time = data_df.iloc[-1]['time']
+                    last_timestamp = int(datetime.timestamp(last_time)) #- 28800
+                    # next_timestamp = last_timestamp + 3600
 
-if True:
+                    print("Here last time = " + str(last_time))
+                    print("last_timestamp = " + str(last_timestamp))
+                    # time.sleep(15)
+
+                    incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+                    print("incremental_data_df:")
+                    print(incremental_data_df.tail(10))
+
+                    incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+
+                    # incremental_data_df = incremental_data_df.iloc[1:-1]
+
+                    print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
+
+                    if incremental_data_df.shape[0] > 0:
+
+                        # print("cruise incremental_data_df:")
+                        # print(incremental_data_df)
+                        # print("before concat data_df:")
+                        # print(data_df[['time','close','period_high100']].tail(10))
+                        data_df = pd.concat([data_df, incremental_data_df])
+
+                        # print("Just after concat")
+                        # print(data_df[['time','close','period_high100']].tail(50))
+                        #
+                        # data_df.reset_index(inplace = True)
+                        # data_df = data_df.drop(columns = ['index'])
+                        # print("data_df after concat")
+                        # print(data_df[['time','close','period_high100']].tail(50))
+
+                        data_df.reset_index(inplace=True)
+                        data_df = data_df.drop(columns=['index'])
+
+                        # print("data_df:")
+                        # print("Correct column number = " + str(len(data_df.columns)))
+                        # print(data_df.tail(10))
+
+                else:
+                    print("Currency file does not exit, query initial data from web")
+                    temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
+                    last_timestamp = temp_data_df.iloc[-1]['time']
+                    start_timestamp = last_timestamp - 3600 * initial_bar_number
+
+                    print("last_timestamp = " + str(last_timestamp))
+                    print("start_timestamp = " + str(start_timestamp))
+
+                    data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+
+
+                if data_df is not None and (not is_traded_first_time[i]):
+                    currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
+                    currency_trader.start()
+                    is_traded_first_time[i] = True
+
+
+                if data_df is not None and data_df.shape[0] > 0:
+                    last_time = data_df.iloc[-1]['time']
+                else:
+                    last_time = None
+
+                print("last_time = " + str(last_time))
+                if last_time is not None:
+                    delta = last_time - datetime.now()
+                else:
+                    delta = None
+                if (delta is not None and delta.seconds < 7200 and delta.days == 0) or is_first_time:
+                    print("Received update-to-date data")
+
+                    delta = last_time - datetime.now()
+
+                    #print((last_time - datetime.now()))
+                    currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
+                    is_new_data_received[i] = True
+
+                else:
+                    print("Go here 2")
+                    if trial_numbers[i] <= maximum_trial_number + 1:
+                        if trial_numbers[i] <= maximum_trial_number:
+                            is_all_received = False
+                            print("Not received data update for " + currency + ", will try again")
+                            trial_numbers[i] += 1
+                        else:
+                            print("Reached maximum number of trials for " + currency + ", give up")
+
+        is_first_time = False
+
+    sendEmail("Trader process ends", "")
+
+    print("Finished trading *********************************")
+
+if False:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0726\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15_urgentStopLoss200_quick2_innovativeFire2new_10pm"
+    dest_folder = "C:\\Forex\\new_experiments\\0731\\forex_innovativeFire2new_lastFigure"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -450,8 +453,10 @@ if True:
         chart_folder = os.path.join(symbol_folder, "simple_chart")
 
         files = os.listdir(chart_folder)
-        if len(files) == 4:
+        if len(files) == 5:
             files = files[1:]
+
+        files = files[-1:]
 
         for file in files:
             file_path = os.path.join(chart_folder, file)
@@ -464,11 +469,11 @@ if True:
     sendEmail("Charts sent!", "")
 
 
-if is_do_portfolio_trading:
-    print("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
-    os.system('python plot_pnl_curve.py')
-else:
-    print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+# if is_do_portfolio_trading:
+#     print("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+#     os.system('python plot_pnl_curve.py')
+# else:
+#     print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
 
 print("All finished")
 sys.exit(0)

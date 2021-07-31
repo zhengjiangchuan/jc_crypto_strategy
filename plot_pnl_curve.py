@@ -83,8 +83,9 @@ else:
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
-meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-                                                        'GBPCAD', 'GBPCHF', 'USDCAD'])]
+# meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+#                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
+
 
 #meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
 
@@ -94,7 +95,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0726', 'pnl_summary_spread15_innovativeFire2new_11pm_portfolio_correct_positioning_exposure6_maxPnl_25000_10pm')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0731', 'pnl_summary_spread15_innovativeFire2new_correct_positioning_exposure12_maxPnl_25000')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -114,9 +115,13 @@ initial_principal = 2500  #2500
 
 use_correct_positioning = True
 
+draw_figure = True
+
+draw_intraday_pnl = False
+
 ####################### Portfolio trading ####################################
 
-is_portfolio = True
+is_portfolio = False
 
 plot_hk_pnl = True
 initial_deposit_hk = 25000   #31000
@@ -129,7 +134,7 @@ total_cum_positions = []
 total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 6 #6
+    max_exposure = 12 #6
     initial_principal_magnifier = 6.435 #8
 
 
@@ -859,6 +864,9 @@ for i in range(meta_df.shape[0] + 1):
     if i <= meta_df.shape[0]:
         data_df['date'] = pd.DatetimeIndex(data_df['time']).normalize()
 
+        data_df['date'] = data_df['date'].shift(1)
+        data_df.at[0, 'date'] = data_df.iloc[1]['date']
+
         data_df['prev_acc_pnl'] = data_df['acc_pnl'].shift(1)
 
         acc_pnl_df = data_df[['date', 'acc_pnl', 'prev_acc_pnl']]
@@ -890,7 +898,7 @@ for i in range(meta_df.shape[0] + 1):
         data_df = pd.merge(data_df, acc_pnl_df_summary[['date', 'last_day_acc_pnl']], on = ['date'], how = 'left')
         data_df['intraday_acc_pnl'] = data_df['acc_pnl'] - data_df['last_day_acc_pnl']
 
-        if i < meta_df.shape[0]: ######################################IMportant  IMportant IMportant IMportant IMportant
+        if i < meta_df.shape[0] and is_portfolio: ######################################IMportant  IMportant IMportant IMportant IMportant
             pnl_df[symbol + '_intraday_acc_pnl'] = data_df['intraday_acc_pnl']
 
         intraday_pnl_df = data_df[['date', 'intraday_acc_pnl']]
@@ -1009,7 +1017,7 @@ for i in range(meta_df.shape[0] + 1):
                                      'intraday_max_pnl_hk', 'intraday_final_pnl_hk']].to_csv(min_max_file, index = False)
 
 
-        simple_data_df = data_df[['time', 'cum_position', 'intraday_acc_pnl_hk']]
+        simple_data_df = data_df[['time', 'date',  'cum_position', 'intraday_acc_pnl_hk']]
         simple_data_df['cum_position_hk'] = simple_data_df['cum_position'] * lot_per_unit
 
         simple_data_df['cum_position_hk'] = simple_data_df['cum_position_hk'].apply(lambda x : round(x, 2))
@@ -1017,9 +1025,29 @@ for i in range(meta_df.shape[0] + 1):
         simple_data_df = simple_data_df.drop(columns = ['cum_position'])
 
         if i == meta_df.shape[0]:
+            simple_data_df['intraday_acc_pnl_per_position_hk'] = np.where(
+                np.abs(simple_data_df['cum_position_hk']) < 1e-5,
+                0,
+                simple_data_df['intraday_acc_pnl_hk'] / (simple_data_df['cum_position_hk']/lot_per_unit)
+            )
+
+
+        if i == meta_df.shape[0]:
             for symbol in symbols:
                 simple_data_df[symbol + '_intraday_acc_pnl_hk'] = pnl_df[symbol + '_intraday_acc_pnl'] * initial_deposit_hk / principal
                 simple_data_df[symbol + '_cum_position_hk'] = pnl_df[symbol + '_cum_position'] * lot_per_unit
+
+                # if symbol == 'USDJPY' or symbol == 'EURUSD':
+                #     print("Here check data:")
+                #     print("pnl_df:")
+                #     print(pnl_df[['time',symbol + '_intraday_acc_pnl', symbol + '_cum_position']].tail(100))
+                #
+                #     print("simple_data_df:")
+                #     print(simple_data_df[['time', symbol + '_intraday_acc_pnl_hk', symbol + '_cum_position_hk']].tail(100))
+                #
+                #     if symbol == 'USDJPY':
+                #         sys.exit(0)
+                simple_data_df[symbol + '_cum_position_hk_raw'] = simple_data_df[symbol + '_cum_position_hk']
                 simple_data_df[symbol + '_cum_position_hk'] = simple_data_df[symbol + '_cum_position_hk'].apply(lambda x: round(x, 2))
 
 
@@ -1055,6 +1083,89 @@ for i in range(meta_df.shape[0] + 1):
 
             sendEmail("Portfolio Current Status at " + current_time, message_body)
 
+            ############### Draw intraday pnl change figure ###################
+            intraday_df = simple_data_df[['time','date','intraday_acc_pnl_hk', 'cum_position_hk', 'intraday_acc_pnl_per_position_hk']]
+            unique_dates = list(intraday_df['date'].unique())
+            intraday_pnl_folder = os.path.join(pnl_folder, 'intraday_pnl')
+            if not os.path.exists(intraday_pnl_folder):
+                os.makedirs(intraday_pnl_folder)
+
+            for unique_date in unique_dates:
+
+                intraday_date_df = intraday_df[intraday_df['date'] == unique_date]
+                intraday_date_df['time_id'] = list(range(intraday_date_df.shape[0]))
+                intraday_date_df = intraday_date_df.drop(columns = ['date', 'cum_position_hk'])
+                intraday_date_df['intraday_max_acc_pnl_hk'] = intraday_date_df['intraday_acc_pnl_hk'].cummax()
+
+
+                date_str = intraday_date_df.iloc[0]['time'].strftime('%y-%m%d')
+
+                intraday_date_df['raw_time'] = intraday_date_df['time']
+                intraday_date_df['time'] = intraday_date_df['time'].apply(lambda x: x.strftime('%H:%M'))
+                intraday_date_df['time'] = np.where(
+                    intraday_date_df['time'] == '00:00',
+                    '24:00',
+                    intraday_date_df['time']
+                )
+
+                print("Draw intraday pnl change for date " + date_str)
+
+                # print("intraday_date_df:")
+                # print(intraday_date_df)
+
+                y_attrs = ['intraday_acc_pnl_per_position_hk', 'intraday_max_acc_pnl_hk', 'intraday_acc_pnl_hk']
+                dfs = []
+                for y_attr in y_attrs:
+                    single_df = intraday_date_df[['time', 'time_id', y_attr]]
+                    single_df = single_df.rename(columns = {y_attr : 'pnl'})
+                    single_df['type'] = y_attr
+                    dfs += [single_df]
+
+                intraday_final_acc_pnl_df = pd.concat(dfs)
+
+                ##Hutong
+                if draw_intraday_pnl:
+                    fig = plt.figure(figsize=(28, 18))
+
+                    intraday_time_number = intraday_date_df.shape[0]
+                    intraday_trade_times = intraday_date_df['time']
+                    tick_interval = 1
+                    font_size = 20
+                    angle = 30
+
+                    def format_intraday_time(x, pos=None):
+                        thisind = np.clip(int(x + 0.5), 0, intraday_time_number - 1)
+                        return intraday_trade_times[thisind].strftime('%H:%M')
+
+                    axes = fig.subplots(nrows=1, ncols=1)
+
+                    # print("intraday_final_acc_pnl_df:")
+                    # print(intraday_final_acc_pnl_df)
+
+                    sns.lineplot(x='time', y='pnl', hue = 'type', data=intraday_final_acc_pnl_df, ax=axes, linewidth = 6)
+                    axes.set_title('FX ' + "Portfolio" + " Pnl " + date_str, fontsize=18)
+                    axes.set_xlabel('time', size=font_size)
+                    axes.set_ylabel('pnl', size=font_size)
+                    #
+                    axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+                    #axes.xaxis.set_major_formatter(ticker.FuncFormatter(format_intraday_time))
+
+                    #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+                    axes.tick_params(labelsize=font_size)
+
+                    axes.axhline(0, ls='--', color='black', linewidth=1)
+
+                    axes.axhline(250, ls='--', color='red', linewidth=1)
+
+                    axes.axhline(300, ls='--', color='blue', linewidth=1)
+
+                    plt.setp(axes.get_xticklabels(), rotation=angle)
+
+                    fig.savefig(os.path.join(intraday_pnl_folder, 'intraday_pnl_' + date_str + '.png'))
+
+                    plt.close(fig)
+                    #sys.exit(0)
+
 
 
 
@@ -1083,263 +1194,265 @@ for i in range(meta_df.shape[0] + 1):
     ################# Draw figure ###############
 
 
-    time_number = data_df.shape[0]
-    trade_times = data_df['time']
+    if draw_figure:
 
-    if i == meta_df.shape[0]:
-        trade_dates = intraday_pnl_df_summary['date']
-        date_number = intraday_pnl_df_summary.shape[0]
-
-
-    def format_date(x, pos=None):
-        thisind = np.clip(int(x + 0.5), 0, time_number - 1)
-        return trade_times[thisind].strftime('%y%m%d-%H')
-
-    def format_actual_date(x, pos=None):
-        thisind = np.clip(int(x + 0.5), 0, date_number - 1)
-        return trade_dates[thisind].strftime('%y%m%d')
-
-    tick_number = 20
-    tick_interval = time_number / tick_number
-
-    if i == meta_df.shape[0]:
-        tick_number2 = 20
-        tick_interval2 = date_number / tick_number2
-
-
-    types = ['pct', 'non_pct']
-
-    for type in types:
-
-        fig = plt.figure(figsize=(28, 18))
-        col_num = 1
-        #row_num = 3 if i == meta_df.shape[0] else 4
-        row_num = 4
-
-        angle = 30
-
-        font_size = 14
-
-        axes = fig.subplots(nrows=row_num, ncols=col_num)
-
-        #start_id = -1 if i == meta_df.shape[0] else 0
-
-        start_id = 0
-
-        if i < meta_df.shape[0]:
-            ## Figure 1: market price curve and our buy/sell points
-            data_df['price'] = np.where(
-                np.abs(data_df['price']) < 1e-5,
-                np.nan,
-                data_df['price']
-            )
-
-            sns.lineplot(x='time_id', y='price', color='black', data=data_df, ax=axes[0])
-            axes[0].set_title('FX ' + symbol + " Market Price", fontsize=18)
-            axes[0].set_xlabel('time', size=font_size)
-            axes[0].set_ylabel('price', size=font_size)
-            axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-            axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-            #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
-            axes[0].tick_params(labelsize=font_size)
-
-            plt.setp(axes[0].get_xticklabels(), rotation=angle)
-
-        else:
-
-            if plot_hk_pnl:
-                intraday_final_pnl = 'intraday_final_pnl_hk'
-                intraday_min_pnl = 'intraday_min_pnl_hk'
-                intraday_max_pnl = 'intraday_max_pnl_hk'
-                intraday_pnl = 'intraday_pnl_hk'
-                pnl_attr = 'pnl_hk'
-            else:
-                intraday_final_pnl = 'intraday_final_pnl'
-                intraday_min_pnl = 'intraday_min_pnl'
-                intraday_max_pnl = 'intraday_max_pnl'
-                intraday_pnl = 'intraday_pnl'
-                pnl_attr = 'pnl'
-
-            intraday_pnl_df_summary['time_id'] = list(range(intraday_pnl_df_summary.shape[0]))
-
-            intraday_final_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_final_pnl]]
-            intraday_min_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_min_pnl]]
-            intraday_max_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_max_pnl]]
-
-            # print("before intraday_final_pnl_df:")
-            # print(intraday_final_pnl_df.head(10))
-
-            intraday_final_pnl_df = intraday_final_pnl_df.rename(columns = {intraday_final_pnl : intraday_pnl})
-            intraday_final_pnl_df[pnl_attr] = intraday_final_pnl
-
-            # print("after intraday_final_pnl_df:")
-            # print(intraday_final_pnl_df.head(10))
-
-
-
-            intraday_min_pnl_df = intraday_min_pnl_df.rename(columns = {intraday_min_pnl : intraday_pnl})
-            intraday_min_pnl_df[pnl_attr] = intraday_min_pnl
-
-            intraday_max_pnl_df = intraday_max_pnl_df.rename(columns={intraday_max_pnl: intraday_pnl})
-            intraday_max_pnl_df[pnl_attr] = intraday_max_pnl
-
-            intraday_summary = pd.concat([intraday_min_pnl_df, intraday_max_pnl_df, intraday_final_pnl_df])
-
-            # print("intraday_summary:")
-            # print(intraday_summary)
-
-            sns.lineplot(x='time_id', y=intraday_pnl, hue = pnl_attr, color='black', data=intraday_summary, ax=axes[0])
-            axes[0].set_title('FX ' + "Portfolio" + " Intraday Pnl", fontsize=18)
-            axes[0].set_xlabel('time', size=font_size)
-            axes[0].set_ylabel(pnl_attr, size=font_size)
-            axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval2))
-            axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_actual_date))
-            #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
-            axes[0].tick_params(labelsize=font_size)
-
-            plt.setp(axes[0].get_xticklabels(), rotation=angle)
-
-
+        time_number = data_df.shape[0]
+        trade_times = data_df['time']
 
         if i == meta_df.shape[0]:
-            ticker_name = "Portfolio"
-        else:
-            ticker_name = symbol
-
-        ## Figure 2: mark-to-market pnl curve
-        y_attr = 'acc_return' if type == 'pct' else 'acc_pnl'
-        if type != 'pct' and plot_hk_pnl:
-            y_attr = 'acc_pnl_hk'
-
-        sns.lineplot(x = 'time_id', y = y_attr, markers = 'o', color = 'red', data = data_df, ax = axes[start_id + 1])
-        axes[start_id + 1].set_title('FX ' + ticker_name + " Strategy Return ", fontsize = 18)
-        axes[start_id + 1].set_xlabel('time', size = font_size)
-        axes[start_id + 1].set_ylabel(y_attr, size = font_size)
-        axes[start_id + 1].tick_params(labelsize = font_size)
-        axes[start_id + 1].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[start_id + 1].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            trade_dates = intraday_pnl_df_summary['date']
+            date_number = intraday_pnl_df_summary.shape[0]
 
 
+        def format_date(x, pos=None):
+            thisind = np.clip(int(x + 0.5), 0, time_number - 1)
+            return trade_times[thisind].strftime('%y%m%d-%H')
 
-        if type == 'pct':
-            axes[start_id + 1].axvline(max_drawdown_start, ls='--', color='blue', linewidth=1)
-            axes[start_id + 1].axvline(max_drawdown_end, ls='--', color='blue', linewidth=1)
+        def format_actual_date(x, pos=None):
+            thisind = np.clip(int(x + 0.5), 0, date_number - 1)
+            return trade_dates[thisind].strftime('%y%m%d')
 
-            axes[start_id + 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+        tick_number = 20
+        tick_interval = time_number / tick_number
 
-        plt.setp(axes[start_id + 1].get_xticklabels(), rotation = angle)
-
-
-        ## Figure 3: remaining deposit change curve
-        # y_attr = 'remaining_deposit_pct' if type == 'pct' else 'remaining_deposit'
-        # y_attr_simple = 'deposit_pct' if type == 'pct' else 'deposit'
-        # max_deposit = data_df[y_attr].max()
-        # min_deposit = data_df[y_attr].min()
-        #
-        # #print("min_deposit = " + str(min_deposit))
-        #
-        #
-        # sns.lineplot(x = 'time_id', y = y_attr, color = 'blue', data = data_df, ax = axes[2])
-        # axes[2].set_title('FX ' + symbol + " Remaining Deposit ", fontsize = 18)
-        # axes[2].set_xlabel('time', size = font_size)
-        # axes[2].set_ylabel(y_attr_simple, size = font_size)
-        # axes[2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        # axes[2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        # axes[2].tick_params(labelsize = font_size)
-        #
-        # #y_lim_min = min([0, min_deposit])
-        # y_lim_min = min_deposit
-        # y_lim_max = max([0, max_deposit])
-        # if y_lim_max > 0:
-        #     y_lim_max = y_lim_max * 1.2
-        # axes[2].set_ylim([y_lim_min, y_lim_max])
-        #
-        # if type == 'pct':
-        #     axes[2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
-        #
-        # plt.setp(axes[2].get_xticklabels(), rotation = angle)
+        if i == meta_df.shape[0]:
+            tick_number2 = 20
+            tick_interval2 = date_number / tick_number2
 
 
+        types = ['pct', 'non_pct']
 
-        ##### Figure 3: margine_level change curve (Very important to monitor auto-stop) ############
+        for type in types:
 
-        y_attr = 'drawdown_margin_level' if type == 'pct' else 'margin_level'
-        max_margin_level = data_df[y_attr].max()
-        min_margin_level = min(0, data_df[y_attr].min())
+            fig = plt.figure(figsize=(28, 18))
+            col_num = 1
+            #row_num = 3 if i == meta_df.shape[0] else 4
+            row_num = 4
 
-        # print("min_deposit = " + str(min_deposit))
+            angle = 30
 
-        sns.lineplot(x='time_id', y=y_attr, color='blue', data=data_df, ax=axes[start_id + 2])
-        title = ('FX ' + ticker_name + " Drawdown Margin Level ") if type == 'pct' else ('FX ' + symbol + " Margin Level ")
-        axes[start_id + 2].set_title(title, fontsize=18)
-        axes[start_id + 2].set_xlabel('time', size=font_size)
-        axes[start_id + 2].set_ylabel(y_attr, size=font_size)
-        axes[start_id + 2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[start_id + 2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        axes[start_id + 2].tick_params(labelsize=font_size)
+            font_size = 14
 
-        used_cross_down_points = drawdown_cross_down_points if type == 'pct' else cross_down_points
-        used_cross_up_points = drawdown_cross_up_points if type == 'pct' else cross_up_points
+            axes = fig.subplots(nrows=row_num, ncols=col_num)
 
-        axes[start_id + 2].axhline(0.5, ls='--', color='black', linewidth=1)
-        for point_id in used_cross_down_points:
-            axes[start_id + 2].axvline(point_id, ls = '--', color = 'red', linewidth=1)
-        for point_id in used_cross_up_points:
-            axes[start_id + 2].axvline(point_id, ls = '--', color = 'blue', linewidth=1)
+            #start_id = -1 if i == meta_df.shape[0] else 0
 
+            start_id = 0
 
-        # y_lim_min = min([0, min_deposit])
-        y_lim_min = min_margin_level
-        y_lim_max = max([0, max_margin_level])
-        if y_lim_max > 0:
-            y_lim_max = y_lim_max * 1.2
-        axes[start_id + 2].set_ylim([y_lim_min, y_lim_max])
+            if i < meta_df.shape[0]:
+                ## Figure 1: market price curve and our buy/sell points
+                data_df['price'] = np.where(
+                    np.abs(data_df['price']) < 1e-5,
+                    np.nan,
+                    data_df['price']
+                )
 
-        #if type == 'pct':
-        axes[start_id + 2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+                sns.lineplot(x='time_id', y='price', color='black', data=data_df, ax=axes[0])
+                axes[0].set_title('FX ' + symbol + " Market Price", fontsize=18)
+                axes[0].set_xlabel('time', size=font_size)
+                axes[0].set_ylabel('price', size=font_size)
+                axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+                axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+                #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+                axes[0].tick_params(labelsize=font_size)
 
-        plt.setp(axes[start_id + 2].get_xticklabels(), rotation=angle)
+                plt.setp(axes[0].get_xticklabels(), rotation=angle)
+
+            else:
+
+                if plot_hk_pnl:
+                    intraday_final_pnl = 'intraday_final_pnl_hk'
+                    intraday_min_pnl = 'intraday_min_pnl_hk'
+                    intraday_max_pnl = 'intraday_max_pnl_hk'
+                    intraday_pnl = 'intraday_pnl_hk'
+                    pnl_attr = 'pnl_hk'
+                else:
+                    intraday_final_pnl = 'intraday_final_pnl'
+                    intraday_min_pnl = 'intraday_min_pnl'
+                    intraday_max_pnl = 'intraday_max_pnl'
+                    intraday_pnl = 'intraday_pnl'
+                    pnl_attr = 'pnl'
+
+                intraday_pnl_df_summary['time_id'] = list(range(intraday_pnl_df_summary.shape[0]))
+
+                intraday_final_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_final_pnl]]
+                intraday_min_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_min_pnl]]
+                intraday_max_pnl_df = intraday_pnl_df_summary[['time_id', 'date', intraday_max_pnl]]
+
+                # print("before intraday_final_pnl_df:")
+                # print(intraday_final_pnl_df.head(10))
+
+                intraday_final_pnl_df = intraday_final_pnl_df.rename(columns = {intraday_final_pnl : intraday_pnl})
+                intraday_final_pnl_df[pnl_attr] = intraday_final_pnl
+
+                # print("after intraday_final_pnl_df:")
+                # print(intraday_final_pnl_df.head(10))
 
 
 
+                intraday_min_pnl_df = intraday_min_pnl_df.rename(columns = {intraday_min_pnl : intraday_pnl})
+                intraday_min_pnl_df[pnl_attr] = intraday_min_pnl
 
-        ## Figure 4: position change curve
+                intraday_max_pnl_df = intraday_max_pnl_df.rename(columns={intraday_max_pnl: intraday_pnl})
+                intraday_max_pnl_df[pnl_attr] = intraday_max_pnl
 
-        if plot_hk_pnl:
-            position_attr = 'abs_cum_position_hk'
-        else:
-            position_attr = 'abs_cum_position'
+                intraday_summary = pd.concat([intraday_min_pnl_df, intraday_max_pnl_df, intraday_final_pnl_df])
 
-        max_position = data_df[position_attr].max()
-        sns.lineplot(x = 'time_id', y = position_attr, color = 'purple', data = data_df, ax = axes[start_id + 3])
-        axes[start_id + 3].set_title('FX ' + ticker_name + " Position ", fontsize = 18)
-        axes[start_id + 3].set_xlabel('time', size = font_size)
-        axes[start_id + 3].set_ylabel('position', size = font_size)
-        axes[start_id + 3].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
-        axes[start_id + 3].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        axes[start_id + 3].tick_params(labelsize = font_size)
-        axes[start_id + 3].set_ylim([-0.5, max_position * 2])
-        plt.setp(axes[start_id + 3].get_xticklabels(), rotation = angle)
+                # print("intraday_summary:")
+                # print(intraday_summary)
+
+                sns.lineplot(x='time_id', y=intraday_pnl, hue = pnl_attr, color='black', data=intraday_summary, ax=axes[0])
+                axes[0].set_title('FX ' + "Portfolio" + " Intraday Pnl", fontsize=18)
+                axes[0].set_xlabel('time', size=font_size)
+                axes[0].set_ylabel(pnl_attr, size=font_size)
+                axes[0].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval2))
+                axes[0].xaxis.set_major_formatter(ticker.FuncFormatter(format_actual_date))
+                #axes[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+                axes[0].tick_params(labelsize=font_size)
+
+                plt.setp(axes[0].get_xticklabels(), rotation=angle)
 
 
-        plt.subplots_adjust(hspace = 0.5)
 
-        if i < meta_df.shape[0]:
+            if i == meta_df.shape[0]:
+                ticker_name = "Portfolio"
+            else:
+                ticker_name = symbol
 
-            figure_file_path = os.path.join(data_folder, symbol, 'data', symbol + '_' + type + '_pnl.png')
-            print("figure_file_path:")
-            print(figure_file_path)
+            ## Figure 2: mark-to-market pnl curve
+            y_attr = 'acc_return' if type == 'pct' else 'acc_pnl'
+            if type != 'pct' and plot_hk_pnl:
+                y_attr = 'acc_pnl_hk'
 
-            fig.savefig(figure_file_path)
+            sns.lineplot(x = 'time_id', y = y_attr, markers = 'o', color = 'red', data = data_df, ax = axes[start_id + 1])
+            axes[start_id + 1].set_title('FX ' + ticker_name + " Strategy Return ", fontsize = 18)
+            axes[start_id + 1].set_xlabel('time', size = font_size)
+            axes[start_id + 1].set_ylabel(y_attr, size = font_size)
+            axes[start_id + 1].tick_params(labelsize = font_size)
+            axes[start_id + 1].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+            axes[start_id + 1].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
 
-        prefix = symbol if i < meta_df.shape[0] else "Portfolio"
 
-        summary_path = os.path.join(pnl_folder, prefix + '_' + type + '_pnl.png')
-        print("summary_path:")
-        print(summary_path)
-        fig.savefig(summary_path)
 
-        plt.close(fig)
+            if type == 'pct':
+                axes[start_id + 1].axvline(max_drawdown_start, ls='--', color='blue', linewidth=1)
+                axes[start_id + 1].axvline(max_drawdown_end, ls='--', color='blue', linewidth=1)
+
+                axes[start_id + 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+
+            plt.setp(axes[start_id + 1].get_xticklabels(), rotation = angle)
+
+
+            ## Figure 3: remaining deposit change curve
+            # y_attr = 'remaining_deposit_pct' if type == 'pct' else 'remaining_deposit'
+            # y_attr_simple = 'deposit_pct' if type == 'pct' else 'deposit'
+            # max_deposit = data_df[y_attr].max()
+            # min_deposit = data_df[y_attr].min()
+            #
+            # #print("min_deposit = " + str(min_deposit))
+            #
+            #
+            # sns.lineplot(x = 'time_id', y = y_attr, color = 'blue', data = data_df, ax = axes[2])
+            # axes[2].set_title('FX ' + symbol + " Remaining Deposit ", fontsize = 18)
+            # axes[2].set_xlabel('time', size = font_size)
+            # axes[2].set_ylabel(y_attr_simple, size = font_size)
+            # axes[2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+            # axes[2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            # axes[2].tick_params(labelsize = font_size)
+            #
+            # #y_lim_min = min([0, min_deposit])
+            # y_lim_min = min_deposit
+            # y_lim_max = max([0, max_deposit])
+            # if y_lim_max > 0:
+            #     y_lim_max = y_lim_max * 1.2
+            # axes[2].set_ylim([y_lim_min, y_lim_max])
+            #
+            # if type == 'pct':
+            #     axes[2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+            #
+            # plt.setp(axes[2].get_xticklabels(), rotation = angle)
+
+
+
+            ##### Figure 3: margine_level change curve (Very important to monitor auto-stop) ############
+
+            y_attr = 'drawdown_margin_level' if type == 'pct' else 'margin_level'
+            max_margin_level = data_df[y_attr].max()
+            min_margin_level = min(0, data_df[y_attr].min())
+
+            # print("min_deposit = " + str(min_deposit))
+
+            sns.lineplot(x='time_id', y=y_attr, color='blue', data=data_df, ax=axes[start_id + 2])
+            title = ('FX ' + ticker_name + " Drawdown Margin Level ") if type == 'pct' else ('FX ' + symbol + " Margin Level ")
+            axes[start_id + 2].set_title(title, fontsize=18)
+            axes[start_id + 2].set_xlabel('time', size=font_size)
+            axes[start_id + 2].set_ylabel(y_attr, size=font_size)
+            axes[start_id + 2].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+            axes[start_id + 2].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            axes[start_id + 2].tick_params(labelsize=font_size)
+
+            used_cross_down_points = drawdown_cross_down_points if type == 'pct' else cross_down_points
+            used_cross_up_points = drawdown_cross_up_points if type == 'pct' else cross_up_points
+
+            axes[start_id + 2].axhline(0.5, ls='--', color='black', linewidth=1)
+            for point_id in used_cross_down_points:
+                axes[start_id + 2].axvline(point_id, ls = '--', color = 'red', linewidth=1)
+            for point_id in used_cross_up_points:
+                axes[start_id + 2].axvline(point_id, ls = '--', color = 'blue', linewidth=1)
+
+
+            # y_lim_min = min([0, min_deposit])
+            y_lim_min = min_margin_level
+            y_lim_max = max([0, max_margin_level])
+            if y_lim_max > 0:
+                y_lim_max = y_lim_max * 1.2
+            axes[start_id + 2].set_ylim([y_lim_min, y_lim_max])
+
+            #if type == 'pct':
+            axes[start_id + 2].yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+
+            plt.setp(axes[start_id + 2].get_xticklabels(), rotation=angle)
+
+
+
+
+            ## Figure 4: position change curve
+
+            if plot_hk_pnl:
+                position_attr = 'abs_cum_position_hk'
+            else:
+                position_attr = 'abs_cum_position'
+
+            max_position = data_df[position_attr].max()
+            sns.lineplot(x = 'time_id', y = position_attr, color = 'purple', data = data_df, ax = axes[start_id + 3])
+            axes[start_id + 3].set_title('FX ' + ticker_name + " Position ", fontsize = 18)
+            axes[start_id + 3].set_xlabel('time', size = font_size)
+            axes[start_id + 3].set_ylabel('position', size = font_size)
+            axes[start_id + 3].xaxis.set_major_locator(ticker.MultipleLocator(tick_interval))
+            axes[start_id + 3].xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            axes[start_id + 3].tick_params(labelsize = font_size)
+            axes[start_id + 3].set_ylim([-0.5, max_position * 2])
+            plt.setp(axes[start_id + 3].get_xticklabels(), rotation = angle)
+
+
+            plt.subplots_adjust(hspace = 0.5)
+
+            if i < meta_df.shape[0]:
+
+                figure_file_path = os.path.join(data_folder, symbol, 'data', symbol + '_' + type + '_pnl.png')
+                print("figure_file_path:")
+                print(figure_file_path)
+
+                fig.savefig(figure_file_path)
+
+            prefix = symbol if i < meta_df.shape[0] else "Portfolio"
+
+            summary_path = os.path.join(pnl_folder, prefix + '_' + type + '_pnl.png')
+            print("summary_path:")
+            print(summary_path)
+            fig.savefig(summary_path)
+
+            plt.close(fig)
 
 if is_portfolio:
     symbols += ['Portfolio']

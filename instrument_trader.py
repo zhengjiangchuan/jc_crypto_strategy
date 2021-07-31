@@ -125,7 +125,7 @@ entry_risk_threshold = 0.6
 
 close_position_look_back = 12
 
-is_send_email = True
+is_send_email = False
 
 use_simple_stop_loss = False
 
@@ -4299,7 +4299,10 @@ class CurrencyTrader(threading.Thread):
                                 if (total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0):
                                     #print("quick_ready = true")
                                     quick_ready = True
-                                    quick_ready_price = row['close']
+                                    #quick_ready_price = row['close']
+
+                                    quick_ready_price = (row['close'] + row['open'])/2.0
+
                                     last_quick_ready = i
                                     #x.at[x.index[i], selected_quick] = 1
                                     #total_quick += 1
@@ -4328,7 +4331,8 @@ class CurrencyTrader(threading.Thread):
 
 
                                         if (not tightened_quick_stop_loss) or (row[quick_immediate] or (
-                                                is_more_aggressive(quick_ready_price, row['close'], side) and last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
+                                                is_more_aggressive(quick_ready_price, row['close'], side) #and \
+                                                #last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
                                         )):
 
                                             x.at[x.index[i], selected_quick] = 1
