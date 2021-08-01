@@ -83,8 +83,8 @@ else:
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
-# meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-#                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
+meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
 #meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
@@ -95,7 +95,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0731', 'pnl_summary_spread15_innovativeFire2new_correct_positioning_exposure12_maxPnl_25000')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0731', 'pnl_summary_spread15_innovativeFire2new_portfolio_correct_positioning_exposure12_maxPnl_25000_check')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -121,7 +121,7 @@ draw_intraday_pnl = False
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = False
+is_portfolio = True
 
 plot_hk_pnl = True
 initial_deposit_hk = 25000   #31000

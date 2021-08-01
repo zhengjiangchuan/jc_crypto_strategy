@@ -160,6 +160,9 @@ hours_close_position_quick = [15]
 hours_close_position = [23]
 
 
+is_clean_redundant_entry_point = True
+
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -3252,8 +3255,6 @@ class CurrencyTrader(threading.Thread):
 
             if is_intraday_strategy:
 
-
-
                 self.data_df['first_final_buy_fire'] = np.where(
                     (self.data_df['hour'] >= min_hour_open_position) & (self.data_df['hour'] <= max_hour_open_position),
                     self.data_df['first_final_buy_fire'],
@@ -3267,12 +3268,84 @@ class CurrencyTrader(threading.Thread):
                 )
 
 
+            if is_clean_redundant_entry_point:
+                self.data_df['buy_point'] = np.where(
+                    self.data_df['first_final_buy_fire'],
+                    1,
+                    0
+                )
+                self.data_df['sell_point'] = np.where(
+                    self.data_df['first_final_sell_fire'],
+                    1,
+                    0
+                )
+
+                self.data_df['bar_below_m12'] = self.data_df['max_price'] < self.data_df['ma_close12']
+                self.data_df['bar_above_m12'] = self.data_df['min_price'] > self.data_df['ma_close12']
+
+                self.data_df['cum_bar_below_m12'] = self.data_df['bar_below_m12'].cumsum()
+                self.data_df['cum_bar_above_m12'] = self.data_df['bar_above_m12'].cumsum()
+
+                self.data_df['prev_cum_bar_below_m12'] = self.data_df['cum_bar_below_m12'].shift(1)
+                self.data_df['prev_cum_bar_above_m12'] = self.data_df['cum_bar_above_m12'].shift(1)
+
+                for cum_col in ['prev_cum_bar_below_m12', 'prev_cum_bar_above_m12']:
+                    self.data_df.at[0, cum_col] = 0
+                    self.data_df[cum_col] = self.data_df[cum_col].astype(int)
+
+                temp_clean_df = self.data_df[['time', 'id', 'buy_point', 'sell_point',
+                                              'cum_bar_below_m12', 'prev_cum_bar_below_m12', 'cum_bar_above_m12', 'prev_cum_bar_above_m12', 'close']]
+
+                temp_clean_df['prev_cum_bar_below_m12_for_buy'] = np.where(
+                    temp_clean_df['buy_point'] == 1,
+                    temp_clean_df['prev_cum_bar_below_m12'],
+                    np.nan
+                )
+
+                temp_clean_df['prev_cum_bar_above_m12_for_sell'] = np.where(
+                    temp_clean_df['sell_point'] == 1,
+                    temp_clean_df['prev_cum_bar_above_m12'],
+                    np.nan
+                )
+
+                temp_clean_df['buy_price'] = np.where(
+                    self.data_df['buy_point'] == 1,
+                    self.data_df['close'],
+                    np.nan
+                )
+
+                temp_clean_df['sell_price'] = np.where(
+                    self.data_df['sell_point'] == 1,
+                    self.data_df['close'],
+                    np.nan
+                )
 
 
 
+                temp_clean_df = temp_clean_df.fillna(method = 'ffill').fillna(0)
+
+                temp_clean_df['num_bar_below_m12_for_buy'] = temp_clean_df['cum_bar_below_m12'] - temp_clean_df['prev_cum_bar_below_m12_for_buy']
+                temp_clean_df['num_bar_above_m12_for_sell'] = temp_clean_df['cum_bar_above_m12'] - temp_clean_df['prev_cum_bar_above_m12_for_sell']
+
+                self.data_df['num_bar_below_m12_for_buy'] = temp_clean_df['num_bar_below_m12_for_buy']
+                self.data_df['num_bar_above_m12_for_sell'] = temp_clean_df['num_bar_above_m12_for_sell']
+
+                self.data_df['prev_num_bar_below_m12_for_buy'] = self.data_df['num_bar_below_m12_for_buy'].shift(1)
+                self.data_df['prev_num_bar_above_m12_for_sell'] = self.data_df['num_bar_above_m12_for_sell'].shift(1)
+
+                self.data_df['buy_price'] = temp_clean_df['buy_price']
+                self.data_df['prev_buy_price'] = temp_clean_df['buy_price'].shift(1)
+
+                self.data_df['sell_price'] = temp_clean_df['sell_price']
+                self.data_df['prev_sell_price'] = temp_clean_df['sell_price'].shift(1)
 
 
 
+                self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] &\
+                        (self.data_df['bar_below_m12'] | (self.data_df['buy_price'] < self.data_df['prev_buy_price']) | (self.data_df['prev_num_bar_below_m12_for_buy'] > 0))
+
+                self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] &\
+                        (self.data_df['bar_above_m12'] | (self.data_df['sell_price'] > self.data_df['prev_sell_price']) | (self.data_df['prev_num_bar_above_m12_for_sell'] > 0))
 
 
 
