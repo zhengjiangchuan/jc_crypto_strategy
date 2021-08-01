@@ -3568,7 +3568,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_new_cond5'] = self.data_df['prev_num_bars_since_last_buy'] >= 5
                 self.data_df['buy_new_cond6'] = self.data_df['prev_num_bars_since_last_buy'] <= 48
                 self.data_df['buy_new_cond7'] = (self.data_df['prev_num_bar_above_all_guppy_for_buy'] == 0) | (self.data_df['close'] < self.data_df['prev_buy_price'])
-                self.data_df['buy_new_cond8'] = (self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400
+                self.data_df['buy_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400) | (self.data_df['prev_num_bars_since_last_buy'] <= 24)
                 self.data_df['buy_new_cond9'] = (self.data_df['open'] - self.data_df['prev_buy_open_price'])*self.exchange_rate*self.lot_size < 300
 
 
@@ -3586,7 +3586,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_new_cond5'] = self.data_df['prev_num_bars_since_last_sell'] >= 5
                 self.data_df['sell_new_cond6'] = self.data_df['prev_num_bars_since_last_sell'] <= 48
                 self.data_df['sell_new_cond7'] = ((self.data_df['prev_num_bar_below_all_guppy_for_sell'] == 0) | (self.data_df['close'] > self.data_df['prev_sell_price']))
-                self.data_df['sell_new_cond8'] = (self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400
+                self.data_df['sell_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400) | (self.data_df['prev_num_bars_since_last_sell'] <= 24)
                 self.data_df['sell_new_cond9'] = (self.data_df['open'] - self.data_df['prev_sell_open_price'])*self.exchange_rate*self.lot_size > -300
 
 #########################################################################################################################################
