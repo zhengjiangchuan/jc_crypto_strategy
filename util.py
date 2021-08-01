@@ -410,6 +410,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         buy_real_points_vegas = which(sub_data['first_buy_real_fire'])
         buy_real_points_reverse = which(sub_data['first_final_buy_fire'] & (~sub_data['first_final_buy_fire_exclude'])) #which(sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
+        buy_real_points_reverse_new = which(sub_data['first_final_buy_fire_new'])
+
         if 'first_final_buy_fire_exclude' in sub_data.columns:
             buy_real_points_reverse_exclude = which(sub_data['first_final_buy_fire_exclude'])
         if 'first_buy_fire_magic_exclude' in sub_data.columns:
@@ -485,6 +487,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         sell_real_points_vegas = which(sub_data['first_sell_real_fire'])
         sell_real_points_reverse = which(sub_data['first_final_sell_fire'] & (~sub_data['first_final_sell_fire_exclude'])) # which(sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
+        sell_real_points_reverse_new = which(sub_data['first_final_sell_fire_new'])
+
         if 'first_final_sell_fire_exclude' in sub_data.columns:
             sell_real_points_reverse_exclude = which(sub_data['first_final_sell_fire_exclude'])
         if 'first_sell_fire_magic_exclude' in sub_data.columns:
@@ -578,6 +582,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
             for buy_real_point in buy_real_points_reverse:
                 axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'darkblue')
+
+            for buy_real_point in buy_real_points_reverse_new:
+                axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = 'o', markersize = 18, color = 'darkblue')
+
 
 
             ####################################
@@ -706,6 +714,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
             for sell_real_point in sell_real_points_reverse:
                 axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'darkred')
+
+            for sell_real_point in sell_real_points_reverse_new:
+                axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = 'o', markersize = 18, color = 'darkred')
+
 
 
             ####################################

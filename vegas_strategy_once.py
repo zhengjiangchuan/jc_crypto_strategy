@@ -81,7 +81,7 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
-#currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
 
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
@@ -273,7 +273,7 @@ is_first_time = True
 original_data_df100 = None
 original_data_df200 = None
 
-is_do_trading = False
+is_do_trading = True
 
 if is_do_trading:
     while not is_all_received:
@@ -420,14 +420,14 @@ if is_do_trading:
 
     print("Finished trading *********************************")
 
-if True:
+if False:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0731\\forex_innovativeFire2new_clean_entry"
+    dest_folder = "C:\\Forex\\new_experiments\\0731\\forex_innovativeFire2new_clean_entry_second_entry"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
