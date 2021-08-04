@@ -95,7 +95,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0731', 'pnl_summary_spread15_innovativeFire2new_portfolio_correct_positioning_exposure12_maxPnl_25000_check')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0804', 'pnl_summary_spread15_innovativeFire2new_portfolio_correct_positioning_exposure6_maxPnl_25000_intraday_quickLossDelayed_oldOne')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -134,7 +134,7 @@ total_cum_positions = []
 total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 12 #6
+    max_exposure = 6 #6
     initial_principal_magnifier = 6.435 #8
 
 
@@ -1108,7 +1108,8 @@ for i in range(meta_df.shape[0] + 1):
                     intraday_date_df['time']
                 )
 
-                print("Draw intraday pnl change for date " + date_str)
+                if draw_intraday_pnl:
+                    print("Draw intraday pnl change for date " + date_str)
 
                 # print("intraday_date_df:")
                 # print(intraday_date_df)

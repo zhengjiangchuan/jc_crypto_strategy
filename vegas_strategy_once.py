@@ -78,10 +78,10 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 # Hutong
-#currency_df = currency_df[currency_df['currency'].isin(['EURJPY', 'CHFJPY', 'CADJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['NZDUSD'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF'])]
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCHF', 'AUDJPY', 'CADCHF', 'AUDCAD'])]
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['USDJPY', 'CADJPY', 'EURJPY', 'CADCHF', 'GBPJPY', 'USDCHF'])]
 
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
@@ -427,9 +427,11 @@ if True:
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0802\\forex_innovativeFire2new_clean_entry_second_entry_Improve2"
+    #dest_folder = "C:\\Forex\\new_experiments\\0803\\forex_innovativeFire2new_clean_entry_second_entry_Improve2"
 
-    #dest_folder = "C:\\Forex\\new_experiments\\0802\\forex_innovativeFire2new"
+    #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
+
+    dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_intraday_quickLossDelayed_oldOne"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
@@ -471,11 +473,11 @@ if True:
     sendEmail("Charts sent!", "")
 
 
-# if is_do_portfolio_trading:
-#     print("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
-#     os.system('python plot_pnl_curve.py')
-# else:
-#     print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+if is_do_portfolio_trading:
+    print("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+    os.system('python plot_pnl_curve.py')
+else:
+    print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
 
 print("All finished")
 sys.exit(0)

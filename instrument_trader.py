@@ -150,19 +150,24 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 
-is_intraday_strategy = False
-is_intraday_quick = False
+quick_close_position_for_intraday_strategy = False #Default is false   close all position if partial close signal fired for intraday strategy
+
+is_intraday_strategy = True
+
+is_intraday_quick = False  #Close at hours_close_position_quick if price already enters guppy
 
 min_hour_open_position = 5
 max_hour_open_position = 18 #18
 
-hours_close_position_quick = [15]
+hours_close_position_quick = [16]
 hours_close_position = [23]
 
 
-is_clean_redundant_entry_point = True
+is_clean_redundant_entry_point = False
 
-is_only_allow_second_entry = True
+is_only_allow_second_entry = False
+
+aligned_conditions21_threshold = 5  #5 by default
 
 
 class CurrencyTrader(threading.Thread):
@@ -300,6 +305,9 @@ class CurrencyTrader(threading.Thread):
         data_df_side['position'] = 0.0
         for i in range(data_df_side.shape[0]):
             row = data_df_side.iloc[i]
+
+            cum_delta_position = 0.0
+
             if row['first_final_' + side + '_fire']:
                 if cur_position < max_position:
                     start_position_phase2 = 0
@@ -307,6 +315,7 @@ class CurrencyTrader(threading.Thread):
                     delta_position = round(delta_position, 2)
                     data_df_side.at[i, 'position'] = delta_position
 
+                    cum_delta_position += delta_position
 
                     cur_position += delta_position
                     cur_position = round(cur_position, 2)
@@ -314,11 +323,18 @@ class CurrencyTrader(threading.Thread):
                     # print("time = " + str(row['time']) + " fire")
                     # print("delta_position = " + str(delta_position))
                     # print("cur_position = " + str(cur_position))
-            else:
-                cum_delta_position = 0.0
+
+
+            if (not row['first_final_' + side + '_fire']) or is_intraday_quick:
+                #cum_delta_position = 0.0
                 if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
                     if cur_position > 0:
                         delta_position = -cur_position/3.0
+
+                        #New
+                        if is_intraday_strategy and quick_close_position_for_intraday_strategy and row['show_' + side + '_close_position_vegas']:
+                            delta_position = -cur_position
+
                         delta_position = round(delta_position, 2)
                         cum_delta_position += delta_position
 
@@ -358,6 +374,12 @@ class CurrencyTrader(threading.Thread):
                                 delta_position = -start_position_phase2/2.0
                             else:
                                 delta_position = -start_position_phase2/4.0
+
+                            #New
+                            if is_intraday_strategy and quick_close_position_for_intraday_strategy:
+                                delta_position = -cur_position
+
+
                             delta_position = round(delta_position, 2)
 
                             cum_delta_position += delta_position
@@ -623,7 +645,7 @@ class CurrencyTrader(threading.Thread):
                                             [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[4:]]
             #all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
             aligned_long_conditions2 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[0:3]]
-            aligned_long_conditions21 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate > 5) for guppy_line in guppy_lines[0:3]]
+            aligned_long_conditions21 = aligned_long_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate > aligned_conditions21_threshold) for guppy_line in guppy_lines[0:3]]
             aligned_long_conditions3 = aligned_long_conditions1 + [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
             aligned_long_conditions31 = aligned_long_conditions1 + [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate > 5) for guppy_line in guppy_lines]
             aligned_long_conditions4 = aligned_long_conditions1 + \
@@ -663,7 +685,7 @@ class CurrencyTrader(threading.Thread):
                                             [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[4:]]
             #all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
             aligned_short_conditions2 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[0:3]]
-            aligned_short_conditions21 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate < -5) for guppy_line in guppy_lines[0:3]]
+            aligned_short_conditions21 = aligned_short_conditions1[0:2] + [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate < -aligned_conditions21_threshold) for guppy_line in guppy_lines[0:3]]
             aligned_short_conditions3 = aligned_short_conditions1 + [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
             aligned_short_conditions31 = aligned_short_conditions1 + [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate < -5) for guppy_line in guppy_lines]
             aligned_short_conditions4 = aligned_short_conditions1 + \
@@ -3578,12 +3600,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_new_cond2'] = self.data_df['ma12_up']
                 self.data_df['buy_new_cond3'] = self.data_df['prev_num_ma12_down_for_buy'] > 0
                 self.data_df['buy_new_cond4'] = self.data_df['prev_num_bar_partial_below_ma12_for_buy'] > 0
-                self.data_df['buy_new_cond5'] = self.data_df['prev_num_bars_since_last_buy'] >= 5
+                self.data_df['buy_new_cond5'] = self.data_df['prev_num_bars_since_last_buy'] >= 4 #5
                 self.data_df['buy_new_cond6'] = self.data_df['prev_num_bars_since_last_buy'] <= 48
-                self.data_df['buy_new_cond7'] = (self.data_df['prev_num_bar_above_all_guppy_for_buy'] == 0) | (self.data_df['close'] < self.data_df['prev_buy_price'])
+                self.data_df['buy_new_cond7'] = (self.data_df['prev_num_bar_above_all_guppy_for_buy'] == 0) | (self.data_df['close'] < self.data_df['lowest_guppy']) #'prev_buy_price'
                 self.data_df['buy_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400) | (self.data_df['prev_num_bars_since_last_buy'] <= 24)
                 self.data_df['buy_new_cond9'] = (self.data_df['open'] - self.data_df['prev_buy_open_price'])*self.exchange_rate*self.lot_size < 300
-                self.data_df['buy_new_cond10'] = (self.data_df['close'] < self.data_df['guppy3'])
+                self.data_df['buy_new_cond10'] = (self.data_df['close'] < self.data_df['guppy5']) #'guppy3'
 
                 self.data_df['first_final_buy_fire_new'] = (self.data_df['buy_point_number'] > 0) &\
                     self.data_df['buy_new_cond1'] & self.data_df['buy_new_cond2'] & self.data_df['buy_new_cond3'] & self.data_df['buy_new_cond4'] & self.data_df['buy_new_cond5'] & \
@@ -3601,12 +3623,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_new_cond2'] = self.data_df['ma12_down']
                 self.data_df['sell_new_cond3'] = self.data_df['prev_num_ma12_up_for_sell'] > 0
                 self.data_df['sell_new_cond4'] = self.data_df['prev_num_bar_partial_above_ma12_for_sell'] > 0
-                self.data_df['sell_new_cond5'] = self.data_df['prev_num_bars_since_last_sell'] >= 5
+                self.data_df['sell_new_cond5'] = self.data_df['prev_num_bars_since_last_sell'] >= 4 #5
                 self.data_df['sell_new_cond6'] = self.data_df['prev_num_bars_since_last_sell'] <= 48
-                self.data_df['sell_new_cond7'] = ((self.data_df['prev_num_bar_below_all_guppy_for_sell'] == 0) | (self.data_df['close'] > self.data_df['prev_sell_price']))
+                self.data_df['sell_new_cond7'] = ((self.data_df['prev_num_bar_below_all_guppy_for_sell'] == 0) | (self.data_df['close'] > self.data_df['highest_guppy'])) #'prev_sell_price'
                 self.data_df['sell_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400) | (self.data_df['prev_num_bars_since_last_sell'] <= 24)
                 self.data_df['sell_new_cond9'] = (self.data_df['open'] - self.data_df['prev_sell_open_price'])*self.exchange_rate*self.lot_size > -300
-                self.data_df['sell_new_cond10'] = (self.data_df['close'] > self.data_df['guppy4'])
+                self.data_df['sell_new_cond10'] = (self.data_df['close'] > self.data_df['guppy2']) #'guppy4'
 
                 self.data_df['first_final_sell_fire_new'] = (self.data_df['sell_point_number'] > 0) &\
                     self.data_df['sell_new_cond1'] & self.data_df['sell_new_cond2'] & self.data_df['sell_new_cond3'] & self.data_df['sell_new_cond4'] & self.data_df['sell_new_cond5'] & \
@@ -4529,6 +4551,8 @@ class CurrencyTrader(threading.Thread):
 
                     last_quick_ready = -1
 
+                    quick_ready_number = 0
+
 
                     quick_immediate_stop_loss = False
                     quick_immediate_stop_loss_price = None
@@ -4636,6 +4660,8 @@ class CurrencyTrader(threading.Thread):
                                         last_quick_ready = -1
                                         last_row = None
 
+                                        quick_ready_number = 0
+
                                     quick_immediate_stop_loss = False
                                     quick_immediate_stop_loss_price = None
 
@@ -4650,6 +4676,8 @@ class CurrencyTrader(threading.Thread):
                                     quick_ready_price = (row['close'] + row['open'])/2.0
 
                                     last_quick_ready = i
+
+                                    quick_ready_number = 0
                                     #x.at[x.index[i], selected_quick] = 1
                                     #total_quick += 1
 
@@ -4681,11 +4709,17 @@ class CurrencyTrader(threading.Thread):
                                                 #last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
                                         )):
 
-                                            x.at[x.index[i], selected_quick] = 1
-                                            total_quick += 1
+                                            quick_ready_number += 1
+                                            if quick_ready_number == 2:
 
-                                            quick_ready = False
-                                            last_quick_ready = -1
+                                                x.at[x.index[i], selected_quick] = 1
+                                                total_quick += 1
+
+                                                quick_ready = False
+                                                last_quick_ready = -1
+
+                                                quick_ready_number = 0
+
 
                                         if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
                                             quick_immediate_stop_loss = True
@@ -4797,7 +4831,7 @@ class CurrencyTrader(threading.Thread):
                                     # print("")
 
                                     #if current_pnl > 100:
-                                    if is_more_aggressive(row[close], row[most_aggressive_guppy], side):
+                                    if is_more_aggressive(row[close], row[most_passive_guppy], side):  #most_aggressive_guppy
                                         #print("Passed current_pnl test")
                                         x.at[x.index[i], selected_fixed_time] = row[quick_fixed_time]
                                         if row[quick_fixed_time] == 1:
