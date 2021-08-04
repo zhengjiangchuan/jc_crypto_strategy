@@ -431,7 +431,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_intraday_quickLossDelayed_oldOne"
+    dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_intraday_quickLossDelayed_oldOne_closeAt12am"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 

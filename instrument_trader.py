@@ -160,7 +160,7 @@ min_hour_open_position = 5
 max_hour_open_position = 18 #18
 
 hours_close_position_quick = [16]
-hours_close_position = [23]
+hours_close_position = [0] #23
 
 
 is_clean_redundant_entry_point = False
