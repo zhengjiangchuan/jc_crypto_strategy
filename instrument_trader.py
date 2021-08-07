@@ -152,7 +152,7 @@ possition_factor = 0.1
 
 quick_close_position_for_intraday_strategy = False #Default is false   close all position if partial close signal fired for intraday strategy
 
-is_intraday_strategy = True
+is_intraday_strategy = False
 
 is_intraday_quick = False  #Close at hours_close_position_quick if price already enters guppy
 
@@ -163,9 +163,9 @@ hours_close_position_quick = [16]
 hours_close_position = [0] #23
 
 
-is_clean_redundant_entry_point = False
+is_clean_redundant_entry_point = True
 
-is_only_allow_second_entry = False
+is_only_allow_second_entry = True
 
 aligned_conditions21_threshold = 5  #5 by default
 
@@ -3376,28 +3376,28 @@ class CurrencyTrader(threading.Thread):
 
 
             if is_only_allow_second_entry:
-                # self.data_df['buy_point'] = np.where(
-                #     (self.data_df['first_final_buy_fire'] | self.data_df['first_final_buy_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
-                #     1,
-                #     0
-                # )
-                # self.data_df['sell_point'] = np.where(
-                #     (self.data_df['first_final_sell_fire'] | self.data_df['first_final_sell_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
-                #     1,
-                #     0
-                # )
-
-
                 self.data_df['buy_point'] = np.where(
-                    (self.data_df['first_final_buy_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
+                    (self.data_df['first_final_buy_fire'] | self.data_df['first_final_buy_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
                     1,
                     0
                 )
                 self.data_df['sell_point'] = np.where(
-                    (self.data_df['first_final_sell_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
+                    (self.data_df['first_final_sell_fire'] | self.data_df['first_final_sell_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
                     1,
                     0
                 )
+
+
+                # self.data_df['buy_point'] = np.where(
+                #     (self.data_df['first_final_buy_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
+                #     1,
+                #     0
+                # )
+                # self.data_df['sell_point'] = np.where(
+                #     (self.data_df['first_final_sell_fire']) & (~(self.data_df['sell_real_fire2'] & (~self.data_df['sell_real_fire3']))),
+                #     1,
+                #     0
+                # )
 
 
                 self.data_df['buy_point_backup'] = self.data_df['buy_point']
@@ -3603,7 +3603,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_new_cond5'] = self.data_df['prev_num_bars_since_last_buy'] >= 4 #5
                 self.data_df['buy_new_cond6'] = self.data_df['prev_num_bars_since_last_buy'] <= 48
                 self.data_df['buy_new_cond7'] = (self.data_df['prev_num_bar_above_all_guppy_for_buy'] == 0) | (self.data_df['close'] < self.data_df['lowest_guppy']) #'prev_buy_price'
-                self.data_df['buy_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400) | (self.data_df['prev_num_bars_since_last_buy'] <= 24)
+                self.data_df['buy_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400) | (self.data_df['prev_num_bars_since_last_buy'] <= 30) #24
                 self.data_df['buy_new_cond9'] = (self.data_df['open'] - self.data_df['prev_buy_open_price'])*self.exchange_rate*self.lot_size < 300
                 self.data_df['buy_new_cond10'] = (self.data_df['close'] < self.data_df['guppy5']) #'guppy3'
 
@@ -3626,7 +3626,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_new_cond5'] = self.data_df['prev_num_bars_since_last_sell'] >= 4 #5
                 self.data_df['sell_new_cond6'] = self.data_df['prev_num_bars_since_last_sell'] <= 48
                 self.data_df['sell_new_cond7'] = ((self.data_df['prev_num_bar_below_all_guppy_for_sell'] == 0) | (self.data_df['close'] > self.data_df['highest_guppy'])) #'prev_sell_price'
-                self.data_df['sell_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400) | (self.data_df['prev_num_bars_since_last_sell'] <= 24)
+                self.data_df['sell_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400) | (self.data_df['prev_num_bars_since_last_sell'] <= 30) #24
                 self.data_df['sell_new_cond9'] = (self.data_df['open'] - self.data_df['prev_sell_open_price'])*self.exchange_rate*self.lot_size > -300
                 self.data_df['sell_new_cond10'] = (self.data_df['close'] > self.data_df['guppy2']) #'guppy4'
 

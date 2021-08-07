@@ -95,7 +95,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0804', 'pnl_summary_spread15_innovativeFire2new_portfolio_correct_positioning_exposure6_maxPnl_25000_intraday_quickLossDelayed_oldOne_closeAt12am')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0806', 'pnl_summary_spread15_innovativeFire2new_correct_positioning_exposure12_maxPnl_25000_quickLossDelayed_oldOne_final')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -121,7 +121,7 @@ draw_intraday_pnl = False
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = True
+is_portfolio = False
 
 plot_hk_pnl = True
 initial_deposit_hk = 25000   #31000
@@ -134,7 +134,7 @@ total_cum_positions = []
 total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 6 #6
+    max_exposure = 12 #6
     initial_principal_magnifier = 6.435 #8
 
 
@@ -864,8 +864,12 @@ for i in range(meta_df.shape[0] + 1):
     if i <= meta_df.shape[0]:
         data_df['date'] = pd.DatetimeIndex(data_df['time']).normalize()
 
-        data_df['date'] = data_df['date'].shift(1)
-        data_df.at[0, 'date'] = data_df.iloc[1]['date']
+        data_df['date'] = data_df['date'].shift(2)
+        data_df.at[0, 'date'] = data_df.iloc[2]['date']
+        data_df.at[1, 'date'] = data_df.iloc[2]['date']
+        #
+        # data_df['date'] = data_df['date'].shift(1)
+        # data_df.at[0, 'date'] = data_df.iloc[1]['date']
 
         data_df['prev_acc_pnl'] = data_df['acc_pnl'].shift(1)
 
@@ -1002,8 +1006,9 @@ for i in range(meta_df.shape[0] + 1):
         intraday_max_pnl_df_summary.to_csv(max_pnl_file, index = False)
 
 
-        final_pnl_file = os.path.join(pnl_folder, 'portfolio_daily_final_pnl.csv')
-        intraday_pnl_df_summary[['date', 'intraday_min_pnl_hk', 'intraday_max_pnl_hk', 'intraday_final_pnl_hk']].to_csv(final_pnl_file, index = False)
+        if i == meta_df.shape[0]:
+            final_pnl_file = os.path.join(pnl_folder, 'portfolio_daily_final_pnl.csv')
+            intraday_pnl_df_summary[['date', 'intraday_min_pnl_hk', 'intraday_max_pnl_hk', 'intraday_final_pnl_hk']].to_csv(final_pnl_file, index = False)
 
         merged_intraday_pnl_summary = merged_intraday_pnl_summary.sort_values(by = ['date'])
 

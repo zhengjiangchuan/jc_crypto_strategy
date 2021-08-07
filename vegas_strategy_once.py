@@ -53,7 +53,7 @@ print("Child process starts")
 
 is_gege_server = False
 
-is_do_portfolio_trading = True
+is_do_portfolio_trading = False
 
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'CADCHF', 'EURCAD', 'EURGBP', 'EURJPY', 'GBPUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
 
 
 # print("currency_df:")
@@ -431,7 +431,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_intraday_quickLossDelayed_oldOne_closeAt12am"
+    dest_folder = "C:\\Forex\\new_experiments\\0806\\forex_innovativeFire2new_quickLossDelayed_oldOne_final_secondEntry_excessive"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
