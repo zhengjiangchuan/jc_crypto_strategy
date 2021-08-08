@@ -3376,28 +3376,28 @@ class CurrencyTrader(threading.Thread):
 
 
             if is_only_allow_second_entry:
-                self.data_df['buy_point'] = np.where(
-                    (self.data_df['first_final_buy_fire'] | self.data_df['first_final_buy_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
-                    1,
-                    0
-                )
-                self.data_df['sell_point'] = np.where(
-                    (self.data_df['first_final_sell_fire'] | self.data_df['first_final_sell_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
-                    1,
-                    0
-                )
-
-
                 # self.data_df['buy_point'] = np.where(
-                #     (self.data_df['first_final_buy_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
+                #     (self.data_df['first_final_buy_fire'] | self.data_df['first_final_buy_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
                 #     1,
                 #     0
                 # )
                 # self.data_df['sell_point'] = np.where(
-                #     (self.data_df['first_final_sell_fire']) & (~(self.data_df['sell_real_fire2'] & (~self.data_df['sell_real_fire3']))),
+                #     (self.data_df['first_final_sell_fire'] | self.data_df['first_final_sell_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
                 #     1,
                 #     0
                 # )
+
+
+                self.data_df['buy_point'] = np.where(
+                    (self.data_df['first_final_buy_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
+                    1,
+                    0
+                )
+                self.data_df['sell_point'] = np.where(
+                    (self.data_df['first_final_sell_fire']) & (~(self.data_df['sell_real_fire2'] & (~self.data_df['sell_real_fire3']))),
+                    1,
+                    0
+                )
 
 
                 self.data_df['buy_point_backup'] = self.data_df['buy_point']
@@ -3415,6 +3415,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['bar_above_all_guppy'] = (self.data_df['max_price'] > self.data_df['highest_guppy']) & self.data_df['is_positive']
                 self.data_df['bar_below_all_guppy'] = (self.data_df['min_price'] < self.data_df['lowest_guppy']) & self.data_df['is_negative']
 
+                self.data_df['bar_above_vegas'] = (self.data_df['max_price'] > self.data_df['upper_vegas'])
+                self.data_df['bar_below_vegas'] = (self.data_df['min_price'] < self.data_df['lower_vegas'])
+
 
                 self.data_df['cum_ma12_up'] = self.data_df['ma12_up'].cumsum()
                 self.data_df['cum_ma12_down'] = self.data_df['ma12_down'].cumsum()
@@ -3424,6 +3427,9 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['cum_bar_above_all_guppy'] = self.data_df['bar_above_all_guppy'].cumsum()
                 self.data_df['cum_bar_below_all_guppy'] = self.data_df['bar_below_all_guppy'].cumsum()
+
+                self.data_df['cum_bar_above_vegas'] = self.data_df['bar_above_vegas'].cumsum()
+                self.data_df['cum_bar_below_vegas'] = self.data_df['bar_below_vegas'].cumsum()
 
 
                 self.data_df['prev_cum_ma12_up'] = self.data_df['cum_ma12_up'].shift(1)
@@ -3435,8 +3441,12 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['prev_cum_bar_above_all_guppy'] = self.data_df['cum_bar_above_all_guppy'].shift(1)
                 self.data_df['prev_cum_bar_below_all_guppy'] = self.data_df['cum_bar_below_all_guppy'].shift(1)
 
+                self.data_df['prev_cum_bar_above_vegas'] = self.data_df['cum_bar_above_vegas'].shift(1)
+                self.data_df['prev_cum_bar_below_vegas'] = self.data_df['cum_bar_below_vegas'].shift(1)
+
+
                 for cum_col in ['prev_cum_ma12_up', 'prev_cum_ma12_down', 'prev_cum_bar_partial_below_ma12', 'prev_cum_bar_partial_above_ma12',
-                                'prev_cum_bar_above_all_guppy', 'prev_cum_bar_below_all_guppy']:
+                                'prev_cum_bar_above_all_guppy', 'prev_cum_bar_below_all_guppy', 'prev_cum_bar_above_vegas', 'prev_cum_bar_below_vegas']:
                     self.data_df.at[0, cum_col] = 0
                     self.data_df[cum_col] = self.data_df[cum_col].astype(int)
 
@@ -3447,7 +3457,9 @@ class CurrencyTrader(threading.Thread):
                                                'cum_bar_partial_below_ma12', 'cum_bar_partial_above_ma12',
                                                'prev_cum_bar_partial_below_ma12', 'prev_cum_bar_partial_above_ma12',
                                                'cum_bar_above_all_guppy', 'cum_bar_below_all_guppy',
-                                               'prev_cum_bar_above_all_guppy', 'prev_cum_bar_below_all_guppy'
+                                               'cum_bar_above_vegas', 'cum_bar_below_vegas',
+                                               'prev_cum_bar_above_all_guppy', 'prev_cum_bar_below_all_guppy',
+                                               'prev_cum_bar_above_vegas', 'prev_cum_bar_below_vegas'
                                                ]]
 
 
@@ -3486,6 +3498,19 @@ class CurrencyTrader(threading.Thread):
                     temp_adjust_df['prev_cum_bar_below_all_guppy'],
                     np.nan
                 )
+
+                temp_adjust_df['prev_cum_bar_above_vegas_for_buy'] = np.where(
+                    temp_adjust_df['buy_point'] == 1,
+                    temp_adjust_df['prev_cum_bar_above_vegas'],
+                    np.nan
+                )
+
+                temp_adjust_df['prev_cum_bar_below_vegas_for_sell'] = np.where(
+                    temp_adjust_df['sell_point'] == 1,
+                    temp_adjust_df['prev_cum_bar_below_vegas'],
+                    np.nan
+                )
+
 
 
 
@@ -3536,6 +3561,9 @@ class CurrencyTrader(threading.Thread):
                 temp_adjust_df['num_bar_above_all_guppy_for_buy'] = temp_adjust_df['cum_bar_above_all_guppy'] - temp_adjust_df['prev_cum_bar_above_all_guppy_for_buy']
                 temp_adjust_df['num_bar_below_all_guppy_for_sell'] = temp_adjust_df['cum_bar_below_all_guppy'] - temp_adjust_df['prev_cum_bar_below_all_guppy_for_sell']
 
+                temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
+                temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
+
 
 
 
@@ -3553,6 +3581,9 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['num_bar_above_all_guppy_for_buy'] = temp_adjust_df['num_bar_above_all_guppy_for_buy']
                 self.data_df['num_bar_below_all_guppy_for_sell'] = temp_adjust_df['num_bar_below_all_guppy_for_sell']
 
+                self.data_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['num_bar_above_vegas_for_buy']
+                self.data_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['num_bar_below_vegas_for_sell']
+
 
                 self.data_df['prev_num_ma12_down_for_buy'] = self.data_df['num_ma12_down_for_buy'].shift(1)
                 self.data_df['prev_num_ma12_up_for_sell'] = self.data_df['num_ma12_up_for_sell'].shift(1)
@@ -3562,6 +3593,11 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['prev_num_bar_above_all_guppy_for_buy'] = self.data_df['num_bar_above_all_guppy_for_buy'].shift(1)
                 self.data_df['prev_num_bar_below_all_guppy_for_sell'] = self.data_df['num_bar_below_all_guppy_for_sell'].shift(1)
+
+
+                self.data_df['prev_num_bar_above_vegas_for_buy'] = self.data_df['num_bar_above_vegas_for_buy'].shift(1)
+                self.data_df['prev_num_bar_below_vegas_for_sell'] = self.data_df['num_bar_below_vegas_for_sell'].shift(1)
+
 
 
 
@@ -3602,14 +3638,17 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_new_cond4'] = self.data_df['prev_num_bar_partial_below_ma12_for_buy'] > 0
                 self.data_df['buy_new_cond5'] = self.data_df['prev_num_bars_since_last_buy'] >= 4 #5
                 self.data_df['buy_new_cond6'] = self.data_df['prev_num_bars_since_last_buy'] <= 48
-                self.data_df['buy_new_cond7'] = (self.data_df['prev_num_bar_above_all_guppy_for_buy'] == 0) | (self.data_df['close'] < self.data_df['lowest_guppy']) #'prev_buy_price'
+                self.data_df['buy_new_cond7'] = (self.data_df['prev_num_bar_above_all_guppy_for_buy'] < 2) | \
+                                                ((self.data_df['close'] < self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy'] == 0)) #'prev_buy_price'  ‘==0’  'lowest_guppy'
                 self.data_df['buy_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400) | (self.data_df['prev_num_bars_since_last_buy'] <= 30) #24
                 self.data_df['buy_new_cond9'] = (self.data_df['open'] - self.data_df['prev_buy_open_price'])*self.exchange_rate*self.lot_size < 300
-                self.data_df['buy_new_cond10'] = (self.data_df['close'] < self.data_df['guppy5']) #'guppy3'
+                self.data_df['buy_new_cond10'] = True #(self.data_df['close'] < self.data_df['guppy6']) #'guppy3'  'guppy6'
+                self.data_df['buy_new_cond11'] = (self.data_df['ma_close12'] < self.data_df['lower_vegas']) & (self.data_df['close'] < self.data_df['lower_vegas'])
 
                 self.data_df['first_final_buy_fire_new'] = (self.data_df['buy_point_number'] > 0) &\
                     self.data_df['buy_new_cond1'] & self.data_df['buy_new_cond2'] & self.data_df['buy_new_cond3'] & self.data_df['buy_new_cond4'] & self.data_df['buy_new_cond5'] & \
-                    self.data_df['buy_new_cond6'] & self.data_df['buy_new_cond7'] & self.data_df['buy_new_cond8'] & self.data_df['buy_new_cond9'] & self.data_df['buy_new_cond10']
+                    self.data_df['buy_new_cond6'] & self.data_df['buy_new_cond7'] & self.data_df['buy_new_cond8'] & self.data_df['buy_new_cond9'] & self.data_df['buy_new_cond10'] & \
+                    self.data_df['buy_new_cond11']
 
 
                 # self.data_df['first_final_sell_fire_new'] = (self.data_df['sell_point_number'] > 0) & self.data_df['bar_cross_down_m12'] & self.data_df['ma12_down'] &\
@@ -3625,15 +3664,17 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_new_cond4'] = self.data_df['prev_num_bar_partial_above_ma12_for_sell'] > 0
                 self.data_df['sell_new_cond5'] = self.data_df['prev_num_bars_since_last_sell'] >= 4 #5
                 self.data_df['sell_new_cond6'] = self.data_df['prev_num_bars_since_last_sell'] <= 48
-                self.data_df['sell_new_cond7'] = ((self.data_df['prev_num_bar_below_all_guppy_for_sell'] == 0) | (self.data_df['close'] > self.data_df['highest_guppy'])) #'prev_sell_price'
+                self.data_df['sell_new_cond7'] = (self.data_df['prev_num_bar_below_all_guppy_for_sell'] < 2) | \
+                                                  ((self.data_df['close'] > self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell'] == 0)) #'prev_sell_price' 'highest_guppy'
                 self.data_df['sell_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400) | (self.data_df['prev_num_bars_since_last_sell'] <= 30) #24
                 self.data_df['sell_new_cond9'] = (self.data_df['open'] - self.data_df['prev_sell_open_price'])*self.exchange_rate*self.lot_size > -300
-                self.data_df['sell_new_cond10'] = (self.data_df['close'] > self.data_df['guppy2']) #'guppy4'
+                self.data_df['sell_new_cond10'] = True #(self.data_df['close'] > self.data_df['guppy1']) #'guppy4' 'guppy2'
+                self.data_df['sell_new_cond11'] = (self.data_df['ma_close12'] > self.data_df['upper_vegas']) & (self.data_df['close'] > self.data_df['upper_vegas'])
 
                 self.data_df['first_final_sell_fire_new'] = (self.data_df['sell_point_number'] > 0) &\
                     self.data_df['sell_new_cond1'] & self.data_df['sell_new_cond2'] & self.data_df['sell_new_cond3'] & self.data_df['sell_new_cond4'] & self.data_df['sell_new_cond5'] & \
-                    self.data_df['sell_new_cond6'] & self.data_df['sell_new_cond7'] & self.data_df['sell_new_cond8'] & self.data_df['sell_new_cond9'] & self.data_df['sell_new_cond10']
-
+                    self.data_df['sell_new_cond6'] & self.data_df['sell_new_cond7'] & self.data_df['sell_new_cond8'] & self.data_df['sell_new_cond9'] & self.data_df['sell_new_cond10'] & \
+                    self.data_df['sell_new_cond11']
 
 #########################################################################################################################################
 
