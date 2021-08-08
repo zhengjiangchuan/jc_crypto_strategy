@@ -2124,7 +2124,7 @@ class CurrencyTrader(threading.Thread):
                              (self.data_df['close'] < self.data_df['ma_close12']) #& \
                              #(self.data_df['close'] > self.data_df['second_lowest_guppy'])
                              #(self.data_df['prev_high'] > self.data_df['ma_close12'])
-            sell_good_cond3 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate < 0)
+            sell_good_cond3 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate <= 0)
             sell_good_cond4 = (self.data_df['close'] > self.data_df['upper_vegas'])
             #sell_good_cond5 = (self.data_df['price_to_lower_vegas']/self.data_df['price_to_period_high']) >= 0.7
 
@@ -2361,7 +2361,7 @@ class CurrencyTrader(threading.Thread):
                              (self.data_df['close'] > self.data_df['ma_close12']) #& \
                              #(self.data_df['close'] < self.data_df['second_highest_guppy'])
                              #(self.data_df['prev_low'] < self.data_df['ma_close12'])
-            buy_good_cond3 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate > 0)
+            buy_good_cond3 = (self.data_df['ma12_gradient'] * self.lot_size * self.exchange_rate >= 0)
             buy_good_cond4 = (self.data_df['close'] < self.data_df['lower_vegas'])
             #buy_good_cond5 = (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= 0.7
 
@@ -3374,7 +3374,6 @@ class CurrencyTrader(threading.Thread):
 
 
 
-
             if is_only_allow_second_entry:
                 # self.data_df['buy_point'] = np.where(
                 #     (self.data_df['first_final_buy_fire'] | self.data_df['first_final_buy_fire_exclude']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
@@ -3646,7 +3645,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_buy_price'])*self.exchange_rate*self.lot_size > -400) | (self.data_df['prev_num_bars_since_last_buy'] <= 30) #24
                 self.data_df['buy_new_cond9'] = (self.data_df['open'] - self.data_df['prev_buy_open_price'])*self.exchange_rate*self.lot_size < 300
                 self.data_df['buy_new_cond10'] = True #(self.data_df['close'] < self.data_df['guppy6']) #'guppy3'  'guppy6'
-                self.data_df['buy_new_cond11'] = (self.data_df['ma_close12'] < self.data_df['lower_vegas']) & (self.data_df['close'] < self.data_df['lower_vegas'])
+                self.data_df['buy_new_cond11'] = (self.data_df['ma_close12'] < self.data_df['lower_vegas']) &\
+                                                 ((self.data_df['close'] < self.data_df['lower_vegas']) | (self.data_df['open'] < self.data_df['lowest_guppy']))
 
                 self.data_df['first_final_buy_fire_new'] = (self.data_df['buy_point_number'] > 0) &\
                     self.data_df['buy_new_cond1'] & self.data_df['buy_new_cond2'] & self.data_df['buy_new_cond3'] & self.data_df['buy_new_cond4'] & self.data_df['buy_new_cond5'] & \
@@ -3675,7 +3675,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_new_cond8'] = ((self.data_df['close'] - self.data_df['prev_sell_price'])*self.exchange_rate*self.lot_size < 400) | (self.data_df['prev_num_bars_since_last_sell'] <= 30) #24
                 self.data_df['sell_new_cond9'] = (self.data_df['open'] - self.data_df['prev_sell_open_price'])*self.exchange_rate*self.lot_size > -300
                 self.data_df['sell_new_cond10'] = True #(self.data_df['close'] > self.data_df['guppy1']) #'guppy4' 'guppy2'
-                self.data_df['sell_new_cond11'] = (self.data_df['ma_close12'] > self.data_df['upper_vegas']) & (self.data_df['close'] > self.data_df['upper_vegas'])
+                self.data_df['sell_new_cond11'] = (self.data_df['ma_close12'] > self.data_df['upper_vegas']) &\
+                                                  ((self.data_df['close'] > self.data_df['upper_vegas']) | (self.data_df['open'] > self.data_df['highest_guppy']))
 
                 self.data_df['first_final_sell_fire_new'] = (self.data_df['sell_point_number'] > 0) &\
                     self.data_df['sell_new_cond1'] & self.data_df['sell_new_cond2'] & self.data_df['sell_new_cond3'] & self.data_df['sell_new_cond4'] & self.data_df['sell_new_cond5'] & \
