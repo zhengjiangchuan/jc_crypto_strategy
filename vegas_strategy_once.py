@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['NZDUSD'])]
 
 
 # print("currency_df:")
@@ -431,7 +431,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0806\\forex_innovativeFire2new_quickLossDelayed_oldOne_final_secondEntry_conservative_improve3"
+    dest_folder = "C:\\Forex\\new_experiments\\0806\\forex_innovativeFire2new_quickLossDelayed_oldOne_final_secondEntry_conservative_improve4"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
