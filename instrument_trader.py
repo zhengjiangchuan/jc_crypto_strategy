@@ -3406,8 +3406,8 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['bar_cross_up_m12'] = self.data_df['is_positive'] & (self.data_df['close'] > self.data_df['ma_close12'])
                 self.data_df['bar_cross_down_m12'] = self.data_df['is_negative'] & (self.data_df['close'] < self.data_df['ma_close12'])
 
-                self.data_df['ma12_up'] = self.data_df['ma12_gradient'] * self.exchange_rate * self.lot_size > 0
-                self.data_df['ma12_down'] = self.data_df['ma12_gradient'] * self.exchange_rate * self.lot_size < 0
+                self.data_df['ma12_up'] = self.data_df['ma12_gradient'] * self.exchange_rate * self.lot_size >= 0
+                self.data_df['ma12_down'] = self.data_df['ma12_gradient'] * self.exchange_rate * self.lot_size <= 0
 
                 self.data_df['bar_partial_below_ma12'] = self.data_df['max_price'] < self.data_df['ma_close12']  #middle
                 self.data_df['bar_partial_above_ma12'] = self.data_df['min_price'] > self.data_df['ma_close12']  #middle
