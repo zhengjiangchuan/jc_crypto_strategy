@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['GBPCHF'])]
+currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
 
 
 # print("currency_df:")
@@ -303,7 +303,7 @@ if is_do_trading:
 
                     if os.path.exists(currency_file100) and os.path.exists(currency_file200):
                         data_df100 = pd.read_csv(currency_file100)
-                        #data_df100 = data_df100.iloc[0:-4]
+                        data_df100 = data_df100.iloc[0:-4]
 
                         data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
 
@@ -317,6 +317,11 @@ if is_do_trading:
 
                         #print("Initial column number = " + str(len(data_df.columns)))
                         data_df = data_df100[['currency', 'time', 'open', 'high', 'low', 'close']]
+
+                        # print("Fuck data_df:")
+                        # print(data_df.tail(3))
+                        #sys.exit(0)
+
                     else:
                         data_df = pd.read_csv(currency_file)
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
@@ -362,6 +367,10 @@ if is_do_trading:
 
                         data_df.reset_index(inplace=True)
                         data_df = data_df.drop(columns=['index'])
+
+                        print("Fuck data_df:")
+                        print(data_df.tail(3))
+                        #sys.exit(0)
 
                         # print("data_df:")
                         # print("Correct column number = " + str(len(data_df.columns)))
@@ -420,7 +429,7 @@ if is_do_trading:
 
     print("Finished trading *********************************")
 
-if True:
+if False:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
@@ -431,7 +440,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0806\\forex_innovativeFire2new_quickLossDelayed_oldOne_final_secondEntry_conservative_improve5"
+    dest_folder = "C:\\Forex\\new_experiments\\0815\\forex_innovativeFire2new_quickLossDelayed"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 

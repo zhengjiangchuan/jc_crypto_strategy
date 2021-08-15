@@ -3009,6 +3009,7 @@ class CurrencyTrader(threading.Thread):
                 self.calculate_signals(high_low_window)
 
 
+
                 if self.is_cut_data and high_low_window == 200:
 
                     increment_data_df = self.data_df[self.data_df['time'] > data_df_backup.iloc[-1]['time']]
@@ -3646,7 +3647,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_new_cond9'] = (self.data_df['open'] - self.data_df['prev_buy_open_price'])*self.exchange_rate*self.lot_size < 300
                 self.data_df['buy_new_cond10'] = True #(self.data_df['close'] < self.data_df['guppy6']) #'guppy3'  'guppy6'
                 self.data_df['buy_new_cond11'] = (self.data_df['ma_close12'] < self.data_df['lower_vegas']) &\
-                                                 ((self.data_df['close'] < self.data_df['lower_vegas']) | (self.data_df['open'] < self.data_df['lowest_guppy']))
+                                                 ((self.data_df['close'] < self.data_df['lower_vegas'])) # | (self.data_df['open'] < self.data_df['lowest_guppy']))
 
                 self.data_df['first_final_buy_fire_new'] = (self.data_df['buy_point_number'] > 0) &\
                     self.data_df['buy_new_cond1'] & self.data_df['buy_new_cond2'] & self.data_df['buy_new_cond3'] & self.data_df['buy_new_cond4'] & self.data_df['buy_new_cond5'] & \
@@ -3676,7 +3677,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_new_cond9'] = (self.data_df['open'] - self.data_df['prev_sell_open_price'])*self.exchange_rate*self.lot_size > -300
                 self.data_df['sell_new_cond10'] = True #(self.data_df['close'] > self.data_df['guppy1']) #'guppy4' 'guppy2'
                 self.data_df['sell_new_cond11'] = (self.data_df['ma_close12'] > self.data_df['upper_vegas']) &\
-                                                  ((self.data_df['close'] > self.data_df['upper_vegas']) | (self.data_df['open'] > self.data_df['highest_guppy']))
+                                                  ((self.data_df['close'] > self.data_df['upper_vegas'])) # | (self.data_df['open'] > self.data_df['highest_guppy']))
 
                 self.data_df['first_final_sell_fire_new'] = (self.data_df['sell_point_number'] > 0) &\
                     self.data_df['sell_new_cond1'] & self.data_df['sell_new_cond2'] & self.data_df['sell_new_cond3'] & self.data_df['sell_new_cond4'] & self.data_df['sell_new_cond5'] & \
@@ -5623,8 +5624,18 @@ class CurrencyTrader(threading.Thread):
 
 
             print("to csv:")
+
+            #self.data_df['time_correct'] = self.data_df['time'].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+
+            # print("Debug data_df here:")
+            # print(self.data_df[['time', 'open', 'high', 'low', 'close']].tail(3))
+            #print("Time type: " + str(type(self.data_df.iloc[-1]['time'])))
+
+            #self.data_df.tail(3).to_csv(os.path.join(self.data_folder, self.currency + str(100) + ".temp.csv"), index=False)
+
             self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + ".csv"), index=False)
             print("after to csv:")
+            #sys.exit(0)
 
 
 

@@ -230,6 +230,9 @@ def preprocess_time(t):
     if t[0] == "\'":
         t = t[1:]
 
+    if len(t) < 19:
+        t = t + ' 00:00:00'
+
     return datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
 
 def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,

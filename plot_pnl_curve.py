@@ -56,6 +56,9 @@ def preprocess_time(t):
     if t[0] == "\'":
         t = t[1:]
 
+    if len(t) < 19:
+        t = t + ' 00:00:00'
+
     return datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
 
 is_subtract_commission = True
@@ -83,8 +86,8 @@ else:
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
-meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
+# meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+#                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
 #meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
@@ -95,7 +98,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0806', 'pnl_summary_spread15_innovativeFire2new_correct_positioning_exposure12_maxPnl_25000_quickLossDelayed_oldOne_final')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0815', 'pnl_summary_spread15_innovativeFire2new_correct_positioning_exposure12_maxPnl_25000_quickLossDelayed')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
