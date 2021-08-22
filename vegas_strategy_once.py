@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CHFJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['GBPJPY'])]
 
 
 # print("currency_df:")
@@ -303,12 +303,12 @@ if is_do_trading:
 
                     if os.path.exists(currency_file100) and os.path.exists(currency_file200):
                         data_df100 = pd.read_csv(currency_file100)
-                        data_df100 = data_df100.iloc[0:-4]
+                        #data_df100 = data_df100.iloc[0:-20]
 
                         data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
 
                         data_df200 = pd.read_csv(currency_file200)
-                        #data_df200 = data_df200.iloc[0:-4]
+                        #data_df200 = data_df200.iloc[0:-20]
 
                         data_df200['time'] = data_df200['time'].apply(lambda x: preprocess_time(x))
 
@@ -440,7 +440,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0815\\forex_innovativeFire2new_quickLossDelayed_reentry_improve"
+    dest_folder = "C:\\Forex\\new_experiments\\0822\\forex_innovativeFire2new_quickLossDelayed_reentry_activate"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 

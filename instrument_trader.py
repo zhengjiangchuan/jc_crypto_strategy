@@ -164,8 +164,9 @@ hours_close_position = [0] #23
 
 
 is_clean_redundant_entry_point = True
-
 is_only_allow_second_entry = True
+
+is_activate_second_entry_trading = True
 
 aligned_conditions21_threshold = 5  #5 by default
 
@@ -3684,6 +3685,21 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['sell_new_cond6'] & self.data_df['sell_new_cond7'] & self.data_df['sell_new_cond8'] & self.data_df['sell_new_cond9'] & self.data_df['sell_new_cond10'] & \
                     self.data_df['sell_new_cond11']
 
+
+
+
+                #######################################
+                #Martin
+                if is_activate_second_entry_trading:
+                    self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire_new']
+                    self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire_new']
+
+                    self.data_df = self.data_df.drop(columns = ['first_final_buy_fire_new', 'first_final_sell_fire_new'])
+
+                #######################################
+
+
+
 #########################################################################################################################################
 
 
@@ -4129,14 +4145,23 @@ class CurrencyTrader(threading.Thread):
 
 
                 #Singapore
+
                 self.data_df['buy_close_position_final_excessive1'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -150
                 self.data_df['sell_close_position_final_excessive1'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 150
+
+                if is_activate_second_entry_trading:
+                    self.data_df['buy_close_position_final_excessive1'] = False
+                    self.data_df['sell_close_position_final_excessive1'] = False
 
                 self.data_df['buy_close_position_final_excessive2'] = (self.data_df['close'] - self.data_df['buy_point_support'])*self.lot_size*self.exchange_rate < -10
                 self.data_df['sell_close_position_final_excessive2'] = (self.data_df['close'] - self.data_df['sell_point_support'])*self.lot_size*self.exchange_rate > 10
 
                 self.data_df['buy_close_position_final_excessive_strict'] = (self.data_df['close'] - self.data_df['group_min_price'])*self.lot_size*self.exchange_rate < -600
                 self.data_df['sell_close_position_final_excessive_strict'] = (self.data_df['close'] - self.data_df['group_max_price'])*self.lot_size*self.exchange_rate > 600
+
+                if is_activate_second_entry_trading:
+                    self.data_df['buy_close_position_final_excessive_strict'] = False
+                    self.data_df['sell_close_position_final_excessive_strict'] = False
 
 
                 self.data_df['buy_close_position_final_conservative'] = (self.data_df['close'] - self.data_df['buy_point_support'])*self.lot_size*self.exchange_rate < -300

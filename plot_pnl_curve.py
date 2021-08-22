@@ -86,8 +86,8 @@ else:
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
-# meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
-#                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
+meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
+                                                        'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
 #meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
@@ -98,7 +98,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0815', 'pnl_summary_spread15_innovativeFire2new_correct_positioning_exposure12_maxPnl_25000_quickLossDelayed')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0822', 'pnl_summary_spread15_innovativeFire2new_portfolio_maxExposure12_maxPnl_25000_quickLossDelayed')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -124,7 +124,7 @@ draw_intraday_pnl = False
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = False
+is_portfolio = True
 
 plot_hk_pnl = True
 initial_deposit_hk = 25000   #31000
@@ -1026,24 +1026,27 @@ for i in range(meta_df.shape[0] + 1):
 
 
         simple_data_df = data_df[['time', 'date',  'cum_position', 'intraday_acc_pnl_hk']]
-        simple_data_df['cum_position_hk'] = simple_data_df['cum_position'] * lot_per_unit
+        simple_data_df['cum_position_hk_calc'] = simple_data_df['cum_position'] * lot_per_unit
 
-        simple_data_df['cum_position_hk'] = simple_data_df['cum_position_hk'].apply(lambda x : round(x, 2))
+        simple_data_df['cum_position_hk_calc'] = simple_data_df['cum_position_hk_calc'].apply(lambda x : round(x, 2))
 
         simple_data_df = simple_data_df.drop(columns = ['cum_position'])
 
-        if i == meta_df.shape[0]:
-            simple_data_df['intraday_acc_pnl_per_position_hk'] = np.where(
-                np.abs(simple_data_df['cum_position_hk']) < 1e-5,
-                0,
-                simple_data_df['intraday_acc_pnl_hk'] / (simple_data_df['cum_position_hk']/lot_per_unit)
-            )
+        # if i == meta_df.shape[0]:
+        #     simple_data_df['intraday_acc_pnl_per_position_hk'] = np.where(
+        #         np.abs(simple_data_df['cum_position_hk']) < 1e-5,
+        #         0,
+        #         simple_data_df['intraday_acc_pnl_hk'] / (simple_data_df['cum_position_hk']/lot_per_unit)
+        #     )
 
 
         if i == meta_df.shape[0]:
+            simple_data_df['cum_position_hk'] = 0.0
             for symbol in symbols:
                 simple_data_df[symbol + '_intraday_acc_pnl_hk'] = pnl_df[symbol + '_intraday_acc_pnl'] * initial_deposit_hk / principal
                 simple_data_df[symbol + '_cum_position_hk'] = pnl_df[symbol + '_cum_position'] * lot_per_unit
+
+                #simple_data_df[symbol + '_cum_position'] = pnl_df[symbol + '_cum_position'] ## Temp
 
                 # if symbol == 'USDJPY' or symbol == 'EURUSD':
                 #     print("Here check data:")
@@ -1057,6 +1060,15 @@ for i in range(meta_df.shape[0] + 1):
                 #         sys.exit(0)
                 simple_data_df[symbol + '_cum_position_hk_raw'] = simple_data_df[symbol + '_cum_position_hk']
                 simple_data_df[symbol + '_cum_position_hk'] = simple_data_df[symbol + '_cum_position_hk'].apply(lambda x: round(x, 2))
+
+                simple_data_df['cum_position_hk'] += np.abs(simple_data_df[symbol + '_cum_position_hk'])
+
+        if i == meta_df.shape[0]:
+            simple_data_df['intraday_acc_pnl_per_position_hk'] = np.where(
+                np.abs(simple_data_df['cum_position_hk']) < 1e-5,
+                0,
+                simple_data_df['intraday_acc_pnl_hk'] / (simple_data_df['cum_position_hk']/lot_per_unit)
+            )
 
 
         if i < meta_df.shape[0]:
@@ -1088,6 +1100,36 @@ for i in range(meta_df.shape[0] + 1):
             print("")
             print("Portfolio message:")
             print(message_body)
+
+
+
+
+
+            ###### Temp ##########
+
+            # message_array = ['Symbol  Intraday Pnl  Position on hold(Lot)']
+            # message_array += ['Portfolio  ' + str(round(last_row['intraday_acc_pnl_hk'], 2)) + '  ' + str(
+            #     round(last_row['cum_position'], 2))]
+            #
+            # for symbol in symbols:
+            #     symbol_intraday_acc_pnl = round(last_row[symbol + '_intraday_acc_pnl_hk'], 2)
+            #     symbol_cum_position = round(last_row[symbol + '_cum_position'], 2)
+            #
+            #     if abs(symbol_intraday_acc_pnl) > 1e-5 or abs(symbol_cum_position) > 1e-5:
+            #         message_array += [symbol + '  ' + str(symbol_intraday_acc_pnl) + '  ' + str(symbol_cum_position)]
+            #
+            # message_body = '\n'.join(message_array)
+            #
+            # print("")
+            # print("Portfolio message:")
+            # print(message_body)
+
+            ######################
+
+
+
+
+
 
             sendEmail("Portfolio Current Status at " + current_time, message_body)
 
