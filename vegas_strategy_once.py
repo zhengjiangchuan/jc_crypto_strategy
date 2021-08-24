@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['GBPJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['AUDCAD'])]
 
 
 # print("currency_df:")
@@ -275,6 +275,8 @@ original_data_df200 = None
 
 is_do_trading = True
 
+is_append_new_data = False
+
 if is_do_trading:
     while not is_all_received:
         is_all_received = True
@@ -339,17 +341,19 @@ if is_do_trading:
                     print("last_timestamp = " + str(last_timestamp))
                     # time.sleep(15)
 
-                    incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
-                    print("incremental_data_df:")
-                    print(incremental_data_df.tail(10))
 
-                    incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+                    if is_append_new_data:
+                        incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+                        print("incremental_data_df:")
+                        print(incremental_data_df.tail(10))
 
-                    # incremental_data_df = incremental_data_df.iloc[1:-1]
+                        incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
-                    print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
+                        # incremental_data_df = incremental_data_df.iloc[1:-1]
 
-                    if incremental_data_df.shape[0] > 0:
+                        print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
+
+                    if is_append_new_data and incremental_data_df.shape[0] > 0:
 
                         # print("cruise incremental_data_df:")
                         # print(incremental_data_df)
@@ -429,7 +433,7 @@ if is_do_trading:
 
     print("Finished trading *********************************")
 
-if True:
+if False:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
