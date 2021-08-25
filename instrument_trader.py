@@ -116,6 +116,7 @@ reverse_trade_look_back = 20
 macd_relaxed = True
 
 price_range_look_back = 10
+price_range_average_look_back = 3
 
 is_plot_exclude = True
 
@@ -623,6 +624,8 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev_recent_max_price_range'] = self.data_df['recent_max_price_range'].shift(1)
 
 
+            self.data_df['recent_avg_price_range'] = self.data_df['price_range'].rolling(price_range_average_look_back, min_periods = price_range_average_look_back).mean()
+            self.data_df['prev_recent_avg_price_range'] = self.data_df['recent_avg_price_range'].shift(1)
 
 
             guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
@@ -4196,6 +4199,8 @@ class CurrencyTrader(threading.Thread):
                 ((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > 0) &\
                 (self.data_df['num_is_reach_vegas_from_btm_for_buy'] == 0) & (self.data_df['num_bar_strict_above_guppy_for_buy'] == 0)
 
+
+
                 self.data_df['buy_close_position_final_quick21'] = self.data_df['is_negative'] &\
                               ((self.data_df['close'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < -quick_threshold) &\
                               self.data_df['strongly_strict_half_aligned_short_condition']  &\
@@ -4241,6 +4246,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['buy_close_position_final_quick'] = (self.data_df['buy_close_position_final_quick1'] | self.data_df['buy_close_position_final_quick2']) #&\
                                                                  #(~self.data_df['is_needle_bar'])
                 #((self.data_df['open'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate > quick_threshold) &\
+
 
                 self.data_df['buy_close_position_fixed_time'] = 0
                 self.data_df['sell_close_position_fixed_time'] = 0
@@ -4331,6 +4337,23 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1'] | self.data_df['sell_close_position_final_quick2'])
                                                                  #(~self.data_df['is_needle_bar'])
 
+
+                #Keybox
+                if is_only_allow_second_entry and is_activate_second_entry_trading:
+
+                    self.data_df['buy_close_position_final_quick_additional'] = (self.data_df['num_bar_above_guppy_for_buy'] >= 3) &\
+                        self.data_df['is_negative'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
+                        (self.data_df['middle'] < self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy'] == 0)
+
+                    self.data_df['sell_close_position_final_quick_additional'] = (self.data_df['num_bar_below_guppy_for_sell'] >= 3) &\
+                        self.data_df['is_positive'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
+                        (self.data_df['middle'] > self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell'] == 0)
+
+                    self.data_df['buy_close_position_final_quick_immediate'] = self.data_df['buy_close_position_final_quick_immediate'] | self.data_df['buy_close_position_final_quick_additional']
+                    self.data_df['sell_close_position_final_quick_immediate'] = self.data_df['sell_close_position_final_quick_immediate'] | self.data_df['sell_close_position_final_quick_additional']
+
+                    self.data_df['buy_close_position_final_quick'] = self.data_df['buy_close_position_final_quick'] | self.data_df['buy_close_position_final_quick_additional']
+                    self.data_df['sell_close_position_final_quick'] = self.data_df['sell_close_position_final_quick'] | self.data_df['sell_close_position_final_quick_additional']
 
 
 
@@ -4635,7 +4658,7 @@ class CurrencyTrader(threading.Thread):
                     for i in range(0, x.shape[0]):
                         row = x.iloc[i]
 
-                        # print("Process time " + str(row['time']))
+                        #print("Process time " + str(row['time']))
                         # print("total_guppy = " + str(total_guppy))
                         # print("total_vegas = " + str(total_vegas))
 
@@ -4740,6 +4763,10 @@ class CurrencyTrader(threading.Thread):
                                     quick_immediate_stop_loss_price = None
 
 
+                            # print("quick = " + str(quick))
+                            # print("row[quick] = " + str(row[quick]))
+                            # print("quick_immediate = " + str(quick_immediate))
+                            # print("row[quick_immediate] = " + str(row[quick_immediate]))
                             if row[quick]:# and not quick_ready:
                                 #if (total_guppy1 + total_guppy2 == 0 and total_vegas == 0 and total_excessive == 0 and total_conservative == 0 and total_quick == 0):
                                 if (total_excessive == 0 and total_conservative == 0 and total_quick == 0 and total_urgent == 0 and total_fixed_time == 0 and total_quick_fixed_time == 0):
@@ -4775,6 +4802,7 @@ class CurrencyTrader(threading.Thread):
                                     #     quick_ready = False
                                     #     quick_ready_price = None
 
+
                                     if is_more_aggressive(row[most_passive_guppy], row['close'], side):
 
 
@@ -4784,7 +4812,7 @@ class CurrencyTrader(threading.Thread):
                                         )):
 
                                             quick_ready_number += 1
-                                            if quick_ready_number == 2:
+                                            if quick_ready_number == 2 or (is_activate_second_entry_trading and row[quick_immediate]):  #Notice this change "or row[quick_immediate]"
 
                                                 x.at[x.index[i], selected_quick] = 1
                                                 total_quick += 1
