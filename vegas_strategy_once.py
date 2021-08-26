@@ -88,7 +88,10 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['EURGBP', 'AUDCAD', 'GBPUSD', 'NZDJPY'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['GBPUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD', 'AUDCHF', 'CADCHF', 'CADJPY', 'EURGBP','GBPCHF'])]
+
+#currency_df = currency_df[currency_df['currency'].isin(['NZDCHF'])]
+
 
 # print("currency_df:")
 # print(currency_df)
@@ -102,8 +105,8 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(selected_ones)]
 
 
-start_id = which(currency_df['currency'] == 'CADCHF')[0]
-currency_df = currency_df.iloc[start_id:]
+# start_id = which(currency_df['currency'] == 'CADCHF')[0]
+# currency_df = currency_df.iloc[start_id:]
 
 
 
@@ -451,7 +454,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0825\\forex_innovativeFire2new_quickLossDelayed_reentry_activate_improve5"
+    dest_folder = "C:\\Forex\\new_experiments\\0825\\forex_innovativeFire2new_quickLossDelayed_reentry_activate_improve5_require4GuppyLines_minorChange"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 

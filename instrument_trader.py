@@ -674,6 +674,10 @@ class CurrencyTrader(threading.Thread):
             strongly_relaxed_aligned_long_condition = aligned_long_condition4
             strongly_long_condition = aligned_long_condition5
 
+            relaxed_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:4]) &\
+                                      reduce(lambda left, right: left | right, [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate >= -1) for guppy_line in guppy_lines[0:3]])
+
+
             self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
             self.data_df['aligned_long_condition_go_on'] = aligned_long_condition_go_on
             self.data_df['strongly_half_aligned_long_condition'] = strongly_half_aligned_long_condition
@@ -682,6 +686,8 @@ class CurrencyTrader(threading.Thread):
             self.data_df['strongly_strict_aligned_long_condition'] = strongly_strict_aligned_long_condition
             self.data_df['strongly_relaxed_aligned_long_condition'] = strongly_relaxed_aligned_long_condition
             self.data_df['strongly_long_condition'] = strongly_long_condition
+            self.data_df['relaxed_long_condition'] = relaxed_long_condition
+
 
             aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                         range(len(guppy_lines) - 1)]
@@ -715,6 +721,10 @@ class CurrencyTrader(threading.Thread):
             strongly_relaxed_aligned_short_condition = aligned_short_condition4
             strongly_short_condition = aligned_short_condition5
 
+            relaxed_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:4]) &\
+                                      reduce(lambda left, right: left | right, [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate <= 1) for guppy_line in guppy_lines[0:3]])
+
+
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
             self.data_df['aligned_short_condition_go_on'] = aligned_short_condition_go_on
             self.data_df['strongly_half_aligned_short_condition'] = strongly_half_aligned_short_condition
@@ -723,6 +733,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['strongly_strict_aligned_short_condition'] = strongly_strict_aligned_short_condition
             self.data_df['strongly_relaxed_aligned_short_condition'] = strongly_relaxed_aligned_short_condition
             self.data_df['strongly_short_condition'] = strongly_short_condition
+            self.data_df['relaxed_short_condition'] = relaxed_short_condition
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
@@ -4343,11 +4354,18 @@ class CurrencyTrader(threading.Thread):
 
                     self.data_df['buy_close_position_final_quick_additional'] = (self.data_df['num_bar_above_guppy_for_buy'] >= 3) &\
                         self.data_df['is_negative'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
-                        (self.data_df['middle'] < self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy'] == 0)
+                        (self.data_df['middle'] < self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy'] == 0) &\
+                        (~(self.data_df['relaxed_long_condition']))# & ((self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5)))
 
                     self.data_df['sell_close_position_final_quick_additional'] = (self.data_df['num_bar_below_guppy_for_sell'] >= 3) &\
                         self.data_df['is_positive'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
-                        (self.data_df['middle'] > self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell'] == 0)
+                        (self.data_df['middle'] > self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell'] == 0) &\
+                        (~(self.data_df['relaxed_short_condition']))# & ((self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5)))
+
+                    self.data_df['relaxed_long_condition_add'] = (self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5
+                    self.data_df['relaxed_short_condition_add'] = (self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5
+
+                        #(~self.data_df['relaxed_short_condition'])
 
                     self.data_df['buy_close_position_final_quick_immediate'] = self.data_df['buy_close_position_final_quick_immediate'] | self.data_df['buy_close_position_final_quick_additional']
                     self.data_df['sell_close_position_final_quick_immediate'] = self.data_df['sell_close_position_final_quick_immediate'] | self.data_df['sell_close_position_final_quick_additional']
@@ -4824,6 +4842,7 @@ class CurrencyTrader(threading.Thread):
 
 
                                         if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
+                                        #if (is_reentry or is_activate_second_entry_trading) and row[quick_immediate] and (row[num_guppy_bars] == 0):
                                             quick_immediate_stop_loss = True
                                             quick_immediate_stop_loss_price = row['open']
 
