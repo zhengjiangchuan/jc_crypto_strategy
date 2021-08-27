@@ -4355,11 +4355,13 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['buy_close_position_final_quick_additional'] = (self.data_df['num_bar_above_guppy_for_buy'] >= 3) &\
                         self.data_df['is_negative'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
                         (self.data_df['middle'] < self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy'] == 0) &\
+                        (~((self.data_df['close'] > self.data_df['ma_close12']) & (self.data_df['ma12_gradient'] >= 0))) &\
                         (~(self.data_df['relaxed_long_condition']))# & ((self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5)))
 
                     self.data_df['sell_close_position_final_quick_additional'] = (self.data_df['num_bar_below_guppy_for_sell'] >= 3) &\
                         self.data_df['is_positive'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
                         (self.data_df['middle'] > self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell'] == 0) &\
+                        (~((self.data_df['close'] < self.data_df['ma_close12']) & (self.data_df['ma12_gradient'] <= 0))) &\
                         (~(self.data_df['relaxed_short_condition']))# & ((self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5)))
 
                     self.data_df['relaxed_long_condition_add'] = (self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5
