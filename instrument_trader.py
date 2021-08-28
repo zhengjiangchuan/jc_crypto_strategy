@@ -168,6 +168,9 @@ is_clean_redundant_entry_point = True
 is_only_allow_second_entry = True
 
 is_activate_second_entry_trading = True
+is_second_entry_reentry = True
+
+is_activate_second_entry_reentry = is_activate_second_entry_trading and is_second_entry_reentry
 
 aligned_conditions21_threshold = 5  #5 by default
 
@@ -3718,12 +3721,6 @@ class CurrencyTrader(threading.Thread):
 
 
 
-
-
-
-
-
-
             self.data_df['buy_point'] = np.where(
                     self.data_df['first_final_buy_fire'],
                     1,
@@ -3753,6 +3750,42 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['id'],
                 self.data_df['sell_point_temp']
             )
+
+
+            #######################
+            temp_adjust_df = self.data_df[['time', 'id', 'buy_point', 'sell_point',
+                                           'cum_bar_above_vegas', 'cum_bar_below_vegas',
+                                           'prev_cum_bar_above_vegas', 'prev_cum_bar_below_vegas'
+                                           ]]
+
+            temp_adjust_df['prev_cum_bar_above_vegas_for_buy'] = np.where(
+                    temp_adjust_df['buy_point'] == 1,
+                    temp_adjust_df['prev_cum_bar_above_vegas'],
+                    np.nan
+                )
+
+            temp_adjust_df['prev_cum_bar_below_vegas_for_sell'] = np.where(
+                temp_adjust_df['sell_point'] == 1,
+                temp_adjust_df['prev_cum_bar_below_vegas'],
+                np.nan
+            )
+
+            temp_adjust_df = temp_adjust_df.fillna(method='ffill').fillna(0)
+
+            temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
+            temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
+
+            temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
+            temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
+
+            self.data_df['num_bar_above_vegas_for_buy_new'] = temp_adjust_df['num_bar_above_vegas_for_buy']
+            self.data_df['num_bar_below_vegas_for_sell_new'] = temp_adjust_df['num_bar_below_vegas_for_sell']
+
+            self.data_df['prev_num_bar_above_vegas_for_buy_new'] = self.data_df['num_bar_above_vegas_for_buy_new'].shift(1)
+            self.data_df['prev_num_bar_below_vegas_for_sell_new'] = self.data_df['num_bar_below_vegas_for_sell_new'].shift(1)
+
+
+            #######################
 
 
             if True:
@@ -4354,13 +4387,13 @@ class CurrencyTrader(threading.Thread):
 
                     self.data_df['buy_close_position_final_quick_additional'] = (self.data_df['num_bar_above_guppy_for_buy'] >= 3) &\
                         self.data_df['is_negative'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
-                        (self.data_df['middle'] < self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy'] == 0) &\
+                        (self.data_df['middle'] < self.data_df['lowest_guppy']) & (self.data_df['prev_num_bar_above_vegas_for_buy_new'] == 0) &\
                         (~((self.data_df['close'] > self.data_df['ma_close12']) & (self.data_df['ma12_gradient'] >= 0))) &\
                         (~(self.data_df['relaxed_long_condition']))# & ((self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5)))
 
                     self.data_df['sell_close_position_final_quick_additional'] = (self.data_df['num_bar_below_guppy_for_sell'] >= 3) &\
                         self.data_df['is_positive'] & (self.data_df['price_range'] > self.data_df['prev_recent_avg_price_range']) &\
-                        (self.data_df['middle'] > self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell'] == 0) &\
+                        (self.data_df['middle'] > self.data_df['highest_guppy']) & (self.data_df['prev_num_bar_below_vegas_for_sell_new'] == 0) &\
                         (~((self.data_df['close'] < self.data_df['ma_close12']) & (self.data_df['ma12_gradient'] <= 0))) &\
                         (~(self.data_df['relaxed_short_condition']))# & ((self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5)))
 
@@ -4635,7 +4668,7 @@ class CurrencyTrader(threading.Thread):
                                                quick, quick_immediate, urgent, fixed_time, quick_fixed_time,
                                                selected_guppy1, selected_guppy2, selected_vegas, selected_excessive1, selected_excessive2, selected_conservative,
                                                selected_simple, selected_quick, selected_urgent, reentry, selected_fixed_time,
-                                           close, open, most_passive_guppy, most_aggressive_guppy,
+                                           close, open, most_passive_guppy, most_aggressive_guppy, passive_vegas,
                                            exceed_vegas, enter_guppy, passive_than_guppy, num_guppy_bars,
                                            group_most_passive_price, entry_point_price, side):
                     # if side == 'buy':
@@ -4673,6 +4706,7 @@ class CurrencyTrader(threading.Thread):
 
                     quick_immediate_stop_loss = False
                     quick_immediate_stop_loss_price = None
+                    quick_immediate_count = 0
                     last_row = None
 
                     for i in range(0, x.shape[0]):
@@ -4748,39 +4782,71 @@ class CurrencyTrader(threading.Thread):
                             #         total_quick += 1
 
 
-                            if is_reentry:
+                            if is_reentry or is_activate_second_entry_reentry:
+                                flag = False
                                 if quick_immediate_stop_loss:
+
+                                    # if row['id'] == 1218:
+                                    #     print("side = " + side)
+                                    #     print("close = " + str(row['close']))
+                                    #     print("open = " + str(row['open']))
+                                    #     print("quick_immediate_stop_loss_price = " + str(quick_immediate_stop_loss_price))
+                                    #     print("")
+
                                     if (side == 'buy' and row['close'] > row['open'] and row['close'] > quick_immediate_stop_loss_price) |\
                                             (side == 'sell' and row['close'] < row['open'] and row['close'] < quick_immediate_stop_loss_price):
-                                        x.at[x.index[i], reentry] = 1
 
-                                        total_guppy1 = 0
-                                        total_guppy2 = 0
-                                        total_vegas = 0
-                                        raw_total_excessive1 = 0
-                                        raw_total_excessive2 = 0
-                                        raw_total_conservative = 0
+                                        # if row['id'] == 1218:
+                                        #     print("set reentry = true")
+                                        #     print("")
 
-                                        total_excessive1 = 0
-                                        total_excessive = 0
-                                        total_conservative = 0
-                                        last_excessive1 = -1
-                                        last_excessive2 = -1
-                                        last_conservative = -1
-                                        total_simple = 0
-                                        total_quick = 0
-                                        total_urgent = 0
-                                        total_fixed_time = 0
-                                        total_quick_fixed_time = 0
-                                        quick_ready = False
-                                        quick_ready_price = None
-                                        last_quick_ready = -1
-                                        last_row = None
+                                        if (not is_activate_second_entry_reentry) or\
+                                                (   (
+                                                    (i >= 1 and x.iloc[i-1][selected_quick] == 1) or\
+                                                    ((i >= 2 and x.iloc[i-2][selected_quick] == 1) and (is_more_aggressive(row['close'], row[most_passive_guppy], side)))
+                                                    ) and \
+                                                    (is_more_aggressive(row[passive_vegas], row['open'], side))
+                                                ):
 
-                                        quick_ready_number = 0
 
-                                    quick_immediate_stop_loss = False
-                                    quick_immediate_stop_loss_price = None
+                                            flag = True
+                                            x.at[x.index[i], reentry] = 1
+
+                                            total_guppy1 = 0
+                                            total_guppy2 = 0
+                                            total_vegas = 0
+                                            raw_total_excessive1 = 0
+                                            raw_total_excessive2 = 0
+                                            raw_total_conservative = 0
+
+                                            total_excessive1 = 0
+                                            total_excessive = 0
+                                            total_conservative = 0
+                                            last_excessive1 = -1
+                                            last_excessive2 = -1
+                                            last_conservative = -1
+                                            total_simple = 0
+                                            total_quick = 0
+                                            total_urgent = 0
+                                            total_fixed_time = 0
+                                            total_quick_fixed_time = 0
+                                            quick_ready = False
+                                            quick_ready_price = None
+                                            last_quick_ready = -1
+                                            last_row = None
+
+                                            quick_ready_number = 0
+
+
+                                    if is_activate_second_entry_reentry:
+                                        quick_immediate_count += 1
+                                        if quick_immediate_count == 2 or flag:
+                                            quick_immediate_stop_loss = False
+                                            quick_immediate_stop_loss_price = None
+                                            quick_immediate_count = 0
+                                    else:
+                                        quick_immediate_stop_loss = False
+                                        quick_immediate_stop_loss_price = None
 
 
                             # print("quick = " + str(quick))
@@ -4801,6 +4867,13 @@ class CurrencyTrader(threading.Thread):
                                     quick_ready_number = 0
                                     #x.at[x.index[i], selected_quick] = 1
                                     #total_quick += 1
+
+                            # if row['id'] == 1217:
+                            #     print("time = " + str(row['time']))
+                            #     print("i = " + str(i))
+                            #     print("start_time = " + str(x.iloc[0]['time']))
+                            #     print("Getting prepared")
+                            #     print("")
 
                             if quick_ready and (is_immediately_in or row[quick_immediate] or i > last_quick_ready):
                                 # if row[enter_guppy]:
@@ -4843,10 +4916,31 @@ class CurrencyTrader(threading.Thread):
                                                 quick_ready_number = 0
 
 
-                                        if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
-                                        #if (is_reentry or is_activate_second_entry_trading) and row[quick_immediate] and (row[num_guppy_bars] == 0):
+                                        #if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
+                                        # if row['id'] == 1217:
+                                        #     print("time = " + str(row['time']))
+                                        #     print("i = " + str(i))
+                                        #     print("Ready to go")
+                                        #     print("row[quick_immediate] = " + str(row[quick_immediate]))
+                                        #     print("row[num_guppy_bars] = " + str(row[num_guppy_bars]))
+                                        #     print("")
+                                        if (is_reentry or is_activate_second_entry_reentry) and row[quick_immediate] and (row[num_guppy_bars] == 0 or is_activate_second_entry_reentry):
                                             quick_immediate_stop_loss = True
-                                            quick_immediate_stop_loss_price = row['open']
+
+                                            if is_activate_second_entry_reentry:
+                                                if side == 'buy':
+                                                    quick_immediate_stop_loss_price = row['open'] - 0.2 * (row['open'] - row['close'])
+                                                else:
+                                                    quick_immediate_stop_loss_price = row['open'] + 0.2 * (row['close'] - row['open'])
+
+                                                # if row['id'] == 1217:
+                                                #     print("time = " + str(row['time']))
+                                                #     print("quick_immediate_stop_loss_price = " + str(quick_immediate_stop_loss_price))
+                                                #     print("quick_immediate_stop_loss = " + str(quick_immediate_stop_loss_price))
+                                                #     print("")
+
+                                            else:
+                                                quick_immediate_stop_loss_price = row['open']
 
 
 
@@ -4984,6 +5078,7 @@ class CurrencyTrader(threading.Thread):
                     #     y = y.rename(columns = {guppy1: 'guppy1', guppy2: 'guppy2', vegas : 'vegas', excessive1 : 'excessive1', excessive2 : 'excessive2',  conservative : 'conservative',
                     #                             excessive_strict : 'excessive_strict', conservative_strict : 'conservative_strict',
                     #                             simple : 'simple',
+                    #                             reentry : 'reentry',
                     #                             quick : 'quick', quick_immediate : 'quick_immediate',  urgent : 'urgent',
                     #                             fixed_time : 'fixed_time', quick_fixed_time : 'quick_fixed_time',
                     #                             selected_quick : 'selected_quick',
@@ -5028,6 +5123,8 @@ class CurrencyTrader(threading.Thread):
                                             'open',
                                             'highest_guppy',
                                             'lowest_guppy',
+                                            'lower_vegas',
+                                            'upper_vegas',
                                             'group_min_price',
                                             'group_max_price',
                                             'buy_point_price','sell_point_price']]
@@ -5074,6 +5171,8 @@ class CurrencyTrader(threading.Thread):
                     most_passive_guppy = 'lowest_guppy' if side == 'buy' else 'highest_guppy'
                     most_aggressive_guppy = 'highest_guppy' if side == 'buy' else 'lowest_guppy'
 
+                    passive_vegas = 'lower_vegas' if side == 'buy' else 'upper_vegas'
+
                     # print("here id in side_df:" + str('id' in side_df.columns))
                     #
                     # print("Before side_df:")
@@ -5111,6 +5210,7 @@ class CurrencyTrader(threading.Thread):
                                                     open = 'open',
                                                     most_passive_guppy = most_passive_guppy,
                                                     most_aggressive_guppy = most_aggressive_guppy,
+                                                    passive_vegas = passive_vegas,
                                                     exceed_vegas = exceed_vegas,
                                                     enter_guppy = side + '_enter_guppy',
                                                     passive_than_guppy = side + '_passive_than_guppy',
