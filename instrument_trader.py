@@ -3388,10 +3388,30 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] &\
                         (self.data_df['bar_below_m12'] | (self.data_df['buy_price'] < self.data_df['prev_buy_price']) | (self.data_df['prev_num_bar_below_m12_for_buy'] > 0))
 
+
+                # print("Checking data1 here:")
+                # print(self.data_df.iloc[255:267][['time','final_sell_fire', 'first_final_sell_fire', 'sell_point', 'bar_above_m12',
+                #                                   'sell_price', 'prev_sell_price', 'prev_num_bar_above_m12_for_sell']])
+
                 self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] &\
                         (self.data_df['bar_above_m12'] | (self.data_df['sell_price'] > self.data_df['prev_sell_price']) | (self.data_df['prev_num_bar_above_m12_for_sell'] > 0))
 
+                # print(self.data_df.iloc[255:267][['time','final_sell_fire', 'first_final_sell_fire', 'sell_point', 'bar_above_m12',
+                #                                   'sell_price', 'prev_sell_price', 'prev_num_bar_above_m12_for_sell']])
 
+
+                ############## This is to fix the bug that buy_point is not consistent with first_final_buy_fire ###############
+                self.data_df['buy_point'] = np.where(
+                    self.data_df['first_final_buy_fire'],
+                    1,
+                    0
+                )
+                self.data_df['sell_point'] = np.where(
+                    self.data_df['first_final_sell_fire'],
+                    1,
+                    0
+                )
+                ####################################################################################################################
 
             if is_only_allow_second_entry:
                 # self.data_df['buy_point'] = np.where(
@@ -3406,16 +3426,22 @@ class CurrencyTrader(threading.Thread):
                 # )
 
 
-                self.data_df['buy_point'] = np.where(
-                    (self.data_df['first_final_buy_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
-                    1,
-                    0
-                )
-                self.data_df['sell_point'] = np.where(
-                    (self.data_df['first_final_sell_fire']) & (~(self.data_df['sell_real_fire2'] & (~self.data_df['sell_real_fire3']))),
-                    1,
-                    0
-                )
+                # self.data_df['buy_point'] = np.where(
+                #     (self.data_df['first_final_buy_fire']) & (~(self.data_df['buy_real_fire2'] & (~self.data_df['buy_real_fire3']))),
+                #     1,
+                #     0
+                # )
+                # self.data_df['sell_point'] = np.where(
+                #     (self.data_df['first_final_sell_fire']) & (~(self.data_df['sell_real_fire2'] & (~self.data_df['sell_real_fire3']))),
+                #     1,
+                #     0
+                # )
+
+
+                # print("Checking data here:")
+                # print(self.data_df.iloc[255:267][['time','sell_real_fire2', 'sell_real_fire3', 'final_sell_fire', 'first_final_sell_fire', 'sell_point']])
+
+                #sys.exit(0)
 
 
                 self.data_df['buy_point_backup'] = self.data_df['buy_point']
