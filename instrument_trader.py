@@ -4678,6 +4678,13 @@ class CurrencyTrader(threading.Thread):
                     else:
                         return price1 < price2
 
+                def is_more_aggressive_relaxed(price1, price2, side, theta):
+                    if side == 'buy':
+                        return price1 > price2 - theta/(self.lot_size*self.exchange_rate)
+                    else:
+                        return price1 < price2 + theta/(self.lot_size*self.exchange_rate)
+
+
                 def calculate_pnl(entry_price, exit_price, side):
 
                     # print("entry_price = " + str(entry_price))
@@ -4829,7 +4836,7 @@ class CurrencyTrader(threading.Thread):
                                         if (not is_activate_second_entry_reentry) or\
                                                 (   (
                                                     (i >= 1 and x.iloc[i-1][selected_quick] == 1) or\
-                                                    ((i >= 2 and x.iloc[i-2][selected_quick] == 1) and (is_more_aggressive(row['close'], row[most_passive_guppy], side)))
+                                                    ((i >= 2 and x.iloc[i-2][selected_quick] == 1) and (is_more_aggressive_relaxed(row['close'], row[most_passive_guppy], side, 20)))
                                                     ) and \
                                                     (is_more_aggressive(row[passive_vegas], row['open'], side))
                                                 ):
@@ -4955,9 +4962,9 @@ class CurrencyTrader(threading.Thread):
 
                                             if is_activate_second_entry_reentry:
                                                 if side == 'buy':
-                                                    quick_immediate_stop_loss_price = row['open'] - 0.2 * (row['open'] - row['close'])
+                                                    quick_immediate_stop_loss_price = row['open'] - 0.25 * (row['open'] - row['close'])  #0.2
                                                 else:
-                                                    quick_immediate_stop_loss_price = row['open'] + 0.2 * (row['close'] - row['open'])
+                                                    quick_immediate_stop_loss_price = row['open'] + 0.25 * (row['close'] - row['open'])  #0.2
 
                                                 # if row['id'] == 1217:
                                                 #     print("time = " + str(row['time']))
