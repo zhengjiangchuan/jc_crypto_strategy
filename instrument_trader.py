@@ -3453,8 +3453,11 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['ma12_up'] = self.data_df['ma12_gradient'] * self.exchange_rate * self.lot_size >= 0
                 self.data_df['ma12_down'] = self.data_df['ma12_gradient'] * self.exchange_rate * self.lot_size <= 0
 
-                self.data_df['bar_partial_below_ma12'] = self.data_df['max_price'] < self.data_df['ma_close12']  #middle
-                self.data_df['bar_partial_above_ma12'] = self.data_df['min_price'] > self.data_df['ma_close12']  #middle
+                #self.data_df['bar_partial_below_ma12'] = self.data_df['middle'] < self.data_df['ma_close12']  #middle   'max_price'
+                #self.data_df['bar_partial_above_ma12'] = self.data_df['middle'] > self.data_df['ma_close12']  #middle    'min_price'
+
+                self.data_df['bar_partial_below_ma12'] = self.data_df['middle'] < self.data_df['ma_close12'] + 5/(self.lot_size*self.exchange_rate)  #middle   'max_price'
+                self.data_df['bar_partial_above_ma12'] = self.data_df['middle'] > self.data_df['ma_close12'] - 5/(self.lot_size*self.exchange_rate)  #middle    'min_price'
 
                 self.data_df['bar_above_all_guppy'] = (self.data_df['max_price'] > self.data_df['highest_guppy']) & self.data_df['is_positive']
                 self.data_df['bar_below_all_guppy'] = (self.data_df['min_price'] < self.data_df['lowest_guppy']) & self.data_df['is_negative']
