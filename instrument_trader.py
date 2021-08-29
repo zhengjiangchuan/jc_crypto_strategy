@@ -4822,7 +4822,9 @@ class CurrencyTrader(threading.Thread):
                                 flag = False
                                 if quick_immediate_stop_loss:
 
-                                    # if row['id'] == 1218:
+                                    # if row['id'] > 771 and row['id'] < 776:
+                                    #     print("time = " + str(row['time']))
+                                    #     print("i = " + str(i))
                                     #     print("side = " + side)
                                     #     print("close = " + str(row['close']))
                                     #     print("open = " + str(row['open']))
@@ -4832,7 +4834,7 @@ class CurrencyTrader(threading.Thread):
                                     if (side == 'buy' and row['close'] > row['open'] and row['close'] > quick_immediate_stop_loss_price) |\
                                             (side == 'sell' and row['close'] < row['open'] and row['close'] < quick_immediate_stop_loss_price):
 
-                                        # if row['id'] == 1218:
+                                        # if row['id'] > 771 and row['id'] < 776:
                                         #     print("set reentry = true")
                                         #     print("")
 
@@ -4876,7 +4878,7 @@ class CurrencyTrader(threading.Thread):
 
                                     if is_activate_second_entry_reentry:
                                         quick_immediate_count += 1
-                                        if quick_immediate_count == 2 or flag:
+                                        if quick_immediate_count == 4 or flag:  #2
                                             quick_immediate_stop_loss = False
                                             quick_immediate_stop_loss_price = None
                                             quick_immediate_count = 0
@@ -4953,7 +4955,7 @@ class CurrencyTrader(threading.Thread):
 
 
                                         #if is_reentry and row[quick_immediate] and (row[num_guppy_bars] == 0):
-                                        # if row['id'] == 1217:
+                                        # if row['id'] == 771:
                                         #     print("time = " + str(row['time']))
                                         #     print("i = " + str(i))
                                         #     print("Ready to go")
@@ -4969,7 +4971,7 @@ class CurrencyTrader(threading.Thread):
                                                 else:
                                                     quick_immediate_stop_loss_price = row['open'] + 0.25 * (row['close'] - row['open'])  #0.2
 
-                                                # if row['id'] == 1217:
+                                                # if row['id'] == 771:
                                                 #     print("time = " + str(row['time']))
                                                 #     print("quick_immediate_stop_loss_price = " + str(quick_immediate_stop_loss_price))
                                                 #     print("quick_immediate_stop_loss = " + str(quick_immediate_stop_loss_price))
