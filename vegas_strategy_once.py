@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['USDJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['USDJPY'])]
 
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCAD', 'AUDCHF', 'CADCHF', 'CADJPY', 'EURGBP','GBPCHF'])]
 
@@ -443,7 +443,7 @@ if is_do_trading:
 
     print("Finished trading *********************************")
 
-if False:
+if True:
     print("Sleeping")
     time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
@@ -454,7 +454,7 @@ if False:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0804\\forex_innovativeFire2new_closeQuicklyIntraday_noFire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0829\\forex_innovativeFire2new_quickLossDelayed_reentry_activate_improve5_require4GuppyLines_reentry_improve_fire2_partialBelow"
+    dest_folder = "C:\\Forex\\new_experiments\\0829\\forex_innovativeFire2new_quickLossDelayed_reentry_activate_improve5_require4GuppyLines_reentry_improve_fire2_partialBelow_fixUSDJPY"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
