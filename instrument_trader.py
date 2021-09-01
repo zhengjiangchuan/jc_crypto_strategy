@@ -3190,26 +3190,29 @@ class CurrencyTrader(threading.Thread):
 
             if 100 in high_low_window_options:
                 high_low_window = 100
-                self.data_df['buy_fire_special_exclude'] = self.data_df['final_buy_fire'] &\
-                    (self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] < 0.2*self.data_df['period_low' + str(high_low_window) + '_go_down_duration'])
 
-                self.data_df['buy_fire_special_exclude_exempt'] = self.data_df['buy_fire_special_exclude'] &\
-                    self.data_df['buy_real_fire3'] & (self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] <= 3)
+                if not is_activate_second_entry_trading:
 
-                self.data_df['final_buy_fire'] = self.data_df['final_buy_fire'] & \
-                                                 ((~self.data_df['buy_fire_special_exclude']) | self.data_df['buy_fire_special_exclude_exempt'])
+                    self.data_df['buy_fire_special_exclude'] = self.data_df['final_buy_fire'] &\
+                        (self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] < 0.2*self.data_df['period_low' + str(high_low_window) + '_go_down_duration'])
+
+                    self.data_df['buy_fire_special_exclude_exempt'] = self.data_df['buy_fire_special_exclude'] &\
+                        self.data_df['buy_real_fire3'] & (self.data_df['period_high' + str(high_low_window) + '_go_down_duration'] <= 3)
+
+                    self.data_df['final_buy_fire'] = self.data_df['final_buy_fire'] & \
+                                                     ((~self.data_df['buy_fire_special_exclude']) | self.data_df['buy_fire_special_exclude_exempt'])
 
 
 
 
-                self.data_df['sell_fire_special_exclude'] = self.data_df['final_sell_fire'] &\
-                    (self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] < 0.2*self.data_df['period_high' + str(high_low_window) + '_go_up_duration'])
+                    self.data_df['sell_fire_special_exclude'] = self.data_df['final_sell_fire'] &\
+                        (self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] < 0.2*self.data_df['period_high' + str(high_low_window) + '_go_up_duration'])
 
-                self.data_df['sell_fire_special_exclude_exempt'] = self.data_df['sell_fire_special_exclude'] &\
-                    self.data_df['sell_real_fire3'] & (self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] <= 3)
+                    self.data_df['sell_fire_special_exclude_exempt'] = self.data_df['sell_fire_special_exclude'] &\
+                        self.data_df['sell_real_fire3'] & (self.data_df['period_low' + str(high_low_window) + '_go_up_duration'] <= 3)
 
-                self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & \
-                                                   ((~self.data_df['sell_fire_special_exclude']) | self.data_df['sell_fire_special_exclude_exempt'])
+                    self.data_df['final_sell_fire'] = self.data_df['final_sell_fire'] & \
+                                                       ((~self.data_df['sell_fire_special_exclude']) | self.data_df['sell_fire_special_exclude_exempt'])
 
             # print("At here1")
             # print("cum_bar_above_guppy_for_buy in data_df already? " + str(
