@@ -170,6 +170,8 @@ is_only_allow_second_entry = True
 is_activate_second_entry_trading = True
 is_second_entry_reentry = True
 
+
+
 is_activate_second_entry_reentry = is_activate_second_entry_trading and is_second_entry_reentry
 
 aligned_conditions21_threshold = 5  #5 by default
@@ -3771,7 +3773,7 @@ class CurrencyTrader(threading.Thread):
 #########################################################################################################################################
 
 
-
+            #Jiangchuan
             self.data_df['buy_point'] = np.where(
                     self.data_df['first_final_buy_fire'],
                     1,
@@ -3787,6 +3789,14 @@ class CurrencyTrader(threading.Thread):
             )
 
             self.data_df['sell_point_id'] = self.data_df['sell_point'].cumsum()
+
+
+
+
+            #print("Checking data fucking here:")
+            #print(self.data_df.iloc[468:479][['time','sell_point', 'sell_point_backup']])
+            #sys.exit(0)
+
 
             self.data_df['buy_point_temp'] = np.nan
             self.data_df['buy_point_temp'] = np.where(
@@ -4334,7 +4344,7 @@ class CurrencyTrader(threading.Thread):
 
 
                 self.data_df['buy_close_position_final_quick_immediate'] = self.data_df['buy_close_position_final_quick22']
-
+                self.data_df['buy_close_position_final_quick_immediate2'] = False
 
 
 
@@ -4427,6 +4437,10 @@ class CurrencyTrader(threading.Thread):
 
 
                 self.data_df['sell_close_position_final_quick_immediate'] = self.data_df['sell_close_position_final_quick22']
+                self.data_df['sell_close_position_final_quick_immediate2'] = False
+
+                self.data_df['buy_close_position_final_quick_immediate_allowReentry'] = True
+                self.data_df['sell_close_position_final_quick_immediate_allowReentry'] = True
 
 
                 self.data_df['sell_close_position_final_quick'] = (self.data_df['sell_close_position_final_quick1'] | self.data_df['sell_close_position_final_quick2'])
@@ -4451,18 +4465,36 @@ class CurrencyTrader(threading.Thread):
                         (~((self.data_df['prev_recent_positive_num'] == 0) & (self.data_df['close'] < self.data_df['prev3_open']))) &\
                         (~(self.data_df['relaxed_short_condition']))# & ((self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5)))
 
-                    self.data_df['relaxed_long_condition_add'] = (self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5
-                    self.data_df['relaxed_short_condition_add'] = (self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5
+
+
+                    self.data_df['buy_close_position_final_quick_additional2'] = self.data_df['is_negative'] & (self.data_df['close'] < self.data_df['buy_point_support'])
+                    self.data_df['sell_close_position_final_quick_additional2'] = self.data_df['is_positive'] & (self.data_df['close'] > self.data_df['sell_point_support'])
+
+
+
+
+
+                    #self.data_df['relaxed_long_condition_add'] = (self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5
+                    #self.data_df['relaxed_short_condition_add'] = (self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5
 
                         #(~self.data_df['relaxed_short_condition'])
 
-                    self.data_df['buy_close_position_final_quick_immediate'] = self.data_df['buy_close_position_final_quick_immediate'] | self.data_df['buy_close_position_final_quick_additional']
-                    self.data_df['sell_close_position_final_quick_immediate'] = self.data_df['sell_close_position_final_quick_immediate'] | self.data_df['sell_close_position_final_quick_additional']
+                    self.data_df['buy_close_position_final_quick_immediate_allowReentry'] =\
+                        ~self.data_df['buy_close_position_final_quick_additional2'] | self.data_df['buy_close_position_final_quick'] | self.data_df['buy_close_position_final_quick_additional']
+                    self.data_df['sell_close_position_final_quick_immediate_allowReentry'] =\
+                        ~self.data_df['sell_close_position_final_quick_additional2'] | self.data_df['sell_close_position_final_quick'] | self.data_df['sell_close_position_final_quick_additional']
 
-                    self.data_df['buy_close_position_final_quick'] = self.data_df['buy_close_position_final_quick'] | self.data_df['buy_close_position_final_quick_additional']
-                    self.data_df['sell_close_position_final_quick'] = self.data_df['sell_close_position_final_quick'] | self.data_df['sell_close_position_final_quick_additional']
+                    self.data_df['buy_close_position_final_quick_immediate2'] =\
+                        self.data_df['buy_close_position_final_quick_additional'] | self.data_df['buy_close_position_final_quick_additional2']
+                    self.data_df['sell_close_position_final_quick_immediate2'] =\
+                        self.data_df['sell_close_position_final_quick_additional'] | self.data_df['sell_close_position_final_quick_additional2']
 
+                    self.data_df['buy_close_position_final_quick'] =\
+                        self.data_df['buy_close_position_final_quick'] | self.data_df['buy_close_position_final_quick_additional'] | self.data_df['buy_close_position_final_quick_additional2']
+                    self.data_df['sell_close_position_final_quick'] =\
+                        self.data_df['sell_close_position_final_quick'] | self.data_df['sell_close_position_final_quick_additional'] | self.data_df['sell_close_position_final_quick_additional2']
 
+                    #Change the above to self.data_df['buy_close_position_final_quick'] = self.data_df['buy_close_position_final_quick_additional2']
 
 
                 self.data_df['buy_close_position_final_urgent'] = self.data_df['is_negative'] &\
@@ -4726,7 +4758,7 @@ class CurrencyTrader(threading.Thread):
                     return period_pnl
 
                 def select_close_positions(x, guppy1, guppy2, vegas, excessive1, excessive2, conservative, excessive_strict, conservative_strict, simple,
-                                               quick, quick_immediate, urgent, fixed_time, quick_fixed_time,
+                                               quick, quick_immediate, quick_immediate2, quick_immediate_allow_reentry, urgent, fixed_time, quick_fixed_time,
                                                selected_guppy1, selected_guppy2, selected_vegas, selected_excessive1, selected_excessive2, selected_conservative,
                                                selected_simple, selected_quick, selected_urgent, reentry, selected_fixed_time,
                                            close, open, most_passive_guppy, most_aggressive_guppy, passive_vegas,
@@ -4938,7 +4970,7 @@ class CurrencyTrader(threading.Thread):
                             #     print("Getting prepared")
                             #     print("")
 
-                            if quick_ready and (is_immediately_in or row[quick_immediate] or i > last_quick_ready):
+                            if quick_ready and (is_immediately_in or row[quick_immediate] or row[quick_immediate2] or i > last_quick_ready):
                                 # if row[enter_guppy]:
                                 #     quick_ready = False
                                 # elif row[passive_than_guppy]:
@@ -4962,13 +4994,13 @@ class CurrencyTrader(threading.Thread):
                                     if is_more_aggressive(row[most_passive_guppy], row['close'], side):
 
 
-                                        if (not tightened_quick_stop_loss) or (row[quick_immediate] or (
+                                        if (not tightened_quick_stop_loss) or (row[quick_immediate] or row[quick_immediate2] or (
                                                 is_more_aggressive(quick_ready_price, row['close'], side) #and \
                                                 #last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
                                         )):
 
                                             quick_ready_number += 1
-                                            if quick_ready_number == 2 or (is_activate_second_entry_trading and row[quick_immediate]):  #Notice this change "or row[quick_immediate]"
+                                            if quick_ready_number == 2 or (is_activate_second_entry_trading and (row[quick_immediate] or row[quick_immediate2])):  #Notice this change "or row[quick_immediate]"
 
                                                 x.at[x.index[i], selected_quick] = 1
                                                 total_quick += 1
@@ -4987,7 +5019,10 @@ class CurrencyTrader(threading.Thread):
                                         #     print("row[quick_immediate] = " + str(row[quick_immediate]))
                                         #     print("row[num_guppy_bars] = " + str(row[num_guppy_bars]))
                                         #     print("")
-                                        if (is_reentry or is_activate_second_entry_reentry) and row[quick_immediate] and (row[num_guppy_bars] == 0 or is_activate_second_entry_reentry):
+
+                                        #if (is_reentry or is_activate_second_entry_reentry) and row[quick_immediate] and row[quick_immediate_allow_reentry] and (row[num_guppy_bars] == 0 or is_activate_second_entry_reentry):
+                                        if ((is_reentry and row[quick_immediate]) or (is_activate_second_entry_reentry and row[quick_immediate2])) and row[quick_immediate_allow_reentry] and (row[num_guppy_bars] == 0 or is_activate_second_entry_reentry):
+
                                             quick_immediate_stop_loss = True
 
                                             if is_activate_second_entry_reentry:
@@ -5174,6 +5209,8 @@ class CurrencyTrader(threading.Thread):
                                             'first_' + side + '_close_position_final_simple',
                                             'first_' + side + '_close_position_final_quick',
                                              side + '_close_position_final_quick_immediate',
+                                            side + '_close_position_final_quick_immediate2',
+                                            side + '_close_position_final_quick_immediate_allowReentry',
                                             'first_' + side + '_close_position_final_urgent',
                                             side + '_close_position_fixed_time',
                                             side + '_close_position_quick_fixed_time',
@@ -5255,6 +5292,8 @@ class CurrencyTrader(threading.Thread):
                                                     simple = 'first_' + side + '_close_position_final_simple',
                                                     quick = 'first_' + side + '_close_position_final_quick',
                                                     quick_immediate = side + '_close_position_final_quick_immediate',
+                                                    quick_immediate2 = side + '_close_position_final_quick_immediate2',
+                                                    quick_immediate_allow_reentry = side + '_close_position_final_quick_immediate_allowReentry',
                                                     urgent = 'first_' + side + '_close_position_final_urgent',
                                                     fixed_time = side + '_close_position_fixed_time',
                                                     quick_fixed_time = side + '_close_position_quick_fixed_time',
@@ -5319,7 +5358,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-            ############# Select which close points in the second phase to show ############################
+            ############# Select which close points in the second phase to show Frank############################
             if True:
 
 
