@@ -3764,6 +3764,9 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire_new']
                     self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire_new']
 
+                    self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
+                    self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
+
                     self.data_df = self.data_df.drop(columns = ['first_final_buy_fire_new', 'first_final_sell_fire_new'])
 
                 #######################################
@@ -3948,6 +3951,7 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['close'],
                     temp_df['buy_point_price']
                 )
+
 
                 temp_df['is_buy_fire2'] = np.nan
                 temp_df['is_buy_fire2'] = np.where(
@@ -4471,9 +4475,6 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['sell_close_position_final_quick_additional2'] = self.data_df['is_positive'] & (self.data_df['close'] > self.data_df['sell_point_support'])
 
 
-
-
-
                     #self.data_df['relaxed_long_condition_add'] = (self.data_df['ma_close30'] - self.data_df['highest_guppy'])*self.lot_size*self.exchange_rate > -5
                     #self.data_df['relaxed_short_condition_add'] = (self.data_df['ma_close30'] - self.data_df['lowest_guppy'])*self.lot_size*self.exchange_rate < 5
 
@@ -4494,7 +4495,21 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['sell_close_position_final_quick'] =\
                         self.data_df['sell_close_position_final_quick'] | self.data_df['sell_close_position_final_quick_additional'] | self.data_df['sell_close_position_final_quick_additional2']
 
-                    #Change the above to self.data_df['buy_close_position_final_quick'] = self.data_df['buy_close_position_final_quick_additional2']
+                    ####################### Only use this simple stop loss at certain conditions
+
+                    # self.data_df['buy_close_position_final_quick'] = np.where(
+                    #     self.data_df['close'] < (self.data_df['buy_point_price'] + self.data_df['buy_point_support']) / 2.0,
+                    #     self.data_df['buy_close_position_final_quick'],
+                    #     self.data_df['buy_close_position_final_quick_additional2']
+                    # )
+                    #
+                    # self.data_df['sell_close_position_final_quick'] = np.where(
+                    #     self.data_df['close'] > (self.data_df['sell_point_price'] + self.data_df['sell_point_support']) / 2.0,
+                    #     self.data_df['sell_close_position_final_quick'],
+                    #     self.data_df['sell_close_position_final_quick_additional2']
+                    # )
+                    ################################################################
+
 
 
                 self.data_df['buy_close_position_final_urgent'] = self.data_df['is_negative'] &\
@@ -5782,7 +5797,78 @@ class CurrencyTrader(threading.Thread):
                 # print(self.data_df[self.data_df['time'] == datetime(2021,6,1,7,0,0)][['time', 'show_sell_close_position_final_excessive1']])
                 #
 
+                ################ Entry points to follow the trend ####################
 
+
+
+                temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'bar_above_vegas', 'bar_below_vegas']]
+                temp_df['cum_bar_above_vegas'] = temp_df['bar_above_vegas'].cumsum()
+                temp_df['cum_bar_below_vegas'] = temp_df['bar_below_vegas'].cumsum()
+
+                temp_df['cum_bar_above_vegas_for_buy'] = np.where(
+                    temp_df['buy_point'] == 1,
+                    temp_df['cum_bar_above_vegas'],
+                    np.nan
+                )
+
+                temp_df['cum_bar_below_vegas_for_sell'] = np.where(
+                    temp_df['sell_point'] == 1,
+                    temp_df['cum_bar_below_vegas'],
+                    np.nan
+                )
+
+                temp_df = temp_df.fillna(method='ffill').fillna(0)
+
+                temp_df['num_bar_above_vegas_for_buy_new'] = temp_df['cum_bar_above_vegas'] - temp_df['cum_bar_above_vegas_for_buy']
+                temp_df['num_bar_below_vegas_for_sell_new'] = temp_df['cum_bar_below_vegas'] - temp_df['cum_bar_below_vegas_for_sell']
+
+                self.data_df['num_bar_above_vegas_for_buy_new'] = temp_df['num_bar_above_vegas_for_buy_new']
+                self.data_df['num_bar_below_vegas_for_sell_new'] = temp_df['num_bar_below_vegas_for_sell_new']
+
+
+                self.data_df['final_buy_fire_trend'] = ((self.data_df['num_bar_below_vegas_for_sell_new'] == 0) & self.data_df['sell_close_position_final_quick_additional2'])
+                self.data_df['final_sell_fire_trend'] = ((self.data_df['num_bar_above_vegas_for_buy_new'] == 0) & self.data_df['buy_close_position_final_quick_additional2'])
+
+                temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'final_buy_fire_trend', 'final_sell_fire_trend']]
+
+                temp_df['cum_final_buy_fire_trend'] = temp_df['final_buy_fire_trend'].cumsum()
+                temp_df['cum_final_sell_fire_trend'] = temp_df['final_sell_fire_trend'].cumsum()
+
+                temp_df['cum_final_buy_fire_trend_for_sell'] = np.where(
+                    temp_df['sell_point'] == 1,
+                    temp_df['cum_final_buy_fire_trend'],
+                    np.nan
+                )
+
+
+
+                temp_df['cum_final_sell_fire_trend_for_buy'] = np.where(
+                    temp_df['buy_point'] == 1,
+                    temp_df['cum_final_sell_fire_trend'],
+                    np.nan
+                )
+
+                temp_df = temp_df.fillna(method='ffill').fillna(0)
+
+                temp_df['num_final_buy_fire_trend'] = temp_df['cum_final_buy_fire_trend'] - temp_df['cum_final_buy_fire_trend_for_sell']
+                temp_df['num_final_sell_fire_trend'] = temp_df['cum_final_sell_fire_trend'] - temp_df['cum_final_sell_fire_trend_for_buy']
+
+
+
+                self.data_df['num_final_buy_fire_trend'] = temp_df['num_final_buy_fire_trend']
+                self.data_df['num_final_sell_fire_trend'] = temp_df['num_final_sell_fire_trend']
+
+                self.data_df['final_buy_fire_trend_raw'] = self.data_df['final_buy_fire_trend']
+                self.data_df['final_sell_fire_trend_raw'] = self.data_df['final_sell_fire_trend']
+
+                self.data_df['final_buy_fire_trend'] = self.data_df['final_buy_fire_trend'] & (self.data_df['num_final_buy_fire_trend'] == 1)
+                self.data_df['final_sell_fire_trend'] = self.data_df['final_sell_fire_trend'] & (self.data_df['num_final_sell_fire_trend'] == 1)
+
+                self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] | self.data_df['final_buy_fire_trend']
+                self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] | self.data_df['final_sell_fire_trend']
+
+
+                #############################################################################################
 
 
             ################################################################################################
