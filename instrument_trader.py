@@ -164,12 +164,13 @@ hours_close_position_quick = [16]
 hours_close_position = [0] #23
 
 
+#################
 is_clean_redundant_entry_point = True
 is_only_allow_second_entry = True
 
 is_activate_second_entry_trading = True
 is_second_entry_reentry = True
-
+###################
 
 
 is_activate_second_entry_reentry = is_activate_second_entry_trading and is_second_entry_reentry
@@ -3817,36 +3818,37 @@ class CurrencyTrader(threading.Thread):
 
 
             #######################
-            temp_adjust_df = self.data_df[['time', 'id', 'buy_point', 'sell_point',
-                                           'cum_bar_above_vegas', 'cum_bar_below_vegas',
-                                           'prev_cum_bar_above_vegas', 'prev_cum_bar_below_vegas'
-                                           ]]
+            if is_activate_second_entry_reentry: #Fuck Error
+                temp_adjust_df = self.data_df[['time', 'id', 'buy_point', 'sell_point',
+                                               'cum_bar_above_vegas', 'cum_bar_below_vegas',
+                                               'prev_cum_bar_above_vegas', 'prev_cum_bar_below_vegas'
+                                               ]]
 
-            temp_adjust_df['prev_cum_bar_above_vegas_for_buy'] = np.where(
-                    temp_adjust_df['buy_point'] == 1,
-                    temp_adjust_df['prev_cum_bar_above_vegas'],
+                temp_adjust_df['prev_cum_bar_above_vegas_for_buy'] = np.where(
+                        temp_adjust_df['buy_point'] == 1,
+                        temp_adjust_df['prev_cum_bar_above_vegas'],
+                        np.nan
+                    )
+
+                temp_adjust_df['prev_cum_bar_below_vegas_for_sell'] = np.where(
+                    temp_adjust_df['sell_point'] == 1,
+                    temp_adjust_df['prev_cum_bar_below_vegas'],
                     np.nan
                 )
 
-            temp_adjust_df['prev_cum_bar_below_vegas_for_sell'] = np.where(
-                temp_adjust_df['sell_point'] == 1,
-                temp_adjust_df['prev_cum_bar_below_vegas'],
-                np.nan
-            )
+                temp_adjust_df = temp_adjust_df.fillna(method='ffill').fillna(0)
 
-            temp_adjust_df = temp_adjust_df.fillna(method='ffill').fillna(0)
+                temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
+                temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
 
-            temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
-            temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
+                temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
+                temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
 
-            temp_adjust_df['num_bar_above_vegas_for_buy'] = temp_adjust_df['cum_bar_above_vegas'] - temp_adjust_df['prev_cum_bar_above_vegas_for_buy']
-            temp_adjust_df['num_bar_below_vegas_for_sell'] = temp_adjust_df['cum_bar_below_vegas'] - temp_adjust_df['prev_cum_bar_below_vegas_for_sell']
+                self.data_df['num_bar_above_vegas_for_buy_new'] = temp_adjust_df['num_bar_above_vegas_for_buy']
+                self.data_df['num_bar_below_vegas_for_sell_new'] = temp_adjust_df['num_bar_below_vegas_for_sell']
 
-            self.data_df['num_bar_above_vegas_for_buy_new'] = temp_adjust_df['num_bar_above_vegas_for_buy']
-            self.data_df['num_bar_below_vegas_for_sell_new'] = temp_adjust_df['num_bar_below_vegas_for_sell']
-
-            self.data_df['prev_num_bar_above_vegas_for_buy_new'] = self.data_df['num_bar_above_vegas_for_buy_new'].shift(1)
-            self.data_df['prev_num_bar_below_vegas_for_sell_new'] = self.data_df['num_bar_below_vegas_for_sell_new'].shift(1)
+                self.data_df['prev_num_bar_above_vegas_for_buy_new'] = self.data_df['num_bar_above_vegas_for_buy_new'].shift(1)
+                self.data_df['prev_num_bar_below_vegas_for_sell_new'] = self.data_df['num_bar_below_vegas_for_sell_new'].shift(1)
 
 
             #######################
@@ -5800,72 +5802,76 @@ class CurrencyTrader(threading.Thread):
                 ################ Entry points to follow the trend ####################
 
 
+                if is_activate_second_entry_reentry:
+                    temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'bar_above_vegas', 'bar_below_vegas']]
+                    temp_df['cum_bar_above_vegas'] = temp_df['bar_above_vegas'].cumsum()
+                    temp_df['cum_bar_below_vegas'] = temp_df['bar_below_vegas'].cumsum()
 
-                temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'bar_above_vegas', 'bar_below_vegas']]
-                temp_df['cum_bar_above_vegas'] = temp_df['bar_above_vegas'].cumsum()
-                temp_df['cum_bar_below_vegas'] = temp_df['bar_below_vegas'].cumsum()
+                    temp_df['cum_bar_above_vegas_for_buy'] = np.where(
+                        temp_df['buy_point'] == 1,
+                        temp_df['cum_bar_above_vegas'],
+                        np.nan
+                    )
 
-                temp_df['cum_bar_above_vegas_for_buy'] = np.where(
-                    temp_df['buy_point'] == 1,
-                    temp_df['cum_bar_above_vegas'],
-                    np.nan
-                )
+                    temp_df['cum_bar_below_vegas_for_sell'] = np.where(
+                        temp_df['sell_point'] == 1,
+                        temp_df['cum_bar_below_vegas'],
+                        np.nan
+                    )
 
-                temp_df['cum_bar_below_vegas_for_sell'] = np.where(
-                    temp_df['sell_point'] == 1,
-                    temp_df['cum_bar_below_vegas'],
-                    np.nan
-                )
+                    temp_df = temp_df.fillna(method='ffill').fillna(0)
 
-                temp_df = temp_df.fillna(method='ffill').fillna(0)
+                    temp_df['num_bar_above_vegas_for_buy_new'] = temp_df['cum_bar_above_vegas'] - temp_df['cum_bar_above_vegas_for_buy']
+                    temp_df['num_bar_below_vegas_for_sell_new'] = temp_df['cum_bar_below_vegas'] - temp_df['cum_bar_below_vegas_for_sell']
 
-                temp_df['num_bar_above_vegas_for_buy_new'] = temp_df['cum_bar_above_vegas'] - temp_df['cum_bar_above_vegas_for_buy']
-                temp_df['num_bar_below_vegas_for_sell_new'] = temp_df['cum_bar_below_vegas'] - temp_df['cum_bar_below_vegas_for_sell']
-
-                self.data_df['num_bar_above_vegas_for_buy_new'] = temp_df['num_bar_above_vegas_for_buy_new']
-                self.data_df['num_bar_below_vegas_for_sell_new'] = temp_df['num_bar_below_vegas_for_sell_new']
-
-
-                self.data_df['final_buy_fire_trend'] = ((self.data_df['num_bar_below_vegas_for_sell_new'] == 0) & self.data_df['sell_close_position_final_quick_additional2'])
-                self.data_df['final_sell_fire_trend'] = ((self.data_df['num_bar_above_vegas_for_buy_new'] == 0) & self.data_df['buy_close_position_final_quick_additional2'])
-
-                temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'final_buy_fire_trend', 'final_sell_fire_trend']]
-
-                temp_df['cum_final_buy_fire_trend'] = temp_df['final_buy_fire_trend'].cumsum()
-                temp_df['cum_final_sell_fire_trend'] = temp_df['final_sell_fire_trend'].cumsum()
-
-                temp_df['cum_final_buy_fire_trend_for_sell'] = np.where(
-                    temp_df['sell_point'] == 1,
-                    temp_df['cum_final_buy_fire_trend'],
-                    np.nan
-                )
+                    self.data_df['num_bar_above_vegas_for_buy_new'] = temp_df['num_bar_above_vegas_for_buy_new']
+                    self.data_df['num_bar_below_vegas_for_sell_new'] = temp_df['num_bar_below_vegas_for_sell_new']
 
 
+                    #self.data_df['final_buy_fire_trend'] = ((self.data_df['num_bar_below_vegas_for_sell_new'] == 0) & self.data_df['sell_close_position_final_quick_additional2'])
+                    #self.data_df['final_sell_fire_trend'] = ((self.data_df['num_bar_above_vegas_for_buy_new'] == 0) & self.data_df['buy_close_position_final_quick_additional2'])
 
-                temp_df['cum_final_sell_fire_trend_for_buy'] = np.where(
-                    temp_df['buy_point'] == 1,
-                    temp_df['cum_final_sell_fire_trend'],
-                    np.nan
-                )
+                    self.data_df['final_buy_fire_trend'] = self.data_df['sell_close_position_final_quick_additional2']
+                    self.data_df['final_sell_fire_trend'] = self.data_df['buy_close_position_final_quick_additional2']
 
-                temp_df = temp_df.fillna(method='ffill').fillna(0)
 
-                temp_df['num_final_buy_fire_trend'] = temp_df['cum_final_buy_fire_trend'] - temp_df['cum_final_buy_fire_trend_for_sell']
-                temp_df['num_final_sell_fire_trend'] = temp_df['cum_final_sell_fire_trend'] - temp_df['cum_final_sell_fire_trend_for_buy']
+                    temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'final_buy_fire_trend', 'final_sell_fire_trend']]
+
+                    temp_df['cum_final_buy_fire_trend'] = temp_df['final_buy_fire_trend'].cumsum()
+                    temp_df['cum_final_sell_fire_trend'] = temp_df['final_sell_fire_trend'].cumsum()
+
+                    temp_df['cum_final_buy_fire_trend_for_sell'] = np.where(
+                        temp_df['sell_point'] == 1,
+                        temp_df['cum_final_buy_fire_trend'],
+                        np.nan
+                    )
 
 
 
-                self.data_df['num_final_buy_fire_trend'] = temp_df['num_final_buy_fire_trend']
-                self.data_df['num_final_sell_fire_trend'] = temp_df['num_final_sell_fire_trend']
+                    temp_df['cum_final_sell_fire_trend_for_buy'] = np.where(
+                        temp_df['buy_point'] == 1,
+                        temp_df['cum_final_sell_fire_trend'],
+                        np.nan
+                    )
 
-                self.data_df['final_buy_fire_trend_raw'] = self.data_df['final_buy_fire_trend']
-                self.data_df['final_sell_fire_trend_raw'] = self.data_df['final_sell_fire_trend']
+                    temp_df = temp_df.fillna(method='ffill').fillna(0)
 
-                self.data_df['final_buy_fire_trend'] = self.data_df['final_buy_fire_trend'] & (self.data_df['num_final_buy_fire_trend'] == 1)
-                self.data_df['final_sell_fire_trend'] = self.data_df['final_sell_fire_trend'] & (self.data_df['num_final_sell_fire_trend'] == 1)
+                    temp_df['num_final_buy_fire_trend'] = temp_df['cum_final_buy_fire_trend'] - temp_df['cum_final_buy_fire_trend_for_sell']
+                    temp_df['num_final_sell_fire_trend'] = temp_df['cum_final_sell_fire_trend'] - temp_df['cum_final_sell_fire_trend_for_buy']
 
-                self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] | self.data_df['final_buy_fire_trend']
-                self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] | self.data_df['final_sell_fire_trend']
+
+
+                    self.data_df['num_final_buy_fire_trend'] = temp_df['num_final_buy_fire_trend']
+                    self.data_df['num_final_sell_fire_trend'] = temp_df['num_final_sell_fire_trend']
+
+                    self.data_df['final_buy_fire_trend_raw'] = self.data_df['final_buy_fire_trend']
+                    self.data_df['final_sell_fire_trend_raw'] = self.data_df['final_sell_fire_trend']
+
+                    self.data_df['final_buy_fire_trend'] = self.data_df['final_buy_fire_trend'] & (self.data_df['num_final_buy_fire_trend'] == 1)
+                    self.data_df['final_sell_fire_trend'] = self.data_df['final_sell_fire_trend'] & (self.data_df['num_final_sell_fire_trend'] == 1)
+
+                    self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] | self.data_df['final_buy_fire_trend']
+                    self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] | self.data_df['final_sell_fire_trend']
 
 
                 #############################################################################################
