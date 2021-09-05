@@ -5831,8 +5831,21 @@ class CurrencyTrader(threading.Thread):
                     #self.data_df['final_buy_fire_trend'] = ((self.data_df['num_bar_below_vegas_for_sell_new'] == 0) & self.data_df['sell_close_position_final_quick_additional2'])
                     #self.data_df['final_sell_fire_trend'] = ((self.data_df['num_bar_above_vegas_for_buy_new'] == 0) & self.data_df['buy_close_position_final_quick_additional2'])
 
-                    self.data_df['final_buy_fire_trend'] = self.data_df['sell_close_position_final_quick_additional2']
-                    self.data_df['final_sell_fire_trend'] = self.data_df['buy_close_position_final_quick_additional2']
+
+
+                    #self.data_df['final_buy_fire_trend'] = self.data_df['sell_close_position_final_quick_additional2']
+                    #self.data_df['final_sell_fire_trend'] = self.data_df['buy_close_position_final_quick_additional2']
+
+
+                    self.data_df['final_buy_fire_trend'] = self.data_df['sell_close_position_final_quick_additional'] | self.data_df['sell_close_position_final_quick_additional2']
+                    self.data_df['final_sell_fire_trend'] = self.data_df['buy_close_position_final_quick_additional'] | self.data_df['buy_close_position_final_quick_additional2']
+
+                    #'first_selected_' + side + '_close_position_final_quick'
+                    # self.data_df['final_buy_fire_trend'] = self.data_df['first_selected_sell_close_position_final_quick'] |\
+                    #                                        self.data_df['sell_close_position_final_quick_additional'] | self.data_df['sell_close_position_final_quick_additional2']
+                    # self.data_df['final_sell_fire_trend'] = self.data_df['first_selected_buy_close_position_final_quick'] |\
+                    #                                         self.data_df['buy_close_position_final_quick_additional'] | self.data_df['buy_close_position_final_quick_additional2']
+
 
 
                     temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'final_buy_fire_trend', 'final_sell_fire_trend']]
@@ -5867,8 +5880,65 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['final_buy_fire_trend_raw'] = self.data_df['final_buy_fire_trend']
                     self.data_df['final_sell_fire_trend_raw'] = self.data_df['final_sell_fire_trend']
 
-                    self.data_df['final_buy_fire_trend'] = self.data_df['final_buy_fire_trend'] & (self.data_df['num_final_buy_fire_trend'] == 1)
-                    self.data_df['final_sell_fire_trend'] = self.data_df['final_sell_fire_trend'] & (self.data_df['num_final_sell_fire_trend'] == 1)
+                    self.data_df['final_buy_fire_trend'] = self.data_df['final_buy_fire_trend'] & (self.data_df['num_final_buy_fire_trend'] == 1) #==1  <20
+                    self.data_df['final_sell_fire_trend'] = self.data_df['final_sell_fire_trend'] & (self.data_df['num_final_sell_fire_trend'] == 1) #==1  <20
+
+                    ############# Added code to capture retrace and break out again opportunity #################
+                    # temp_df = self.data_df[['id', 'final_buy_fire_trend', 'final_sell_fire_trend', 'buy_point_support', 'sell_point_support',
+                    #                         'max_price', 'min_price']]
+                    #
+                    # temp_df['sell_retrace'] = temp_df['min_price'] > temp_df['buy_point_support']
+                    # temp_df['buy_retrace'] = temp_df['max_price'] < temp_df['sell_point_support']
+                    #
+                    # temp_df['cum_sell_retrace'] = temp_df['sell_retrace'].cumsum()
+                    # temp_df['cum_buy_retrace'] = temp_df['buy_retrace'].cumsum()
+                    #
+                    # temp_df['cum_sell_retrace_for_sell'] = np.where(
+                    #     temp_df['final_sell_fire_trend'],
+                    #     temp_df['cum_sell_retrace'],
+                    #     np.nan
+                    # )
+                    #
+                    # temp_df['cum_buy_retrace_for_buy'] = np.where(
+                    #     temp_df['final_buy_fire_trend'],
+                    #     temp_df['cum_buy_retrace'],
+                    #     np.nan
+                    # )
+                    #
+                    # temp_df = temp_df.fillna(method='ffill').fillna(0)
+                    #
+                    # temp_df['num_sell_retrace_for_sell'] = temp_df['cum_sell_retrace'] - temp_df['cum_sell_retrace_for_sell']
+                    # temp_df['num_buy_retrace_for_buy'] = temp_df['cum_buy_retrace'] - temp_df['cum_buy_retrace_for_buy']
+                    #
+                    # self.data_df['cum_sell_retrace_for_sell'] = temp_df['cum_sell_retrace_for_sell']
+                    # self.data_df['cum_buy_retrace_for_buy'] = temp_df['cum_buy_retrace_for_buy']
+                    #
+                    # self.data_df['cum_sell_retrace'] = temp_df['cum_sell_retrace']
+                    # self.data_df['cum_buy_retrace'] = temp_df['cum_buy_retrace']
+                    #
+                    #
+                    # self.data_df['num_sell_retrace_for_sell'] = temp_df['num_sell_retrace_for_sell']
+                    # self.data_df['num_buy_retrace_for_buy'] = temp_df['num_buy_retrace_for_buy']
+                    #
+                    # self.data_df['prev_num_sell_retrace_for_sell'] = self.data_df['num_sell_retrace_for_sell'].shift(1)
+                    # self.data_df['prev_num_buy_retrace_for_buy'] = self.data_df['num_buy_retrace_for_buy'].shift(1)
+                    #
+                    #
+                    # self.data_df['final_buy_fire_trend_raw2'] = self.data_df['final_buy_fire_trend']
+                    # self.data_df['final_sell_fire_trend_raw2'] = self.data_df['final_sell_fire_trend']
+                    #
+                    # self.data_df['final_buy_fire_trend'] = self.data_df['final_buy_fire_trend'] &\
+                    #                                        ((self.data_df['num_final_buy_fire_trend'] == 1) | (self.data_df['prev_num_buy_retrace_for_buy'] > 2))
+                    #
+                    # self.data_df['final_sell_fire_trend'] = self.data_df['final_sell_fire_trend'] &\
+                    #                                        ((self.data_df['num_final_sell_fire_trend'] == 1) | (self.data_df['prev_num_sell_retrace_for_sell'] > 2))
+                    #
+
+
+
+                    #############################################################################################
+
+
 
                     self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] | self.data_df['final_buy_fire_trend']
                     self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] | self.data_df['final_sell_fire_trend']
