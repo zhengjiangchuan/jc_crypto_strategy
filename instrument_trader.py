@@ -178,6 +178,8 @@ is_activate_second_entry_reentry = is_activate_second_entry_trading and is_secon
 aligned_conditions21_threshold = 5  #5 by default
 
 
+is_use_two_trend_following = False
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
@@ -4242,7 +4244,7 @@ class CurrencyTrader(threading.Thread):
 
                 #self.data_df['sell_close_position_guppy'] = self.data_df['sell_close_position_guppy1'] | self.data_df['sell_close_position_guppy2']
 
-
+                #Vegas Close
                 self.data_df['buy_close_position_vegas'] = (self.data_df['is_negative']) & \
                                                            ((self.data_df['close'] - self.data_df['lower_vegas'])*self.lot_size*self.exchange_rate < -20) &\
                                                            ((self.data_df['high'] > self.data_df['lower_vegas']) | (self.data_df['prev_high'] > self.data_df['lower_vegas'])) &\
@@ -5840,6 +5842,10 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['final_buy_fire_trend1'] = self.data_df['sell_close_position_final_quick_additional']
                     self.data_df['final_sell_fire_trend1'] = self.data_df['buy_close_position_final_quick_additional']
 
+                    if not is_use_two_trend_following:
+                        self.data_df['final_buy_fire_trend1'] = self.data_df['final_buy_fire_trend1'] | self.data_df['sell_close_position_final_quick_additional2']
+                        self.data_df['final_sell_fire_trend1'] = self.data_df['final_sell_fire_trend1'] | self.data_df['buy_close_position_final_quick_additional2']
+
                     self.data_df['final_buy_fire_trend2'] = self.data_df['sell_close_position_final_quick_additional2']
                     self.data_df['final_sell_fire_trend2'] = self.data_df['buy_close_position_final_quick_additional2']
 
@@ -5919,10 +5925,14 @@ class CurrencyTrader(threading.Thread):
                     #                                         ((self.data_df['num_final_sell_fire_trend1'] == 1) | (self.data_df['num_final_sell_fire_trend2'] == 1)) #==1  <20
 
 
-                    self.data_df['final_buy_fire_trend'] = (self.data_df['final_buy_fire_trend1'] & (self.data_df['num_final_buy_fire_trend1'] == 1)) |\
-                                                             (self.data_df['final_buy_fire_trend2'] & (self.data_df['num_final_buy_fire_trend2'] == 1)) #==1  <20
-                    self.data_df['final_sell_fire_trend'] = (self.data_df['final_sell_fire_trend1'] & (self.data_df['num_final_sell_fire_trend1'] == 1)) |\
-                                                             (self.data_df['final_sell_fire_trend2'] & (self.data_df['num_final_sell_fire_trend2'] == 1)) #==1  <20
+                    if is_use_two_trend_following:
+                        self.data_df['final_buy_fire_trend'] = (self.data_df['final_buy_fire_trend1'] & (self.data_df['num_final_buy_fire_trend1'] == 1)) |\
+                                                                 (self.data_df['final_buy_fire_trend2'] & (self.data_df['num_final_buy_fire_trend2'] == 1)) #==1  <20
+                        self.data_df['final_sell_fire_trend'] = (self.data_df['final_sell_fire_trend1'] & (self.data_df['num_final_sell_fire_trend1'] == 1)) |\
+                                                                 (self.data_df['final_sell_fire_trend2'] & (self.data_df['num_final_sell_fire_trend2'] == 1)) #==1  <20
+                    else:
+                        self.data_df['final_buy_fire_trend'] = (self.data_df['final_buy_fire_trend1'] & (self.data_df['num_final_buy_fire_trend1'] == 1))
+                        self.data_df['final_sell_fire_trend'] = (self.data_df['final_sell_fire_trend1'] & (self.data_df['num_final_sell_fire_trend1'] == 1))
 
 
 
