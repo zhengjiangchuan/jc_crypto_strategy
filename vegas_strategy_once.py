@@ -86,7 +86,11 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['USDCAD', 'AUDCAD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['USDCAD', 'AUDCAD', 'AUDJPY', 'AUDCHF'])]
+
+#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
+
+
 
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCAD', 'AUDCHF', 'CADCHF', 'CADJPY', 'EURGBP','GBPCHF'])]
 
@@ -456,7 +460,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\0907\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_check"
+    dest_folder = "C:\\Forex\\new_experiments\\0909\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned"
     #dest_folder = "C:\\Forex\\new_experiments\\0904\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines"
 
 

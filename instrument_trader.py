@@ -672,6 +672,10 @@ class CurrencyTrader(threading.Thread):
 
             aligned_long_conditions1 = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
                                        range(len(guppy_lines) - 1)]
+
+            aligned_long_conditions1_relaxed = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]] - 5/(self.exchange_rate*self.lot_size)) for i in
+                                       range(len(guppy_lines) - 1)]
+
             aligned_long_conditions_go_on = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in range(3,5)] + \
                                             [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines[4:]]
             #all_up_conditions = [(self.data_df[guppy_line + '_gradient'] > 0) for guppy_line in guppy_lines]
@@ -701,9 +705,12 @@ class CurrencyTrader(threading.Thread):
             strongly_relaxed_aligned_long_condition = aligned_long_condition4
             strongly_long_condition = aligned_long_condition5
 
+
             relaxed_long_condition = reduce(lambda left, right: left & right, aligned_long_conditions1[0:4]) &\
                                       reduce(lambda left, right: left | right, [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate >= -1) for guppy_line in guppy_lines[0:3]])
 
+            almost_aligned_long_condition1 = reduce(lambda left, right: left & right, aligned_long_conditions1_relaxed[0:-1])
+            almost_aligned_long_condition2 = reduce(lambda left, right: left & right, aligned_long_conditions1_relaxed[1:])
 
             self.data_df['is_guppy_aligned_long'] = aligned_long_condition1 #| aligned_long_condition2
             self.data_df['aligned_long_condition_go_on'] = aligned_long_condition_go_on
@@ -714,10 +721,16 @@ class CurrencyTrader(threading.Thread):
             self.data_df['strongly_relaxed_aligned_long_condition'] = strongly_relaxed_aligned_long_condition
             self.data_df['strongly_long_condition'] = strongly_long_condition
             self.data_df['relaxed_long_condition'] = relaxed_long_condition
+            self.data_df['almost_aligned_long_condition1'] = almost_aligned_long_condition1
+            self.data_df['almost_aligned_long_condition2'] = almost_aligned_long_condition2
 
 
             aligned_short_conditions1 = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                         range(len(guppy_lines) - 1)]
+
+            aligned_short_conditions1_relaxed = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]] + 5/(self.exchange_rate * self.lot_size)) for i in
+                                        range(len(guppy_lines) - 1)]
+
             aligned_short_conditions_go_on = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in range(3,5)] + \
                                             [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines[4:]]
             #all_down_conditions = [(self.data_df[guppy_line + '_gradient'] < 0) for guppy_line in guppy_lines]
@@ -751,6 +764,38 @@ class CurrencyTrader(threading.Thread):
             relaxed_short_condition = reduce(lambda left, right: left & right, aligned_short_conditions1[0:4]) &\
                                       reduce(lambda left, right: left | right, [(self.data_df[guppy_line + '_gradient']*self.lot_size*self.exchange_rate <= 1) for guppy_line in guppy_lines[0:3]])
 
+            almost_aligned_short_condition1 = reduce(lambda left, right: left & right, aligned_short_conditions1_relaxed[0:-1])
+            almost_aligned_short_condition2 = reduce(lambda left, right: left & right, aligned_short_conditions1_relaxed[1:])
+
+            #almost_aligned_short_condition11 = reduce(lambda left, right: left & right, aligned_short_conditions1[0:4])
+
+            # print("Checking bugs:")
+            # j = 1679
+            # print("time = " + str(self.data_df.iloc[j]['time']))
+            #
+            # for i in range(len(guppy_lines)):
+            #     print("i = " + str(i))
+            #     print(self.data_df.iloc[j][guppy_lines[i]])
+            #
+            # print("")
+            # for i in range(len(guppy_lines) - 1):
+            #     print("i = " + str(i))
+            #     print((self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]])[j])
+            #
+            # print("")
+            # for i in range(len(guppy_lines) - 1):
+            #     print("i = " + str(i))
+            #     print(aligned_short_conditions1[i][j])
+            #
+            # print("")
+            # print(almost_aligned_short_condition1[j])
+            #
+            # print("")
+            # print(almost_aligned_short_condition11[j])
+
+            #sys.exit(0)
+
+
 
             self.data_df['is_guppy_aligned_short'] = aligned_short_condition1 # | aligned_short_condition2
             self.data_df['aligned_short_condition_go_on'] = aligned_short_condition_go_on
@@ -761,6 +806,17 @@ class CurrencyTrader(threading.Thread):
             self.data_df['strongly_relaxed_aligned_short_condition'] = strongly_relaxed_aligned_short_condition
             self.data_df['strongly_short_condition'] = strongly_short_condition
             self.data_df['relaxed_short_condition'] = relaxed_short_condition
+            self.data_df['almost_aligned_short_condition1'] = almost_aligned_short_condition1
+            self.data_df['almost_aligned_short_condition2'] = almost_aligned_short_condition2
+
+
+            # print("why why?")
+            # print(self.data_df.iloc[1675:1682][['time','almost_aligned_short_condition1']])
+
+            #sys.exit(0)
+
+
+
 
             df_temp = self.data_df[guppy_lines]
             df_temp = df_temp.apply(sorted, axis=1).apply(pd.Series)
@@ -5803,6 +5859,10 @@ class CurrencyTrader(threading.Thread):
 
                 ################ Entry points to follow the trend ####################
 
+                # print("Follow the trend why why?")
+                # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
+
+                #sys.exit(0)
 
                 if is_activate_second_entry_reentry:
                     temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'bar_above_vegas', 'bar_below_vegas']]
@@ -5842,12 +5902,31 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['final_buy_fire_trend1'] = self.data_df['sell_close_position_final_quick_additional']
                     self.data_df['final_sell_fire_trend1'] = self.data_df['buy_close_position_final_quick_additional']
 
-                    if not is_use_two_trend_following:
-                        self.data_df['final_buy_fire_trend1'] = self.data_df['final_buy_fire_trend1'] | self.data_df['sell_close_position_final_quick_additional2']
-                        self.data_df['final_sell_fire_trend1'] = self.data_df['final_sell_fire_trend1'] | self.data_df['buy_close_position_final_quick_additional2']
 
-                    self.data_df['final_buy_fire_trend2'] = self.data_df['sell_close_position_final_quick_additional2']
-                    self.data_df['final_sell_fire_trend2'] = self.data_df['buy_close_position_final_quick_additional2']
+                    self.data_df['sell_close_position_final_quick_additional2_selected'] = \
+                        self.data_df['sell_close_position_final_quick_additional2'] & (self.data_df['ma_close12'] > self.data_df['ma_close30']) &\
+                        (self.data_df['almost_aligned_long_condition1'] | self.data_df['almost_aligned_long_condition2'])
+
+
+                    self.data_df['buy_close_position_final_quick_additional2_selected'] = \
+                        self.data_df['buy_close_position_final_quick_additional2'] & (self.data_df['ma_close12'] < self.data_df['ma_close30']) &\
+                        (self.data_df['almost_aligned_short_condition1'] | self.data_df['almost_aligned_short_condition2'])
+
+
+
+                    if not is_use_two_trend_following:
+                        self.data_df['final_buy_fire_trend1'] =\
+                            (self.data_df['final_buy_fire_trend1'] & (~self.data_df['sell_close_position_final_quick_additional2'])) |\
+                            self.data_df['sell_close_position_final_quick_additional2_selected']
+
+                        self.data_df['final_sell_fire_trend1'] =\
+                            (self.data_df['final_sell_fire_trend1'] & (~self.data_df['buy_close_position_final_quick_additional2'])) |\
+                            self.data_df['buy_close_position_final_quick_additional2_selected']
+
+                        #self.data_df['final_sell_fire_trend1'] = self.data_df['final_sell_fire_trend1'] | self.data_df['buy_close_position_final_quick_additional2_selected']
+
+                    self.data_df['final_buy_fire_trend2'] = self.data_df['sell_close_position_final_quick_additional2_selected']
+                    self.data_df['final_sell_fire_trend2'] = self.data_df['buy_close_position_final_quick_additional2_selected']
 
 
 
@@ -5996,6 +6075,8 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] | self.data_df['final_buy_fire_trend']
                     self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] | self.data_df['final_sell_fire_trend']
 
+                    # print("Follow the trend why why2?")
+                    # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
 
                 #############################################################################################
 
@@ -6123,6 +6204,9 @@ class CurrencyTrader(threading.Thread):
             #print("Time type: " + str(type(self.data_df.iloc[-1]['time'])))
 
             #self.data_df.tail(3).to_csv(os.path.join(self.data_folder, self.currency + str(100) + ".temp.csv"), index=False)
+
+            # print("Follow the trend why why3?")
+            # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
 
             self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + ".csv"), index=False)
             print("after to csv:")
