@@ -6078,6 +6078,92 @@ class CurrencyTrader(threading.Thread):
                     # print("Follow the trend why why2?")
                     # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
 
+
+                    #################################### Close Position Logic for Trend following signals (work today)########################
+                    temp_df = self.data_df[['id',
+                                            'sell_close_position_final_quick_additional2_selected', 'almost_aligned_long_condition1','almost_aligned_long_condition2',
+                                            'buy_close_position_final_quick_additional2_selected', 'almost_aligned_short_condition1','almost_aligned_short_condition2',
+                                            'ma_close12', 'highest_guppy', 'lowest_guppy', 'min_price', 'max_price',
+                                            'is_guppy_aligned_long', 'is_guppy_aligned_short', 'num_final_buy_fire_trend1', 'num_final_sell_fire_trend1'
+                                            ]]
+
+                    # temp_df['aligned_long_fail'] = ((~temp_df['almost_aligned_long_condition1']) | (~temp_df['almost_aligned_long_condition2'])) &\
+                    #                                (temp_df['min_price'] < temp_df['highest_guppy'])
+                    # temp_df['aligned_short_fail'] = ((~temp_df['almost_aligned_short_condition1']) | (~temp_df['almost_aligned_short_condition2'])) &\
+                    #                                (temp_df['max_price'] > temp_df['lowest_guppy'])
+
+
+                    temp_df['aligned_long_fail'] = (~temp_df['is_guppy_aligned_long']) &\
+                                                   (temp_df['min_price'] < temp_df['highest_guppy'])
+                    temp_df['aligned_short_fail'] = (~temp_df['is_guppy_aligned_short']) &\
+                                                   (temp_df['max_price'] > temp_df['lowest_guppy'])
+
+
+                    # temp_df['bar_enter_long_guppy'] = temp_df['min_price'] < temp_df['highest_guppy']
+                    # temp_df['bar_enter_short_guppy'] = temp_df['max_price'] > temp_df['lowest_guppy']
+
+
+                    temp_df['cum_aligned_long_fail'] = temp_df['aligned_long_fail'].cumsum()
+                    temp_df['cum_aligned_short_fail'] = temp_df['aligned_short_fail'].cumsum()
+
+                    # temp_df['cum_bar_enter_long_guppy'] = temp_df['bar_enter_long_guppy'].cumsum()
+                    # temp_df['cum_bar_enter_short_guppy'] = temp_df['bar_enter_short_guppy'].cumsum()
+
+
+
+                    temp_df['cum_aligned_long_fail_for_buy'] = np.where(
+                        temp_df['sell_close_position_final_quick_additional2_selected'] & (temp_df['num_final_buy_fire_trend1'] == 1),
+                        temp_df['cum_aligned_long_fail'],
+                        np.nan
+                    )
+
+                    temp_df['cum_aligned_short_fail_for_sell'] = np.where(
+                        temp_df['buy_close_position_final_quick_additional2_selected'] & (temp_df['num_final_sell_fire_trend1'] == 1),
+                        temp_df['cum_aligned_short_fail'],
+                        np.nan
+                    )
+
+
+                    # temp_df['cum_bar_enter_long_guppy_for_buy'] = np.where(
+                    #     temp_df['sell_close_position_final_quick_additional2_selected'],
+                    #     temp_df['cum_bar_enter_long_guppy'],
+                    #     np.nan
+                    # )
+                    #
+                    # temp_df['cum_bar_enter_short_guppy_for_sell'] = np.where(
+                    #     temp_df['buy_close_position_final_quick_additional2_selected'],
+                    #     temp_df['cum_bar_enter_short_guppy'],
+                    #     np.nan
+                    # )
+
+
+
+                    temp_df = temp_df.fillna(method='ffill').fillna(0)
+
+                    temp_df['num_aligned_long_fail_for_buy'] = temp_df['cum_aligned_long_fail'] - temp_df['cum_aligned_long_fail_for_buy']
+                    temp_df['num_aligned_short_fail_for_sell'] = temp_df['cum_aligned_short_fail'] - temp_df['cum_aligned_short_fail_for_sell']
+
+                    # temp_df['num_bar_enter_long_guppy_for_buy'] = temp_df['cum_bar_enter_long_guppy'] - temp_df['cum_bar_enter_long_guppy_for_buy']
+                    # temp_df['num_bar_enter_short_guppy_for_sell'] = temp_df['cum_bar_enter_short_guppy'] - temp_df['cum_bar_enter_short_guppy_for_sell']
+
+                    self.data_df['aligned_long_fail'] = temp_df['aligned_long_fail']
+                    self.data_df['aligned_short_fail'] = temp_df['aligned_short_fail']
+
+
+                    self.data_df['num_aligned_long_fail_for_buy'] = temp_df['num_aligned_long_fail_for_buy']
+                    self.data_df['num_aligned_short_fail_for_sell'] = temp_df['num_aligned_short_fail_for_sell']
+
+                    # self.data_df['num_bar_enter_long_guppy_for_buy'] = temp_df['num_bar_enter_long_guppy_for_buy']
+                    # self.data_df['num_bar_enter_short_guppy_for_sell'] = temp_df['num_bar_enter_short_guppy_for_sell']
+
+                    self.data_df['show_buy_fire_trend_close'] = self.data_df['num_aligned_long_fail_for_buy'] == 1
+                    self.data_df['show_sell_fire_trend_close'] = self.data_df['num_aligned_short_fail_for_sell'] == 1
+
+
+
+
+
+
                 #############################################################################################
 
 
