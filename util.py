@@ -690,7 +690,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
             if 'show_sell_fire_trend_close' in sub_data.columns:
                 for sell_close_point in show_sell_fire_trend_close_points:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
+                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'indigo')
 
 
 
@@ -829,7 +829,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
             if 'show_buy_fire_trend_close' in sub_data.columns:
                 for buy_close_point in show_buy_fire_trend_close_points:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
+                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'indigo')
 
 
             if 'show_buy_close_position_final_urgent' in sub_data.columns:

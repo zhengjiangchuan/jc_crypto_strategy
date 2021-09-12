@@ -6094,9 +6094,9 @@ class CurrencyTrader(threading.Thread):
 
 
                     temp_df['aligned_long_fail'] = (~temp_df['is_guppy_aligned_long']) &\
-                                                   (temp_df['min_price'] < temp_df['highest_guppy'])
+                                                   (temp_df['min_price'] < temp_df['highest_guppy']) #& temp_df['is_negative']  #For EURUSD case
                     temp_df['aligned_short_fail'] = (~temp_df['is_guppy_aligned_short']) &\
-                                                   (temp_df['max_price'] > temp_df['lowest_guppy'])
+                                                   (temp_df['max_price'] > temp_df['lowest_guppy'])  #& temp_df['is_positive']
 
 
                     # temp_df['bar_enter_long_guppy'] = temp_df['min_price'] < temp_df['highest_guppy']
@@ -6150,14 +6150,38 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['aligned_short_fail'] = temp_df['aligned_short_fail']
 
 
+
                     self.data_df['num_aligned_long_fail_for_buy'] = temp_df['num_aligned_long_fail_for_buy']
                     self.data_df['num_aligned_short_fail_for_sell'] = temp_df['num_aligned_short_fail_for_sell']
 
                     # self.data_df['num_bar_enter_long_guppy_for_buy'] = temp_df['num_bar_enter_long_guppy_for_buy']
                     # self.data_df['num_bar_enter_short_guppy_for_sell'] = temp_df['num_bar_enter_short_guppy_for_sell']
 
-                    self.data_df['show_buy_fire_trend_close'] = self.data_df['num_aligned_long_fail_for_buy'] == 1
-                    self.data_df['show_sell_fire_trend_close'] = self.data_df['num_aligned_short_fail_for_sell'] == 1
+                    self.data_df['buy_fire_trend_close'] = self.data_df['num_aligned_long_fail_for_buy'] == 1
+                    self.data_df['sell_fire_trend_close'] = self.data_df['num_aligned_short_fail_for_sell'] == 1
+
+
+                    self.data_df['prev_buy_fire_trend_close'] = self.data_df['buy_fire_trend_close'].shift(1)
+                    self.data_df.at[0, 'prev_buy_fire_trend_close'] = False
+                    self.data_df['prev_buy_fire_trend_close'] = pd.Series(list(self.data_df['prev_buy_fire_trend_close']), dtype='bool')
+                    self.data_df['show_buy_fire_trend_close'] = self.data_df['buy_fire_trend_close'] & (~self.data_df['prev_buy_fire_trend_close'])
+
+                    self.data_df['prev_sell_fire_trend_close'] = self.data_df['sell_fire_trend_close'].shift(1)
+                    self.data_df.at[0, 'prev_sell_fire_trend_close'] = False
+                    self.data_df['prev_sell_fire_trend_close'] = pd.Series(list(self.data_df['prev_sell_fire_trend_close']), dtype='bool')
+                    self.data_df['show_sell_fire_trend_close'] = self.data_df['sell_fire_trend_close'] & (~self.data_df['prev_sell_fire_trend_close'])
+
+
+
+
+                    ###################Example ###############
+
+                    # self.data_df['prev_final_buy_fire'] = self.data_df['final_buy_fire'].shift(1)
+                    # self.data_df.at[0, 'prev_final_buy_fire'] = False
+                    # self.data_df['prev_final_buy_fire'] = pd.Series(list(self.data_df['prev_final_buy_fire']), dtype='bool')
+                    # self.data_df['first_final_buy_fire'] = self.data_df['final_buy_fire'] & (~self.data_df['prev_final_buy_fire'])
+
+                    ####################
 
 
 
