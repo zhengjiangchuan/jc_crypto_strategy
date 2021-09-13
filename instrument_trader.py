@@ -6084,44 +6084,85 @@ class CurrencyTrader(threading.Thread):
                                             'sell_close_position_final_quick_additional2_selected', 'almost_aligned_long_condition1','almost_aligned_long_condition2',
                                             'buy_close_position_final_quick_additional2_selected', 'almost_aligned_short_condition1','almost_aligned_short_condition2',
                                             'ma_close12', 'highest_guppy', 'lowest_guppy', 'min_price', 'max_price',
-                                            'is_guppy_aligned_long', 'is_guppy_aligned_short', 'num_final_buy_fire_trend1', 'num_final_sell_fire_trend1'
+                                            'is_guppy_aligned_long', 'is_guppy_aligned_short', 'num_final_buy_fire_trend1', 'num_final_sell_fire_trend1',
+                                            'high', 'low', 'prev_upper_band_close', 'prev_lower_band_close', 'close'
                                             ]]
+
+
+                    temp_df['trend_buy_type2_price'] = np.where(
+                        temp_df['sell_close_position_final_quick_additional2_selected'] & (temp_df['num_final_buy_fire_trend1'] == 1),
+                        temp_df['close'],
+                        np.nan
+
+                    )
+
+                    temp_df['trend_sell_type2_price'] = np.where(
+                        temp_df['buy_close_position_final_quick_additional2_selected'] & (temp_df['num_final_sell_fire_trend1'] == 1),
+                        temp_df['close'],
+                        np.nan
+                    )
+
+                    temp_df = temp_df.fillna(method='ffill').fillna(0)
 
                     # temp_df['aligned_long_fail'] = ((~temp_df['almost_aligned_long_condition1']) | (~temp_df['almost_aligned_long_condition2'])) &\
                     #                                (temp_df['min_price'] < temp_df['highest_guppy'])
                     # temp_df['aligned_short_fail'] = ((~temp_df['almost_aligned_short_condition1']) | (~temp_df['almost_aligned_short_condition2'])) &\
                     #                                (temp_df['max_price'] > temp_df['lowest_guppy'])
 
+                    temp_df['break_up_upper_band'] = temp_df['high'] > temp_df['prev_upper_band_close']
+                    temp_df['break_down_lower_band'] = temp_df['low'] < temp_df['prev_lower_band_close']
 
-                    temp_df['aligned_long_fail'] = (~temp_df['is_guppy_aligned_long']) &\
+                    temp_df['prev_break_up_upper_band'] = temp_df['break_up_upper_band'].shift(1)
+                    temp_df['prev_break_down_lower_band'] = temp_df['break_down_lower_band'].shift(1)
+
+
+                    temp_df['long_fail1'] = (~temp_df['is_guppy_aligned_long']) &\
                                                    (temp_df['min_price'] < temp_df['highest_guppy']) #& temp_df['is_negative']  #For EURUSD case
-                    temp_df['aligned_short_fail'] = (~temp_df['is_guppy_aligned_short']) &\
+                    temp_df['short_fail1'] = (~temp_df['is_guppy_aligned_short']) &\
                                                    (temp_df['max_price'] > temp_df['lowest_guppy'])  #& temp_df['is_positive']
+
+
+
+                    temp_df['long_fail2'] = temp_df['break_down_lower_band'] & temp_df['prev_break_down_lower_band'] &\
+                                            ((temp_df['close'] - temp_df['trend_buy_type2_price'])*self.exchange_rate*self.lot_size > 200)
+                    temp_df['short_fail2'] = temp_df['break_up_upper_band'] & temp_df['prev_break_up_upper_band'] &\
+                                             ((temp_df['close'] - temp_df['trend_sell_type2_price'])*self.exchange_rate*self.lot_size < -200)
+
+
+                    temp_df['buy_trend_close_signal'] = temp_df['long_fail1'] | temp_df['long_fail2']
+                    temp_df['sell_trend_close_signal'] = temp_df['short_fail1'] | temp_df['short_fail2']
+
+
 
 
                     # temp_df['bar_enter_long_guppy'] = temp_df['min_price'] < temp_df['highest_guppy']
                     # temp_df['bar_enter_short_guppy'] = temp_df['max_price'] > temp_df['lowest_guppy']
 
 
-                    temp_df['cum_aligned_long_fail'] = temp_df['aligned_long_fail'].cumsum()
-                    temp_df['cum_aligned_short_fail'] = temp_df['aligned_short_fail'].cumsum()
+                    temp_df['cum_buy_trend_close_signal'] = temp_df['buy_trend_close_signal'].cumsum()
+                    temp_df['cum_sell_trend_close_signal'] = temp_df['sell_trend_close_signal'].cumsum()
 
                     # temp_df['cum_bar_enter_long_guppy'] = temp_df['bar_enter_long_guppy'].cumsum()
                     # temp_df['cum_bar_enter_short_guppy'] = temp_df['bar_enter_short_guppy'].cumsum()
 
 
 
-                    temp_df['cum_aligned_long_fail_for_buy'] = np.where(
+                    temp_df['cum_buy_trend_close_signal_for_buy'] = np.where(
                         temp_df['sell_close_position_final_quick_additional2_selected'] & (temp_df['num_final_buy_fire_trend1'] == 1),
-                        temp_df['cum_aligned_long_fail'],
+                        temp_df['cum_buy_trend_close_signal'],
                         np.nan
                     )
 
-                    temp_df['cum_aligned_short_fail_for_sell'] = np.where(
+
+
+
+                    temp_df['cum_sell_trend_close_signal_for_sell'] = np.where(
                         temp_df['buy_close_position_final_quick_additional2_selected'] & (temp_df['num_final_sell_fire_trend1'] == 1),
-                        temp_df['cum_aligned_short_fail'],
+                        temp_df['cum_sell_trend_close_signal'],
                         np.nan
                     )
+
+
 
 
                     # temp_df['cum_bar_enter_long_guppy_for_buy'] = np.where(
@@ -6140,25 +6181,33 @@ class CurrencyTrader(threading.Thread):
 
                     temp_df = temp_df.fillna(method='ffill').fillna(0)
 
-                    temp_df['num_aligned_long_fail_for_buy'] = temp_df['cum_aligned_long_fail'] - temp_df['cum_aligned_long_fail_for_buy']
-                    temp_df['num_aligned_short_fail_for_sell'] = temp_df['cum_aligned_short_fail'] - temp_df['cum_aligned_short_fail_for_sell']
+                    temp_df['num_buy_trend_close_signal_for_buy'] = temp_df['cum_buy_trend_close_signal'] - temp_df['cum_buy_trend_close_signal_for_buy']
+                    temp_df['num_sell_trend_close_signal_for_sell'] = temp_df['cum_sell_trend_close_signal'] - temp_df['cum_sell_trend_close_signal_for_sell']
 
                     # temp_df['num_bar_enter_long_guppy_for_buy'] = temp_df['cum_bar_enter_long_guppy'] - temp_df['cum_bar_enter_long_guppy_for_buy']
                     # temp_df['num_bar_enter_short_guppy_for_sell'] = temp_df['cum_bar_enter_short_guppy'] - temp_df['cum_bar_enter_short_guppy_for_sell']
 
-                    self.data_df['aligned_long_fail'] = temp_df['aligned_long_fail']
-                    self.data_df['aligned_short_fail'] = temp_df['aligned_short_fail']
+                    self.data_df['long_fail1'] = temp_df['long_fail1']
+                    self.data_df['short_fail1'] = temp_df['short_fail1']
+
+                    self.data_df['long_fail2'] = temp_df['long_fail2']
+                    self.data_df['short_fail2'] = temp_df['short_fail2']
 
 
 
-                    self.data_df['num_aligned_long_fail_for_buy'] = temp_df['num_aligned_long_fail_for_buy']
-                    self.data_df['num_aligned_short_fail_for_sell'] = temp_df['num_aligned_short_fail_for_sell']
+                    self.data_df['buy_trend_close_signal'] = temp_df['buy_trend_close_signal']
+                    self.data_df['sell_trend_close_signal'] = temp_df['sell_trend_close_signal']
+
+
+
+                    self.data_df['num_buy_trend_close_signal_for_buy'] = temp_df['num_buy_trend_close_signal_for_buy']
+                    self.data_df['num_sell_trend_close_signal_for_sell'] = temp_df['num_sell_trend_close_signal_for_sell']
 
                     # self.data_df['num_bar_enter_long_guppy_for_buy'] = temp_df['num_bar_enter_long_guppy_for_buy']
                     # self.data_df['num_bar_enter_short_guppy_for_sell'] = temp_df['num_bar_enter_short_guppy_for_sell']
 
-                    self.data_df['buy_fire_trend_close'] = self.data_df['num_aligned_long_fail_for_buy'] == 1
-                    self.data_df['sell_fire_trend_close'] = self.data_df['num_aligned_short_fail_for_sell'] == 1
+                    self.data_df['buy_fire_trend_close'] = self.data_df['num_buy_trend_close_signal_for_buy'] == 1
+                    self.data_df['sell_fire_trend_close'] = self.data_df['num_sell_trend_close_signal_for_sell'] == 1
 
 
                     self.data_df['prev_buy_fire_trend_close'] = self.data_df['buy_fire_trend_close'].shift(1)
