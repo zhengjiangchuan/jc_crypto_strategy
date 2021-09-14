@@ -90,7 +90,7 @@ meta_df = pd.read_csv(meta_file)
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
-#meta_df = meta_df[meta_df['symbol'].isin(['CADCHF'])]
+meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
@@ -98,7 +98,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0904', 'pnl_summary_spread15_innovativeFire2new_portfolio_maxExposure12_maxPnl_25000_quickLossDelayed')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0914', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_smallPortfolio')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -124,7 +124,7 @@ draw_intraday_pnl = False
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = False
+is_portfolio = True
 
 plot_hk_pnl = True
 initial_deposit_hk = 25000   #31000
@@ -137,8 +137,8 @@ total_cum_positions = []
 total_cum_abs_positions = []
 if is_portfolio:
 
-    max_exposure = 12 #6
-    initial_principal_magnifier = 6.435 #8
+    max_exposure = 2 #12 #6
+    initial_principal_magnifier = 2 #6.435 #8
 
 
 

@@ -53,7 +53,7 @@ print("Child process starts")
 
 is_gege_server = False
 
-is_do_portfolio_trading = False
+is_do_portfolio_trading = True
 
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
@@ -88,7 +88,7 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['USDCAD', 'AUDCAD', 'AUDJPY', 'AUDCHF'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCHF'])]
+currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY'])]
 
 
 
@@ -289,7 +289,7 @@ original_data_df200 = None
 
 is_do_trading = True
 
-is_append_new_data = False
+is_append_new_data = True
 
 if is_do_trading:
     while not is_all_received:
@@ -460,7 +460,13 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\0909\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned_closeLogic3"
+    #dest_folder = "C:\\Forex\\new_experiments\\0909\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned_closeLogic3"
+
+    #dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2"
+
+    dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_smallPortfolio"
+
+
     #dest_folder = "C:\\Forex\\new_experiments\\0904\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines"
 
 
@@ -480,7 +486,17 @@ if True:
 
     symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file and 'portfolio' not in file]
     import shutil
+
+    currency_list = list(currency_df['currency'])
+    #print("currency_list*************************:")
+    print(currency_list)
+
     for symbol_folder in symbol_folders:
+
+        #print('symbol_folder =' + symbol_folder)
+
+        if symbol_folder[-6:] not in currency_list:
+            continue
 
 
         # if symbol_folder[-6:] not in selected_ones:
