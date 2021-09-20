@@ -53,7 +53,7 @@ print("Child process starts")
 
 is_gege_server = False
 
-is_do_portfolio_trading = True
+is_do_portfolio_trading = False
 
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
@@ -88,7 +88,7 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['USDCAD', 'AUDCAD', 'AUDJPY', 'AUDCHF'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY'])]
+#currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY'])]
 
 
 
@@ -460,11 +460,11 @@ if True:
 
 
 
-    #dest_folder = "C:\\Forex\\new_experiments\\0909\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned_closeLogic3"
+    dest_folder = "C:\\Forex\\new_experiments\\0918\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned_closeLogic3_complete"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_smallPortfolio"
+    #dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_smallPortfolio"
 
 
     #dest_folder = "C:\\Forex\\new_experiments\\0904\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines"

@@ -165,11 +165,11 @@ hours_close_position = [0] #23
 
 
 #################
-is_clean_redundant_entry_point = False
-is_only_allow_second_entry = False
+is_clean_redundant_entry_point = True
+is_only_allow_second_entry = True
 
-is_activate_second_entry_trading = False
-is_second_entry_reentry = False
+is_activate_second_entry_trading = True
+is_second_entry_reentry = True
 ###################
 
 
