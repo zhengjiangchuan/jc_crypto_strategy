@@ -5915,13 +5915,24 @@ class CurrencyTrader(threading.Thread):
 
 
                     if not is_use_two_trend_following:
+                        # self.data_df['final_buy_fire_trend1'] =\
+                        #     (self.data_df['final_buy_fire_trend1'] & (~self.data_df['sell_close_position_final_quick_additional2'])) |\
+                        #     self.data_df['sell_close_position_final_quick_additional2_selected']
+                        #
+                        # self.data_df['final_sell_fire_trend1'] =\
+                        #     (self.data_df['final_sell_fire_trend1'] & (~self.data_df['buy_close_position_final_quick_additional2'])) |\
+                        #     self.data_df['buy_close_position_final_quick_additional2_selected']
+
+
                         self.data_df['final_buy_fire_trend1'] =\
-                            (self.data_df['final_buy_fire_trend1'] & (~self.data_df['sell_close_position_final_quick_additional2'])) |\
-                            self.data_df['sell_close_position_final_quick_additional2_selected']
+                            self.data_df['final_buy_fire_trend1'] | self.data_df['sell_close_position_final_quick_additional2_selected']
 
                         self.data_df['final_sell_fire_trend1'] =\
-                            (self.data_df['final_sell_fire_trend1'] & (~self.data_df['buy_close_position_final_quick_additional2'])) |\
-                            self.data_df['buy_close_position_final_quick_additional2_selected']
+                            self.data_df['final_sell_fire_trend1'] | self.data_df['buy_close_position_final_quick_additional2_selected']
+
+
+
+
 
                         #self.data_df['final_sell_fire_trend1'] = self.data_df['final_sell_fire_trend1'] | self.data_df['buy_close_position_final_quick_additional2_selected']
 
