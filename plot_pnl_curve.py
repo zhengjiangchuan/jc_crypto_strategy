@@ -98,7 +98,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0914', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_smallPortfolio')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0923', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_smallPortfolio_noFire2')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):

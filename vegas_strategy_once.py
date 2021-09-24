@@ -86,7 +86,7 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURCAD'])]
 
 #currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY'])]
 
@@ -287,7 +287,7 @@ is_first_time = True
 original_data_df100 = None
 original_data_df200 = None
 
-is_do_trading = False
+is_do_trading = True
 
 is_append_new_data = False
 
@@ -456,7 +456,7 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0803\\forex_innovativeFire2new_clean_entry_second_entry_Improve2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0918\\test"
+    dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_innovativeFire2new_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected_upToDate_fixBug2"
 
 
 
