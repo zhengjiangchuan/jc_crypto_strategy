@@ -164,13 +164,31 @@ hours_close_position_quick = [16]
 hours_close_position = [0] #23
 
 
-#################
-is_clean_redundant_entry_point = True
-is_only_allow_second_entry = True
+only_second_entry = True
 
-is_activate_second_entry_trading = True
-is_second_entry_reentry = True
+use_second_entry = True
+trend_follow = True
+#################
+is_clean_redundant_entry_point = only_second_entry
+is_only_allow_second_entry = only_second_entry
+
+is_activate_second_entry_trading = only_second_entry
+is_second_entry_reentry = only_second_entry
 ###################
+
+
+data_file_suffix = ""
+if only_second_entry and use_second_entry:
+    data_file_suffix += 'only_second_entry'
+
+if trend_follow:
+    if only_second_entry and use_second_entry:
+        data_file_suffix += '_trend_follow'
+    else:
+        data_file_suffix += 'trend_follow'
+
+    #only_second_entry_trend_follow
+
 
 
 is_activate_second_entry_reentry = is_activate_second_entry_trading and is_second_entry_reentry
@@ -304,6 +322,136 @@ class CurrencyTrader(threading.Thread):
     def run(self):
         print("Running...........")
         self.trade()
+
+
+
+    def calculate_position_second_entry_trend_follow(self, data_df_side, side):
+        max_position = 1
+        cur_position = 0
+        start_position_phase2 = 0
+
+        data_df_side['position'] = 0.0
+        for i in range(data_df_side.shape[0]):
+            row = data_df_side.iloc[i]
+
+            cum_delta_position = 0.0
+
+            if row['first_final_' + side + '_fire']:
+                if cur_position < max_position:
+                    start_position_phase2 = 0
+                    delta_position = max_position - cur_position
+                    delta_position = round(delta_position, 2)
+                    data_df_side.at[i, 'position'] = delta_position
+
+                    cum_delta_position += delta_position
+
+                    cur_position += delta_position
+                    cur_position = round(cur_position, 2)
+
+                    # print("time = " + str(row['time']) + " fire")
+                    # print("delta_position = " + str(delta_position))
+                    # print("cur_position = " + str(cur_position))
+
+
+            if (not row['first_final_' + side + '_fire']) or is_intraday_quick:
+                #cum_delta_position = 0.0
+                if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
+                    if cur_position > 0:
+                        delta_position = -cur_position/3.0
+
+                        delta_position = round(delta_position, 2)
+                        cum_delta_position += delta_position
+
+                        # data_df_side.at[i, 'position'] = delta_position
+                        cur_position += delta_position
+                        cur_position = round(cur_position, 2)
+
+                        start_position_phase2 = 0
+
+                        # print("time = " + str(row['time']) + " fire")
+                        # print("delta_position = " + str(delta_position))
+                        # print("cur_position = " + str(cur_position))
+
+                        #print("time = " + str(row['time']) + " phase 1 temporary close")
+
+
+                if row['show_special_' + side + '_close_position'] or row['show_' + side + '_close_position_excessive'] or row['show_' + side + '_stop_loss_excessive']:
+                    if cur_position > 0:
+                        if start_position_phase2 <= 0:
+                            start_position_phase2 = cur_position
+
+                        if row['show_' + side + '_close_position_excessive_terminal'] or row['show_' + side + '_stop_loss_excessive_terminal']:
+                            start_position_phase2 = 0
+                            delta_position = -cur_position
+                            delta_position = round(delta_position, 2) #Added
+                            cum_delta_position += delta_position
+
+                            # data_df_side.at[i, 'position'] = round(delta_position, 2)
+                            cur_position += delta_position
+                            cur_position = round(cur_position, 2)
+
+                            # print("time = " + str(row['time']) + " fire")
+                            # print("delta_position = " + str(delta_position))
+                            # print("cur_position = " + str(cur_position))
+                        else:
+                            if row['show_special_' + side + '_close_position'] and row['show_' + side + '_close_position_excessive']:
+                                delta_position = -start_position_phase2/2.0
+                            else:
+                                delta_position = -start_position_phase2/4.0
+
+                            #New
+                            if is_intraday_strategy and quick_close_position_for_intraday_strategy:
+                                delta_position = -cur_position
+
+
+                            delta_position = round(delta_position, 2)
+
+                            cum_delta_position += delta_position
+
+                            # data_df_side.at[i, 'position'] = delta_position
+                            cur_position += delta_position
+                            cur_position = round(cur_position, 2)
+
+                            # print("time = " + str(row['time']) + " fire")
+                            # print("delta_position = " + str(delta_position))
+                            # print("cur_position = " + str(cur_position))
+
+                        #print("time = " + str(row['time']) + " phase 2 temporary close")
+
+
+                if row['show_' + side + '_close_position_final_excessive1'] or row['show_' + side + '_close_position_final_conservative'] or\
+                    row['show_' + side + '_close_position_final_quick'] or row['show_' + side + '_close_position_final_urgent'] or\
+                    row['show_' + side + '_close_position_conservative'] or row['show_' + side + '_stop_loss_conservative'] or\
+                    row['show_' + side + '_fire_trend_close']:
+
+                    if cur_position > 0:
+                        start_position_phase2 = 0
+                        delta_position = -cur_position
+                        delta_position = round(delta_position, 2) #Added
+                        cum_delta_position += delta_position
+
+                        # data_df_side.at[i, 'position'] = round(delta_position, 2)
+                        cur_position += delta_position
+                        cur_position = round(cur_position, 2)
+
+                        # print("time = " + str(row['time']) + " fire")
+                        # print("delta_position = " + str(delta_position))
+                        # print("cur_position = " + str(cur_position))
+
+                        #print("time = " + str(row['time']) + " close all")
+
+
+
+
+
+
+                data_df_side.at[i, 'position'] = round(cum_delta_position, 2)
+
+
+                #print("delta_position = " + str(cum_delta_position))
+                #print("cur_position = " + str(cur_position))
+
+
 
 
 
@@ -469,6 +617,9 @@ class CurrencyTrader(threading.Thread):
 
                 #print("delta_position = " + str(cum_delta_position))
                 #print("cur_position = " + str(cur_position))
+
+
+
 
 
     def calculate_signals(self, high_low_window):
@@ -3128,7 +3279,7 @@ class CurrencyTrader(threading.Thread):
 
                 print("to csv:")
                 if high_low_window == 200:
-                    self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + ".csv"), index=False)
+                    self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + data_file_suffix + ".csv"), index=False)
                 print("after to csv:")
 
 
@@ -3252,6 +3403,7 @@ class CurrencyTrader(threading.Thread):
             if 100 in high_low_window_options:
                 high_low_window = 100
 
+                #Correct back
                 if not is_activate_second_entry_trading:
 
                     self.data_df['buy_fire_special_exclude'] = self.data_df['final_buy_fire'] &\
@@ -3345,6 +3497,9 @@ class CurrencyTrader(threading.Thread):
             self.data_df['prev_final_sell_fire'] = pd.Series(list(self.data_df['prev_final_sell_fire']), dtype='bool')
             self.data_df['first_final_sell_fire'] = self.data_df['final_sell_fire'] & (~self.data_df['prev_final_sell_fire'])
 
+            # print("Debugging 3:")
+            # print(self.data_df.iloc[770:780][['time', 'first_final_sell_fire']])
+
             if is_plot_exclude:
                 if 'final_buy_fire_exclude' in self.data_df.columns:
                     self.data_df['prev_final_buy_fire_exclude'] = self.data_df['final_buy_fire_exclude'].shift(1)
@@ -3396,6 +3551,9 @@ class CurrencyTrader(threading.Thread):
 
 
 #########################################################################################################################################
+
+            # print("Debugging 2:")
+            # print(self.data_df.iloc[770:780][['time', 'first_final_sell_fire']])
 
             if is_clean_redundant_entry_point:
                 self.data_df['buy_point'] = np.where(
@@ -3495,6 +3653,10 @@ class CurrencyTrader(threading.Thread):
                     0
                 )
                 ####################################################################################################################
+
+            # print("Debugging 1:")
+            # print(self.data_df.iloc[770:780][['time','first_final_sell_fire']])
+            # sys.exit(0)
 
             if is_only_allow_second_entry:
                 # self.data_df['buy_point'] = np.where(
@@ -3814,17 +3976,23 @@ class CurrencyTrader(threading.Thread):
                     self.data_df['sell_new_cond6'] & self.data_df['sell_new_cond7'] & self.data_df['sell_new_cond8'] & self.data_df['sell_new_cond9'] & self.data_df['sell_new_cond10'] & \
                     self.data_df['sell_new_cond11']
 
+                self.data_df['first_final_buy_fire_raw'] = self.data_df['first_final_buy_fire']
+                self.data_df['first_final_sell_fire_raw'] = self.data_df['first_final_sell_fire']
 
+                self.data_df['first_final_buy_fire_second'] = self.data_df['first_final_buy_fire_new']
+                self.data_df['first_final_sell_fire_second'] = self.data_df['first_final_sell_fire_new']
 
 
                 #######################################
                 #Martin
                 if is_activate_second_entry_trading:
-                    self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire_new']
-                    self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire_new']
 
-                    self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
-                    self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
+                    if use_second_entry:
+                        self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire_new']
+                        self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire_new']
+
+                        self.data_df['first_final_buy_fire'] = self.data_df['first_final_buy_fire'] & (~self.data_df['final_buy_fire_exclude'])
+                        self.data_df['first_final_sell_fire'] = self.data_df['first_final_sell_fire'] & (~self.data_df['final_sell_fire_exclude'])
 
                     self.data_df = self.data_df.drop(columns = ['first_final_buy_fire_new', 'first_final_sell_fire_new'])
 
@@ -5862,9 +6030,9 @@ class CurrencyTrader(threading.Thread):
                 # print("Follow the trend why why?")
                 # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
 
-                #sys.exit(0)
+                #sys.exit(0)   Hutong Gay
 
-                if is_activate_second_entry_reentry:
+                if is_activate_second_entry_reentry and trend_follow:
                     temp_df = self.data_df[['id', 'buy_point', 'sell_point', 'bar_above_vegas', 'bar_below_vegas']]
                     temp_df['cum_bar_above_vegas'] = temp_df['bar_above_vegas'].cumsum()
                     temp_df['cum_bar_below_vegas'] = temp_df['bar_below_vegas'].cumsum()
@@ -6099,7 +6267,7 @@ class CurrencyTrader(threading.Thread):
                                             'is_guppy_aligned_long', 'is_guppy_aligned_short', 'num_final_buy_fire_trend1', 'num_final_sell_fire_trend1',
                                             'high', 'low', 'prev_upper_band_close', 'prev_lower_band_close', 'close',
                                             'first_final_buy_fire', 'first_final_sell_fire',
-                                            'buy_point_support', 'sell_point_support'
+                                            'buy_point_support', 'sell_point_support', 'is_positive', 'is_negative', 'middle'
                                             ]]
 
 
@@ -6146,6 +6314,8 @@ class CurrencyTrader(threading.Thread):
                                              ((temp_df['close'] - temp_df['trend_sell_type2_price'])*self.exchange_rate*self.lot_size < -200)
 
 
+                    temp_df['long_fail3'] = temp_df['is_negative'] & (temp_df['middle'] < temp_df['lowest_guppy'])
+                    temp_df['short_fail3'] = temp_df['is_positive'] & (temp_df['middle'] > temp_df['highest_guppy'])
 
 
 
@@ -6153,9 +6323,9 @@ class CurrencyTrader(threading.Thread):
                     temp_df['sell_trend_close_signal'] = temp_df['short_fail1'] | temp_df['short_fail2']
 
                     temp_df['buy_trend1_close_signal'] = ((temp_df['long_fail1'] | temp_df['long_fail2_raw']) & (temp_df['close'] > temp_df['sell_point_support'])) |\
-                                                         temp_df['first_final_sell_fire']
+                                                         temp_df['first_final_sell_fire']# | temp_df['long_fail3']
                     temp_df['sell_trend1_close_signal'] = ((temp_df['short_fail1'] | temp_df['short_fail2_raw']) & (temp_df['close'] < temp_df['buy_point_support'])) |\
-                                                         temp_df['first_final_buy_fire']
+                                                         temp_df['first_final_buy_fire']# | temp_df['short_fail3']
 
 
 
@@ -6235,6 +6405,9 @@ class CurrencyTrader(threading.Thread):
 
                     self.data_df['long_fail2'] = temp_df['long_fail2']
                     self.data_df['short_fail2'] = temp_df['short_fail2']
+
+                    self.data_df['long_fail3'] = temp_df['long_fail3']
+                    self.data_df['short_fail3'] = temp_df['short_fail3']
 
 
 
@@ -6375,7 +6548,11 @@ class CurrencyTrader(threading.Thread):
                                    'show_buy_close_position_fixed_time_temporary', 'show_buy_close_position_fixed_time_terminal',
                                     'selected_buy_close_position_fixed_time',
                                    'show_special_buy_close_position', 'show_buy_close_position_excessive', 'show_buy_close_position_conservative',
-                                   'show_buy_stop_loss_excessive', 'show_buy_stop_loss_conservative']
+                                   'show_buy_stop_loss_excessive', 'show_buy_stop_loss_conservative'
+                                   ]
+
+            if is_activate_second_entry_reentry and trend_follow:
+                close_buy_positions += ['show_buy_fire_trend_close']
 
             close_sell_positions = ['show_sell_close_position_guppy1', 'show_sell_close_position_guppy2',
                                    'show_sell_close_position_vegas', 'show_sell_close_position_final_excessive1', 'show_sell_close_position_final_conservative',
@@ -6383,8 +6560,11 @@ class CurrencyTrader(threading.Thread):
                                     'show_sell_close_position_fixed_time_temporary', 'show_sell_close_position_fixed_time_terminal',
                                     'selected_sell_close_position_fixed_time',
                                    'show_special_sell_close_position', 'show_sell_close_position_excessive', 'show_sell_close_position_conservative',
-                                   'show_sell_stop_loss_excessive', 'show_sell_stop_loss_conservative']
+                                   'show_sell_stop_loss_excessive', 'show_sell_stop_loss_conservative'
+                                    ]
 
+            if is_activate_second_entry_reentry and trend_follow:
+                close_sell_positions += ['show_sell_fire_trend_close']
 
             select_conditions_for_buy = reduce(lambda left, right: left | right, [self.data_df[condition] for condition in open_buy_positions + close_buy_positions])
             select_conditions_for_sell = reduce(lambda left, right: left | right, [self.data_df[condition] for condition in open_sell_positions + close_sell_positions])
@@ -6403,11 +6583,19 @@ class CurrencyTrader(threading.Thread):
 
 
             print("Calculate buy position:")
-            self.calculate_position(data_df_buy, 'buy')
+
+            if is_activate_second_entry_reentry and trend_follow:
+                self.calculate_position_second_entry_trend_follow(data_df_buy, 'buy')
+            else:
+                self.calculate_position(data_df_buy, 'buy')
 
             print("")
             print("Calculate sell position:")
-            self.calculate_position(data_df_sell, 'sell')
+
+            if is_activate_second_entry_reentry and trend_follow:
+                self.calculate_position_second_entry_trend_follow(data_df_sell, 'sell')
+            else:
+                self.calculate_position(data_df_sell, 'sell')
 
             data_df_buy = data_df_buy.rename(columns = {'position' : 'buy_position'})
             data_df_sell = data_df_sell.rename(columns = {'position' : 'sell_position'})
@@ -6464,7 +6652,7 @@ class CurrencyTrader(threading.Thread):
             # print("Follow the trend why why3?")
             # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
 
-            self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + ".csv"), index=False)
+            self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + data_file_suffix +  ".csv"), index=False)
             print("after to csv:")
             #sys.exit(0)
 

@@ -90,7 +90,7 @@ meta_df = pd.read_csv(meta_file)
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
-meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY'])]
+meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
@@ -98,7 +98,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0923', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_smallPortfolio_noFire2')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0924', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_SecondEntryTrendFollow_selected_portfolio')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -135,10 +135,15 @@ symbols = list(meta_df['symbol'])
 
 total_cum_positions = []
 total_cum_abs_positions = []
+
+is_do_strategy_average = False
+
+data_file_suffix = 'only_second_entry_trend_follow'  #'only_second_entry_trend_follow'
+
 if is_portfolio:
 
-    max_exposure = 2 #12 #6
-    initial_principal_magnifier = 2 #6.435 #8
+    max_exposure = 6 #12 #6
+    initial_principal_magnifier = 6 #6.435 #8
 
 
 
@@ -150,13 +155,31 @@ if is_portfolio:
         symbol = row['symbol']
         print("Read symbol " + symbol)
 
-        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
+        #data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
+        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
+
+        if is_do_strategy_average:
+            data_file2 = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
+
 
         data_df = pd.read_csv(data_file)
-
         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
-
         simple_data_df = data_df[['time', 'position', 'cum_position']]
+
+
+        if is_do_strategy_average:
+            data_df2 = pd.read_csv(data_file2)
+            data_df2['time'] = data_df2['time'].apply(lambda x: preprocess_time(x))
+            simple_data_df2 = data_df2[['time', 'position', 'cum_position']]
+
+            simple_data_df2 = simple_data_df2.rename(columns = {"position" : 'position2', "cum_position" : 'cum_position2'})
+
+            simple_data_df = pd.merge(simple_data_df, simple_data_df2, on = ['time'], how = 'inner')
+            simple_data_df['position'] = (simple_data_df['position'] + simple_data_df['position2'])/2.0
+            simple_data_df['cum_position'] = (simple_data_df['cum_position'] + simple_data_df['cum_position2'])/2.0
+
+            simple_data_df = simple_data_df.drop(columns = ['position2', 'cum_position2'])
+
 
         simple_data_df = simple_data_df.rename(columns = {
             'position' : symbol + '_position',
@@ -518,13 +541,42 @@ for i in range(meta_df.shape[0] + 1):
 
 
 
-        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
+
+
+        #data_df = pd.read_csv(data_file)
+        #data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+
+
+        #data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
+        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
+
+        if is_do_strategy_average:
+            data_file2 = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
+
 
         data_df = pd.read_csv(data_file)
-
-
-
         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+        #simple_data_df = data_df[['time', 'position', 'cum_position']]
+
+
+        if is_do_strategy_average:
+            data_df2 = pd.read_csv(data_file2)
+            data_df2['time'] = data_df2['time'].apply(lambda x: preprocess_time(x))
+            simple_data_df2 = data_df2[['time', 'position', 'cum_position']]
+
+            simple_data_df2 = simple_data_df2.rename(columns = {"position" : 'position2', "cum_position" : 'cum_position2'})
+
+            data_df = pd.merge(data_df, simple_data_df2, on = ['time'], how = 'inner')
+            data_df['position'] = (data_df['position'] + data_df['position2'])/2.0
+            data_df['cum_position'] = (data_df['cum_position'] + data_df['cum_position2'])/2.0
+
+            data_df = data_df.drop(columns = ['position2', 'cum_position2'])
+
+
+
+
+
 
         if is_portfolio:
 

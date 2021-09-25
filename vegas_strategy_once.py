@@ -53,7 +53,7 @@ print("Child process starts")
 
 is_gege_server = False
 
-is_do_portfolio_trading = False
+is_do_portfolio_trading = True
 
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
@@ -86,9 +86,9 @@ currency_df = pd.read_csv(currency_file)
 # currency_df = currency_df[~currency_df['currency'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['EURCAD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 
 
 
@@ -289,7 +289,7 @@ original_data_df200 = None
 
 is_do_trading = True
 
-is_append_new_data = False
+is_append_new_data = True
 
 if is_do_trading:
     while not is_all_received:
@@ -456,7 +456,11 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0803\\forex_innovativeFire2new_clean_entry_second_entry_Improve2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_innovativeFire2new_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected_upToDate_fixBug2"
+
+
+    #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_innovativeFire2new_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected_upToDate_fixBug2"
+
+    dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_SecondEntryTrendFollowing_selected"
 
 
 
