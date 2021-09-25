@@ -460,8 +460,10 @@ if True:
 
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_innovativeFire2new_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected_upToDate_fixBug2"
 
-    dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_SecondEntryTrendFollowing_selected"
 
+
+    dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_SecondEntryTrendFollowing_selected_Hutong"
+    #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
     #dest_folder = "C:\\Forex\\new_experiments\\0918\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected"

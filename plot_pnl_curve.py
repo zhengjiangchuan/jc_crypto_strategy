@@ -90,7 +90,11 @@ meta_df = pd.read_csv(meta_file)
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
-meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
+meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD', 'CADCHF', 'USDJPY'])]
+
+weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'GBPUSD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1, 'CADCHF' : 3, 'USDJPY' : 3}
+
+#meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY', 'AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 
 if len(selected_symbols) > 0:
     meta_df = meta_df[meta_df['symbol'].isin(selected_symbols)]
@@ -98,7 +102,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0924', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_SecondEntryTrendFollow_selected_portfolio')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0924', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_selected_mixed_portfolio_even')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -142,8 +146,8 @@ data_file_suffix = 'only_second_entry_trend_follow'  #'only_second_entry_trend_f
 
 if is_portfolio:
 
-    max_exposure = 6 #12 #6
-    initial_principal_magnifier = 6 #6.435 #8
+    max_exposure = 12 #12 #6
+    initial_principal_magnifier = 12 #6.435 #8
 
 
 
@@ -155,8 +159,10 @@ if is_portfolio:
         symbol = row['symbol']
         print("Read symbol " + symbol)
 
+        weight = weights[symbol]
+
         #data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
-        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
+        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
 
         if is_do_strategy_average:
             data_file2 = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
@@ -165,6 +171,8 @@ if is_portfolio:
         data_df = pd.read_csv(data_file)
         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
         simple_data_df = data_df[['time', 'position', 'cum_position']]
+        simple_data_df['position'] = simple_data_df['position'] * weight
+        simple_data_df['cum_position'] = simple_data_df['cum_position'] * weight
 
 
         if is_do_strategy_average:
@@ -535,6 +543,8 @@ for i in range(meta_df.shape[0] + 1):
         contract_size = row['contract_size']
         spread = row['spread']
 
+        weight = weights[symbol]
+
         #symbols += [symbol]
 
         lot_size = contract_size * exchange_rate
@@ -549,7 +559,7 @@ for i in range(meta_df.shape[0] + 1):
 
 
         #data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
-        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
+        data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
 
         if is_do_strategy_average:
             data_file2 = os.path.join(data_folder, symbol, 'data', symbol + '100' + data_file_suffix + '.csv')
@@ -589,6 +599,9 @@ for i in range(meta_df.shape[0] + 1):
 
         data_df = data_df[['time','id','buy_point_id', 'sell_point_id', 'close', 'buy_position','cum_buy_position','sell_position','cum_sell_position',
                            'position', 'cum_position']]
+
+        data_df['position'] = data_df['position'] * weight
+        data_df['cum_position'] = data_df['cum_position'] * weight
 
         if is_portfolio and sample_data_df is None and data_df.shape[0] == final_data_df.shape[0]:
             sample_data_df = data_df.copy()

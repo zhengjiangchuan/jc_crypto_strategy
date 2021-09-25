@@ -165,7 +165,6 @@ hours_close_position = [0] #23
 
 
 only_second_entry = True
-
 use_second_entry = True
 trend_follow = True
 #################
@@ -178,14 +177,14 @@ is_second_entry_reentry = only_second_entry
 
 
 data_file_suffix = ""
-if only_second_entry and use_second_entry:
-    data_file_suffix += 'only_second_entry'
-
-if trend_follow:
-    if only_second_entry and use_second_entry:
-        data_file_suffix += '_trend_follow'
-    else:
-        data_file_suffix += 'trend_follow'
+# if only_second_entry and use_second_entry:
+#     data_file_suffix += 'only_second_entry'
+#
+# if trend_follow:
+#     if only_second_entry and use_second_entry:
+#         data_file_suffix += '_trend_follow'
+#     else:
+#         data_file_suffix += 'trend_follow'
 
     #only_second_entry_trend_follow
 
