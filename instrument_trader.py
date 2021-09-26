@@ -164,9 +164,9 @@ hours_close_position_quick = [16]
 hours_close_position = [0] #23
 
 
-only_second_entry = True
-use_second_entry = True
-trend_follow = True
+only_second_entry = False
+use_second_entry = False
+trend_follow = False
 #################
 is_clean_redundant_entry_point = only_second_entry
 is_only_allow_second_entry = only_second_entry
@@ -3245,7 +3245,7 @@ class CurrencyTrader(threading.Thread):
         #Option 4      True              1
         #Option 5      True              2
 
-        use2TypeSignals = True #True
+        use2TypeSignals = False #True
         filter_option = 1
 
         while True:

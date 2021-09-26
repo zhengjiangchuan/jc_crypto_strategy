@@ -90,9 +90,19 @@ meta_df = pd.read_csv(meta_file)
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
 
-meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD', 'CADCHF', 'USDJPY'])]
+#meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD', 'CADCHF', 'USDJPY'])]
 
-weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'GBPUSD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1, 'CADCHF' : 3, 'USDJPY' : 3}
+#meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
+#weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1}
+
+
+meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY'])]
+weights = {'CADCHF' : 1, 'USDJPY' : 1}
+
+
+#weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'GBPUSD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1, 'CADCHF' : 3, 'USDJPY' : 3}
+
+
 
 #meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY', 'AUDJPY', 'EURCAD', 'GBPUSD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 
@@ -102,7 +112,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0924', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_selected_mixed_portfolio_even')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0924', 'final', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_noTrendFollow_SpecialExclude_selected_portfolio')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -146,8 +156,8 @@ data_file_suffix = 'only_second_entry_trend_follow'  #'only_second_entry_trend_f
 
 if is_portfolio:
 
-    max_exposure = 12 #12 #6
-    initial_principal_magnifier = 12 #6.435 #8
+    max_exposure = 2 #12 #6
+    initial_principal_magnifier = 2 #6.435 #8
 
 
 
