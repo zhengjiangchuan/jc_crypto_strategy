@@ -141,7 +141,7 @@ draw_intraday_pnl = False
 is_portfolio = True
 
 plot_hk_pnl = True
-initial_deposit_hk = 25000   #31000
+initial_deposit_hk = 30000   #31000
 
 is_send_email = True
 
