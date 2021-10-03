@@ -95,7 +95,7 @@ meta_df = pd.read_csv(meta_file)
 #meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 #weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1}
 
-
+#weights = None
 meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY'])]
 weights = {'CADCHF' : 1, 'USDJPY' : 1}
 
@@ -169,7 +169,7 @@ if is_portfolio:
         symbol = row['symbol']
         print("Read symbol " + symbol)
 
-        weight = weights[symbol]
+        weight = 1 if weights is None else weights[symbol]
 
         #data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
         data_file = os.path.join(data_folder, symbol, 'data', symbol + '100.csv')
@@ -553,7 +553,7 @@ for i in range(meta_df.shape[0] + 1):
         contract_size = row['contract_size']
         spread = row['spread']
 
-        weight = weights[symbol]
+        weight = 1 if weights is None else weights[symbol]
 
         #symbols += [symbol]
 
