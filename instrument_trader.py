@@ -199,12 +199,13 @@ is_use_two_trend_following = False
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate,  data_folder, chart_folder, simple_chart_folder, log_file):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
+        self.coefficient = coefficient
         self.data_folder = data_folder
         self.chart_folder = chart_folder
         self.simple_chart_folder = simple_chart_folder
@@ -486,7 +487,7 @@ class CurrencyTrader(threading.Thread):
                 #cum_delta_position = 0.0
                 if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
                     if cur_position > 0:
-                        delta_position = -cur_position/3.0
+                        delta_position = -cur_position/self.coefficient  #3.0
 
                         #New
                         if is_intraday_strategy and quick_close_position_for_intraday_strategy and row['show_' + side + '_close_position_vegas']:

@@ -112,7 +112,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1010', 'final', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_noTrendFollow_SpecialExclude_selected_portfolio3')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1010', 'final', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_noTrendFollow_SpecialExclude_selected_portfolio3_Phase1ComplexClose')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -1312,7 +1312,8 @@ for i in range(meta_df.shape[0] + 1):
         pnl_file = os.path.join(pnl_folder, 'portfolio' + '_pnl_final.csv')
 
     else:
-        pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
+        #pnl_file = os.path.join(data_folder, symbol, 'data', symbol + '_pnl.csv')
+        pnl_file = os.path.join(pnl_folder, symbol + '_pnl.csv')
 
     data_df.to_csv(pnl_file, index = False)
 

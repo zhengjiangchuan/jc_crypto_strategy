@@ -44,10 +44,11 @@ warnings.filterwarnings("ignore")
 
 class CurrencyPair:
 
-    def __init__(self, currency, lot_size, exchange_rate):
+    def __init__(self, currency, lot_size, exchange_rate, coefficient):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
+        self.coefficient = coefficient
 
 print("Child process starts")
 
@@ -123,7 +124,7 @@ sendEmail("Trader process starts", "")
 currency_pairs = []
 for i in range(currency_df.shape[0]):
     row = currency_df.iloc[i]
-    currency_pairs += [CurrencyPair(row['currency'], row['lot_size'], row['exchange_rate'])]
+    currency_pairs += [CurrencyPair(row['currency'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'])]
 
 # currencies = list(currency_df['currency'])
 
@@ -274,8 +275,9 @@ for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file in l
     currency = currency_pair.currency
     lot_size = currency_pair.lot_size
     exchange_rate = currency_pair.exchange_rate
+    coefficient = currency_pair.coefficient
 
-    currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, data_folder,
+    currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
                                      chart_folder, simple_chart_folder, log_file)
     currency_trader.daemon = True
 
@@ -463,7 +465,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\1010\\final\\forex_noTrendFollowing_SpecialExclude_selected3"
+    dest_folder = "C:\\Forex\\new_experiments\\1010\\final\\forex_noTrendFollowing_SpecialExclude_selected3_Phase1ComplexClose"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
