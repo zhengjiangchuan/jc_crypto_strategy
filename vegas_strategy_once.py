@@ -90,7 +90,7 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'EURCAD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 
-currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY'])]
+currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY', 'GBPJPY'])]
 
 
 #currency_df = currency_df[currency_df['currency'].isin(['AUDCAD', 'AUDCHF', 'CADCHF', 'CADJPY', 'EURGBP','GBPCHF'])]
@@ -463,7 +463,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\0924\\final\\forex_noTrendFollowing_SpecialExclude_selected_check"
+    dest_folder = "C:\\Forex\\new_experiments\\1010\\final\\forex_noTrendFollowing_SpecialExclude_selected3"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
