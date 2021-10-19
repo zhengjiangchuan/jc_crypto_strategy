@@ -487,26 +487,35 @@ class CurrencyTrader(threading.Thread):
                 #cum_delta_position = 0.0
                 if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
                     if cur_position > 0:
-                        delta_position = -cur_position/self.coefficient  #3.0
 
-                        #New
-                        if is_intraday_strategy and quick_close_position_for_intraday_strategy and row['show_' + side + '_close_position_vegas']:
-                            delta_position = -cur_position
+                        coeff = self.coefficient
 
-                        delta_position = round(delta_position, 2)
-                        cum_delta_position += delta_position
+                        #if coeff < 3.0:
+                        coeff = self.coefficient if row['show_' + side + '_close_position_vegas'] else -1
 
-                        # data_df_side.at[i, 'position'] = delta_position
-                        cur_position += delta_position
-                        cur_position = round(cur_position, 2)
 
-                        start_position_phase2 = 0
+                        if coeff > 0:
 
-                        # print("time = " + str(row['time']) + " fire")
-                        # print("delta_position = " + str(delta_position))
-                        # print("cur_position = " + str(cur_position))
+                            delta_position = -cur_position/coeff #self.coefficient  #3.0
 
-                        #print("time = " + str(row['time']) + " phase 1 temporary close")
+                            #New
+                            if is_intraday_strategy and quick_close_position_for_intraday_strategy and row['show_' + side + '_close_position_vegas']:
+                                delta_position = -cur_position
+
+                            delta_position = round(delta_position, 2)
+                            cum_delta_position += delta_position
+
+                            # data_df_side.at[i, 'position'] = delta_position
+                            cur_position += delta_position
+                            cur_position = round(cur_position, 2)
+
+                            start_position_phase2 = 0
+
+                            # print("time = " + str(row['time']) + " fire")
+                            # print("delta_position = " + str(delta_position))
+                            # print("cur_position = " + str(cur_position))
+
+                            #print("time = " + str(row['time']) + " phase 1 temporary close")
 
 
                 if row['show_special_' + side + '_close_position'] or row['show_' + side + '_close_position_excessive'] or row['show_' + side + '_stop_loss_excessive']:

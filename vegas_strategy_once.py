@@ -292,7 +292,7 @@ original_data_df200 = None
 
 is_do_trading = True
 
-is_append_new_data = True
+is_append_new_data = False
 
 if is_do_trading:
     while not is_all_received:
@@ -465,7 +465,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\1011\\final\\forex_noTrendFollowing_SpecialExclude_selected3_Phase1ComplexClose"
+    dest_folder = "C:\\Forex\\new_experiments\\1019\\final\\forex_noTrendFollowing_SpecialExclude_selected3_Phase1ComplexClose_adjust"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
