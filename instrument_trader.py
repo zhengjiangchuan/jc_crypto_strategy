@@ -488,9 +488,6 @@ class CurrencyTrader(threading.Thread):
                 if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
                     if cur_position > 0:
 
-                        coeff = self.coefficient
-
-                        #if coeff < 3.0:
                         coeff = self.coefficient if row['show_' + side + '_close_position_vegas'] else -1
 
 

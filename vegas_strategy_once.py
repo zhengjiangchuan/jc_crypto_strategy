@@ -292,7 +292,7 @@ original_data_df200 = None
 
 is_do_trading = True
 
-is_append_new_data = False
+is_append_new_data = True
 
 if is_do_trading:
     while not is_all_received:
