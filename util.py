@@ -1061,18 +1061,19 @@ receivers = ['jczheng198508@gmail.com']
 
 
 def sendEmail(title, content):
-    message = MIMEText(content, 'plain', 'utf-8')
-    message['From'] = "{}".format(sender)
-    message['To'] = ",".join(receivers)
-    message['Subject'] = title
-
-    try:
-        smtpObj = smtplib.SMTP_SSL(mail_host, 465)
-        smtpObj.login(mail_user, mail_pass)
-        smtpObj.sendmail(sender, receivers, message.as_string())
-        print("mail has been send successfully.")
-    except smtplib.SMTPException as e:
-        print(e)
+    # message = MIMEText(content, 'plain', 'utf-8')
+    # message['From'] = "{}".format(sender)
+    # message['To'] = ",".join(receivers)
+    # message['Subject'] = title
+    #
+    # try:
+    #     smtpObj = smtplib.SMTP_SSL(mail_host, 465)
+    #     smtpObj.login(mail_user, mail_pass)
+    #     smtpObj.sendmail(sender, receivers, message.as_string())
+    #     print("mail has been send successfully.")
+    # except smtplib.SMTPException as e:
+    #     print(e)
+    pass
 
 
 

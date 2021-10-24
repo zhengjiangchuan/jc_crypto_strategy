@@ -2389,10 +2389,15 @@ class CurrencyTrader(threading.Thread):
                 (self.data_df['price_to_lower_vegas'] / self.data_df['price_to_period_high']) >= entry_risk_threshold
             )
 
+            #sell_good_cond5 = True
+
+
             sell_bad_cond0 = (self.data_df['close'] - self.data_df['upper_vegas']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
             sell_bad_cond1 = self.data_df['price_to_upper_vegas_pct'] < reverse_trade_min_distance_to_vegas
             sell_bad_cond2 = (self.data_df['fast_vegas_gradient']*self.lot_size*self.exchange_rate > -1) | \
                              (self.data_df['slow_vegas_gradient']*self.lot_size*self.exchange_rate > -1)
+
+            #sell_bad_cond2 = False  #Experiment
 
             #sell_bad_cond3 = strongly_relaxed_aligned_long_condition & ((self.data_df['highest_guppy'] - self.data_df['upper_vegas'])*self.lot_size*self.exchange_rate > 0)
 
@@ -2405,6 +2410,8 @@ class CurrencyTrader(threading.Thread):
             sell_bad_cond4 = (~strongly_half_aligned_short_condition) & ((self.data_df['middle'] < self.data_df['lowest_guppy']) | \
                                                                   ((self.data_df['close'] < self.data_df['lowest_guppy']) & (strongly_relaxed_aligned_long_condition)))
             #Modify  for EURUSD
+
+            #sell_bad_cond4 = False #Experiment
 
 
             sell_bad_cond = (sell_bad_cond0 & sell_bad_cond1 & (sell_bad_cond2 | sell_bad_cond3)) | sell_bad_cond4
@@ -2626,11 +2633,15 @@ class CurrencyTrader(threading.Thread):
                 (self.data_df['price_to_upper_vegas'] / self.data_df['price_to_period_low']) >= entry_risk_threshold
             )
 
+            #buy_good_cond5 = True
+
             buy_bad_cond0 = (self.data_df['lower_vegas'] - self.data_df['close']) * self.lot_size * self.exchange_rate < reverse_trade_min_points_to_vegas
             buy_bad_cond1 = self.data_df['price_to_lower_vegas_pct'] < reverse_trade_min_distance_to_vegas
             buy_bad_cond2 = (self.data_df['fast_vegas_gradient']*self.lot_size*self.exchange_rate < 1) | \
                             (self.data_df['slow_vegas_gradient']*self.lot_size*self.exchange_rate < 1)
             #buy_bad_cond3 = strongly_relaxed_aligned_short_condition & ((self.data_df['lowest_guppy'] - self.data_df['lower_vegas'])*self.lot_size*self.exchange_rate < 0)
+
+            #buy_bad_cond2 = False
 
             buy_bad_cond3 = strongly_half_aligned_short_condition & (self.data_df['lowest_guppy'] < self.data_df['middle_vegas']) & (self.data_df['close'] < self.data_df['lowest_guppy'])
 
@@ -2642,6 +2653,7 @@ class CurrencyTrader(threading.Thread):
             buy_bad_cond4 = (~strongly_half_aligned_long_condition) & ((self.data_df['middle'] > self.data_df['highest_guppy']) | \
                                                                   ((self.data_df['close'] > self.data_df['highest_guppy']) & (strongly_relaxed_aligned_short_condition)))
 
+            #buy_bad_cond4 = False
 
             buy_bad_cond = (buy_bad_cond0 & buy_bad_cond1 & (buy_bad_cond2 | buy_bad_cond3)) | buy_bad_cond4
 
@@ -5040,6 +5052,7 @@ class CurrencyTrader(threading.Thread):
 
                     quick_ready = False
                     quick_ready_price = None
+                    last_quick_price = None
 
                     last_quick_ready = -1
 
@@ -5176,6 +5189,7 @@ class CurrencyTrader(threading.Thread):
                                             total_quick_fixed_time = 0
                                             quick_ready = False
                                             quick_ready_price = None
+                                            last_quick_price = None
                                             last_quick_ready = -1
                                             last_row = None
 
@@ -5205,6 +5219,8 @@ class CurrencyTrader(threading.Thread):
                                     #quick_ready_price = row['close']
 
                                     quick_ready_price = (row['close'] + row['open'])/2.0
+
+                                    last_quick_price = row['close']
 
                                     last_quick_ready = i
 
@@ -5242,13 +5258,19 @@ class CurrencyTrader(threading.Thread):
 
                                     if is_more_aggressive(row[most_passive_guppy], row['close'], side):
 
-
                                         if (not tightened_quick_stop_loss) or (row[quick_immediate] or row[quick_immediate2] or (
                                                 is_more_aggressive(quick_ready_price, row['close'], side) #and \
                                                 #last_row is not None and is_more_aggressive(last_row['open'], last_row['close'], side)
                                         )):
 
-                                            quick_ready_number += 1
+                                            if (is_more_aggressive(last_quick_price, row['close'], side)):
+                                                quick_ready_number += 1
+                                                last_quick_price = row['close']
+
+
+                                            #quick_ready_number += 1
+
+
                                             if quick_ready_number == 2 or (is_activate_second_entry_trading and (row[quick_immediate] or row[quick_immediate2])):  #Notice this change "or row[quick_immediate]"
 
                                                 x.at[x.index[i], selected_quick] = 1
