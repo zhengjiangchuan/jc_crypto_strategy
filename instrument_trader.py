@@ -262,7 +262,7 @@ class CurrencyTrader(threading.Thread):
 
 
     def feed_data(self, new_data_df, original_data_df100 = None, original_data_df200 = None):
-        self.condition.acquire()
+        #self.condition.acquire() #Multi Thread
 
         self.data_df_backup100 = original_data_df100
         self.data_df_backup200 = original_data_df200
@@ -294,7 +294,7 @@ class CurrencyTrader(threading.Thread):
 
                 #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                self.condition.notify()
+                #self.condition.notify() #Multi Thread
             else:
                 new_last_time = new_data_df.iloc[-1]['time']
                 if new_last_time > self.last_time:
@@ -315,9 +315,9 @@ class CurrencyTrader(threading.Thread):
 
                     #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                    self.condition.notify()
+                    #self.condition.notify() #Multi Thread
 
-        self.condition.release()
+        #self.condition.release() #Multi Thread
 
     def run(self):
         print("Running...........")
@@ -3240,7 +3240,7 @@ class CurrencyTrader(threading.Thread):
         signal_attrs = ['buy_weak_ready', 'buy_weak_fire',  'buy_ready', 'buy_fire',
                         'sell_weak_ready', 'sell_weak_fire',  'sell_ready', 'sell_fire']
 
-        self.condition.acquire()
+        #self.condition.acquire()  #Multi Thread
 
         data_df100 = None
         data_df200 = None
@@ -3267,7 +3267,7 @@ class CurrencyTrader(threading.Thread):
         use2TypeSignals = False #True
         filter_option = 1
 
-        while True:
+        if True:   #Multi Thread: while True
 
             for high_low_window, data_df_backup in list(zip(high_low_window_options, self.data_dfs_backup)):
 
@@ -7004,10 +7004,10 @@ class CurrencyTrader(threading.Thread):
 
             print("Finish")
 
-            self.condition.wait()
+            #self.condition.wait() #Multi Thread
 
 
-        self.condition.release()
+        #self.condition.release()  #Multi Thread
 
 
 

@@ -413,38 +413,39 @@ if is_do_trading:
 
                 if data_df is not None and (not is_traded_first_time[i]):
                     currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
-                    currency_trader.start()
+                    currency_trader.run() #Multi Thread
                     is_traded_first_time[i] = True
 
 
-                if data_df is not None and data_df.shape[0] > 0:
-                    last_time = data_df.iloc[-1]['time']
-                else:
-                    last_time = None
-
-                print("last_time = " + str(last_time))
-                if last_time is not None:
-                    delta = last_time - datetime.now()
-                else:
-                    delta = None
-                if (delta is not None and delta.seconds < 7200 and delta.days == 0) or is_first_time:
-                    print("Received update-to-date data")
-
-                    delta = last_time - datetime.now()
-
-                    #print((last_time - datetime.now()))
-                    currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
-                    is_new_data_received[i] = True
-
-                else:
-                    print("Go here 2")
-                    if trial_numbers[i] <= maximum_trial_number + 1:
-                        if trial_numbers[i] <= maximum_trial_number:
-                            is_all_received = False
-                            print("Not received data update for " + currency + ", will try again")
-                            trial_numbers[i] += 1
-                        else:
-                            print("Reached maximum number of trials for " + currency + ", give up")
+                # if data_df is not None and data_df.shape[0] > 0:
+                #     last_time = data_df.iloc[-1]['time']
+                # else:
+                #     last_time = None
+                #
+                # print("last_time = " + str(last_time))
+                # if last_time is not None:
+                #     delta = last_time - datetime.now()
+                # else:
+                #     delta = None
+                # if (delta is not None and delta.seconds < 7200 and delta.days == 0) or is_first_time:
+                #     print("Received update-to-date data")
+                #
+                #     delta = last_time - datetime.now()
+                #
+                #     #print((last_time - datetime.now()))
+                #     currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
+                #     currency_trader.run()  # Multi Thread
+                #     is_new_data_received[i] = True
+                #
+                # else:
+                #     print("Go here 2")
+                #     if trial_numbers[i] <= maximum_trial_number + 1:
+                #         if trial_numbers[i] <= maximum_trial_number:
+                #             is_all_received = False
+                #             print("Not received data update for " + currency + ", will try again")
+                #             trial_numbers[i] += 1
+                #         else:
+                #             print("Reached maximum number of trials for " + currency + ", give up")
 
         is_first_time = False
 
