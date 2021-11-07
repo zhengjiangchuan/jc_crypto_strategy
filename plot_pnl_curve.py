@@ -86,6 +86,8 @@ else:
 meta_file = os.path.join(data_folder, 'symbols_meta.csv')
 meta_df = pd.read_csv(meta_file)
 
+inverse_position = True
+
 # meta_df = meta_df[~meta_df['symbol'].isin(['AUDNZD', 'EURCHF', 'EURNZD','GBPAUD',
 #                                                         'GBPCAD', 'GBPCHF', 'USDCAD', 'GBPUSD', 'GBPNZD'])]
 
@@ -95,9 +97,9 @@ meta_df = pd.read_csv(meta_file)
 #meta_df = meta_df[meta_df['symbol'].isin(['AUDJPY', 'EURCAD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
 #weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1}
 
-#weights = None
-meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY', 'GBPJPY'])]
-weights = {'CADCHF' : 1, 'USDJPY' : 1, 'GBPJPY' : 1}
+weights = None
+# meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY', 'GBPJPY'])]
+# weights = {'CADCHF' : 1, 'USDJPY' : 1, 'GBPJPY' : 1}
 
 
 #weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'GBPUSD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1, 'CADCHF' : 3, 'USDJPY' : 3}
@@ -112,7 +114,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1025', 'final', 'pnl_summary_spread15_innovativeFire2new_maxPnl_25000_quickLossDelayed_noTrendFollow_SpecialExclude_selected_portfolio3_Phase1ComplexClose_removeGuppyClose_original_adjustStopLoss')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1107', 'final', 'pnl_summary_inverse_position_maxExposure6')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -156,8 +158,8 @@ data_file_suffix = 'only_second_entry_trend_follow'  #'only_second_entry_trend_f
 
 if is_portfolio:
 
-    max_exposure = 3 #12 #6
-    initial_principal_magnifier = 3 #6.435 #8
+    max_exposure = 6 #12 #6
+    initial_principal_magnifier = 6 #6.435 #8
 
 
 
@@ -180,7 +182,15 @@ if is_portfolio:
 
         data_df = pd.read_csv(data_file)
         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+        if inverse_position:
+            data_df['position'] = -data_df['position']
+            data_df['cum_position'] = -data_df['cum_position']
+
         simple_data_df = data_df[['time', 'position', 'cum_position']]
+
+
+
         simple_data_df['position'] = simple_data_df['position'] * weight
         simple_data_df['cum_position'] = simple_data_df['cum_position'] * weight
 
@@ -188,6 +198,11 @@ if is_portfolio:
         if is_do_strategy_average:
             data_df2 = pd.read_csv(data_file2)
             data_df2['time'] = data_df2['time'].apply(lambda x: preprocess_time(x))
+
+            if inverse_position:
+                data_df2['position'] = -data_df2['position']
+                data_df2['cum_position'] = -data_df2['cum_position']
+
             simple_data_df2 = data_df2[['time', 'position', 'cum_position']]
 
             simple_data_df2 = simple_data_df2.rename(columns = {"position" : 'position2', "cum_position" : 'cum_position2'})
@@ -577,12 +592,22 @@ for i in range(meta_df.shape[0] + 1):
 
         data_df = pd.read_csv(data_file)
         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+        if inverse_position:
+            data_df['position'] = -data_df['position']
+            data_df['cum_position'] = -data_df['cum_position']
+
         #simple_data_df = data_df[['time', 'position', 'cum_position']]
 
 
         if is_do_strategy_average:
             data_df2 = pd.read_csv(data_file2)
             data_df2['time'] = data_df2['time'].apply(lambda x: preprocess_time(x))
+
+            if inverse_position:
+                data_df2['position'] = -data_df2['position']
+                data_df2['cum_position'] = -data_df2['cum_position']
+
             simple_data_df2 = data_df2[['time', 'position', 'cum_position']]
 
             simple_data_df2 = simple_data_df2.rename(columns = {"position" : 'position2', "cum_position" : 'cum_position2'})
