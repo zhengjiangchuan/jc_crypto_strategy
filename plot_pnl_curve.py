@@ -114,7 +114,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1114', 'final', 'pnl_summary_inverse_position_maxExposure6')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1114', 'final', 'pnl_summary_inverse_position_maxExposure3_noPortfolio')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -140,7 +140,7 @@ draw_intraday_pnl = False
 
 ####################### Portfolio trading ####################################
 
-is_portfolio = True
+is_portfolio = False
 
 plot_hk_pnl = True
 initial_deposit_hk = 30000   #31000
