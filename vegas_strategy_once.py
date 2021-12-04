@@ -468,7 +468,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\1121\\final\\forex_noTrendFollowing_SpecialExclude_selected3_Phase1ComplexClose_removeGuppyClose_original_adjustStopLoss"
+    dest_folder = "C:\\Forex\\new_experiments\\1128\\final\\forex_noTrendFollowing_SpecialExclude_selected3_Phase1ComplexClose_removeGuppyClose_original_adjustStopLoss"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
