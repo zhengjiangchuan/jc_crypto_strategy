@@ -89,7 +89,7 @@ currency_df = pd.read_csv(currency_file)
 
 #currency_df = currency_df[currency_df['currency'].isin(['AUDJPY'])]
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDJPY', 'EURCAD', 'NZDJPY', 'USDCAD', 'NZDUSD'])]
+#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD','AUDJPY','AUDUSD','CADJPY','CHFJPY','GBPNZD','NZDJPY'])]
 
 
 #currency_df = currency_df[currency_df['currency'].isin(['CADCHF', 'USDJPY', 'GBPJPY'])]
@@ -468,7 +468,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\1128\\final\\forex_noTrendFollowing_SpecialExclude_selected3_Phase1ComplexClose_removeGuppyClose_original_adjustStopLoss"
+    dest_folder = "C:\\Forex\\new_experiments\\0107\\final\\original_strategy"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 

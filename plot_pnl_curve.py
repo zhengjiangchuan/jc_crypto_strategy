@@ -101,6 +101,12 @@ weights = None
 # meta_df = meta_df[meta_df['symbol'].isin(['CADCHF', 'USDJPY', 'GBPJPY'])]
 # weights = {'CADCHF' : 1, 'USDJPY' : 1, 'GBPJPY' : 1}
 
+# target_symbols = ['AUDCAD','AUDJPY','AUDUSD','CADJPY','CHFJPY','GBPNZD','NZDJPY']
+# meta_df = meta_df[meta_df['symbol'].isin(target_symbols)]
+# weights = {}
+# for symbol in target_symbols:
+#     weights[symbol] = 1
+
 
 #weights = {'AUDJPY' : 1, 'EURCAD' : 1, 'GBPUSD' : 1, 'NZDJPY' : 1, 'USDCAD' : 1, 'NZDUSD' : 1, 'CADCHF' : 3, 'USDJPY' : 3}
 
@@ -114,7 +120,7 @@ if len(selected_symbols) > 0:
 if is_gege_server:
     pnl_folder = os.path.join(data_folder, 'pnl')
 else:
-    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl1128', 'final', 'pnl_summary_inverse_position_maxExposure3_noPortfolio')
+    pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0107', 'final', 'pnl_summary_inverse_position_maxExposure7_Portfolio')
 
 #pnl_folder = os.path.join(data_folder, 'pnl', 'pnl0723', 'pnl_summary_spread15_innovativeFire2new_11pm')
 if not os.path.exists(pnl_folder):
@@ -158,8 +164,8 @@ data_file_suffix = 'only_second_entry_trend_follow'  #'only_second_entry_trend_f
 
 if is_portfolio:
 
-    max_exposure = 3 #12 #6
-    initial_principal_magnifier = 3 #6.435 #8
+    max_exposure = 7 #12 #6
+    initial_principal_magnifier = 7 #6.435 #8
 
 
 
