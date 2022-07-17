@@ -175,9 +175,9 @@ for currency_pair in currency_pairs:
     log_files += [log_file]
 
 # This is the trial app_id
-app_id = "162083550794289"
+app_id = "165227989254931"
 
-url = "http://api.forexfeed.net/data/162083550794289/n-240/f-csv/i-3600/s-EURUSD,USDJPY"
+url = "http://api.forexfeed.net/data/165227989254931/n-240/f-csv/i-3600/s-EURUSD,USDJPY"
 
 
 def convert_to_time(timestamp):
@@ -468,7 +468,7 @@ if True:
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\0206\\final\\original_strategy"
+    dest_folder = "C:\\Forex\\new_experiments\\0529\\final\\original_strategy"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
