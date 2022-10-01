@@ -41,6 +41,14 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+parser = OptionParser()
+parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
+                  help="Currency Pair to run")
+
+
+(options, args) = parser.parse_args()
+
+currency_to_run = options.currency_pair
 
 class CurrencyPair:
 
@@ -54,7 +62,7 @@ print("Child process starts")
 
 is_gege_server = False
 
-is_do_portfolio_trading = True
+is_do_portfolio_trading = False
 
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
@@ -96,7 +104,10 @@ currency_df = pd.read_csv(currency_file)
 #currency_df = currency_df[currency_df['currency'].isin(['USDJPY'])]
 
 
-#currency_df = currency_df[currency_df['currency'].isin(['AUDCAD', 'AUDCHF', 'CADCHF', 'CADJPY', 'EURGBP','GBPCHF'])]
+#currency_df = currency_df[currency_df['currency'].isin(['EURUSD'])]
+
+if currency_to_run != 'all':
+    currency_df = currency_df[currency_df['currency'].isin([currency_to_run])]
 
 #currency_df = currency_df[currency_df['currency'].isin(['CADJPY', 'EURAUD', 'EURCAD', 'EURJPY', 'AUDUSD', 'EURUSD', 'NZDJPY'])]
 
@@ -294,7 +305,7 @@ original_data_df200 = None
 
 is_do_trading = True
 
-is_append_new_data = True
+is_append_new_data = False
 
 if is_do_trading:
     while not is_all_received:
@@ -353,6 +364,7 @@ if is_do_trading:
                     print(data_df.tail(10))
 
                     last_time = data_df.iloc[-1]['time']
+                    print("last_time = " + str(last_time))
                     last_timestamp = int(datetime.timestamp(last_time)) #- 28800
                     # next_timestamp = last_timestamp + 3600
 
@@ -413,7 +425,7 @@ if is_do_trading:
 
                 if data_df is not None and (not is_traded_first_time[i]):
                     currency_trader.feed_data(data_df, original_data_df100, original_data_df200)
-                    currency_trader.run() #Multi Thread
+                    currency_trader.trade() #Multi Thread
                     is_traded_first_time[i] = True
 
 
@@ -454,21 +466,21 @@ if is_do_trading:
     print("Finished trading *********************************")
 
 if True:
-    print("Sleeping")
-    time.sleep(10)
+    # print("Sleeping")
+    # time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0803\\forex_innovativeFire2new_clean_entry_second_entry_Improve2"
 
-
+    dest_folder = "C:\\Forex\\formal_trading\\All_Charts"
 
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_innovativeFire2new_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected_upToDate_fixBug2"
 
 
 
-    dest_folder = "C:\\Forex\\new_experiments\\0529\\final\\original_strategy"
+    #dest_folder = "C:\\Forex\\new_experiments\\0529\\final\\original_strategy"
     #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
 
 
@@ -492,11 +504,18 @@ if True:
         os.makedirs(dest_folder)
 
     for file in os.listdir(dest_folder):
-        file_path = os.path.join(dest_folder, file)
-        os.remove(file_path)
+
+        if currency_to_run in file:
+            file_path = os.path.join(dest_folder, file)
+            os.remove(file_path)
 
 
-    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder) if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file and 'portfolio' not in file]
+    symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder)
+                      if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file and 'portfolio' not in file]
+
+    print("symbol_folders:")
+    print(symbol_folders)
+
     import shutil
 
     currency_list = list(currency_df['currency'])
@@ -514,8 +533,8 @@ if True:
         # if symbol_folder[-6:] not in selected_ones:
         #     continue
 
-        print(symbol_folder)
-        chart_folder = os.path.join(symbol_folder, "simple_chart")
+        print("Process symbol folder " + symbol_folder)
+        chart_folder = os.path.join(symbol_folder, "chart")
 
         files = os.listdir(chart_folder)
         if len(files) == 6:

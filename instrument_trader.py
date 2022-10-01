@@ -3296,8 +3296,8 @@ class CurrencyTrader(threading.Thread):
 
 
                 print("to csv:")
-                if high_low_window == 200:
-                    self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + data_file_suffix + ".csv"), index=False)
+                #if high_low_window == 200:
+                #    self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(high_low_window) + data_file_suffix + ".csv"), index=False)
                 print("after to csv:")
 
 
@@ -6680,7 +6680,7 @@ class CurrencyTrader(threading.Thread):
             # print("Follow the trend why why3?")
             # print(self.data_df.iloc[1675:1682][['time', 'almost_aligned_short_condition1']])
 
-            self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + data_file_suffix +  ".csv"), index=False)
+            #self.data_df.to_csv(os.path.join(self.data_folder, self.currency + str(100) + data_file_suffix +  ".csv"), index=False)
             print("after to csv:")
             #sys.exit(0)
 
@@ -6984,12 +6984,12 @@ class CurrencyTrader(threading.Thread):
             all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
 
-            # plot_candle_bar_charts(self.currency, self.data_df, all_days,
-            #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-            #                        is_plot_candle_buy_sell_points=True,
-            #                        print_prefix=print_prefix,
-            #                        is_plot_aux = True,
-            #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=False)
+            plot_candle_bar_charts(self.currency, self.data_df, all_days,
+                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                                   is_plot_candle_buy_sell_points=False,
+                                   print_prefix=print_prefix,
+                                   is_plot_aux = False,
+                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
 
             # plot_candle_bar_charts(self.currency, self.data_df, all_days,
             #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,

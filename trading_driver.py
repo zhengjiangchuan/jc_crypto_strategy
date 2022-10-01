@@ -6,7 +6,7 @@ import os
 from multiprocessing import Process
 from util import sendEmail
 from datetime import timedelta
-
+import pandas as pd
 
 def wait_for_trigger():
     current_time = datetime.now()
@@ -60,12 +60,24 @@ def wait_for_trigger():
 
 if __name__ == '__main__':
 
-    while True:
-        print("Waiting for the next trigger")
+    root_folder = "C:\\Forex\\formal_trading"
 
-        # son_process = Process(target=start_trader)
-        # son_process.start()
-        print("Run trading program")
-        os.system("python vegas_strategy_once.py")
+    currency_file = os.path.join(root_folder, "currency.csv")
 
-        wait_for_trigger()
+    currency_df = pd.read_csv(currency_file)
+
+    currency_list = currency_df['currency'].tolist()
+
+    for currency_pair in currency_list:
+        print("Running currency_pair " + currency_pair)
+        os.system("python vegas_strategy_once.py -c " + currency_pair)
+
+    # while True:
+    #     print("Waiting for the next trigger")
+    #
+    #     # son_process = Process(target=start_trader)
+    #     # son_process.start()
+    #     print("Run trading program")
+    #     os.system("python vegas_strategy_once.py")
+    #
+    #     wait_for_trigger()
