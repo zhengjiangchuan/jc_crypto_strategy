@@ -235,7 +235,7 @@ def preprocess_time(t):
 
     return datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
 
-def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
+def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short_df,
                            num_days = 10, plot_jc = False, plot_bolling = False, is_jc_calculated = False, print_prefix = "",
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
@@ -246,28 +246,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
     windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
 
-    #high_low_window = 200
-
-    # print("all_data_df:")
-    # print(all_data_df.tail(10))
-
-
-    # if is_plot_candle_buy_sell_points:
-    #
-    #     long_trade_df = trade_df[trade_df['trade_type'] == 1]
-    #     short_trade_df = trade_df[trade_df['trade_type'] == -1]
-    #
-    #     long_df = long_trade_df[[trade_buy_time, 'buy_price']]
-    #     close_long_df = long_trade_df[[trade_sell_time, 'sell_price']]
-    #
-    #     short_df = short_trade_df[[trade_sell_time, 'sell_price']]
-    #     close_short_df = short_trade_df[[trade_buy_time, 'buy_price']]
-    #
-    #
-    #     long_marker = '^'
-    #     close_long_marker = 'v'
-    #     short_marker = 'v'
-    #     close_short_marker = '^'
 
 
     remaining = len(trading_days) % num_days
@@ -305,58 +283,31 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         sub_data = all_data_df[(all_data_df['time'] >= start_date) & (all_data_df['time'] < end_date)]
 
+        min_id = sub_data.iloc[0]['id']
+        max_id = sub_data.iloc[-1]['id']
+
+
+        long_sub_data = long_df[(long_df['long_stop_profit_loss_time'] >= sub_data.iloc[0]['time']) & (long_df['time'] <= sub_data.iloc[-1]['time'])]
+        short_sub_data = long_df[(long_df['short_stop_profit_loss_time'] >= sub_data.iloc[0]['time']) & (short_df['time'] <= sub_data.iloc[-1]['time'])]
+
+        long_sub_data['entry_id'] = np.where(long_sub_data['id'] >= min_id, long_sub_data['id'], min_id)
+        long_sub_data['exit_id'] = np.where(long_sub_data['long_stop_profit_loss_id'] <= max_id, long_sub_data['id'], max_id)
+
+        short_sub_data['entry_id'] = np.where(short_sub_data['id'] >= min_id, short_sub_data['id'], min_id)
+        short_sub_data['exit_id'] = np.where(short_sub_data['long_stop_profit_loss_id'] <= max_id, short_sub_data['id'], max_id)
+
+
+        long_sub_data['entry_id'] = long_sub_data['entry_id'] - min_id
+        long_sub_data['exit_id'] = long_sub_data['exit_id'] - min_id
+
+        short_sub_data['entry_id'] = short_sub_data['entry_id'] - min_id
+        short_sub_data['exit_id'] = short_sub_data['exit_id'] - min_id
+
+
+
         max_price = sub_data['close'].max()
         min_price = sub_data['close'].min()
         tick_interval = (max_price - min_price) / y_tick_number
-
-        #period_start_time = sub_data.iloc[0]['ori_date']
-        #period_end_time = sub_data.iloc[-1]['ori_date']
-
-        # if is_plot_candle_buy_sell_points:
-        #
-        #     #period_end_time_next = period_end_time + timedelta(days=1)
-        #
-        #     # print("long_df:")
-        #     # print(long_df)
-        #
-        #     period_long_df = long_df[(long_df[trade_buy_time] >= start_date) & (long_df[trade_buy_time] < end_date)]
-        #     period_close_long_df = close_long_df[(close_long_df[trade_sell_time] >= start_date) & (close_long_df[trade_sell_time] < end_date)]
-        #
-        #     period_short_df = short_df[(short_df[trade_sell_time] >= start_date) & (short_df[trade_sell_time] < end_date)]
-        #     period_close_short_df = close_short_df[(close_short_df[trade_buy_time] >= start_date) & (close_short_df[trade_buy_time] < end_date)]
-        #
-        #     long_points = []
-        #     for i in range(period_long_df.shape[0]):
-        #         long_points += [which(sub_data['time'] == period_long_df.iloc[i][trade_buy_time])[0]]
-        #
-        #     close_long_points = []
-        #     for i in range(period_close_long_df.shape[0]):
-        #
-        #         # print("period_close_long_df:")
-        #         # print(period_close_long_df)
-        #         #
-        #         # print("sub_data:")
-        #         # print(sub_data.head(40))
-        #
-        #         close_long_points += [which(sub_data['time'] == period_close_long_df.iloc[i][trade_sell_time])[0]]
-        #
-        #     short_points = []
-        #     for i in range(period_short_df.shape[0]):
-        #         short_points += [which(sub_data['time'] == period_short_df.iloc[i][trade_sell_time])[0]]
-        #
-        #     close_short_points = []
-        #     for i in range(period_close_short_df.shape[0]):
-        #         close_short_points += [which(sub_data['time'] == period_close_short_df.iloc[i][trade_buy_time])[0]]
-        #
-        # if is_plot_market_state and state_df is not None:
-        #
-        #     period_state_df = state_df[(state_df['start_time'] >= start_date) & (state_df['start_time'] < end_date)]
-        #
-        #     state_points = []
-        #     for i in range(period_state_df.shape[0]):
-        #         state_points += [which(sub_data['time'] == period_state_df.iloc[i]['start_time'])[0]]
-        #
-        #
 
 
 
@@ -400,175 +351,29 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
 
         print("Reach here 1")
 
-        buy_ready_points = which(sub_data['buy_ready'])
-        # print("buy_fire:")
-        # print(sub_data['buy_fire'][0:10])
-        # print("first_buy_fire:")
-        # print(sub_data['first_buy_fire'][0:10])
-        # dummy_buy_points = which(sub_data['buy_fire'])
-        # print("dummy_buy_points:")
-        # print(dummy_buy_points[0:10])
 
 
 
-        buy_real_points_vegas = which(sub_data['first_buy_real_fire'])
-        buy_real_points_reverse = which(sub_data['first_final_buy_fire'] & (~sub_data['first_final_buy_fire_exclude'])) #which(sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
+        long_win_points = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1]['entry_id'].tolist()
+        long_lose_points = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1]['entry_id'].tolist()
 
-        if 'first_final_buy_fire_new' in sub_data.columns:
-            buy_real_points_reverse_new = which(sub_data['first_final_buy_fire_new'])
+        long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'long_stop_profit_price']]
+        long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_profit_price']]
 
-        if 'first_final_buy_fire_exclude' in sub_data.columns:
-            buy_real_points_reverse_exclude = which(sub_data['first_final_buy_fire_exclude'])
-        if 'first_buy_fire_magic_exclude' in sub_data.columns:
-            buy_real_points_magic_exclude = which(sub_data['first_buy_fire_magic_exclude'])
-
-        if 'first_actual_special_sell_close_position' in sub_data.columns:
-            sell_special_close_points = which(sub_data['first_actual_special_sell_close_position'])
-        if 'first_actual_sell_close_position_excessive' in sub_data.columns:
-            sell_close_points_excessive = which(sub_data['first_actual_sell_close_position_excessive'])
-        if 'first_actual_sell_close_position_conservative' in sub_data.columns:
-            sell_close_points_conservative = which(sub_data['first_actual_sell_close_position_conservative'])
-        if 'first_sell_stop_loss_excessive' in sub_data.columns:
-            sell_stop_loss_excessive = which(sub_data['first_sell_stop_loss_excessive'])
-        if 'first_sell_stop_loss_conservative' in sub_data.columns:
-            sell_stop_loss_conservative = which(sub_data['first_sell_stop_loss_conservative'])
+        long_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_loss_price']]
+        long_not_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'long_stop_loss_price']]
 
 
-        if 'show_special_sell_close_position' in sub_data.columns:
-            show_sell_special_close_points = which(sub_data['show_special_sell_close_position'])
-        if 'show_sell_close_position_excessive' in sub_data.columns:
-            show_sell_close_points_excessive = which(sub_data['show_sell_close_position_excessive'])
-        if 'show_sell_close_position_conservative' in sub_data.columns:
-            show_sell_close_points_conservative = which(sub_data['show_sell_close_position_conservative'])
-        if 'show_sell_stop_loss_excessive' in sub_data.columns:
-            show_sell_stop_loss_excessive = which(sub_data['show_sell_stop_loss_excessive'])
-        if 'show_sell_stop_loss_conservative' in sub_data.columns:
-            show_sell_stop_loss_conservative = which(sub_data['show_sell_stop_loss_conservative'])
+        short_win_points = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1]['entry_id'].tolist()
+        short_lose_points = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1]['entry_id'].tolist()
+
+        short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'short_stop_profit_price']]
+        short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_profit_price']]
+
+        short_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_loss_price']]
+        short_not_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'short_stop_loss_price']]
 
 
-        if 'show_sell_close_position_guppy1' in sub_data.columns:
-            show_sell_close_points_guppy1 = which(sub_data['show_sell_close_position_guppy1'])
-        if 'show_sell_close_position_guppy2' in sub_data.columns:
-            show_sell_close_points_guppy2 = which(sub_data['show_sell_close_position_guppy2'])
-        if 'show_sell_close_position_vegas' in sub_data.columns:
-            show_sell_close_points_vegas = which(sub_data['show_sell_close_position_vegas'])
-        if 'show_sell_close_position_final_excessive1' in sub_data.columns:
-            show_sell_close_points_final_excessive1 = which(sub_data['show_sell_close_position_final_excessive1'])
-        if 'show_sell_close_position_final_excessive2' in sub_data.columns:
-            show_sell_close_points_final_excessive2 = which(sub_data['show_sell_close_position_final_excessive2'])
-        if 'show_sell_close_position_final_conservative' in sub_data.columns:
-            show_sell_close_points_final_conservative = which(sub_data['show_sell_close_position_final_conservative'])
-        if 'show_sell_close_position_final_simple' in sub_data.columns:
-            show_sell_close_points_final_simple = which(sub_data['show_sell_close_position_final_simple'])
-        if 'show_sell_close_position_final_quick' in sub_data.columns:
-            show_sell_close_points_final_quick = which(sub_data['show_sell_close_position_final_quick'])
-        if 'show_sell_close_position_final_urgent' in sub_data.columns:
-            show_sell_close_points_final_urgent = which(sub_data['show_sell_close_position_final_urgent'])
-        if 'show_sell_close_position_fixed_time_temporary' in sub_data.columns:
-            show_sell_close_points_fixed_time_temporary = which(sub_data['show_sell_close_position_fixed_time_temporary'])
-        if 'show_sell_close_position_fixed_time_terminal' in sub_data.columns:
-            show_sell_close_points_fixed_time_terminal = which(sub_data['show_sell_close_position_fixed_time_terminal'])
-
-        if 'show_sell_fire_trend_close' in sub_data.columns:
-            show_sell_fire_trend_close_points = which(sub_data['show_sell_fire_trend_close'])
-
-
-
-        buy_real_points_macd = which(sub_data['first_buy_real_fire4'])
-        buy_real_points_simple = which(sub_data['first_buy_real_fire5'])
-
-        buy_points = which(sub_data['first_buy_fire'] & (~sub_data['first_buy_real_fire']))
-
-        #buy_reverse_points = which(sub_data['first_buy_real_fire2'] | sub_data['first_buy_real_fire3'])
-        buy_reverse_points = which(sub_data['first_buy_real_fire4'])
-
-        # buy_real_points = which(sub_data['first_buy_real_fire2'])
-        # buy_points = which(sub_data['first_buy_fire'] & (~sub_data['first_buy_real_fire']))
-
-
-        buy_weak_ready_points = which(sub_data['buy_weak_ready'] & (~sub_data['buy_ready']))
-        buy_weak_points = which(sub_data['first_buy_weak_fire'] & (~sub_data['first_buy_fire']) & (~sub_data['first_buy_real_fire']))
-
-
-        sell_ready_points = which(sub_data['sell_ready'])
-
-        sell_real_points_vegas = which(sub_data['first_sell_real_fire'])
-        sell_real_points_reverse = which(sub_data['first_final_sell_fire'] & (~sub_data['first_final_sell_fire_exclude'])) # which(sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
-
-        if 'first_final_sell_fire_new' in sub_data.columns:
-            sell_real_points_reverse_new = which(sub_data['first_final_sell_fire_new'])
-
-        if 'first_final_sell_fire_exclude' in sub_data.columns:
-            sell_real_points_reverse_exclude = which(sub_data['first_final_sell_fire_exclude'])
-        if 'first_sell_fire_magic_exclude' in sub_data.columns:
-            sell_real_points_magic_exclude = which(sub_data['first_sell_fire_magic_exclude'])
-
-
-        if 'first_actual_special_buy_close_position' in sub_data.columns:
-            buy_special_close_points = which(sub_data['first_actual_special_buy_close_position'])
-        if 'first_actual_buy_close_position_excessive' in sub_data.columns:
-            buy_close_points_excessive = which(sub_data['first_actual_buy_close_position_excessive'])
-        if 'first_actual_buy_close_position_conservative' in sub_data.columns:
-            buy_close_points_conservative = which(sub_data['first_actual_buy_close_position_conservative'])
-        if 'first_buy_stop_loss_excessive' in sub_data.columns:
-            buy_stop_loss_excessive = which(sub_data['first_buy_stop_loss_excessive'])
-        if 'first_buy_stop_loss_conservative' in sub_data.columns:
-            buy_stop_loss_conservative = which(sub_data['first_buy_stop_loss_conservative'])
-
-
-        if 'show_special_buy_close_position' in sub_data.columns:
-            show_buy_special_close_points = which(sub_data['show_special_buy_close_position'])
-        if 'show_buy_close_position_excessive' in sub_data.columns:
-            show_buy_close_points_excessive = which(sub_data['show_buy_close_position_excessive'])
-        if 'show_buy_close_position_conservative' in sub_data.columns:
-            show_buy_close_points_conservative = which(sub_data['show_buy_close_position_conservative'])
-        if 'show_buy_stop_loss_excessive' in sub_data.columns:
-            show_buy_stop_loss_excessive = which(sub_data['show_buy_stop_loss_excessive'])
-        if 'show_buy_stop_loss_conservative' in sub_data.columns:
-            show_buy_stop_loss_conservative = which(sub_data['show_buy_stop_loss_conservative'])
-
-
-        if 'show_buy_close_position_guppy1' in sub_data.columns:
-            show_buy_close_points_guppy1 = which(sub_data['show_buy_close_position_guppy1'])
-        if 'show_buy_close_position_guppy2' in sub_data.columns:
-            show_buy_close_points_guppy2 = which(sub_data['show_buy_close_position_guppy2'])
-        if 'show_buy_close_position_vegas' in sub_data.columns:
-            show_buy_close_points_vegas = which(sub_data['show_buy_close_position_vegas'])
-        if 'show_buy_close_position_final_excessive1' in sub_data.columns:
-            show_buy_close_points_final_excessive1 = which(sub_data['show_buy_close_position_final_excessive1'])
-        if 'show_buy_close_position_final_excessive2' in sub_data.columns:
-            show_buy_close_points_final_excessive2 = which(sub_data['show_buy_close_position_final_excessive2'])
-        if 'show_buy_close_position_final_conservative' in sub_data.columns:
-            show_buy_close_points_final_conservative = which(sub_data['show_buy_close_position_final_conservative'])
-        if 'show_buy_close_position_final_simple' in sub_data.columns:
-            show_buy_close_points_final_simple = which(sub_data['show_buy_close_position_final_simple'])
-        if 'show_buy_close_position_final_quick' in sub_data.columns:
-            show_buy_close_points_final_quick = which(sub_data['show_buy_close_position_final_quick'])
-        if 'show_buy_close_position_final_urgent' in sub_data.columns:
-            show_buy_close_points_final_urgent = which(sub_data['show_buy_close_position_final_urgent'])
-        if 'show_buy_close_position_fixed_time_temporary' in sub_data.columns:
-            show_buy_close_points_fixed_time_temporary = which(sub_data['show_buy_close_position_fixed_time_temporary'])
-        if 'show_buy_close_position_fixed_time_terminal' in sub_data.columns:
-            show_buy_close_points_fixed_time_terminal = which(sub_data['show_buy_close_position_fixed_time_terminal'])
-
-        if 'show_buy_fire_trend_close' in sub_data.columns:
-            show_buy_fire_trend_close_points = which(sub_data['show_buy_fire_trend_close'])
-
-
-
-        sell_real_points_macd = which(sub_data['first_sell_real_fire4'])
-        sell_real_points_simple = which(sub_data['first_sell_real_fire5'])
-
-        sell_points = which(sub_data['first_sell_fire'] & (~sub_data['first_sell_real_fire']))
-
-        #sell_reverse_points = which(sub_data['first_sell_real_fire2'] | sub_data['first_sell_real_fire3'])
-        sell_reverse_points = which(sub_data['first_sell_real_fire4'])
-
-        # sell_real_points = which(sub_data['first_sell_real_fire2'])
-        # sell_points = which(sub_data['first_sell_fire'] & (~sub_data['first_sell_real_fire']))
-
-        sell_weak_ready_points = which(sub_data['sell_weak_ready'] & (~sub_data['sell_ready']))
-        sell_weak_points = which(sub_data['first_sell_weak_fire'] & (~sub_data['first_sell_fire']) & (~sub_data['first_sell_real_fire']))
 
 
         if is_plot_candle_buy_sell_points:
@@ -576,319 +381,76 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
             long_marker = '^'
             short_marker = 'v'
 
+            for point in long_win_points:
+                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'blue')
 
-            # for buy_real_point in buy_real_points_vegas: #buy_real_points_vegas
-            #     axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 15, color = 'blue')
+            for point in long_lose_points:
+                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'red')
 
-            ####################################
+            for point in short_win_points:
+                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'blue')
 
-            if 'first_final_buy_fire_exclude' in sub_data.columns:
-                for buy_real_point_exclude in buy_real_points_reverse_exclude:
-                    axes.plot(int_time_series[buy_real_point_exclude], sub_data.iloc[buy_real_point_exclude]['close'], marker = long_marker, markersize = 15, color = 'cornflowerblue')
+            for point in short_lose_points:
+                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'red')
 
-            if 'first_buy_fire_magic_exclude' in sub_data.columns:
-                for buy_real_point_exclude in buy_real_points_magic_exclude:
-                    axes.plot(int_time_series[buy_real_point_exclude], sub_data.iloc[buy_real_point_exclude]['close'], marker = long_marker, markersize = 15, color = 'darkturquoise')
+            for j in range(long_hit_profit.shape[0]):
+                axes.axhline(y=long_hit_profit.iloc[j]['long_stop_profit_price'],
+                             xmin = int_time_series[long_hit_profit.iloc[j]['entry_id']],
+                             xmax = int_time_series[long_hit_profit.iloc[j]['exit_id']],
+                             ls = '-', color = 'blue', linewidth = 1)
 
+            for j in range(long_not_hit_profit.shape[0]):
+                axes.axhline(y=long_not_hit_profit.iloc[j]['long_stop_profit_price'],
+                             xmin = int_time_series[long_not_hit_profit.iloc[j]['entry_id']],
+                             xmax = int_time_series[long_not_hit_profit.iloc[j]['exit_id']],
+                             ls = '-', color = 'black', linewidth = 1)
 
-            for buy_real_point in buy_real_points_reverse:
-                axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = long_marker, markersize = 18, color = 'blue')
 
-            if 'first_final_buy_fire_new' in sub_data.columns:
-                for buy_real_point in buy_real_points_reverse_new:
-                    axes.plot(int_time_series[buy_real_point], sub_data.iloc[buy_real_point]['close'], marker = 'o', markersize = 18, color = 'blue')
+            for j in range(long_hit_loss.shape[0]):
+                axes.axhline(y=long_hit_loss.iloc[j]['long_stop_loss_price'],
+                             xmin = int_time_series[long_hit_loss.iloc[j]['entry_id']],
+                             xmax = int_time_series[long_hit_loss.iloc[j]['exit_id']],
+                             ls = '-', color = 'red', linewidth = 1)
 
+            for j in range(long_not_hit_loss.shape[0]):
+                axes.axhline(y=long_not_hit_loss.iloc[j]['long_stop_loss_price'],
+                             xmin = int_time_series[long_not_hit_loss.iloc[j]['entry_id']],
+                             xmax = int_time_series[long_not_hit_loss.iloc[j]['exit_id']],
+                             ls = '-', color = 'black', linewidth = 1)
 
 
-            ####################################
 
 
-            # if 'first_actual_special_sell_close_position' in sub_data.columns:
-            #     for sell_close_point in sell_special_close_points:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkturquoise')
-            #
-            # if 'first_actual_sell_close_position_excessive' in sub_data.columns:
-            #     for sell_close_point in sell_close_points_excessive:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkturquoise')
-            #
-            # if 'first_actual_sell_close_position_conservative' in sub_data.columns:
-            #     for sell_close_point in sell_close_points_conservative:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'cadetblue')
-            #
-            #
-            # if 'first_sell_stop_loss_excessive' in sub_data.columns:
-            #     for sell_close_point in sell_stop_loss_excessive:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = 'o', markersize = 9, color = 'darkturquoise')
-            #
-            # if 'first_sell_stop_loss_conservative' in sub_data.columns:
-            #     for sell_close_point in sell_stop_loss_conservative:
-            #         axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = 'o', markersize = 9, color = 'cadetblue')
 
+            for j in range(short_hit_profit.shape[0]):
+                axes.axhline(y=short_hit_profit.iloc[j]['short_stop_profit_price'],
+                             xmin = int_time_series[short_hit_profit.iloc[j]['entry_id']],
+                             xmax = int_time_series[short_hit_profit.iloc[j]['exit_id']],
+                             ls = '-', color = 'blue', linewidth = 1)
 
-            ###################################################################################
-            if 'show_special_sell_close_position' in sub_data.columns:
-                for sell_close_point in show_sell_special_close_points:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkturquoise')
 
-            if 'show_sell_close_position_excessive' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_excessive:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkturquoise')
+            for j in range(short_not_hit_profit.shape[0]):
+                axes.axhline(y=short_not_hit_profit.iloc[j]['short_stop_profit_price'],
+                             xmin = int_time_series[short_not_hit_profit.iloc[j]['entry_id']],
+                             xmax = int_time_series[short_not_hit_profit.iloc[j]['exit_id']],
+                             ls = '-', color = 'black', linewidth = 1)
 
-            if 'show_sell_close_position_conservative' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_conservative:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'cadetblue')
 
+            for j in range(short_hit_loss.shape[0]):
+                axes.axhline(y=short_hit_loss.iloc[j]['short_stop_loss_price'],
+                             xmin = int_time_series[short_hit_loss.iloc[j]['entry_id']],
+                             xmax = int_time_series[short_hit_loss.iloc[j]['exit_id']],
+                             ls = '-', color = 'red', linewidth = 1)
 
-            if 'show_sell_stop_loss_excessive' in sub_data.columns:
-                for sell_close_point in show_sell_stop_loss_excessive:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkturquoise')
+            for j in range(short_not_hit_loss.shape[0]):
+                axes.axhline(y=short_not_hit_loss.iloc[j]['short_stop_loss_price'],
+                             xmin = int_time_series[short_not_hit_loss.iloc[j]['entry_id']],
+                             xmax = int_time_series[short_not_hit_loss.iloc[j]['exit_id']],
+                             ls = '-', color = 'black', linewidth = 1)
 
-            if 'show_sell_stop_loss_conservative' in sub_data.columns:
-                for sell_close_point in show_sell_stop_loss_conservative:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'cadetblue')
 
 
 
-
-
-
-            if 'show_sell_close_position_guppy1' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_guppy1:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkgreen')
-
-            if 'show_sell_close_position_guppy2' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_guppy2:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkgreen')
-
-
-            if 'show_sell_close_position_vegas' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_vegas:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'darkgreen')
-
-            if 'show_sell_close_position_final_excessive1' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_excessive1:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'dimgray' if support_half_stop_loss else 'black' )
-
-            if 'show_sell_close_position_final_excessive2' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_excessive2:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
-
-
-            if 'show_sell_close_position_final_conservative' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_conservative:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
-
-            if 'show_sell_close_position_final_simple' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_simple:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
-
-            if 'show_sell_close_position_final_quick' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_quick:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
-
-
-
-            if 'show_sell_fire_trend_close' in sub_data.columns:
-                for sell_close_point in show_sell_fire_trend_close_points:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'indigo')
-
-
-
-
-            if 'show_sell_close_position_final_urgent' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_final_urgent:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
-
-            if 'show_sell_close_position_fixed_time_temporary' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_fixed_time_temporary:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'dimgray')
-
-            if 'show_sell_close_position_fixed_time_terminal' in sub_data.columns:
-                for sell_close_point in show_sell_close_points_fixed_time_terminal:
-                    axes.plot(int_time_series[sell_close_point], sub_data.iloc[sell_close_point]['close'], marker = long_marker, markersize = 12, color = 'black')
-
-
-
-
-            if not is_plot_simple_chart:
-                for buy_point in buy_points:
-                    axes.plot(int_time_series[buy_point], sub_data.iloc[buy_point]['close'], marker = long_marker, markersize = 15, color = 'blue')
-
-
-                for buy_weak_point in buy_weak_points:
-                    axes.plot(int_time_series[buy_weak_point], sub_data.iloc[buy_weak_point]['close'], marker = long_marker, markersize = 15, color = 'cornflowerblue')
-
-            #
-            # for sell_real_point in sell_real_points_vegas: #sell_real_points_vegas
-            #     axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 15, color = 'red')
-
-            ####################################
-
-            if 'first_final_sell_fire_exclude' in sub_data.columns:
-                for sell_real_point_exclude in sell_real_points_reverse_exclude:
-                    axes.plot(int_time_series[sell_real_point_exclude], sub_data.iloc[sell_real_point_exclude]['close'], marker = short_marker, markersize = 15, color = 'salmon')
-
-            if 'first_sell_fire_magic_exclude' in sub_data.columns:
-                for sell_real_point_exclude in sell_real_points_magic_exclude:
-                    axes.plot(int_time_series[sell_real_point_exclude], sub_data.iloc[sell_real_point_exclude]['close'], marker = short_marker, markersize = 15, color = 'violet')
-
-
-            for sell_real_point in sell_real_points_reverse:
-                axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = short_marker, markersize = 18, color = 'red')
-
-            if 'first_final_sell_fire_new' in sub_data.columns:
-                for sell_real_point in sell_real_points_reverse_new:
-                    axes.plot(int_time_series[sell_real_point], sub_data.iloc[sell_real_point]['close'], marker = 'o', markersize = 18, color = 'red')
-
-
-
-            ####################################
-
-
-            # if 'first_actual_special_buy_close_position' in sub_data.columns:
-            #     for buy_close_point in buy_special_close_points:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'violet')
-            #
-            #
-            # if 'first_actual_buy_close_position_excessive' in sub_data.columns:
-            #     for buy_close_point in buy_close_points_excessive:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'violet')
-            #
-            # if 'first_actual_buy_close_position_conservative' in sub_data.columns:
-            #     for buy_close_point in buy_close_points_conservative:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'mediumorchid')
-            #
-            # if 'first_buy_stop_loss_excessive' in sub_data.columns:
-            #     for buy_close_point in buy_stop_loss_excessive:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = 'o', markersize = 9, color = 'violet')
-            #
-            # if 'first_buy_stop_loss_conservative' in sub_data.columns:
-            #     for buy_close_point in buy_stop_loss_conservative:
-            #         axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = 'o', markersize = 9, color = 'mediumorchid')
-
-
-
-             ###################################################################################
-            if 'show_special_buy_close_position' in sub_data.columns:
-                for buy_close_point in show_buy_special_close_points:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'violet')
-
-            if 'show_buy_close_position_excessive' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_excessive:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'violet')
-
-            if 'show_buy_close_position_conservative' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_conservative:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'mediumorchid')
-
-
-            if 'show_buy_stop_loss_excessive' in sub_data.columns:
-                for buy_close_point in show_buy_stop_loss_excessive:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'violet')
-
-            if 'show_buy_stop_loss_conservative' in sub_data.columns:
-                for buy_close_point in show_buy_stop_loss_conservative:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'mediumorchid')
-
-
-
-
-
-            if 'show_buy_close_position_guppy1' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_guppy1:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
-
-            if 'show_buy_close_position_guppy2' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_guppy2:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
-
-            if 'show_buy_close_position_vegas' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_vegas:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'darkgreen')
-
-            if 'show_buy_close_position_final_excessive1' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_excessive1:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'dimgray' if support_half_stop_loss else 'black' )
-
-            if 'show_buy_close_position_final_excessive2' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_excessive2:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
-
-            if 'show_buy_close_position_final_conservative' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_conservative:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
-
-            if 'show_buy_close_position_final_simple' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_simple:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
-
-            if 'show_buy_close_position_final_quick' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_quick:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
-
-
-            if 'show_buy_fire_trend_close' in sub_data.columns:
-                for buy_close_point in show_buy_fire_trend_close_points:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'indigo')
-
-
-            if 'show_buy_close_position_final_urgent' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_final_urgent:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
-
-            if 'show_buy_close_position_fixed_time_temporary' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_fixed_time_temporary:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'dimgray')
-
-            if 'show_buy_close_position_fixed_time_terminal' in sub_data.columns:
-                for buy_close_point in show_buy_close_points_fixed_time_terminal:
-                    axes.plot(int_time_series[buy_close_point], sub_data.iloc[buy_close_point]['close'], marker = short_marker, markersize = 12, color = 'black')
-
-
-
-
-            if not is_plot_simple_chart:
-                for sell_point in sell_points:
-                    axes.plot(int_time_series[sell_point], sub_data.iloc[sell_point]['close'], marker = short_marker, markersize = 15, color = 'red')
-
-
-                for sell_weak_point in sell_weak_points:
-                    axes.plot(int_time_series[sell_weak_point], sub_data.iloc[sell_weak_point]['close'], marker = short_marker, markersize = 15, color = 'salmon')
-
-
-        # if is_plot_candle_buy_sell_points:
-        #
-        #     i = -1
-        #     for close_long_point in close_long_points:
-        #         i += 1
-        #         axes.plot(int_time_series[close_long_point], period_close_long_df.iloc[i]['sell_price'], marker=close_long_marker, markersize=20, color='red')
-        #
-        #     i = -1
-        #     for close_short_point in close_short_points:
-        #         i += 1
-        #         axes.plot(int_time_series[close_short_point], period_close_short_df.iloc[i]['buy_price'],
-        #                   marker=close_short_marker, markersize=20, color='midnightblue')
-        #
-        #     i = -1
-        #     for long_point in long_points:
-        #         i += 1
-        #         axes.plot(int_time_series[long_point], period_long_df.iloc[i]['buy_price'], marker=long_marker,
-        #                   markersize=20, color='blue')
-        #
-        #     i = -1
-        #     for short_point in short_points:
-        #         i += 1
-        #         axes.plot(int_time_series[short_point], period_short_df.iloc[i]['sell_price'], marker=short_marker, markersize=20, color='darkred')
-        #
-        #
-        #
-        #
-        # if is_plot_market_state and state_df is not None:
-        #     i = -1
-        #     for state_point in state_points:
-        #         i += 1
-        #         axes.annotate(period_state_df.iloc[i]['state'], xy = (int_time_series[state_point], period_state_df.iloc[i]['price']), #sub_data.iloc[state_point]['close']),
-        #                 color = 'black', size = 12)
 
 
         if plot_jc:
@@ -913,11 +475,6 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days,
         axes.set_title(raw_symbol + " from " + start_date_str + " to " + end_date_str, fontsize = 20)
 
 
-
-        #candle_df['signal'] = 'macd'
-
-        # print("candle_df:")
-        # print(candle_df.head(20))
 
         candle_df['time_id'] = list(range(candle_df.shape[0]))
         time_id_array = candle_df['time_id'].values
