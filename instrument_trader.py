@@ -375,6 +375,8 @@ class CurrencyTrader(threading.Thread):
 
         ######### Filters for Scenario where Vegas support long ###############
 
+
+  
         self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down'])
         self.data_df['long_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
