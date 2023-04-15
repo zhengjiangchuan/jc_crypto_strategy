@@ -213,27 +213,25 @@ class CurrencyTrader(threading.Thread):
         self.last_time = None
         self.log_file = log_file
 
-        self.use_relaxed_vegas_support = True
-        self.is_require_m12_strictly_above_vegas = False
-        self.remove_c12 = True
+        # self.use_relaxed_vegas_support = True
+        # self.is_require_m12_strictly_above_vegas = False
+        # self.remove_c12 = True
 
         #self.currency_file = os.path.join(data_folder, currency + "100.csv")
 
         self.log_fd = open(self.log_file, 'a')
 
         self.print_to_console = True
-
-        self.is_cut_data = False
-
-        self.data_df_backup100 = None
-        self.data_df_backup200 = None
-
-        self.data_dfs_backup = []
+        #
+        # self.is_cut_data = False
+        #
+        # self.data_df_backup100 = None
+        # self.data_df_backup200 = None
+        #
+        # self.data_dfs_backup = []
 
 
         self.log_msg("Initializing...")
-
-
 
 
     def log_msg(self, msg):
@@ -247,77 +245,9 @@ class CurrencyTrader(threading.Thread):
             print('[' + current_time + ' ' + self.currency + ']  ' + msg)
 
 
-    def get_last_time(self):
-        return self.last_time
+    def feed_data(self, new_data_df):
 
-    def cut_data(self):
-
-        #self.data_df_backup = self.data_df.copy()
-        #self.data_df_backup = self.data_df_backup[self.data_df_backup['price_range'].notnull()]
-
-        self.data_df = self.data_df.iloc[-1000:]
-        self.data_df.reset_index(inplace = True)
-        self.data_df = self.data_df.drop(columns = ['index'])
-
-
-
-    def feed_data(self, new_data_df, original_data_df100 = None, original_data_df200 = None):
-        #self.condition.acquire() #Multi Thread
-
-        self.data_df_backup100 = original_data_df100
-        self.data_df_backup200 = original_data_df200
-
-        if self.data_df_backup100 is not None:
-            self.data_df_backup100['date'] = pd.DatetimeIndex(self.data_df_backup100['time']).normalize()
-
-        if self.data_df_backup200 is not None:
-            self.data_df_backup200['date'] = pd.DatetimeIndex(self.data_df_backup200['time']).normalize()
-
-        for high_low_window in high_low_window_options:
-            if high_low_window == 100:
-                self.data_dfs_backup += [self.data_df_backup100]
-            elif high_low_window == 200:
-                self.data_dfs_backup += [self.data_df_backup200]
-
-
-        if new_data_df is not None and new_data_df.shape[0] > 0:
-
-            if self.data_df is None or self.data_df.shape[0] == 0:
-                self.data_df = new_data_df
-
-                self.last_time = self.data_df.iloc[-1]['time']
-
-                #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
-
-                if self.is_cut_data and original_data_df100 is not None and original_data_df200 is not None:
-                    self.cut_data()
-
-                #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
-
-                #self.condition.notify() #Multi Thread
-            else:
-                new_last_time = new_data_df.iloc[-1]['time']
-                if new_last_time > self.last_time:
-                    incremental_df = new_data_df[new_data_df['time'] > self.last_time]
-
-                    self.log_msg("Receive new bar data from " + str(incremental_df.iloc[0]['time']) + " to " + str(incremental_df.iloc[-1]['time']))
-
-                    self.data_df = pd.concat([self.data_df, incremental_df])
-                    self.data_df.reset_index(inplace = True)
-                    self.data_df = self.data_df.drop(columns = ['index'])
-
-                    self.last_time = new_last_time
-
-                    #self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
-
-                    if self.is_cut_data and original_data_df100 is not None and original_data_df200 is not None:
-                        self.cut_data()
-
-                    #self.data_df = self.data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
-
-                    #self.condition.notify() #Multi Thread
-
-        #self.condition.release() #Multi Thread
+        self.data_df = new_data_df
 
     def run(self):
         print("Running...........")
@@ -325,310 +255,157 @@ class CurrencyTrader(threading.Thread):
 
 
 
-    def calculate_position_second_entry_trend_follow(self, data_df_side, side):
-        max_position = 1
-        cur_position = 0
-        start_position_phase2 = 0
 
-        data_df_side['position'] = 0.0
-        for i in range(data_df_side.shape[0]):
-            row = data_df_side.iloc[i]
+    def calculate_signals(self):
 
-            cum_delta_position = 0.0
+        self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
+        self.data_df['hour'] = self.data_df['time'].apply(lambda x: x.hour)
 
-            if row['first_final_' + side + '_fire']:
-                if cur_position < max_position:
-                    start_position_phase2 = 0
-                    delta_position = max_position - cur_position
-                    delta_position = round(delta_position, 2)
-                    data_df_side.at[i, 'position'] = delta_position
+        calc_jc_lines(self.data_df, "close", windows)
+        calc_bolling_bands(self.data_df, "close", bolling_width)
 
-                    cum_delta_position += delta_position
+        self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
+        self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
 
-                    cur_position += delta_position
-                    cur_position = round(cur_position, 2)
 
-                    # print("time = " + str(row['time']) + " fire")
-                    # print("delta_position = " + str(delta_position))
-                    # print("cur_position = " + str(cur_position))
+        self.data_df['is_positive'] = (self.data_df['close'] > self.data_df['open'])
+        self.data_df['is_negative'] = (self.data_df['close'] < self.data_df['open'])
 
+        self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
+        self.data_df['price_volatility'] = self.data_df['high'] - self.data_df['low']
 
-            if (not row['first_final_' + side + '_fire']) or is_intraday_quick:
-                #cum_delta_position = 0.0
-                if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
-                    if cur_position > 0:
-                        delta_position = -cur_position/3.0
+        guppy_lines = ['ma_close30', 'ma_close35', 'ma_close40', 'ma_close45', 'ma_close50', 'ma_close60']
+        for guppy_line in guppy_lines:
+            self.data_df[guppy_line + '_gradient'] = self.data_df[guppy_line].diff()
 
-                        delta_position = round(delta_position, 2)
-                        cum_delta_position += delta_position
+        for guppy_line in guppy_lines:
+            self.data_df[guppy_line + '_up'] = np.where(
+                self.data_df[guppy_line + '_gradient'] > 0,
+                1,
+                0
+            )
 
-                        # data_df_side.at[i, 'position'] = delta_position
-                        cur_position += delta_position
-                        cur_position = round(cur_position, 2)
+        for guppy_line in guppy_lines:
+            self.data_df[guppy_line + '_down'] = np.where(
+                self.data_df[guppy_line + '_gradient'] < 0,
+                1,
+                0
+            )
 
-                        start_position_phase2 = 0
+        self.data_df['fastest_guppy_line_up'] = self.data_df['ma_close30_gradient'] > 0
+        self.data_df['fastest_guppy_line_down'] = self.data_df['ma_close30_gradient'] < 0
 
-                        # print("time = " + str(row['time']) + " fire")
-                        # print("delta_position = " + str(delta_position))
-                        # print("cur_position = " + str(cur_position))
+        self.data_df['fast_guppy_cross_up'] = self.data_df['ma_close30'] > self.data_df['ma_close35']
+        self.data_df['fast_guppy_cross_down'] = self.data_df['ma_close30'] < self.data_df['ma_close35']
 
-                        #print("time = " + str(row['time']) + " phase 1 temporary close")
+        self.data_df['up_guppy_line_num'] = reduce(lambda left, right: left + right,
+                                                   [self.data_df[guppy_line + '_up'] for guppy_line in guppy_lines])
 
+        self.data_df['down_guppy_line_num'] = reduce(lambda left, right: left + right,
+                                                   [self.data_df[guppy_line + '_up'] for guppy_line in guppy_lines])
 
-                if row['show_special_' + side + '_close_position'] or row['show_' + side + '_close_position_excessive'] or row['show_' + side + '_stop_loss_excessive']:
-                    if cur_position > 0:
-                        if start_position_phase2 <= 0:
-                            start_position_phase2 = cur_position
+        guppy_aligned_long_conditions = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
+                                    range(len(guppy_lines) - 1)]
 
-                        if row['show_' + side + '_close_position_excessive_terminal'] or row['show_' + side + '_stop_loss_excessive_terminal']:
-                            start_position_phase2 = 0
-                            delta_position = -cur_position
-                            delta_position = round(delta_position, 2) #Added
-                            cum_delta_position += delta_position
+        guppy_up_conditions = [self.data_df[guppy_lines[i] + '_up']
+                                          for i in range(len(guppy_lines))]
 
-                            # data_df_side.at[i, 'position'] = round(delta_position, 2)
-                            cur_position += delta_position
-                            cur_position = round(cur_position, 2)
+        self.data_df['guppy_all_aligned_long'] = reduce(lambda left, right: left & right, guppy_aligned_long_conditions)
+        self.data_df['guppy_all_up'] = reduce(lambda left, right: left & right, guppy_up_conditions)
+        self.data_df['guppy_all_strong_aligned_long'] = self.data_df['guppy_all_aligned_long'] & self.data_df['guppy_all_up']
 
-                            # print("time = " + str(row['time']) + " fire")
-                            # print("delta_position = " + str(delta_position))
-                            # print("cur_position = " + str(cur_position))
-                        else:
-                            if row['show_special_' + side + '_close_position'] and row['show_' + side + '_close_position_excessive']:
-                                delta_position = -start_position_phase2/2.0
-                            else:
-                                delta_position = -start_position_phase2/4.0
+        self.data_df['guppy_half1_aligned_long'] = reduce(lambda left, right: left & right, guppy_aligned_long_conditions[0:2])
+        self.data_df['guppy_half1_all_up'] = reduce(lambda left, right: left & right, guppy_up_conditions[0:3])
+        self.data_df['guppy_half1_strong_aligned_long'] = self.data_df['guppy_half1_aligned_long'] & self.data_df['guppy_half1_all_up']
 
-                            #New
-                            if is_intraday_strategy and quick_close_position_for_intraday_strategy:
-                                delta_position = -cur_position
+        self.data_df['guppy_half2_aligned_long'] = reduce(lambda left, right: left & right, guppy_aligned_long_conditions[3:5])
+        self.data_df['guppy_half2_all_up'] = reduce(lambda left, right: left & right, guppy_up_conditions[3:6])
+        self.data_df['guppy_half2_strong_aligned_long'] = self.data_df['guppy_half2_aligned_long'] & self.data_df['guppy_half2_all_up']
 
 
-                            delta_position = round(delta_position, 2)
+        guppy_aligned_short_conditions = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
+                                    range(len(guppy_lines) - 1)]
 
-                            cum_delta_position += delta_position
+        guppy_down_conditions = [self.data_df[guppy_lines[i] + '_down']
+                                          for i in range(len(guppy_lines))]
 
-                            # data_df_side.at[i, 'position'] = delta_position
-                            cur_position += delta_position
-                            cur_position = round(cur_position, 2)
+        self.data_df['guppy_all_aligned_short'] = reduce(lambda left, right: left & right, guppy_aligned_short_conditions)
+        self.data_df['guppy_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions)
+        self.data_df['guppy_all_strong_aligned_short'] = self.data_df['guppy_all_aligned_short'] & self.data_df['guppy_all_down']
 
-                            # print("time = " + str(row['time']) + " fire")
-                            # print("delta_position = " + str(delta_position))
-                            # print("cur_position = " + str(cur_position))
+        self.data_df['guppy_half1_aligned_short'] = reduce(lambda left, right: left & right, guppy_aligned_short_conditions[0:2])
+        self.data_df['guppy_half1_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions[0:3])
+        self.data_df['guppy_half1_strong_aligned_short'] = self.data_df['guppy_half1_aligned_short'] & self.data_df['guppy_half1_all_down']
 
-                        #print("time = " + str(row['time']) + " phase 2 temporary close")
+        self.data_df['guppy_half2_aligned_short'] = reduce(lambda left, right: left & right, guppy_aligned_short_conditions[3:5])
+        self.data_df['guppy_half2_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions[3:6])
+        self.data_df['guppy_half2_strong_aligned_short'] = self.data_df['guppy_half2_aligned_short'] & self.data_df['guppy_half2_all_down']
 
 
-                if row['show_' + side + '_close_position_final_excessive1'] or row['show_' + side + '_close_position_final_conservative'] or\
-                    row['show_' + side + '_close_position_final_quick'] or row['show_' + side + '_close_position_final_urgent'] or\
-                    row['show_' + side + '_close_position_conservative'] or row['show_' + side + '_stop_loss_conservative'] or\
-                    row['show_' + side + '_fire_trend_close']:
 
-                    if cur_position > 0:
-                        start_position_phase2 = 0
-                        delta_position = -cur_position
-                        delta_position = round(delta_position, 2) #Added
-                        cum_delta_position += delta_position
+        self.data_df['fast_vegas'] = self.data_df['ma_close144']
+        self.data_df['slow_vegas'] = self.data_df['ma_close169']
 
-                        # data_df_side.at[i, 'position'] = round(delta_position, 2)
-                        cur_position += delta_position
-                        cur_position = round(cur_position, 2)
+        self.data_df['fast_vegas_gradient'] = self.data_df['fast_vegas'].diff()
+        self.data_df['slow_vegas_gradient'] = self.data_df['slow_vegas'].diff()
 
-                        # print("time = " + str(row['time']) + " fire")
-                        # print("delta_position = " + str(delta_position))
-                        # print("cur_position = " + str(cur_position))
+        self.data_df['fast_vegas_previous_gradient'] = self.data_df['fast_vegas_gradient'].shift(1)
+        self.data_df['slow_vegas_previous_gradient'] = self.data_df['slow_vegas_gradient'].shift(1)
 
-                        #print("time = " + str(row['time']) + " close all")
+        self.data_df['fast_vegas_up'] = self.data_df['fast_vegas_gradient'] > 0
+        self.data_df['fast_vegas_down'] = self.data_df['fast_vegas_gradient'] < 0
 
+        self.data_df['up_vegas_converge'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+                                            (self.data_df['fast_vegas_gradient'] < self.data_df['slow_vegas_gradient'])
+        self.data_df['up_vegas_converge_previous'] = self.data_df['up_vegas_converge'].shift(1)
 
+        self.data_df['down_vegas_converge'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & \
+                                            (self.data_df['fast_vegas_gradient'] > self.data_df['slow_vegas_gradient'])
+        self.data_df['down_vegas_converge_previous'] = self.data_df['down_vegas_converge'].shift(1)
 
+        ########## Long ############
 
+        self.data_df['vegas_support_long'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up']) & \
+            (~((self.data_df['up_vegas_converge']) & (self.data_df['up_vegas_converge_previous'])))
 
+        ######### Filters for Scenario where Vegas support long ###############
 
-                data_df_side.at[i, 'position'] = round(cum_delta_position, 2)
+        self.data_df['long_filter1'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up'])
+        self.data_df['long_filter2'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
+        self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])
 
 
-                #print("delta_position = " + str(cum_delta_position))
-                #print("cur_position = " + str(cur_position))
+        ######## Conditions for Scenario where Vegas does not support long ###############
+        self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) | (self.data_df['guppy_half2_strong_aligned_long']) | (self.data_df['guppy_all_aligned_long'])
+        self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
 
+        self.data_df['can_long']
 
 
 
 
-    def calculate_position(self, data_df_side, side):
-        max_position = 1
-        cur_position = 0
-        start_position_phase2 = 0
 
-        data_df_side['position'] = 0.0
-        for i in range(data_df_side.shape[0]):
-            row = data_df_side.iloc[i]
 
-            cum_delta_position = 0.0
 
-            if row['first_final_' + side + '_fire']:
-                if cur_position < max_position:
-                    start_position_phase2 = 0
-                    delta_position = max_position - cur_position
-                    delta_position = round(delta_position, 2)
-                    data_df_side.at[i, 'position'] = delta_position
 
-                    cum_delta_position += delta_position
 
-                    cur_position += delta_position
-                    cur_position = round(cur_position, 2)
 
-                    # print("time = " + str(row['time']) + " fire")
-                    # print("delta_position = " + str(delta_position))
-                    # print("cur_position = " + str(cur_position))
+        ######### Short ############
 
+        self.data_df['vegas_support_short'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down']) & \
+            (~((self.data_df['down_vegas_converge']) & (self.data_df['down_vegas_converge_previous'])))
 
-            if (not row['first_final_' + side + '_fire']) or is_intraday_quick:
-                #cum_delta_position = 0.0
-                if row['show_' + side + '_close_position_guppy1'] or row['show_' + side + '_close_position_guppy2'] or row['show_' + side + '_close_position_vegas']:
-                    if cur_position > 0:
 
-                        coeff = self.coefficient if row['show_' + side + '_close_position_vegas'] else -1
 
 
-                        if coeff > 0:
 
-                            delta_position = -cur_position/coeff #self.coefficient  #3.0
 
-                            #New
-                            if is_intraday_strategy and quick_close_position_for_intraday_strategy and row['show_' + side + '_close_position_vegas']:
-                                delta_position = -cur_position
 
-                            delta_position = round(delta_position, 2)
-                            cum_delta_position += delta_position
 
-                            # data_df_side.at[i, 'position'] = delta_position
-                            cur_position += delta_position
-                            cur_position = round(cur_position, 2)
 
-                            start_position_phase2 = 0
 
-                            # print("time = " + str(row['time']) + " fire")
-                            # print("delta_position = " + str(delta_position))
-                            # print("cur_position = " + str(cur_position))
+        ###################################################################################
 
-                            #print("time = " + str(row['time']) + " phase 1 temporary close")
-
-
-                if row['show_special_' + side + '_close_position'] or row['show_' + side + '_close_position_excessive'] or row['show_' + side + '_stop_loss_excessive']:
-                    if cur_position > 0:
-                        if start_position_phase2 <= 0:
-                            start_position_phase2 = cur_position
-
-                        if row['show_' + side + '_close_position_excessive_terminal'] or row['show_' + side + '_stop_loss_excessive_terminal']:
-                            start_position_phase2 = 0
-                            delta_position = -cur_position
-                            delta_position = round(delta_position, 2) #Added
-                            cum_delta_position += delta_position
-
-                            # data_df_side.at[i, 'position'] = round(delta_position, 2)
-                            cur_position += delta_position
-                            cur_position = round(cur_position, 2)
-
-                            # print("time = " + str(row['time']) + " fire")
-                            # print("delta_position = " + str(delta_position))
-                            # print("cur_position = " + str(cur_position))
-                        else:
-                            if row['show_special_' + side + '_close_position'] and row['show_' + side + '_close_position_excessive']:
-                                delta_position = -start_position_phase2/2.0
-                            else:
-                                delta_position = -start_position_phase2/4.0
-
-                            #New
-                            if is_intraday_strategy and quick_close_position_for_intraday_strategy:
-                                delta_position = -cur_position
-
-
-                            delta_position = round(delta_position, 2)
-
-                            cum_delta_position += delta_position
-
-                            # data_df_side.at[i, 'position'] = delta_position
-                            cur_position += delta_position
-                            cur_position = round(cur_position, 2)
-
-                            # print("time = " + str(row['time']) + " fire")
-                            # print("delta_position = " + str(delta_position))
-                            # print("cur_position = " + str(cur_position))
-
-                        #print("time = " + str(row['time']) + " phase 2 temporary close")
-
-
-                if row['show_' + side + '_close_position_final_excessive1'] or row['show_' + side + '_close_position_final_conservative'] or\
-                    row['show_' + side + '_close_position_final_quick'] or row['show_' + side + '_close_position_final_urgent'] or\
-                    row['show_' + side + '_close_position_conservative'] or row['show_' + side + '_stop_loss_conservative']:
-
-                    if cur_position > 0:
-                        start_position_phase2 = 0
-                        delta_position = -cur_position
-                        delta_position = round(delta_position, 2) #Added
-                        cum_delta_position += delta_position
-
-                        # data_df_side.at[i, 'position'] = round(delta_position, 2)
-                        cur_position += delta_position
-                        cur_position = round(cur_position, 2)
-
-                        # print("time = " + str(row['time']) + " fire")
-                        # print("delta_position = " + str(delta_position))
-                        # print("cur_position = " + str(cur_position))
-
-                        #print("time = " + str(row['time']) + " close all")
-
-                #'show_sell_close_position_fixed_time_temporary'
-                if row['show_' + side + '_close_position_fixed_time_temporary']:
-                    if cur_position > 0:
-                        assert(row['selected_' + side + '_close_position_fixed_time'] > 0)
-                        delta_position = -cur_position/row['selected_' + side + '_close_position_fixed_time']
-                        delta_position = round(delta_position, 2)
-
-                        # print("")
-                        # print(side + '_close_position_fixed_time_temporary')
-                        # print("time = " + str(row['time']))
-                        # print("cur_position = " + str(cur_position))
-                        # print("denominator = " + str(row['selected_' + side + '_close_position_fixed_time']))
-                        # print("delta_position = " + str(delta_position))
-
-
-                        cum_delta_position += delta_position
-
-                        cur_position += delta_position
-                        cur_position = round(cur_position, 2)
-
-                        # print("cum_delta_position = " + str(cum_delta_position))
-                        # print("cur_position = " + str(cur_position))
-
-                if row['show_' + side + '_close_position_fixed_time_terminal']:
-                    if cur_position > 0:
-                        start_position_phase2 = 0
-                        delta_position = -cur_position
-
-                        delta_position = round(delta_position, 2)
-                        cum_delta_position += delta_position
-
-                        cur_position += delta_position
-                        cur_position = round(cur_position, 2)
-
-                        # print("time = " + str(row['time']) + " fire")
-                        # print("delta_position = " + str(delta_position))
-                        # print("cur_position = " + str(cur_position))
-
-
-                data_df_side.at[i, 'position'] = round(cum_delta_position, 2)
-
-
-                #print("delta_position = " + str(cum_delta_position))
-                #print("cur_position = " + str(cur_position))
-
-
-
-
-
-    def calculate_signals(self, high_low_window):
 
         numerical_features = ['pct_to_upper_vegas', 'high_pct_price_buy', 'low_pct_price_buy', 'pct_to_lower_vegas',
                               'low_pct_price_sell', 'high_pct_price_sell',
