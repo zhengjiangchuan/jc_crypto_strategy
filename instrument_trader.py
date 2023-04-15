@@ -379,14 +379,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) | (self.data_df['guppy_half2_strong_aligned_long']) | (self.data_df['guppy_all_aligned_long'])
         self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
 
-        self.data_df['can_long']
-
-
-
-
-
-
-
+        self.data_df['can_long'] = (self.data_df['can_long1']) | (self.data_df['can_long2'])
 
 
 
@@ -396,7 +389,18 @@ class CurrencyTrader(threading.Thread):
             (~((self.data_df['down_vegas_converge']) & (self.data_df['down_vegas_converge_previous'])))
 
 
+        ######### Filters for Scenario where Vegas support short ###############
 
+        self.data_df['short_filter1'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down'])
+        self.data_df['short_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
+        self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])
+
+
+        ######## Conditions for Scenario where Vegas does not support short ###############
+        self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) | (self.data_df['guppy_half2_strong_aligned_short']) | (self.data_df['guppy_all_aligned_short'])
+        self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
+
+        self.data_df['can_short'] = (self.data_df['can_short1']) | (self.data_df['can_short2'])
 
 
 
