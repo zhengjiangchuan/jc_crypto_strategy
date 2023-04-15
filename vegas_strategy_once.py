@@ -112,6 +112,8 @@ data_folders = []
 chart_folders = []
 simple_chart_folders = []
 log_files = []
+trade_files = []
+performance_files = []
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -141,11 +143,16 @@ for currency_pair in currency_pairs:
         fd = open(log_file, 'w')
         fd.close()
 
+    trade_file = os.path.join(currency_folder, currency + "_trades.txt")
+    performance_file = os.path.join(currency_folder, currency + "_performance.txt")
+
     currency_folders += [currency_folder]
     data_folders += [data_folder]
     chart_folders += [chart_folder]
     simple_chart_folders += [simple_chart_folder]
     log_files += [log_file]
+    trade_files += [trade_file]
+    performance_files += [performance_file]
 
 # This is the trial app_id
 app_id = "165227989254931"
@@ -223,8 +230,8 @@ is_all_received = False
 
 maximum_trial_number = 3
 
-for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file in list(
-        zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files)):
+for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, trade_file, performance_file in list(
+        zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, trade_files, performance_file)):
 
     currency = currency_pair.currency
     lot_size = currency_pair.lot_size
@@ -232,7 +239,7 @@ for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file in l
     coefficient = currency_pair.coefficient
 
     currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                     chart_folder, simple_chart_folder, log_file)
+                                     chart_folder, simple_chart_folder, log_file, trade_file, performance_file)
     currency_trader.daemon = True
 
     currency_traders += [currency_trader]
@@ -263,6 +270,7 @@ if is_do_trading:
                 print("Query initial for currency pair " + currency)
 
                 currency_file100 = os.path.join(data_folder, currency + "100.csv")
+                trade_file = os.path.join(data_folder, currency + "_trade.csv")
 
                 data_df = None
 
