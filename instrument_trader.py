@@ -199,7 +199,7 @@ is_use_two_trend_following = False
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, trade_file, performance_file):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -212,6 +212,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df = None
         self.last_time = None
         self.log_file = log_file
+        self.data_file = data_file
         self.trade_file = trade_file
         self.performance_file = performance_file
 
@@ -307,7 +308,7 @@ class CurrencyTrader(threading.Thread):
                                                    [self.data_df[guppy_line + '_up'] for guppy_line in guppy_lines])
 
         self.data_df['down_guppy_line_num'] = reduce(lambda left, right: left + right,
-                                                   [self.data_df[guppy_line + '_up'] for guppy_line in guppy_lines])
+                                                   [self.data_df[guppy_line + '_down'] for guppy_line in guppy_lines])  #Used to be up, big bug
 
         guppy_aligned_long_conditions = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
                                     range(len(guppy_lines) - 1)]
@@ -360,6 +361,9 @@ class CurrencyTrader(threading.Thread):
         self.data_df['fast_vegas_up'] = self.data_df['fast_vegas_gradient'] > 0
         self.data_df['fast_vegas_down'] = self.data_df['fast_vegas_gradient'] < 0
 
+        self.data_df['slow_vegas_up'] = self.data_df['slow_vegas_gradient'] > 0
+        self.data_df['slow_vegas_down'] = self.data_df['slow_vegas_gradient'] < 0
+
         self.data_df['up_vegas_converge'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_gradient'] < self.data_df['slow_vegas_gradient'])
         self.data_df['up_vegas_converge_previous'] = self.data_df['up_vegas_converge'].shift(1)
@@ -376,14 +380,14 @@ class CurrencyTrader(threading.Thread):
         ######### Filters for Scenario where Vegas support long ###############
 
 
-  
+
         self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down'])
         self.data_df['long_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
         self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
         self.data_df['long_strong_filter2'] = (self.data_df['guppy_half2_aligned_long']) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
-        self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['long_strong_filter1']) & (~self.data_df['long_strong_filter2'])
+        self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support long ###############
@@ -408,7 +412,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
         self.data_df['short_strong_filter2'] = (self.data_df['guppy_half2_aligned_short']) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
 
-        self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['short_strong_filter1']) & (~self.data_df['short_strong_filter2'])
+        self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support short ###############
@@ -423,8 +427,10 @@ class CurrencyTrader(threading.Thread):
         vegas_reverse_look_back_window = 10
         exceed_vegas_threshold = 200
         signal_minimum_lasting_bars = 20
-        
         stop_loss_threshold = 100
+        profit_loss_ratio = 1.0
+
+
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
@@ -433,10 +439,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['m12_below_vegas'] = self.data_df['ma_close12'] < self.data_df['lower_vegas']
 
 
-        self.data_df['low_price_to_upper_vegas'] = self.data_df['low_price'] - self.data_df['upper_vegas']
+        self.data_df['low_price_to_upper_vegas'] = self.data_df['low'] - self.data_df['upper_vegas']
         self.data_df['min_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['min_price']
 
-        self.data_df['high_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['high_price']
+        self.data_df['high_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['high']
         self.data_df['max_price_to_upper_vegas'] = self.data_df['max_price'] - self.data_df['upper_vegas']
 
 
@@ -482,6 +488,23 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 8)])
 
 
+        # print("Check data_df:")
+        #
+        # print(self.data_df.iloc[0:30][['time'] + ['vegas_long_cond' + str(i) for i in range(1,8)] + ['vegas_short_cond' + str(i) for i in range(1, 8)] + ['vegas_long_fire', 'vegas_short_fire']])
+        #
+        # temp_df1 = self.data_df[self.data_df['vegas_long_fire'].isnull()]
+        # temp_df2 = self.data_df[self.data_df['vegas_short_fire'].isnull()]
+        #
+        # temp_df3 = self.data_df[self.data_df['vegas_long_fire']]
+        # temp_df4 = self.data_df[self.data_df['vegas_short_fire']]
+        #
+        # print("long problem = " + str(temp_df1.shape[0]) + " short problem = " + str(temp_df2.shape[0]))
+        # print("long fire num = " + str(temp_df3.shape[0]) + " short fire num = " + str(temp_df4.shape[0]))
+
+
+        #sys.exit(0)
+
+
         ######################################
 
         self.data_df['id'] = list(range(self.data_df.shape[0]))
@@ -495,9 +518,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_lasting'] = self.data_df['id'] - self.data_df['long_dummy']
         self.data_df['previous_long_lasting'] = self.data_df['long_lasting'].shift(1)
 
-        self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
-        self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fier'].shift(1)
+        #self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
 
+        self.data_df['final_vegas_long_fire'] = self.data_df['vegas_long_fire']
+        self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method = 'bfill')
+
+        # temp_df = self.data_df[self.data_df['final_vegas_long_fire'].isnull()]
+        # print("long fire null has " + str(temp_df.shape[0]))
+        #sys.exit(0)
 
         self.data_df['short_dummy'] = np.where(
             self.data_df['vegas_short_fire'],
@@ -508,8 +536,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_lasting'] = self.data_df['id'] - self.data_df['short_dummy']
         self.data_df['previous_short_lasting'] = self.data_df['short_lasting'].shift(1)
 
-        self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
-        self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1)
+        #self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
+
+        self.data_df['final_vegas_short_fire'] = self.data_df['vegas_short_fire']
+        self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method = 'bfill')
 
         ############# Long stop calculation #######################
 
@@ -526,7 +556,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['long_stop_profit_price'] = np.where(
             self.data_df['final_vegas_long_fire'],
-            self.data_df['open'] + self.data_df['long_stop_range'],
+            self.data_df['open'] + profit_loss_ratio * self.data_df['long_stop_range'],
             np.nan
         )
 
@@ -559,9 +589,10 @@ class CurrencyTrader(threading.Thread):
             np.where(
                 self.data_df['long_stop_loss'] == -1,
                 self.data_df['time'],
-                np.nan
+                pd.NaT
             )
         )
+        self.data_df['long_stop_loss_time'] = pd.to_datetime(self.data_df['long_stop_loss_time'])
 
 
 
@@ -592,11 +623,16 @@ class CurrencyTrader(threading.Thread):
             np.where(
                 self.data_df['long_stop_profit'] == 1,
                 self.data_df['time'],
-                np.nan
+                pd.NaT
             )
         )
+        self.data_df['long_stop_profit_time'] = pd.to_datetime(self.data_df['long_stop_profit_time'])
 
-
+        # print("Checking time:")
+        # temp_df = self.data_df[self.data_df['long_stop_profit_time'].notnull()]
+        # print("long_stop_profit_time not null: " + str(temp_df.shape[0]))
+        # print(temp_df[['time', 'long_stop_profit_time']])
+        # print(self.data_df.iloc[0:100][['time', 'long_stop_loss_time', 'long_stop_profit_time']])
 
 
         self.data_df['long_stop_profit_loss'] = np.where(
@@ -630,21 +666,25 @@ class CurrencyTrader(threading.Thread):
             np.where(
                 self.data_df['long_stop_loss_time'].notnull(),
                 self.data_df['long_stop_loss_time'],
-                np.nan
+                pd.NaT
             )
         )
+        self.data_df['long_stop_profit_loss_time'] = pd.to_datetime(self.data_df['long_stop_profit_loss_time'])
 
         self.data_df['long_stop_profit_loss_time'] = self.data_df['long_stop_profit_loss_time'].fillna(method = 'bfill').fillna(0)
 
 
 
-        self.data_df['next_long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].shift(-1)
-        self.data_df['next_long_stop_profit_loss_id'] = self.data_df['long_stop_profit_loss_id'].shift(-1)
-        self.data_df['next_long_stop_profit_loss_time'] = self.data_df['long_stop_profit_loss_time'].shift(-1)
+        self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].shift(-1)
+        self.data_df['long_stop_profit_loss_id'] = self.data_df['long_stop_profit_loss_id'].shift(-1)
+        self.data_df['long_stop_profit_loss_time'] = self.data_df['long_stop_profit_loss_time'].shift(-1)
 
         long_df = self.data_df[self.data_df['final_vegas_long_fire']][['time', 'id', 'open', 'long_stop_loss_price', 'long_stop_profit_price',
                                                                        'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time']]
+
         long_df = long_df[(long_df['long_stop_profit_loss'] == 1) | (long_df['long_stop_profit_loss'] == -1)]
+
+        long_df['long_stop_profit_loss_id'] = long_df['long_stop_profit_loss_id'].astype(int)
 
         self.long_df = long_df
 
@@ -681,7 +721,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['short_stop_profit_price'] = np.where(
             self.data_df['final_vegas_short_fire'],
-            self.data_df['open'] - self.data_df['short_stop_range'],
+            self.data_df['open'] - profit_loss_ratio * self.data_df['short_stop_range'],
             np.nan
         )
 
@@ -714,9 +754,10 @@ class CurrencyTrader(threading.Thread):
             np.where(
                 self.data_df['short_stop_loss'] == -1,
                 self.data_df['time'],
-                np.nan
+                pd.NaT
             )
         )
+        self.data_df['short_stop_loss_time'] = pd.to_datetime(self.data_df['short_stop_loss_time'])
 
 
         self.data_df['short_stop_profit'] = np.where(
@@ -745,9 +786,10 @@ class CurrencyTrader(threading.Thread):
             np.where(
                 self.data_df['short_stop_profit'] == 1,
                 self.data_df['time'],
-                np.nan
+                pd.NaT
             )
         )
+        self.data_df['short_stop_profit_time'] = pd.to_datetime(self.data_df['short_stop_profit_time'])
 
 
 
@@ -783,21 +825,24 @@ class CurrencyTrader(threading.Thread):
             np.where(
                 self.data_df['short_stop_loss_time'].notnull(),
                 self.data_df['short_stop_loss_time'],
-                np.nan
+                pd.NaT
             )
         )
+        self.data_df['short_stop_profit_loss_time'] = pd.to_datetime(self.data_df['short_stop_profit_loss_time'])
 
         self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].fillna(method = 'bfill').fillna(0)
 
 
 
-        self.data_df['next_short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].shift(-1)
-        self.data_df['next_short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].shift(-1)
-        self.data_df['next_short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].shift(-1)
+        self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].shift(-1)
+        self.data_df['short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].shift(-1)
+        self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].shift(-1)
 
         short_df = self.data_df[self.data_df['final_vegas_short_fire']][['time', 'id', 'open', 'short_stop_loss_price', 'short_stop_profit_price',
                                                                        'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time']]
-        short_df = short_df[(long_df['short_stop_profit_loss'] == 1) | (short_df['short_stop_profit_loss'] == -1)]
+        short_df = short_df[(short_df['short_stop_profit_loss'] == 1) | (short_df['short_stop_profit_loss'] == -1)]
+
+        short_df['short_stop_profit_loss_id'] = short_df['short_stop_profit_loss_id'].astype(int)
 
         self.short_df = short_df
 
@@ -826,7 +871,11 @@ class CurrencyTrader(threading.Thread):
         total_long_num = long_win_num + long_lose_num
         total_short_num = short_win_num + short_lose_num
 
-        summary_df = pd.DataFrame({'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_num/total_num*100.0)/100.0],
+        win_pct = win_num / total_num
+        profit_on_average = win_pct * profit_loss_ratio - (1 - win_pct)
+        can_make_money = profit_on_average >= 0.1
+        summary_df = pd.DataFrame({'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
+                                   'PL Ratio' : [round(profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
                                    'Long Trade Num' : [total_long_num], 'Long Win Num' : [long_win_num], 'Long Win Pct' : [ round(long_win_num/total_long_num*100.0)/100.0],
                                    'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_num/total_short_num*100.0)/100.0],
                                    })
@@ -838,8 +887,8 @@ class CurrencyTrader(threading.Thread):
         write_df = pd.concat([write_long_df, write_short_df])
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
+        self.data_df.to_csv(self.data_file, index = False)
         write_df.to_csv(self.trade_file, index = False)
-
         summary_df.to_csv(self.performance_file, index = False)
 
 
@@ -856,7 +905,7 @@ class CurrencyTrader(threading.Thread):
 
         plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
                                num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                               is_plot_candle_buy_sell_points=False,
+                               is_plot_candle_buy_sell_points=True,
                                print_prefix=print_prefix,
                                is_plot_aux = False,
                                bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)

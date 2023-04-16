@@ -67,7 +67,7 @@ is_do_portfolio_trading = False
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
 else:
-    root_folder = "C:\\Forex\\formal_trading"
+    root_folder = "C:\\JCForex"
 
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
@@ -87,9 +87,11 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
+currencies_to_run = ['EURUSD']
 
-if currency_to_run != 'all':
-    currency_df = currency_df[currency_df['currency'].isin([currency_to_run])]
+#if currency_to_run != 'all':
+if len(currencies_to_run) > 0:
+    currency_df = currency_df[currency_df['currency'].isin(currencies_to_run)]
 
 
 print("currency_df:")
@@ -112,6 +114,7 @@ data_folders = []
 chart_folders = []
 simple_chart_folders = []
 log_files = []
+data_files = []
 trade_files = []
 performance_files = []
 for currency_pair in currency_pairs:
@@ -119,8 +122,12 @@ for currency_pair in currency_pairs:
     currency = currency_pair.currency
 
     currency_folder = os.path.join(root_folder, currency)
+    currency_data_folder = os.path.join(root_folder, currency, 'data')
     if not os.path.exists(currency_folder):
         os.makedirs(currency_folder)
+
+    if not os.path.exists(currency_data_folder):
+        os.makedirs(currency_data_folder)
 
     print("currency_folder:")
     print(currency_folder)
@@ -143,7 +150,8 @@ for currency_pair in currency_pairs:
         fd = open(log_file, 'w')
         fd.close()
 
-    trade_file = os.path.join(currency_folder, currency + "_trades.txt")
+    data_file = os.path.join(currency_data_folder, currency + ".csv")
+    trade_file = os.path.join(currency_folder, currency + "_trades.csv")
     performance_file = os.path.join(currency_folder, currency + "_performance.txt")
 
     currency_folders += [currency_folder]
@@ -151,6 +159,7 @@ for currency_pair in currency_pairs:
     chart_folders += [chart_folder]
     simple_chart_folders += [simple_chart_folder]
     log_files += [log_file]
+    data_files += [data_file]
     trade_files += [trade_file]
     performance_files += [performance_file]
 
@@ -230,8 +239,8 @@ is_all_received = False
 
 maximum_trial_number = 3
 
-for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, trade_file, performance_file in list(
-        zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, trade_files, performance_file)):
+for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file in list(
+        zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_file)):
 
     currency = currency_pair.currency
     lot_size = currency_pair.lot_size
@@ -239,7 +248,7 @@ for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, tra
     coefficient = currency_pair.coefficient
 
     currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                     chart_folder, simple_chart_folder, log_file, trade_file, performance_file)
+                                     chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file)
     currency_trader.daemon = True
 
     currency_traders += [currency_trader]
@@ -269,20 +278,20 @@ if is_do_trading:
 
                 print("Query initial for currency pair " + currency)
 
-                currency_file100 = os.path.join(data_folder, currency + "100.csv")
-                trade_file = os.path.join(data_folder, currency + "_trade.csv")
+                data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
+                #data_file = currency_trader.data_file  #Permanent
 
                 data_df = None
 
-                if os.path.exists(currency_file100):
+                if os.path.exists(data_file):
 
-                    data_df100 = pd.read_csv(currency_file100)
+                    data_df = pd.read_csv(data_file)
                     #data_df100 = data_df100.iloc[0:-20]
 
-                    data_df100['time'] = data_df100['time'].apply(lambda x: preprocess_time(x))
+                    data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
 
-                    data_df = data_df100[['currency', 'time', 'open', 'high', 'low', 'close']]
+                    data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
                     print("data_df:")
                     print(data_df.tail(10))
@@ -354,6 +363,8 @@ if is_do_trading:
                     if data_df is not None:
 
                         is_new_data_received[i] = True
+
+                        print("Start trading")
                         currency_trader.feed_data(data_df)
                         currency_trader.trade()
 
@@ -363,7 +374,7 @@ if is_do_trading:
 
     print("Finished trading *********************************")
 
-if True:
+if False:
     # print("Sleeping")
     # time.sleep(10)
     #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
