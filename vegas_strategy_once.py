@@ -87,7 +87,7 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-#currencies_to_run = ['EURUSD', 'NZDCAD']
+#currencies_to_run = ['USDCAD']
 currencies_to_run = []
 
 #if currency_to_run != 'all':
@@ -140,7 +140,7 @@ for currency_pair in currency_pairs:
     if not os.path.exists(data_folder):
         os.makedirs(data_folder)
 
-    chart_folder = os.path.join(currency_folder, "chart")
+    chart_folder = os.path.join(currency_folder, "chart_ratio2Adjust")
     if not os.path.exists(chart_folder):
         os.makedirs(chart_folder)
 
@@ -393,7 +393,7 @@ if is_do_trading:
     print("Final Performance Result:")
     print(perf_df)
 
-    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio2.5.csv"), index = False)
+    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio2_adjust_bit.csv"), index = False)
 
 
 if False:

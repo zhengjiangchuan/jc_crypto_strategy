@@ -293,9 +293,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         # print("sub_data:")
         # print(sub_data.iloc[0:20])
 
+        # print("long_df: length: " + str(long_df.shape[0]))
+        # print(long_df)
 
-        long_sub_data = long_df[(long_df['long_stop_profit_loss_time'] >= sub_data.iloc[0]['time']) & (long_df['time'] <= sub_data.iloc[-1]['time'])]
-        short_sub_data = short_df[(short_df['short_stop_profit_loss_time'] >= sub_data.iloc[0]['time']) & (short_df['time'] <= sub_data.iloc[-1]['time'])]
+        long_sub_data = long_df if long_df.shape[0] == 0 else long_df[(long_df['long_stop_profit_loss_time'] >= sub_data.iloc[0]['time']) & (long_df['time'] <= sub_data.iloc[-1]['time'])]
+
+        # print("short_df: length: " + str(short_df.shape[0]))
+        # print(short_df)
+        short_sub_data = short_df if short_df.shape[0] == 0 else short_df[(short_df['short_stop_profit_loss_time'] >= sub_data.iloc[0]['time']) & (short_df['time'] <= sub_data.iloc[-1]['time'])]
 
         long_sub_data['entry_id'] = np.where(long_sub_data['id'] >= min_id, long_sub_data['id'], min_id)
         long_sub_data['exit_id'] = np.where(long_sub_data['long_stop_profit_loss_id'] <= max_id, long_sub_data['long_stop_profit_loss_id'], max_id)
