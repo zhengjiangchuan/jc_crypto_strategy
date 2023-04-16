@@ -428,7 +428,8 @@ class CurrencyTrader(threading.Thread):
         exceed_vegas_threshold = 200
         signal_minimum_lasting_bars = 20
         stop_loss_threshold = 100
-        profit_loss_ratio = 1.0
+        #Guoji
+        profit_loss_ratio = 2.5
 
 
 
@@ -874,14 +875,33 @@ class CurrencyTrader(threading.Thread):
         win_pct = win_num / total_num
         profit_on_average = win_pct * profit_loss_ratio - (1 - win_pct)
         can_make_money = profit_on_average >= 0.1
-        summary_df = pd.DataFrame({'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
+        summary_df = pd.DataFrame({'Currency' : [self.currency], 'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
                                    'PL Ratio' : [round(profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
                                    'Long Trade Num' : [total_long_num], 'Long Win Num' : [long_win_num], 'Long Win Pct' : [ round(long_win_num/total_long_num*100.0)/100.0],
                                    'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_num/total_short_num*100.0)/100.0],
                                    })
 
+        # long_win_num = total_long_num - long_win_num
+        # short_win_num = total_short_num - short_win_num
+        # win_num = total_num - win_num
+        # win_pct = win_num / total_num
+        # #profit_loss_ratio = 1.0 / profit_loss_ratio
+        # profit_on_average = win_pct - (1 - win_pct) * profit_loss_ratio
+        # can_make_money = profit_on_average >= 0.1
+        # summary_reverse_df = pd.DataFrame({'is_reverse': [True], 'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
+        #                            'PL Ratio' : [round(profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
+        #                            'Long Trade Num' : [total_long_num], 'Long Win Num' : [long_win_num], 'Long Win Pct' : [ round(long_win_num/total_long_num*100.0)/100.0],
+        #                            'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_num/total_short_num*100.0)/100.0],
+        #                            })
+
+        #full_summary_df = pd.concat([summary_df, summary_reverse_df])
+
+        full_summary_df = summary_df
+
+
+
         print("Performance Summary")
-        print(summary_df)
+        print(full_summary_df)
 
 
         write_df = pd.concat([write_long_df, write_short_df])
@@ -889,7 +909,9 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df.to_csv(self.data_file, index = False)
         write_df.to_csv(self.trade_file, index = False)
-        summary_df.to_csv(self.performance_file, index = False)
+
+        print("performance_file: " + str(self.performance_file))
+        full_summary_df.to_csv(self.performance_file, index = False)
 
 
 
@@ -903,12 +925,12 @@ class CurrencyTrader(threading.Thread):
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
-        plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
-                               num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                               is_plot_candle_buy_sell_points=True,
-                               print_prefix=print_prefix,
-                               is_plot_aux = False,
-                               bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
+        # plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
+        #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+        #                        is_plot_candle_buy_sell_points=True,
+        #                        print_prefix=print_prefix,
+        #                        is_plot_aux = False,
+        #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
 
 
         print("Finish")

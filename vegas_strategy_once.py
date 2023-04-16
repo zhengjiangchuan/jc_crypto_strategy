@@ -87,12 +87,15 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-currencies_to_run = ['EURUSD']
+#currencies_to_run = ['EURUSD', 'NZDCAD']
+currencies_to_run = []
 
 #if currency_to_run != 'all':
 if len(currencies_to_run) > 0:
     currency_df = currency_df[currency_df['currency'].isin(currencies_to_run)]
 
+
+currency_list = currency_df['currency'].tolist()
 
 print("currency_df:")
 print(currency_df)
@@ -152,7 +155,8 @@ for currency_pair in currency_pairs:
 
     data_file = os.path.join(currency_data_folder, currency + ".csv")
     trade_file = os.path.join(currency_folder, currency + "_trades.csv")
-    performance_file = os.path.join(currency_folder, currency + "_performance.txt")
+    performance_file = os.path.join(currency_folder, currency + "_performance.csv")
+    print("Fuck performance_file " + performance_file)
 
     currency_folders += [currency_folder]
     data_folders += [data_folder]
@@ -240,13 +244,15 @@ is_all_received = False
 maximum_trial_number = 3
 
 for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file in list(
-        zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_file)):
+        zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files)):
 
     currency = currency_pair.currency
     lot_size = currency_pair.lot_size
     exchange_rate = currency_pair.exchange_rate
     coefficient = currency_pair.coefficient
 
+
+    #print("Here performance_file = " + performance_file)
     currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
                                      chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file)
     currency_trader.daemon = True
@@ -293,8 +299,8 @@ if is_do_trading:
 
                     data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                    print("data_df:")
-                    print(data_df.tail(10))
+                    # print("data_df:")
+                    # print(data_df.tail(10))
 
                     last_time = data_df.iloc[-1]['time']
                     print("last_time = " + str(last_time))
@@ -373,6 +379,22 @@ if is_do_trading:
     sendEmail("Trader process ends", "")
 
     print("Finished trading *********************************")
+
+
+    print("Collecting Results....")
+
+    perf_dfs = []
+    for currency in currency_list:
+        trade_file = os.path.join(root_folder, currency, currency + "_performance.csv")
+        perf_dfs += [pd.read_csv(trade_file)]
+
+    perf_df = pd.concat(perf_dfs)
+
+    print("Final Performance Result:")
+    print(perf_df)
+
+    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio2.5.csv"), index = False)
+
 
 if False:
     # print("Sleeping")
