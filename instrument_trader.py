@@ -307,8 +307,12 @@ class CurrencyTrader(threading.Thread):
         self.data_df['up_guppy_line_num'] = reduce(lambda left, right: left + right,
                                                    [self.data_df[guppy_line + '_up'] for guppy_line in guppy_lines])
 
+        self.data_df['previous_up_guppy_line_num'] = self.data_df['up_guppy_line_num'].shift(1)
+
         self.data_df['down_guppy_line_num'] = reduce(lambda left, right: left + right,
                                                    [self.data_df[guppy_line + '_down'] for guppy_line in guppy_lines])  #Used to be up, big bug
+
+        self.data_df['previous_down_guppy_line_num'] = self.data_df['down_guppy_line_num'].shift(1)
 
         guppy_aligned_long_conditions = [(self.data_df[guppy_lines[i]] > self.data_df[guppy_lines[i + 1]]) for i in
                                     range(len(guppy_lines) - 1)]
@@ -355,14 +359,34 @@ class CurrencyTrader(threading.Thread):
         self.data_df['fast_vegas_gradient'] = self.data_df['fast_vegas'].diff()
         self.data_df['slow_vegas_gradient'] = self.data_df['slow_vegas'].diff()
 
-        self.data_df['fast_vegas_previous_gradient'] = self.data_df['fast_vegas_gradient'].shift(1)
-        self.data_df['slow_vegas_previous_gradient'] = self.data_df['slow_vegas_gradient'].shift(1)
+        self.data_df['previous_fast_vegas_gradient'] = self.data_df['fast_vegas_gradient'].shift(1)
+        self.data_df['previous_slow_vegas_gradient'] = self.data_df['slow_vegas_gradient'].shift(1)
+
+        self.data_df['pp_fast_vegas_gradient'] = self.data_df['previous_fast_vegas_gradient'].shift(1)
+        self.data_df['pp_slow_vegas_gradient'] = self.data_df['previous_slow_vegas_gradient'].shift(1)
+
+
 
         self.data_df['fast_vegas_up'] = self.data_df['fast_vegas_gradient'] > 0
         self.data_df['fast_vegas_down'] = self.data_df['fast_vegas_gradient'] < 0
 
+        self.data_df['previous_fast_vegas_up'] = self.data_df['previous_fast_vegas_gradient'] > 0
+        self.data_df['previous_fast_vegas_down'] = self.data_df['previous_fast_vegas_gradient'] < 0
+
+        self.data_df['pp_fast_vegas_up'] = self.data_df['pp_fast_vegas_gradient'] > 0
+        self.data_df['pp_fast_vegas_down'] = self.data_df['pp_fast_vegas_gradient'] < 0
+
+
+
         self.data_df['slow_vegas_up'] = self.data_df['slow_vegas_gradient'] > 0
         self.data_df['slow_vegas_down'] = self.data_df['slow_vegas_gradient'] < 0
+
+        self.data_df['previous_slow_vegas_up'] = self.data_df['previous_slow_vegas_gradient'] > 0
+        self.data_df['previous_slow_vegas_down'] = self.data_df['previous_slow_vegas_gradient'] < 0
+
+        self.data_df['pp_slow_vegas_up'] = self.data_df['pp_slow_vegas_gradient'] > 0
+        self.data_df['pp_slow_vegas_down'] = self.data_df['pp_slow_vegas_gradient'] < 0
+
 
         self.data_df['up_vegas_converge'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_gradient'] < self.data_df['slow_vegas_gradient'])
@@ -384,6 +408,7 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3)# & (self.data_df['fastest_guppy_line_down'])   #adjust by removing
+        self.data_df['long_filter1'] = (self.data_df['long_filter1']) | (self.data_df['previous_down_guppy_line_num'] >= 3)  #USDCAD Stuff
         self.data_df['long_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
         self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
@@ -397,8 +422,18 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) #Adjust2
         self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
 
+
+        self.data_df['final_long_filter'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+                                       ( ((self.data_df['fast_vegas_down']) & (self.data_df['previous_fast_vegas_down'])) |\
+                                         ((self.data_df['slow_vegas_down']) & (self.data_df['previous_slow_vegas_down'])) |\
+                                         ((self.data_df['previous_fast_vegas_down']) & (self.data_df['pp_fast_vegas_down'])) |\
+                                         ((self.data_df['previous_slow_vegas_down']) & (self.data_df['pp_slow_vegas_down']))
+                                         )
+
         self.data_df['can_long'] = (self.data_df['can_long1']) | (self.data_df['can_long2'])
         #self.data_df['can_long'] = (self.data_df['vegas_support_long']) & (self.data_df['long_condition'])  #strong adjust
+
+        self.data_df['can_long'] = (self.data_df['can_long']) & (~self.data_df['final_long_filter']) #USDCAD stuff
 
 
 
@@ -411,6 +446,7 @@ class CurrencyTrader(threading.Thread):
         ######### Filters for Scenario where Vegas support short ###############
 
         self.data_df['short_filter1'] = (self.data_df['up_guppy_line_num'] >= 3)# & (self.data_df['fastest_guppy_line_up'])  #adjust by removing
+        self.data_df['short_filter1'] = (self.data_df['short_filter1']) | (self.data_df['previous_up_guppy_line_num'] >= 3)  #USDCAD Stuff
         self.data_df['short_filter2'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
 
         self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
@@ -424,8 +460,19 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) #Adjust2
         self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
 
+        self.data_df['final_short_filter'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+                                       ( ((self.data_df['fast_vegas_up']) & (self.data_df['previous_fast_vegas_up'])) |\
+                                         ((self.data_df['slow_vegas_up']) & (self.data_df['previous_slow_vegas_up'])) |\
+                                         ((self.data_df['previous_fast_vegas_up']) & (self.data_df['pp_fast_vegas_up'])) |\
+                                         ((self.data_df['previous_slow_vegas_up']) & (self.data_df['pp_slow_vegas_up']))
+                                         )
+
+
+
         self.data_df['can_short'] = (self.data_df['can_short1']) | (self.data_df['can_short2'])
         #self.data_df['can_short'] = (self.data_df['vegas_support_short']) & (self.data_df['short_condition']) #strong adjust
+
+        self.data_df['can_short'] = (self.data_df['can_short']) & (~self.data_df['final_short_filter']) #USDCAD stuff
 
         ########################################
 
@@ -914,13 +961,13 @@ class CurrencyTrader(threading.Thread):
         write_df = pd.concat([write_long_df, write_short_df])
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
-        #self.data_df.to_csv(self.data_file, index = False)
+        self.data_df.to_csv(self.data_file, index = False)
 
         write_df['id'] = list(range(write_df.shape[0]))
-        write_df['pnl'] = np.where(write_df['is_win'] == 1, 2, -1)
+        write_df['pnl'] = np.where(write_df['is_win'] == 1, profit_loss_ratio, -1)
         write_df['cum_pnl'] = write_df['pnl'].cumsum()
 
-        write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, -2)
+        write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, -profit_loss_ratio)
         write_df['cum_reverse_pnl'] = write_df['reverse_pnl'].cumsum()
 
 

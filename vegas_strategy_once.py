@@ -89,7 +89,7 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-#currencies_to_run = ['USDCAD']
+#currencies_to_run = ['EURUSD']
 currencies_to_run = []
 
 #if currency_to_run != 'all':
@@ -123,7 +123,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratio2Adjust"
+chart_folder_name = "chart_ratioReal0.5Adjust_test_USDCAD2"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -158,7 +158,7 @@ for currency_pair in currency_pairs:
         fd.close()
 
     data_file = os.path.join(currency_data_folder, currency + ".csv")
-    trade_file = os.path.join(currency_folder, currency + "_all_trades.csv")
+    trade_file = os.path.join(currency_folder, currency + "_all_trades_test.csv")
     performance_file = os.path.join(currency_folder, currency + "_performance.csv")
     print("Fuck performance_file " + performance_file)
 
@@ -397,7 +397,7 @@ if is_do_trading:
     print("Final Performance Result:")
     print(perf_df)
 
-    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio2_adjust_bit_temp.csv"), index = False)
+    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio0.5_adjust_bit_USDCAD2.csv"), index = False)
 
     des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + chart_folder_name)
     if not os.path.exists(des_pnl_folder):
