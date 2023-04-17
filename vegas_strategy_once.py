@@ -28,6 +28,8 @@ import matplotlib.ticker as ticker
 
 import urllib.request
 
+import shutil
+
 from io import StringIO
 import time
 from instrument_trader import *
@@ -120,6 +122,8 @@ log_files = []
 data_files = []
 trade_files = []
 performance_files = []
+
+chart_folder_name = "chart_ratio2Adjust"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -140,7 +144,7 @@ for currency_pair in currency_pairs:
     if not os.path.exists(data_folder):
         os.makedirs(data_folder)
 
-    chart_folder = os.path.join(currency_folder, "chart_ratio2Adjust")
+    chart_folder = os.path.join(currency_folder, chart_folder_name)
     if not os.path.exists(chart_folder):
         os.makedirs(chart_folder)
 
@@ -154,7 +158,7 @@ for currency_pair in currency_pairs:
         fd.close()
 
     data_file = os.path.join(currency_data_folder, currency + ".csv")
-    trade_file = os.path.join(currency_folder, currency + "_trades.csv")
+    trade_file = os.path.join(currency_folder, currency + "_all_trades.csv")
     performance_file = os.path.join(currency_folder, currency + "_performance.csv")
     print("Fuck performance_file " + performance_file)
 
@@ -393,7 +397,18 @@ if is_do_trading:
     print("Final Performance Result:")
     print(perf_df)
 
-    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio2_adjust_bit.csv"), index = False)
+    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio2_adjust_bit_temp.csv"), index = False)
+
+    des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + chart_folder_name)
+    if not os.path.exists(des_pnl_folder):
+        os.makedirs(des_pnl_folder)
+
+    for currency in currency_list:
+        pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
+        shutil.copy2(pic_path, des_pnl_folder)
+
+
+    #shutil.copy2(file_path, dest_folder)
 
 
 if False:

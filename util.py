@@ -632,6 +632,32 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
     return None #list(zip(figs, intervals))
 
 
+def plot_pnl_figure(trade_df, out_folder, currency):
+
+    print("Plot pnl figure")
+    fig = plt.figure(figsize = (10,10))
+
+    axes = fig.subplots(nrows = 2, ncols = 1)
+
+    sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes[0])
+    axes[0].set_title(currency + " Cum Pnl Curve")
+    axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
+    axes[0].axhline(0, ls='--', color='blue', linewidth=1)
+
+    sns.lineplot(x='id', y='cum_reverse_pnl', markers='o', color='red', data=trade_df, ax=axes[1])
+    axes[1].set_title(currency + " Cum Reverse Pnl Curve")
+    axes[1].yaxis.set_major_locator(plticker.MultipleLocator(1))
+    axes[1].axhline(0, ls='--', color='blue', linewidth=1)
+
+    # plt.xticks(fontsize=18)
+    # plt.yticks(fontsize=18)
+
+    fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))
+    plt.close(fig)
+
+
+
+
 
 
 def convert_to_5min(t):

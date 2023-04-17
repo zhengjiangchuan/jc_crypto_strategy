@@ -915,10 +915,24 @@ class CurrencyTrader(threading.Thread):
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
         #self.data_df.to_csv(self.data_file, index = False)
+
+        write_df['id'] = list(range(write_df.shape[0]))
+        write_df['pnl'] = np.where(write_df['is_win'] == 1, 2, -1)
+        write_df['cum_pnl'] = write_df['pnl'].cumsum()
+
+        write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, -2)
+        write_df['cum_reverse_pnl'] = write_df['reverse_pnl'].cumsum()
+
+
         write_df.to_csv(self.trade_file, index = False)
 
         print("performance_file: " + str(self.performance_file))
         full_summary_df.to_csv(self.performance_file, index = False)
+
+
+
+        plot_pnl_figure(write_df, self.chart_folder, self.currency)
+
 
 
 
@@ -932,12 +946,12 @@ class CurrencyTrader(threading.Thread):
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
-        plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
-                               num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                               is_plot_candle_buy_sell_points=True,
-                               print_prefix=print_prefix,
-                               is_plot_aux = False,
-                               bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
+        # plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
+        #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+        #                        is_plot_candle_buy_sell_points=True,
+        #                        print_prefix=print_prefix,
+        #                        is_plot_aux = False,
+        #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
 
 
         print("Finish")
