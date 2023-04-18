@@ -12,9 +12,9 @@ def wait_for_trigger():
     current_time = datetime.now()
 
     temp_time = current_time + timedelta(seconds=3600)
-    next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
+    #next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
 
-    #next_hour = temp_time + timedelta(seconds = 180)  #Temp for debug
+    next_hour = current_time + timedelta(seconds = 30)  #Temp for debug
     print("Next hour: " + str(next_hour))
 
     seconds_remaining = (next_hour - current_time).seconds
@@ -60,24 +60,33 @@ def wait_for_trigger():
 
 if __name__ == '__main__':
 
-    root_folder = "C:\\Forex\\formal_trading"
+    # root_folder = "C:\\Forex\\formal_trading"
+    #
+    # currency_file = os.path.join(root_folder, "currency.csv")
+    #
+    # currency_df = pd.read_csv(currency_file)
+    #
+    # currency_list = currency_df['currency'].tolist()
 
-    currency_file = os.path.join(root_folder, "currency.csv")
-
-    currency_df = pd.read_csv(currency_file)
-
-    currency_list = currency_df['currency'].tolist()
-
-    for currency_pair in currency_list:
-        print("Running currency_pair " + currency_pair)
-        os.system("python vegas_strategy_once.py -c " + currency_pair)
+    # for currency_pair in currency_list:
+    #     print("Running currency_pair " + currency_pair)
+    #     os.system("python vegas_strategy_once.py -c " + currency_pair)
 
     # while True:
-    #     print("Waiting for the next trigger")
+    #     print("Running trading program")
+    #     os.system("python ./vegas_strategy_once.py")
+    #     print("Finish running")
     #
-    #     # son_process = Process(target=start_trader)
-    #     # son_process.start()
-    #     print("Run trading program")
-    #     os.system("python vegas_strategy_once.py")
-    #
-    #     wait_for_trigger()
+    #     print("Sleeping...")
+    #     time.sleep(10)
+    #     print("Sleeping finishes")
+
+    while True:
+        print("Waiting for the next trigger")
+
+        # son_process = Process(target=start_trader)
+        # son_process.start()
+        print("Run trading program")
+        os.system("python vegas_strategy_once.py")
+
+        wait_for_trigger()

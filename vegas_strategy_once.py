@@ -64,13 +64,21 @@ print("Child process starts")
 
 is_gege_server = False
 
+is_real_time_trading = True
+
 is_do_portfolio_trading = False
 
 if is_gege_server:
     root_folder = "/home/min/forex/formal_trading"
 else:
-    root_folder = "C:\\JCForex"
+    if is_real_time_trading:
+        root_folder = "C:\\JCForex_prod"
+    else:
+        root_folder = "C:\\JCForex"
 
+
+if not os.path.exists(root_folder):
+    os.makedirs(root_folder)
 
 communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
 communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]
@@ -89,7 +97,7 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-#currencies_to_run = ['EURUSD']
+#currencies_to_run = ['NZDCHF']
 currencies_to_run = []
 
 #if currency_to_run != 'all':
@@ -123,7 +131,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratioReal0.5Adjust_test_USDCAD2"
+chart_folder_name = "chart_ratio2Adjust_USDCAD2"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -158,7 +166,7 @@ for currency_pair in currency_pairs:
         fd.close()
 
     data_file = os.path.join(currency_data_folder, currency + ".csv")
-    trade_file = os.path.join(currency_folder, currency + "_all_trades_test.csv")
+    trade_file = os.path.join(currency_folder, currency + "_all_trades.csv")
     performance_file = os.path.join(currency_folder, currency + "_performance.csv")
     print("Fuck performance_file " + performance_file)
 
@@ -172,9 +180,9 @@ for currency_pair in currency_pairs:
     performance_files += [performance_file]
 
 # This is the trial app_id
-app_id = "165227989254931"
+app_id = "168180645499516"
 
-url = "http://api.forexfeed.net/data/165227989254931/n-240/f-csv/i-3600/s-EURUSD,USDJPY"
+url = "http://api.forexfeed.net/data/168180645499516/n-240/f-csv/i-3600/s-EURUSD,USDJPY"
 
 
 def convert_to_time(timestamp):
@@ -266,12 +274,15 @@ for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, dat
 print("data_folders:")
 print(data_folders)
 
+
+
+
 is_first_time = True
 original_data_df100 = None
 
 is_do_trading = True
 
-is_append_new_data = False
+
 
 if is_do_trading:
     while not is_all_received:
@@ -288,8 +299,18 @@ if is_do_trading:
 
                 print("Query initial for currency pair " + currency)
 
-                data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
+                if is_real_time_trading:
+                    data_file = os.path.join(data_folder, currency + ".csv")
+                else:
+                    data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
                 #data_file = currency_trader.data_file  #Permanent
+
+                # #Temp
+                # if os.path.exists(data_file):
+                #     os.remove(data_file)
+                #     print("Remove data_file " + data_file)
+                #
+                # continue
 
                 data_df = None
 
@@ -315,18 +336,21 @@ if is_do_trading:
                     print("last_timestamp = " + str(last_timestamp))
                     # time.sleep(15)
 
-                    if is_append_new_data:
+                    if is_real_time_trading:
                         incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
                         print("incremental_data_df:")
-                        print(incremental_data_df.tail(10))
+                        print(incremental_data_df)
 
                         incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+
+                        print("incremental_data_df after:")
+                        print(incremental_data_df)
 
                         # incremental_data_df = incremental_data_df.iloc[1:-1]
 
                         print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
-                    if is_append_new_data and incremental_data_df.shape[0] > 0:
+                    if is_real_time_trading and incremental_data_df.shape[0] > 0:
 
 
                         data_df = pd.concat([data_df, incremental_data_df])
@@ -339,15 +363,19 @@ if is_do_trading:
                     print("Currency file does not exit, query initial data from web")
                     temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
                     last_timestamp = temp_data_df.iloc[-1]['time']
-                    start_timestamp = last_timestamp - 3600 * initial_bar_number
+                    print("last_timestamp: " + str(last_timestamp))
+                    print(datetime.fromtimestamp(last_timestamp))
+                    start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
 
                     print("last_timestamp = " + str(last_timestamp))
                     print("start_timestamp = " + str(start_timestamp))
 
                     data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
 
+                    data_df = data_df.iloc[:-1]
 
-                if is_append_new_data:
+
+                if is_real_time_trading:
 
                     if data_df is not None and data_df.shape[0] > 0:
                         last_time = data_df.iloc[-1]['time']
@@ -361,6 +389,7 @@ if is_do_trading:
 
                             is_new_data_received[i] = True
                             currency_trader.feed_data(data_df)
+                            currency_trader.trade()
                         else:
                             if trial_numbers[i] <= maximum_trial_number:
                                 is_all_received = False
@@ -397,15 +426,26 @@ if is_do_trading:
     print("Final Performance Result:")
     print(perf_df)
 
-    perf_df.to_csv(os.path.join(root_folder, "all_performance_ratio0.5_adjust_bit_USDCAD2.csv"), index = False)
+    perf_df.to_csv(os.path.join(root_folder, chart_folder_name + ".csv"), index = False)
 
     des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + chart_folder_name)
     if not os.path.exists(des_pnl_folder):
         os.makedirs(des_pnl_folder)
 
+    des_bar_folder = os.path.join(root_folder, 'all_bars_' + chart_folder_name)
+    if not os.path.exists(des_bar_folder):
+        os.makedirs(des_bar_folder)
+
+    print("Copying bar charts and pnl charts...")
     for currency in currency_list:
         pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
         shutil.copy2(pic_path, des_pnl_folder)
+
+        currency_chart_folder = os.path.join(root_folder, currency, chart_folder_name)
+        chart_files = os.listdir(currency_chart_folder)
+        for chart_file in chart_files:
+            if 'pnl' not in chart_file:
+                shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
 
 
     #shutil.copy2(file_path, dest_folder)
@@ -506,6 +546,6 @@ else:
     print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
 
 print("All finished")
-sys.exit(0)
+#sys.exit(0)
 
 

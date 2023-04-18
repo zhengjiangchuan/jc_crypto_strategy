@@ -634,26 +634,41 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
 def plot_pnl_figure(trade_df, out_folder, currency):
 
-    print("Plot pnl figure")
-    fig = plt.figure(figsize = (10,10))
+    if (trade_df.shape[0] > 0):
+        trade_df.reset_index(inplace = True)
+        trade_df.drop(columns = ['index'])
 
-    axes = fig.subplots(nrows = 2, ncols = 1)
 
-    sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes[0])
-    axes[0].set_title(currency + " Cum Pnl Curve")
-    axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
-    axes[0].axhline(0, ls='--', color='blue', linewidth=1)
+        dummy_trade_df = trade_df.iloc[0:1].copy()
 
-    sns.lineplot(x='id', y='cum_reverse_pnl', markers='o', color='red', data=trade_df, ax=axes[1])
-    axes[1].set_title(currency + " Cum Reverse Pnl Curve")
-    axes[1].yaxis.set_major_locator(plticker.MultipleLocator(1))
-    axes[1].axhline(0, ls='--', color='blue', linewidth=1)
 
-    # plt.xticks(fontsize=18)
-    # plt.yticks(fontsize=18)
+        for col in ['is_win', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl']:
+            dummy_trade_df.at[0, col] = 0
 
-    fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))
-    plt.close(fig)
+
+        trade_df = pd.concat([dummy_trade_df, trade_df])
+        trade_df['id'] = list(range(trade_df.shape[0]))
+
+        print("Plot pnl figure")
+        fig = plt.figure(figsize = (10,10))
+
+        axes = fig.subplots(nrows = 2, ncols = 1)
+
+        sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes[0])
+        axes[0].set_title(currency + " Cum Pnl Curve")
+        axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
+        axes[0].axhline(0, ls='--', color='blue', linewidth=1)
+
+        sns.lineplot(x='id', y='cum_reverse_pnl', markers='o', color='red', data=trade_df, ax=axes[1])
+        axes[1].set_title(currency + " Cum Reverse Pnl Curve")
+        axes[1].yaxis.set_major_locator(plticker.MultipleLocator(1))
+        axes[1].axhline(0, ls='--', color='blue', linewidth=1)
+
+        # plt.xticks(fontsize=18)
+        # plt.yticks(fontsize=18)
+
+        fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))
+        plt.close(fig)
 
 
 
@@ -702,19 +717,20 @@ receivers = ['jczheng198508@gmail.com']
 
 
 def sendEmail(title, content):
-    # message = MIMEText(content, 'plain', 'utf-8')
-    # message['From'] = "{}".format(sender)
-    # message['To'] = ",".join(receivers)
-    # message['Subject'] = title
-    #
-    # try:
-    #     smtpObj = smtplib.SMTP_SSL(mail_host, 465)
-    #     smtpObj.login(mail_user, mail_pass)
-    #     smtpObj.sendmail(sender, receivers, message.as_string())
-    #     print("mail has been send successfully.")
-    # except smtplib.SMTPException as e:
-    #     print(e)
-    pass
+    message = MIMEText(content, 'plain', 'utf-8')
+    message['From'] = "{}".format(sender)
+    message['To'] = ",".join(receivers)
+    message['Subject'] = title
+
+    try:
+        smtpObj = smtplib.SMTP_SSL(mail_host, 465)
+        smtpObj.login(mail_user, mail_pass)
+        print("Sending Email....")
+        smtpObj.sendmail(sender, receivers, message.as_string())
+        print("mail has been send successfully.")
+    except smtplib.SMTPException as e:
+        print(e)
+    #pass
 
 
 

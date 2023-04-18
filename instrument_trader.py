@@ -4,6 +4,7 @@ import warnings
 warnings.warn = warn
 import talib
 
+import math
 import matplotlib.lines as mlines
 import datetime
 import pandas as pd
@@ -49,7 +50,7 @@ bar_high_percentile = 0.1
 
 vegas_bar_percentile = 0.2
 
-initial_bar_number = 400
+initial_bar_number = 500
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -126,7 +127,7 @@ entry_risk_threshold = 0.6
 
 close_position_look_back = 12
 
-is_send_email = False
+is_send_email = True
 
 use_simple_stop_loss = False
 
@@ -417,8 +418,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
 
 
-        ######## Conditions for Scenario where Vegas does not support long ###############
-        self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) | (self.data_df['guppy_half2_strong_aligned_long']) | (self.data_df['guppy_all_aligned_long'])
+        ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
+        self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) |\
+                                         ((self.data_df['guppy_half2_strong_aligned_long']) & (self.data_df['ma_close30'] > self.data_df['ma_close40'])) |\
+                                         (self.data_df['guppy_all_aligned_long'])
         #self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) #Adjust2
         self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
 
@@ -455,8 +458,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
 
 
-        ######## Conditions for Scenario where Vegas does not support short ###############
-        self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) | (self.data_df['guppy_half2_strong_aligned_short']) | (self.data_df['guppy_all_aligned_short'])
+        ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
+        self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) |\
+                                          ((self.data_df['guppy_half2_strong_aligned_short']) & (self.data_df['ma_close30'] < self.data_df['ma_close40']) ) |\
+                                          (self.data_df['guppy_all_aligned_short'])
         #self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) #Adjust2
         self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
 
@@ -487,6 +492,9 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
+
+        self.data_df['prev_upper_vegas'] = self.data_df['upper_vegas'].shift(1).fillna(0)
+        self.data_df['prev_lower_vegas'] = self.data_df['lower_vegas'].shift(1).fillna(0)
 
         self.data_df['m12_above_vegas'] = self.data_df['ma_close12'] > self.data_df['upper_vegas']
         self.data_df['m12_below_vegas'] = self.data_df['ma_close12'] < self.data_df['lower_vegas']
@@ -526,7 +534,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond4'] = self.data_df['recent_min_low_price_to_upper_vegas'] <= 0
         self.data_df['vegas_long_cond5'] = self.data_df['recent_max_min_price_to_lower_vegas'] * self.lot_size * self.exchange_rate < exceed_vegas_threshold
         self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
-        self.data_df['vegas_long_cond7'] = self.data_df['can_long']
+        self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['upper_vegas']) & (self.data_df['ma_close35'] > self.data_df['upper_vegas']) #EURAUD Stuff
+        self.data_df['vegas_long_cond8'] = self.data_df['can_long']
 
 
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
@@ -535,10 +544,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond4'] = self.data_df['recent_min_high_price_to_lower_vegas'] <= 0
         self.data_df['vegas_short_cond5'] = self.data_df['recent_max_max_price_to_upper_vegas'] * self.lot_size * self.exchange_rate < exceed_vegas_threshold
         self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
-        self.data_df['vegas_short_cond7'] = self.data_df['can_short']
+        self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['lower_vegas']) & (self.data_df['ma_close35'] < self.data_df['lower_vegas']) #EURAUD Stuff
+        self.data_df['vegas_short_cond8'] = self.data_df['can_short']
 
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 8)])
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 8)])
+        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 9)])
+        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 9)])
 
 
         # print("Check data_df:")
@@ -596,9 +606,30 @@ class CurrencyTrader(threading.Thread):
 
         ############# Long stop calculation #######################
 
+        ############## Real time stuff ##############
+        self.data_df['long_stop_loss_price_rt'] = np.where(
+            self.data_df['vegas_long_fire'],
+            self.data_df['lower_vegas'] -  stop_loss_threshold/(self.lot_size * self.exchange_rate),
+            np.nan
+        )
+
+        self.data_df['long_stop_range_rt'] = np.where(
+            self.data_df['vegas_long_fire'],
+            self.data_df['close'] - self.data_df['long_stop_loss_price_rt'],
+            np.nan
+        )
+
+        self.data_df['long_stop_profit_price_rt'] = np.where(
+            self.data_df['vegas_long_fire'],
+            self.data_df['close'] + profit_loss_ratio * self.data_df['long_stop_range_rt'],
+            np.nan
+        )
+        #################################################
+
+
         self.data_df['long_stop_loss_price'] = np.where(
             self.data_df['final_vegas_long_fire'],
-            self.data_df['lower_vegas'] - stop_loss_threshold/(self.lot_size * self.exchange_rate),
+            self.data_df['prev_lower_vegas'] - stop_loss_threshold/(self.lot_size * self.exchange_rate),
             np.nan)
 
         self.data_df['long_stop_range'] = np.where(
@@ -761,9 +792,32 @@ class CurrencyTrader(threading.Thread):
 
         ############## Short stop calculation ################
 
+        ############## Real time stuff ##############
+        self.data_df['short_stop_loss_price_rt'] = np.where(
+            self.data_df['vegas_short_fire'],
+            self.data_df['upper_vegas'] +  stop_loss_threshold/(self.lot_size * self.exchange_rate),
+            np.nan
+        )
+
+        self.data_df['short_stop_range_rt'] = np.where(
+            self.data_df['vegas_short_fire'],
+            self.data_df['short_stop_loss_price_rt'] - self.data_df['close'],
+            np.nan
+        )
+
+        self.data_df['short_stop_profit_price_rt'] = np.where(
+            self.data_df['vegas_short_fire'],
+            self.data_df['close'] - profit_loss_ratio * self.data_df['short_stop_range_rt'],
+            np.nan
+        )
+        #################################################
+
+
+
+
         self.data_df['short_stop_loss_price'] = np.where(
             self.data_df['final_vegas_short_fire'],
-            self.data_df['upper_vegas'] + stop_loss_threshold/(self.lot_size * self.exchange_rate),
+            self.data_df['prev_upper_vegas'] + stop_loss_threshold/(self.lot_size * self.exchange_rate),
             np.nan)
 
         self.data_df['short_stop_range'] = np.where(
@@ -927,7 +981,7 @@ class CurrencyTrader(threading.Thread):
         win_pct = 0 if total_num == 0 else win_num / total_num
         long_win_pct = 0 if total_long_num == 0 else long_win_num/total_long_num
         short_win_pct = 0 if total_short_num == 0 else short_win_num/total_short_num
-        profit_on_average = win_pct * profit_loss_ratio - (1 - win_pct)
+        profit_on_average = win_pct * profit_loss_ratio - (1 - win_pct) if total_num > 0 else 0
         can_make_money = profit_on_average >= 0.1
         summary_df = pd.DataFrame({'Currency' : [self.currency], 'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
                                    'PL Ratio' : [round(profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
@@ -935,20 +989,38 @@ class CurrencyTrader(threading.Thread):
                                    'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_pct*100.0)/100.0],
                                    })
 
-        # long_win_num = total_long_num - long_win_num
-        # short_win_num = total_short_num - short_win_num
-        # win_num = total_num - win_num
-        # win_pct = win_num / total_num
-        # #profit_loss_ratio = 1.0 / profit_loss_ratio
-        # profit_on_average = win_pct - (1 - win_pct) * profit_loss_ratio
-        # can_make_money = profit_on_average >= 0.1
-        # summary_reverse_df = pd.DataFrame({'is_reverse': [True], 'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
-        #                            'PL Ratio' : [round(profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
-        #                            'Long Trade Num' : [total_long_num], 'Long Win Num' : [long_win_num], 'Long Win Pct' : [ round(long_win_num/total_long_num*100.0)/100.0],
-        #                            'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_num/total_short_num*100.0)/100.0],
-        #                            })
 
-        #full_summary_df = pd.concat([summary_df, summary_reverse_df])
+
+        if is_send_email:
+
+            # test_data_df = self.data_df[self.data_df['time'] <= datetime(2023, 4, 6, 8, 0, 0)]
+            #
+            # print("test_data_df:")
+            # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
+
+            last_data = self.data_df.iloc[-1]
+            if last_data['vegas_long_fire']:
+                side = 'Long'
+                entry_price = last_data['close']
+                stop_loss = last_data['long_stop_loss_price_rt']
+                stop_profit = last_data['long_stop_profit_price_rt']
+                entry_time = str(last_data['time'] + timedelta(hours = 1))
+            elif last_data['vegas_short_fire']:
+                side = 'Short'
+                entry_price = last_data['close']
+                stop_loss = last_data['short_stop_loss_price_rt']
+                stop_profit = last_data['short_stop_profit_price_rt']
+                entry_time = str(last_data['time'] + timedelta(hours = 1))
+
+            if last_data['vegas_long_fire'] or last_data['vegas_short_fire']:
+
+                #decimal_place = int(math.log(self.lot_size) / math.log(10))
+                stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
+                stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
+
+                trading_message = "At " + entry_time + ", " + side + " " + self.currency + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and SP=" + str(stop_profit)
+                sendEmail(trading_message, trading_message)
+
 
         full_summary_df = summary_df
 
@@ -971,6 +1043,7 @@ class CurrencyTrader(threading.Thread):
         write_df['cum_reverse_pnl'] = write_df['reverse_pnl'].cumsum()
 
 
+        print("trade_file: " + str(self.trade_file))
         write_df.to_csv(self.trade_file, index = False)
 
         print("performance_file: " + str(self.performance_file))
