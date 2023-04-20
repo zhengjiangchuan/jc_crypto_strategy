@@ -97,8 +97,9 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-#currencies_to_run = ['NZDCHF']
 currencies_to_run = []
+#currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
+#currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDCHF']
 
 #if currency_to_run != 'all':
 if len(currencies_to_run) > 0:
@@ -110,7 +111,7 @@ currency_list = currency_df['currency'].tolist()
 print("currency_df:")
 print(currency_df)
 
-sendEmail("Trader process starts", "")
+#sendEmail("Trader process starts", "")
 
 currency_pairs = []
 for i in range(currency_df.shape[0]):
@@ -131,7 +132,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratio2Adjust_USDCAD2"
+chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -338,13 +339,15 @@ if is_do_trading:
 
                     if is_real_time_trading:
                         incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
-                        print("incremental_data_df:")
-                        print(incremental_data_df)
+                        # print("incremental_data_df:")
+                        # print(incremental_data_df)
 
                         incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
-                        print("incremental_data_df after:")
-                        print(incremental_data_df)
+                        print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
+
+                        # print("incremental_data_df after:")
+                        # print(incremental_data_df)
 
                         # incremental_data_df = incremental_data_df.iloc[1:-1]
 
@@ -409,7 +412,7 @@ if is_do_trading:
 
 
 
-    sendEmail("Trader process ends", "")
+    #sendEmail("Trader process ends", "")
 
     print("Finished trading *********************************")
 
@@ -439,7 +442,8 @@ if is_do_trading:
     print("Copying bar charts and pnl charts...")
     for currency in currency_list:
         pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
-        shutil.copy2(pic_path, des_pnl_folder)
+        if os.path.exists(pic_path):
+            shutil.copy2(pic_path, des_pnl_folder)
 
         currency_chart_folder = os.path.join(root_folder, currency, chart_folder_name)
         chart_files = os.listdir(currency_chart_folder)

@@ -244,6 +244,16 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
     print("In plot_candle_bar_charts:")
     print("tick_interval = " + str(tick_interval))
 
+    if bar_fig_folder is not None and os.path.exists(bar_fig_folder):
+
+        figure_files = os.listdir(bar_fig_folder)
+
+        for fig_file in figure_files:
+            fig_path = os.path.join(bar_fig_folder, fig_file)
+            if os.path.exists(fig_path):
+                os.remove(fig_path)
+
+
     windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
 
 
@@ -382,17 +392,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         long_win_points = long_real_sub_data[long_real_sub_data['long_stop_profit_loss'] == 1]['entry_id'].tolist()
         long_lose_points = long_real_sub_data[long_real_sub_data['long_stop_profit_loss'] == -1]['entry_id'].tolist()
 
-        # print("long_win_points:")
-        # print(long_win_points)
-
+        sub_data['entry_id'] = sub_data['id'] - min_id
+        raw_long_points = sub_data[sub_data['final_vegas_long_fire']]['entry_id'].tolist()
+        not_finished_long_points = [p for p in raw_long_points if p not in long_win_points and p not in long_lose_points]
 
         long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'long_stop_profit_price']]
-
-        # if long_hit_profit.shape[0] > 0:
-        #     print("long_hit_profit type:")
-        #     print(long_hit_profit)
-        #     print(type(long_hit_profit.iloc[0]['entry_id']))
-
         long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_profit_price']]
 
         long_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_loss_price']]
@@ -405,14 +409,18 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         short_win_points = short_real_sub_data[short_real_sub_data['short_stop_profit_loss'] == 1]['entry_id'].tolist()
         short_lose_points = short_real_sub_data[short_real_sub_data['short_stop_profit_loss'] == -1]['entry_id'].tolist()
 
+        raw_short_points = sub_data[sub_data['final_vegas_short_fire']]['entry_id'].tolist()
+        not_finished_short_points = [p for p in raw_short_points if p not in short_win_points and p not in short_lose_points]
+
+
         short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'short_stop_profit_price']]
         short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_profit_price']]
 
         short_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_loss_price']]
         short_not_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'short_stop_loss_price']]
 
-        long_hit_profit['entry_id'] = long_hit_profit['entry_id'].astype(int)
-        long_hit_profit['exit_id'] = long_hit_profit['exit_id'].astype(int)
+        # long_hit_profit['entry_id'] = long_hit_profit['entry_id'].astype(int)
+        # long_hit_profit['exit_id'] = long_hit_profit['exit_id'].astype(int)
 
         # print("Fucking type:")
         # if long_hit_profit.shape[0] > 0:
@@ -440,11 +448,19 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             for point in long_lose_points:
                 axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'red')
 
+            for point in not_finished_long_points:
+                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'darkgreen')
+
+
+
             for point in short_win_points:
                 axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'blue')
 
             for point in short_lose_points:
                 axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'red')
+
+            for point in not_finished_short_points:
+                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'darkorange')
 
 
             # print("long_hit_profit:")

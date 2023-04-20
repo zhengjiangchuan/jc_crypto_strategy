@@ -274,6 +274,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
         self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
 
+        self.data_df['middle_price'] = (self.data_df['open'] + self.data_df['close']) / 2.0
+
 
         self.data_df['is_positive'] = (self.data_df['close'] > self.data_df['open'])
         self.data_df['is_negative'] = (self.data_df['close'] < self.data_df['open'])
@@ -301,6 +303,20 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['fastest_guppy_line_up'] = self.data_df['ma_close30_gradient'] > 0
         self.data_df['fastest_guppy_line_down'] = self.data_df['ma_close30_gradient'] < 0
+
+        self.data_df['pre_fastest_guppy_line_up'] = self.data_df['fastest_guppy_line_up'].shift(1)
+        self.data_df['pre_fastest_guppy_line_down'] = self.data_df['fastest_guppy_line_down'].shift(1)
+
+        self.data_df['pp_fastest_guppy_line_up'] = self.data_df['pre_fastest_guppy_line_up'].shift(1)
+        self.data_df['pp_fastest_guppy_line_down'] = self.data_df['pre_fastest_guppy_line_down'].shift(1)
+
+        self.data_df['fastest_guppy_line_lasting_up'] = (self.data_df['fastest_guppy_line_up']) &\
+                                                        (self.data_df['pre_fastest_guppy_line_up']) & (self.data_df['pp_fastest_guppy_line_up'])
+
+        self.data_df['fastest_guppy_line_lasting_down'] = (self.data_df['fastest_guppy_line_down']) &\
+                                                          (self.data_df['pre_fastest_guppy_line_down']) & (self.data_df['pp_fastest_guppy_line_down'])
+
+
 
         self.data_df['fast_guppy_cross_up'] = self.data_df['ma_close30'] > self.data_df['ma_close35']
         self.data_df['fast_guppy_cross_down'] = self.data_df['ma_close30'] < self.data_df['ma_close35']
@@ -367,7 +383,6 @@ class CurrencyTrader(threading.Thread):
         self.data_df['pp_slow_vegas_gradient'] = self.data_df['previous_slow_vegas_gradient'].shift(1)
 
 
-
         self.data_df['fast_vegas_up'] = self.data_df['fast_vegas_gradient'] > 0
         self.data_df['fast_vegas_down'] = self.data_df['fast_vegas_gradient'] < 0
 
@@ -389,6 +404,31 @@ class CurrencyTrader(threading.Thread):
         self.data_df['pp_slow_vegas_down'] = self.data_df['pp_slow_vegas_gradient'] < 0
 
 
+        ###############
+
+        self.data_df['fast_vegas_above'] = self.data_df['fast_vegas'] > self.data_df['slow_vegas']
+        self.data_df['fast_vegas_below'] = self.data_df['fast_vegas'] < self.data_df['slow_vegas']
+
+        self.data_df['prev_fast_vegas_above'] = self.data_df['fast_vegas_above'].shift(1)
+        self.data_df['prev_fast_vegas_below'] = self.data_df['fast_vegas_below'].shift(1)
+
+        self.data_df['fast_vegas_cross_up'] = (self.data_df['prev_fast_vegas_below']) & (self.data_df['fast_vegas_above'])
+        self.data_df['fast_vegas_cross_down'] = (self.data_df['prev_fast_vegas_above']) & (self.data_df['fast_vegas_below'])
+
+        self.data_df['num'] = list(range(self.data_df.shape[0]))
+        self.data_df['critical_num'] = np.where(
+            (self.data_df['fast_vegas_cross_up']) | (self.data_df['fast_vegas_cross_down']),
+            self.data_df['num'],
+            np.nan
+        )
+        self.data_df['critical_num'] = self.data_df['critical_num'].fillna(method='ffill').fillna(0)
+        self.data_df['vegas_phase_duration'] = self.data_df['num'] - self.data_df['critical_num']
+
+
+        ###############
+
+
+
         self.data_df['up_vegas_converge'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_gradient'] < self.data_df['slow_vegas_gradient'])
         self.data_df['up_vegas_converge_previous'] = self.data_df['up_vegas_converge'].shift(1)
@@ -404,12 +444,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_support_long'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up']) & \
             (~((self.data_df['up_vegas_converge']) & (self.data_df['up_vegas_converge_previous']) & (self.data_df['up_vegas_converge_pp'])))
 
+        self.data_df['long_encourage_condition'] = (self.data_df['fast_guppy_cross_up']) & (self.data_df['fastest_guppy_line_up'])
+
         ######### Filters for Scenario where Vegas support long ###############
-
-
 
         self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3)# & (self.data_df['fastest_guppy_line_down'])   #adjust by removing
         self.data_df['long_filter1'] = (self.data_df['long_filter1']) | (self.data_df['previous_down_guppy_line_num'] >= 3)  #USDCAD Stuff
+        self.data_df['long_filter1'] = (self.data_df['long_filter1']) & (~self.data_df['long_encourage_condition'])
+
         self.data_df['long_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
         self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
@@ -419,9 +461,11 @@ class CurrencyTrader(threading.Thread):
 
 
         ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
+
         self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) |\
-                                         ((self.data_df['guppy_half2_strong_aligned_long']) & (self.data_df['ma_close30'] > self.data_df['ma_close40'])) |\
-                                         (self.data_df['guppy_all_aligned_long'])
+                                         ((self.data_df['guppy_half2_strong_aligned_long']) & (self.data_df['ma_close30'] > self.data_df['ma_close35'])) |\
+                                         (self.data_df['guppy_all_aligned_long']) | (self.data_df['long_encourage_condition'])
+        self.data_df['long_condition'] = self.data_df['long_condition'] & (~self.data_df['fastest_guppy_line_lasting_down'])
         #self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) #Adjust2
         self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
 
@@ -432,6 +476,12 @@ class CurrencyTrader(threading.Thread):
                                          ((self.data_df['previous_fast_vegas_down']) & (self.data_df['pp_fast_vegas_down'])) |\
                                          ((self.data_df['previous_slow_vegas_down']) & (self.data_df['pp_slow_vegas_down']))
                                          )
+
+        self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) & (~self.data_df['long_encourage_condition'])) |\
+                                             ((self.data_df['final_long_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_below']))
+
+
+
 
         self.data_df['can_long'] = (self.data_df['can_long1']) | (self.data_df['can_long2'])
         #self.data_df['can_long'] = (self.data_df['vegas_support_long']) & (self.data_df['long_condition'])  #strong adjust
@@ -445,11 +495,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_support_short'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down']) & \
             (~((self.data_df['down_vegas_converge']) & (self.data_df['down_vegas_converge_previous'])  & (self.data_df['down_vegas_converge_pp'])))
 
+        self.data_df['short_encourage_condition'] = (self.data_df['fast_guppy_cross_down']) & (self.data_df['fastest_guppy_line_down'])
 
         ######### Filters for Scenario where Vegas support short ###############
 
         self.data_df['short_filter1'] = (self.data_df['up_guppy_line_num'] >= 3)# & (self.data_df['fastest_guppy_line_up'])  #adjust by removing
         self.data_df['short_filter1'] = (self.data_df['short_filter1']) | (self.data_df['previous_up_guppy_line_num'] >= 3)  #USDCAD Stuff
+        self.data_df['short_filter1'] = (self.data_df['short_filter1']) & (~self.data_df['short_encourage_condition'])
+
         self.data_df['short_filter2'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
 
         self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
@@ -459,9 +512,12 @@ class CurrencyTrader(threading.Thread):
 
 
         ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
+
         self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) |\
-                                          ((self.data_df['guppy_half2_strong_aligned_short']) & (self.data_df['ma_close30'] < self.data_df['ma_close40']) ) |\
-                                          (self.data_df['guppy_all_aligned_short'])
+                                          ((self.data_df['guppy_half2_strong_aligned_short']) & (self.data_df['ma_close30'] < self.data_df['ma_close35']) ) |\
+                                          (self.data_df['guppy_all_aligned_short']) | (self.data_df['short_encourage_condition'])
+
+        self.data_df['short_condition'] = self.data_df['short_condition'] & (~self.data_df['fastest_guppy_line_lasting_up'])
         #self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) #Adjust2
         self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
 
@@ -471,6 +527,9 @@ class CurrencyTrader(threading.Thread):
                                          ((self.data_df['previous_fast_vegas_up']) & (self.data_df['pp_fast_vegas_up'])) |\
                                          ((self.data_df['previous_slow_vegas_up']) & (self.data_df['pp_slow_vegas_up']))
                                          )
+
+        self.data_df['final_short_filter'] = ((self.data_df['final_short_filter']) & (~self.data_df['short_encourage_condition'])) |\
+                                             ((self.data_df['final_short_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_above']))
 
 
 
@@ -501,21 +560,21 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['low_price_to_upper_vegas'] = self.data_df['low'] - self.data_df['upper_vegas']
-        self.data_df['min_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['min_price']
+        self.data_df['middle_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['middle_price']
 
         self.data_df['high_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['high']
-        self.data_df['max_price_to_upper_vegas'] = self.data_df['max_price'] - self.data_df['upper_vegas']
+        self.data_df['middle_price_to_upper_vegas'] = self.data_df['middle_price'] - self.data_df['upper_vegas']
 
 
         self.data_df['recent_min_low_price_to_upper_vegas'] = self.data_df['low_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
                                                                                                             min_periods = vegas_reverse_look_back_window).min()
-        self.data_df['recent_max_min_price_to_lower_vegas'] = self.data_df['min_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
+        self.data_df['recent_max_middle_price_to_lower_vegas'] = self.data_df['middle_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
                                                                                                             min_periods = vegas_reverse_look_back_window).max()
 
 
         self.data_df['recent_min_high_price_to_lower_vegas'] = self.data_df['high_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
                                                                                                             min_periods = vegas_reverse_look_back_window).min()
-        self.data_df['recent_max_max_price_to_upper_vegas'] = self.data_df['max_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
+        self.data_df['recent_max_middle_price_to_upper_vegas'] = self.data_df['middle_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
                                                                                                             min_periods = vegas_reverse_look_back_window).max()
 
         self.data_df['m12_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
@@ -532,7 +591,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & (self.data_df['open'] < self.data_df['ma_close12'])
         self.data_df['vegas_long_cond3'] = self.data_df['m12_above_vegas']
         self.data_df['vegas_long_cond4'] = self.data_df['recent_min_low_price_to_upper_vegas'] <= 0
-        self.data_df['vegas_long_cond5'] = self.data_df['recent_max_min_price_to_lower_vegas'] * self.lot_size * self.exchange_rate < exceed_vegas_threshold
+        self.data_df['vegas_long_cond5'] = self.data_df['recent_max_middle_price_to_lower_vegas'] * self.lot_size * self.exchange_rate <= 0# exceed_vegas_threshold
         self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
         self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['upper_vegas']) & (self.data_df['ma_close35'] > self.data_df['upper_vegas']) #EURAUD Stuff
         self.data_df['vegas_long_cond8'] = self.data_df['can_long']
@@ -542,7 +601,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & (self.data_df['open'] > self.data_df['ma_close12'])
         self.data_df['vegas_short_cond3'] = self.data_df['m12_below_vegas']
         self.data_df['vegas_short_cond4'] = self.data_df['recent_min_high_price_to_lower_vegas'] <= 0
-        self.data_df['vegas_short_cond5'] = self.data_df['recent_max_max_price_to_upper_vegas'] * self.lot_size * self.exchange_rate < exceed_vegas_threshold
+        self.data_df['vegas_short_cond5'] = self.data_df['recent_max_middle_price_to_upper_vegas'] * self.lot_size * self.exchange_rate <= 0 # exceed_vegas_threshold
         self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
         self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['lower_vegas']) & (self.data_df['ma_close35'] < self.data_df['lower_vegas']) #EURAUD Stuff
         self.data_df['vegas_short_cond8'] = self.data_df['can_short']
@@ -1018,7 +1077,7 @@ class CurrencyTrader(threading.Thread):
                 stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
                 stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
 
-                trading_message = "At " + entry_time + ", " + side + " " + self.currency + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and SP=" + str(stop_profit)
+                trading_message = "At " + entry_time + ", " + side + " " + self.currency + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and TP=" + str(stop_profit)
                 sendEmail(trading_message, trading_message)
 
 
@@ -1066,12 +1125,12 @@ class CurrencyTrader(threading.Thread):
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
-        # plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
-        #                        num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-        #                        is_plot_candle_buy_sell_points=True,
-        #                        print_prefix=print_prefix,
-        #                        is_plot_aux = False,
-        #                        bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
+        plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
+                               num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                               is_plot_candle_buy_sell_points=True,
+                               print_prefix=print_prefix,
+                               is_plot_aux = False,
+                               bar_fig_folder=self.chart_folder, is_plot_simple_chart=True)
 
 
         print("Finish")
