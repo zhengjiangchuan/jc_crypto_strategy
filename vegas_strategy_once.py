@@ -132,7 +132,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff"
+chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_lasting"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -435,9 +435,19 @@ if is_do_trading:
     if not os.path.exists(des_pnl_folder):
         os.makedirs(des_pnl_folder)
 
+    old_pnl_files = os.listdir(des_pnl_folder)
+    for file in old_pnl_files:
+        os.remove(os.path.join(des_pnl_folder, file))
+
+
     des_bar_folder = os.path.join(root_folder, 'all_bars_' + chart_folder_name)
     if not os.path.exists(des_bar_folder):
         os.makedirs(des_bar_folder)
+
+    old_bar_files = os.listdir(des_bar_folder)
+    for file in old_bar_files:
+        os.remove(os.path.join(des_bar_folder, file))
+
 
     print("Copying bar charts and pnl charts...")
     for currency in currency_list:
