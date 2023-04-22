@@ -66,6 +66,8 @@ is_gege_server = False
 
 is_real_time_trading = True
 
+is_weekend = True
+
 is_do_portfolio_trading = False
 
 if is_gege_server:
@@ -300,10 +302,10 @@ if is_do_trading:
 
                 print("Query initial for currency pair " + currency)
 
-                if is_real_time_trading:
-                    data_file = os.path.join(data_folder, currency + ".csv")
-                else:
-                    data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
+                #if is_real_time_trading:
+                data_file = os.path.join(data_folder, currency + ".csv")
+                # else:
+                #     data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
                 #data_file = currency_trader.data_file  #Permanent
 
                 # #Temp
@@ -342,6 +344,9 @@ if is_do_trading:
                         # print("incremental_data_df:")
                         # print(incremental_data_df)
 
+                        # if is_weekend:
+                        #     incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
+                        # else:
                         incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
                         print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
@@ -378,7 +383,7 @@ if is_do_trading:
                     data_df = data_df.iloc[:-1]
 
 
-                if is_real_time_trading:
+                if is_real_time_trading and not is_weekend:
 
                     if data_df is not None and data_df.shape[0] > 0:
                         last_time = data_df.iloc[-1]['time']
