@@ -448,7 +448,7 @@ class CurrencyTrader(threading.Thread):
 
         ######### Filters for Scenario where Vegas support long ###############
 
-        self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3)# & (self.data_df['fastest_guppy_line_down'])   #adjust by removing
+        self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down'])   #adjust by removing
         self.data_df['long_filter1'] = (self.data_df['long_filter1']) | (self.data_df['previous_down_guppy_line_num'] >= 3)  #USDCAD Stuff
         self.data_df['long_filter1'] = (self.data_df['long_filter1']) & (~self.data_df['long_encourage_condition'])
 
@@ -499,7 +499,7 @@ class CurrencyTrader(threading.Thread):
 
         ######### Filters for Scenario where Vegas support short ###############
 
-        self.data_df['short_filter1'] = (self.data_df['up_guppy_line_num'] >= 3)# & (self.data_df['fastest_guppy_line_up'])  #adjust by removing
+        self.data_df['short_filter1'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up'])  #adjust by removing
         self.data_df['short_filter1'] = (self.data_df['short_filter1']) | (self.data_df['previous_up_guppy_line_num'] >= 3)  #USDCAD Stuff
         self.data_df['short_filter1'] = (self.data_df['short_filter1']) & (~self.data_df['short_encourage_condition'])
 

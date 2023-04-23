@@ -134,7 +134,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_lasting"
+chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_lasting_temp"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
