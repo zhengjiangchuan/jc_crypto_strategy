@@ -250,7 +250,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         for fig_file in figure_files:
             fig_path = os.path.join(bar_fig_folder, fig_file)
-            if os.path.exists(fig_path):
+            if os.path.exists(fig_path) and 'pnl' not in fig_path:
                 os.remove(fig_path)
 
 
@@ -650,6 +650,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
 def plot_pnl_figure(trade_df, out_folder, currency):
 
+    # print("trade_df:")
+    # print(trade_df)
+
     if (trade_df.shape[0] > 0):
         trade_df.reset_index(inplace = True)
         trade_df.drop(columns = ['index'])
@@ -683,8 +686,10 @@ def plot_pnl_figure(trade_df, out_folder, currency):
         # plt.xticks(fontsize=18)
         # plt.yticks(fontsize=18)
 
+        print("Output pnl folder = " + os.path.join(out_folder, currency + '_pnl.png'))
         fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))
         plt.close(fig)
+
 
 
 

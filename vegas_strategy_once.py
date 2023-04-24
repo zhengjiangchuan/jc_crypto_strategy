@@ -66,7 +66,7 @@ is_gege_server = False
 
 is_real_time_trading = True
 
-is_weekend = True
+is_weekend = False
 
 is_do_portfolio_trading = False
 
@@ -134,7 +134,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_lasting_temp"
+chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
@@ -456,6 +456,7 @@ if is_do_trading:
 
     print("Copying bar charts and pnl charts...")
     for currency in currency_list:
+        #print("currency = " + str(currency))
         pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
         if os.path.exists(pic_path):
             shutil.copy2(pic_path, des_pnl_folder)
