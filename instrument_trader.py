@@ -545,7 +545,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 20
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 2
+        profit_loss_ratio = 1.5 #2
 
 
 
@@ -593,7 +593,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond4'] = self.data_df['recent_min_low_price_to_upper_vegas'] <= 0
         self.data_df['vegas_long_cond5'] = self.data_df['recent_max_middle_price_to_lower_vegas'] * self.lot_size * self.exchange_rate <= 0# exceed_vegas_threshold
         self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
-        self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['upper_vegas']) & (self.data_df['ma_close35'] > self.data_df['upper_vegas']) #EURAUD Stuff
+        self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['lower_vegas']) & (self.data_df['ma_close35'] > self.data_df['lower_vegas']) #EURAUD Stuff
         self.data_df['vegas_long_cond8'] = self.data_df['can_long']
 
 
@@ -603,7 +603,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond4'] = self.data_df['recent_min_high_price_to_lower_vegas'] <= 0
         self.data_df['vegas_short_cond5'] = self.data_df['recent_max_middle_price_to_upper_vegas'] * self.lot_size * self.exchange_rate <= 0 # exceed_vegas_threshold
         self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
-        self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['lower_vegas']) & (self.data_df['ma_close35'] < self.data_df['lower_vegas']) #EURAUD Stuff
+        self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['upper_vegas']) & (self.data_df['ma_close35'] < self.data_df['upper_vegas']) #EURAUD Stuff
         self.data_df['vegas_short_cond8'] = self.data_df['can_short']
 
         self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 9)])
