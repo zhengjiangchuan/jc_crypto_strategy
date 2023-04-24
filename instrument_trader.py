@@ -542,7 +542,7 @@ class CurrencyTrader(threading.Thread):
 
         vegas_reverse_look_back_window = 10 #10
         exceed_vegas_threshold = 200 #200
-        signal_minimum_lasting_bars = 20
+        signal_minimum_lasting_bars = 2
         stop_loss_threshold = 100 #100
         #Guoji
         profit_loss_ratio = 1.5 #2
@@ -636,13 +636,13 @@ class CurrencyTrader(threading.Thread):
             self.data_df['id'],
             np.nan)
 
-        self.data_df['long_dummy'].fillna(method = 'ffill').fillna(0)
+        self.data_df['long_dummy'] = self.data_df['long_dummy'].fillna(method = 'ffill').fillna(0)
         self.data_df['long_lasting'] = self.data_df['id'] - self.data_df['long_dummy']
         self.data_df['previous_long_lasting'] = self.data_df['long_lasting'].shift(1)
 
-        #self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
+        self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
 
-        self.data_df['final_vegas_long_fire'] = self.data_df['vegas_long_fire']
+        #self.data_df['final_vegas_long_fire'] = self.data_df['vegas_long_fire']
         self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method = 'bfill')
 
         # temp_df = self.data_df[self.data_df['final_vegas_long_fire'].isnull()]
@@ -654,13 +654,13 @@ class CurrencyTrader(threading.Thread):
             self.data_df['id'],
             np.nan)
 
-        self.data_df['short_dummy'].fillna(method = 'ffill').fillna(0)
+        self.data_df['short_dummy'] = self.data_df['short_dummy'].fillna(method = 'ffill').fillna(0)
         self.data_df['short_lasting'] = self.data_df['id'] - self.data_df['short_dummy']
         self.data_df['previous_short_lasting'] = self.data_df['short_lasting'].shift(1)
 
-        #self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
+        self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
 
-        self.data_df['final_vegas_short_fire'] = self.data_df['vegas_short_fire']
+        #self.data_df['final_vegas_short_fire'] = self.data_df['vegas_short_fire']
         self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method = 'bfill')
 
         ############# Long stop calculation #######################
