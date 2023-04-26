@@ -99,7 +99,7 @@ currency_file = os.path.join(root_folder, "currency.csv")
 currency_df = pd.read_csv(currency_file)
 
 
-currencies_to_run = []
+currencies_to_run = ['AUDCAD']
 #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
 #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDCHF']
 
@@ -134,7 +134,7 @@ data_files = []
 trade_files = []
 performance_files = []
 
-chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive"
+chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0426"
 for currency_pair in currency_pairs:
 
     currency = currency_pair.currency
