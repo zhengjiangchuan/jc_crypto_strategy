@@ -155,7 +155,7 @@ def start_do_trading():
     currency_df = pd.read_csv(currency_file)
 
 
-    currencies_to_run = []
+    currencies_to_run = ['NZDCAD']
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
     #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDCHF']
 
@@ -551,4 +551,4 @@ def start_do_trading():
     #sys.exit(0)
 
 
-#start_do_trading()
+start_do_trading()
