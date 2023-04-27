@@ -161,7 +161,7 @@ def start_do_trading():
 
     #if currency_to_run != 'all':
     if len(currencies_to_run) > 0:
-        currency_df = currency_df[currency_df['currency'].isin(_run)]
+        currency_df = currency_df[currency_df['currency'].isin(currencies_to_run)]
 
 
     currency_list = currency_df['currency'].tolist()
@@ -551,4 +551,4 @@ def start_do_trading():
     #sys.exit(0)
 
 
-#start_do_trading()
+start_do_trading()
