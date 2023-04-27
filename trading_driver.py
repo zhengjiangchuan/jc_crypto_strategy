@@ -8,13 +8,15 @@ from util import sendEmail
 from datetime import timedelta
 import pandas as pd
 
+from vegas_strategy_once import *
+
 def wait_for_trigger():
     current_time = datetime.now()
 
     temp_time = current_time + timedelta(seconds=3600)
-    #next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
+    next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
 
-    next_hour = current_time + timedelta(seconds = 30)  #Temp for debug
+    #next_hour = current_time + timedelta(seconds = 30)  #Temp for debug
     print("Next hour: " + str(next_hour))
 
     seconds_remaining = (next_hour - current_time).seconds
@@ -87,6 +89,7 @@ if __name__ == '__main__':
         # son_process = Process(target=start_trader)
         # son_process.start()
         print("Run trading program")
-        os.system("python vegas_strategy_once.py")
+        #os.system("python vegas_strategy_once.py")
+        start_do_trading()
 
         wait_for_trigger()

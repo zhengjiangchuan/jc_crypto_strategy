@@ -653,6 +653,10 @@ def plot_pnl_figure(trade_df, out_folder, currency):
     # print("trade_df:")
     # print(trade_df)
 
+    old_pnl_file = os.path.join(out_folder, currency + '_pnl.png')
+    if os.path.exists(old_pnl_file):
+        os.remove(old_pnl_file)
+
     if (trade_df.shape[0] > 0):
         trade_df.reset_index(inplace = True)
         trade_df.drop(columns = ['index'])
