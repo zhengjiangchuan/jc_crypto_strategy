@@ -157,11 +157,11 @@ def start_do_trading():
 
     currencies_to_run = []
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
-    #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDCHF']
+    #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
 
     #if currency_to_run != 'all':
     if len(currencies_to_run) > 0:
-        currency_df = currency_df[currency_df['currency'].isin(currencies_to_run)]
+        currency_df = currency_df[currency_df['currency'].isin(_run)]
 
 
     currency_list = currency_df['currency'].tolist()
@@ -190,7 +190,7 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
-    chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0426t"
+    chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0426"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -551,4 +551,4 @@ def start_do_trading():
     #sys.exit(0)
 
 
-start_do_trading()
+#start_do_trading()
