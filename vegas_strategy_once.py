@@ -551,4 +551,4 @@ def start_do_trading():
     #sys.exit(0)
 
 
-start_do_trading()
+#start_do_trading()
