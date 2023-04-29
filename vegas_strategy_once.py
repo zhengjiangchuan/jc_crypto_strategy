@@ -122,7 +122,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -407,13 +407,22 @@ def start_do_trading():
         print("Collecting Results....")
 
         perf_dfs = []
+        trade_dfs = []
         for currency in currency_list:
-            trade_file = os.path.join(root_folder, currency, currency + "_performance.csv")
-            perf_dfs += [pd.read_csv(trade_file)]
+            perf_file = os.path.join(root_folder, currency, currency + "_performance.csv")
+            perf_dfs += [pd.read_csv(perf_file)]
+
+            trade_file = os.path.join(root_folder, currency, currency + "_all_trades.csv")
+            trade_df = pd.read_csv(trade_file)
+            trade_dfs += [trade_df]
 
         perf_df = pd.concat(perf_dfs)
+        trade_df = pd.concat(trade_dfs)
+        trade_df = trade_df.sort_values(by = ['entry_time'])
 
         print("Final Performance Result:")
+        perf_df.reset_index(inplace = True)
+        perf_df = perf_df.drop(columns = ['index'])
         print(perf_df)
 
         perf_df.to_csv(os.path.join(root_folder, chart_folder_name + ".csv"), index = False)
@@ -437,6 +446,9 @@ def start_do_trading():
 
 
         print("Copying bar charts and pnl charts...")
+        trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
+        trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
+
         for currency in currency_list:
             #print("currency = " + str(currency))
             pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')

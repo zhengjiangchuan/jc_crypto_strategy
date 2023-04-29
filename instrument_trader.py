@@ -825,7 +825,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_stop_profit_loss_id'] = self.data_df['long_stop_profit_loss_id'].shift(-1)
         self.data_df['long_stop_profit_loss_time'] = self.data_df['long_stop_profit_loss_time'].shift(-1)
 
-        long_df = self.data_df[self.data_df['final_vegas_long_fire']][['time', 'id', 'open', 'long_stop_loss_price', 'long_stop_profit_price',
+        long_df = self.data_df[self.data_df['final_vegas_long_fire']][['currency', 'time', 'id', 'open', 'long_stop_loss_price', 'long_stop_profit_price',
                                                                        'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time']]
 
         long_df = long_df[(long_df['long_stop_profit_loss'] == 1) | (long_df['long_stop_profit_loss'] == -1)]
@@ -838,7 +838,7 @@ class CurrencyTrader(threading.Thread):
         long_lose_num = long_df[long_df['long_stop_profit_loss'] == -1].shape[0]
 
         long_df['side'] = 'long'
-        write_long_df = long_df[['side', 'time', 'open',
+        write_long_df = long_df[['currency', 'side', 'time', 'open',
                                  'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price']]
         write_long_df = write_long_df.rename(columns = {
             'time' : 'entry_time',
@@ -850,7 +850,7 @@ class CurrencyTrader(threading.Thread):
         write_long_df['is_win'] = np.where(write_long_df['is_win'] == 1, 1, 0)
         write_long_df['exit_price'] = np.where(write_long_df['is_win'] == 1, write_long_df['long_stop_profit_price'], write_long_df['long_stop_loss_price'])
 
-        write_long_df = write_long_df[['side','entry_time','entry_price','exit_time','exit_price','is_win']]
+        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win']]
 
         ############## Short stop calculation ################
 
@@ -1007,7 +1007,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].shift(-1)
         self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].shift(-1)
 
-        short_df = self.data_df[self.data_df['final_vegas_short_fire']][['time', 'id', 'open', 'short_stop_loss_price', 'short_stop_profit_price',
+        short_df = self.data_df[self.data_df['final_vegas_short_fire']][['currency', 'time', 'id', 'open', 'short_stop_loss_price', 'short_stop_profit_price',
                                                                        'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time']]
         short_df = short_df[(short_df['short_stop_profit_loss'] == 1) | (short_df['short_stop_profit_loss'] == -1)]
 
@@ -1019,7 +1019,7 @@ class CurrencyTrader(threading.Thread):
         short_lose_num = short_df[short_df['short_stop_profit_loss'] == -1].shape[0]
 
         short_df['side'] = 'short'
-        write_short_df = short_df[['side', 'time', 'open',
+        write_short_df = short_df[['currency', 'side', 'time', 'open',
                                  'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price']]
         write_short_df = write_short_df.rename(columns = {
             'time' : 'entry_time',
@@ -1031,7 +1031,7 @@ class CurrencyTrader(threading.Thread):
         write_short_df['is_win'] = np.where(write_short_df['is_win'] == 1, 1, 0)
         write_short_df['exit_price'] = np.where(write_short_df['is_win'] == 1, write_short_df['short_stop_profit_price'], write_short_df['short_stop_loss_price'])
 
-        write_short_df = write_short_df[['side','entry_time','entry_price','exit_time','exit_price','is_win']]
+        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win']]
 
         win_num = long_win_num + short_win_num
         lose_num = long_lose_num + short_lose_num
