@@ -321,7 +321,7 @@ def start_do_trading():
                         print("last_timestamp = " + str(last_timestamp))
                         # time.sleep(15)
 
-                        if is_real_time_trading:
+                        if is_real_time_trading and not is_weekend:
                             incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
                             # print("incremental_data_df:")
                             # print(incremental_data_df)
@@ -340,7 +340,7 @@ def start_do_trading():
 
                             print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
-                        if is_real_time_trading and incremental_data_df.shape[0] > 0:
+                        if is_real_time_trading and not is_weekend and incremental_data_df.shape[0] > 0:
 
 
                             data_df = pd.concat([data_df, incremental_data_df])
