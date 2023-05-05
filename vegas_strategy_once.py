@@ -122,7 +122,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -190,7 +190,7 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
-    chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0426"
+    chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0426"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
