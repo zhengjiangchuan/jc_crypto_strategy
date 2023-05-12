@@ -271,6 +271,10 @@ class CurrencyTrader(threading.Thread):
         calc_jc_lines(self.data_df, "close", windows)
         calc_bolling_bands(self.data_df, "close", bolling_width)
 
+        self.data_df['prev_open'] = self.data_df['open'].shift(1)
+
+        self.data_df['prev_ma_close12'] = self.data_df['ma_close12'].shift(1)
+
         self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
         self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
 
@@ -457,7 +461,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
         self.data_df['long_strong_filter2'] = (self.data_df['guppy_half2_aligned_long']) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
-        self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
+        self.data_df['can_long1'] = self.data_df['vegas_support_long'] #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
@@ -508,7 +512,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
         self.data_df['short_strong_filter2'] = (self.data_df['guppy_half2_aligned_short']) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
 
-        self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
+        self.data_df['can_short1'] = self.data_df['vegas_support_short'] #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
@@ -542,10 +546,10 @@ class CurrencyTrader(threading.Thread):
 
         vegas_reverse_look_back_window = 10 #10
         exceed_vegas_threshold = 200 #200
-        signal_minimum_lasting_bars = 2
+        signal_minimum_lasting_bars = 10  #2
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 1 #2
+        profit_loss_ratio = 2 #2
 
 
 
@@ -591,8 +595,8 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
-        self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & (self.data_df['open'] < self.data_df['ma_close12'])
-        self.data_df['vegas_long_cond3'] = self.data_df['m12_above_upper_vegas'] #m12_above_upper_vegas
+        self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
+        self.data_df['vegas_long_cond3'] = self.data_df['close'] > self.data_df['upper_vegas'] #self.data_df['m12_above_upper_vegas'] #m12_above_upper_vegas
         self.data_df['vegas_long_cond4'] = self.data_df['recent_min_low_price_to_upper_vegas'] <= 0
         self.data_df['vegas_long_cond5'] = self.data_df['recent_max_middle_price_to_lower_vegas'] * self.lot_size * self.exchange_rate <= 0# exceed_vegas_threshold
         self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
@@ -601,8 +605,8 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
-        self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & (self.data_df['open'] > self.data_df['ma_close12'])
-        self.data_df['vegas_short_cond3'] = self.data_df['m12_below_lower_vegas'] #m12_below_lower_vegas
+        self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
+        self.data_df['vegas_short_cond3'] = self.data_df['close'] < self.data_df['lower_vegas'] #self.data_df['m12_below_lower_vegas'] #m12_below_lower_vegas
         self.data_df['vegas_short_cond4'] = self.data_df['recent_min_high_price_to_lower_vegas'] <= 0
         self.data_df['vegas_short_cond5'] = self.data_df['recent_max_middle_price_to_upper_vegas'] * self.lot_size * self.exchange_rate <= 0 # exceed_vegas_threshold
         self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
