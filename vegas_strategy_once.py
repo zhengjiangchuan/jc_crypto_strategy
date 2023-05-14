@@ -120,19 +120,19 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
     if is_gege_server:
         root_folder = "/home/min/forex/formal_trading"
     else:
-        if is_real_time_trading:
-            root_folder = "C:\\JCForex_prod"
-        else:
-            root_folder = "C:\\JCForex"
+        # if is_real_time_trading:
+        #     root_folder = "C:\\JCForex_prod"
+        # else:
+        root_folder = "C:\\JCForex_prod"
 
 
     if not os.path.exists(root_folder):
@@ -190,7 +190,7 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
-    chart_folder_name = "chart_ratio2Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2"
+    chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct3"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -286,6 +286,8 @@ def start_do_trading():
 
                     #if is_real_time_trading:
                     data_file = os.path.join(data_folder, currency + ".csv")
+                    print("data_file:")
+                    print(data_file)
                     # else:
                     #     data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
                     #data_file = currency_trader.data_file  #Permanent
