@@ -461,7 +461,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
         self.data_df['long_strong_filter2'] = (self.data_df['guppy_half2_aligned_long']) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
 
-        self.data_df['can_long1'] = self.data_df['vegas_support_long'] #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
+        self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['guppy_half1_strong_aligned_short']) #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
@@ -512,7 +512,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
         self.data_df['short_strong_filter2'] = (self.data_df['guppy_half2_aligned_short']) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
 
-        self.data_df['can_short1'] = self.data_df['vegas_support_short'] #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
+        self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['guppy_half1_strong_aligned_long']) #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
@@ -549,7 +549,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 10  #2
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 1 #2
+        profit_loss_ratio = 2 #2
 
 
 
