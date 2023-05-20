@@ -348,6 +348,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['guppy_half1_aligned_long'] = reduce(lambda left, right: left & right, guppy_aligned_long_conditions[0:2])
         self.data_df['guppy_half1_all_up'] = reduce(lambda left, right: left & right, guppy_up_conditions[0:3])
         self.data_df['guppy_half1_strong_aligned_long'] = self.data_df['guppy_half1_aligned_long'] & self.data_df['guppy_half1_all_up']
+        self.data_df['prev_guppy_half1_strong_aligned_long'] = self.data_df['guppy_half1_strong_aligned_long'].shift(1).fillna(method = 'bfill')
+        self.data_df['prev2_guppy_half1_strong_aligned_long'] = self.data_df['prev_guppy_half1_strong_aligned_long'].shift(1).fillna(method = 'bfill')
 
         self.data_df['guppy_half2_aligned_long'] = reduce(lambda left, right: left & right, guppy_aligned_long_conditions[3:5])
         self.data_df['guppy_half2_all_up'] = reduce(lambda left, right: left & right, guppy_up_conditions[3:6])
@@ -367,6 +369,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['guppy_half1_aligned_short'] = reduce(lambda left, right: left & right, guppy_aligned_short_conditions[0:2])
         self.data_df['guppy_half1_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions[0:3])
         self.data_df['guppy_half1_strong_aligned_short'] = self.data_df['guppy_half1_aligned_short'] & self.data_df['guppy_half1_all_down']
+        self.data_df['prev_guppy_half1_strong_aligned_short'] = self.data_df['guppy_half1_strong_aligned_short'].shift(1).fillna(method = 'bfill')
+        self.data_df['prev2_guppy_half1_strong_aligned_short'] = self.data_df['prev_guppy_half1_strong_aligned_short'].shift(1).fillna(method = 'bfill')
 
         self.data_df['guppy_half2_aligned_short'] = reduce(lambda left, right: left & right, guppy_aligned_short_conditions[3:5])
         self.data_df['guppy_half2_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions[3:6])
@@ -468,7 +472,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) | (self.data_df['prev_guppy_long_reverse']) | (self.data_df['prev2_guppy_long_reverse'])
 
 
-        self.data_df['can_long1'] = self.data_df['vegas_support_long'] & (~self.data_df['guppy_half1_strong_aligned_short']) #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
+        self.data_df['can_long1'] = self.data_df['vegas_support_long'] &\
+                                    (~self.data_df['guppy_half1_strong_aligned_short']) & (~self.data_df['prev_guppy_half1_strong_aligned_short']) & (~self.data_df['prev2_guppy_half1_strong_aligned_short']) #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
 
 
         ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
@@ -525,7 +530,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['prev2_guppy_short_reverse'] = self.data_df['prev_guppy_short_reverse'].shift(1)
         self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) | (self.data_df['prev_guppy_short_reverse']) | (self.data_df['prev2_guppy_short_reverse'])
 
-        self.data_df['can_short1'] = self.data_df['vegas_support_short'] & (~self.data_df['guppy_half1_strong_aligned_long']) #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
+        self.data_df['can_short1'] = self.data_df['vegas_support_short'] &\
+                                     (~self.data_df['guppy_half1_strong_aligned_long']) & (~self.data_df['prev_guppy_half1_strong_aligned_long']) & (~self.data_df['prev2_guppy_half1_strong_aligned_long']) #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
 
         ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
 
@@ -563,7 +569,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 10  #2
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 2 #2
+        profit_loss_ratio = 1.5 #2
 
 
 
@@ -581,10 +587,10 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['low_price_to_upper_vegas'] = self.data_df['low'] - self.data_df['upper_vegas']
-        self.data_df['middle_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['middle_price']
+        self.data_df['middle_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['max_price']  #middle_price
 
         self.data_df['high_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['high']
-        self.data_df['middle_price_to_upper_vegas'] = self.data_df['middle_price'] - self.data_df['upper_vegas']
+        self.data_df['middle_price_to_upper_vegas'] = self.data_df['min_price'] - self.data_df['upper_vegas']  #middle_price
 
 
         self.data_df['recent_min_low_price_to_upper_vegas'] = self.data_df['low_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
@@ -662,6 +668,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['previous_long_lasting'] = self.data_df['long_lasting'].shift(1)
 
         self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
+        self.data_df['vegas_long_fire_rt'] = self.data_df['final_vegas_long_fire']
 
         #self.data_df['final_vegas_long_fire'] = self.data_df['vegas_long_fire']
         self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method = 'bfill')
@@ -680,6 +687,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['previous_short_lasting'] = self.data_df['short_lasting'].shift(1)
 
         self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
+        self.data_df['vegas_short_fire_rt'] = self.data_df['final_vegas_short_fire']
 
         #self.data_df['final_vegas_short_fire'] = self.data_df['vegas_short_fire']
         self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method = 'bfill')
@@ -1079,20 +1087,20 @@ class CurrencyTrader(threading.Thread):
             # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
 
             last_data = self.data_df.iloc[-1]
-            if last_data['vegas_long_fire']:
+            if last_data['vegas_long_fire_rt']:
                 side = 'Long'
                 entry_price = last_data['close']
                 stop_loss = last_data['long_stop_loss_price_rt']
                 stop_profit = last_data['long_stop_profit_price_rt']
                 entry_time = str(last_data['time'] + timedelta(hours = 1))
-            elif last_data['vegas_short_fire']:
+            elif last_data['vegas_short_fire_rt']:
                 side = 'Short'
                 entry_price = last_data['close']
                 stop_loss = last_data['short_stop_loss_price_rt']
                 stop_profit = last_data['short_stop_profit_price_rt']
                 entry_time = str(last_data['time'] + timedelta(hours = 1))
 
-            if last_data['vegas_long_fire'] or last_data['vegas_short_fire']:
+            if last_data['vegas_long_fire_rt'] or last_data['vegas_short_fire_rt']:
 
                 #decimal_place = int(math.log(self.lot_size) / math.log(10))
                 stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
