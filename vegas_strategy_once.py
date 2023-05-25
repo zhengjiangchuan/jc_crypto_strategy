@@ -122,7 +122,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -155,7 +155,7 @@ def start_do_trading():
     currency_df = pd.read_csv(currency_file)
 
 
-    currencies_to_run = [] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
+    currencies_to_run = ['GBPUSD'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
     #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
 
@@ -191,7 +191,7 @@ def start_do_trading():
     performance_files = []
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
-    chart_folder_name = "chart_ratio1.5Adjust_0512_correct2_filter2_realTime_w"
+    chart_folder_name = "chart_ratio1Adjust_0512_correct2_filter2_realTime_w2"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -311,6 +311,8 @@ def start_do_trading():
 
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+
+                        data_df = data_df.iloc[0:-50]
 
                         # print("data_df:")
                         # print(data_df.tail(10))
