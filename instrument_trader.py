@@ -669,10 +669,110 @@ class CurrencyTrader(threading.Thread):
         self.data_df['previous_long_lasting'] = self.data_df['long_lasting'].shift(1)
 
         self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
+
+        #self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method='bfill')
+
+        ###################
+        while True:
+            self.data_df['long_stop_loss_price'] = np.where(
+                self.data_df['final_vegas_long_fire'],
+                self.data_df['prev_lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
+                np.nan)
+
+            self.data_df['long_stop_range'] = np.where(
+                self.data_df['final_vegas_long_fire'],
+                self.data_df['open'] - self.data_df['long_stop_loss_price'],
+                np.nan
+            )
+
+            self.data_df['long_stop_profit_price'] = np.where(
+                self.data_df['final_vegas_long_fire'],
+                self.data_df['open'] + profit_loss_ratio * self.data_df['long_stop_range'],
+                np.nan
+            )
+
+            self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].fillna(method='ffill').fillna(0)
+            self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].fillna(method='ffill').fillna(0)
+
+            self.data_df['long_stop_loss'] = np.where(
+                self.data_df['final_vegas_long_fire'],
+                0,
+                np.where(
+                    (self.data_df['long_stop_loss_price'] > 0) & (self.data_df['low'] <= self.data_df['long_stop_loss_price']),
+                    -1,
+                    np.nan
+                )
+            )
+
+            self.data_df['long_stop_profit'] = np.where(
+                self.data_df['final_vegas_long_fire'],
+                0,
+                np.where(
+                    (self.data_df['long_stop_profit_price'] > 0) & (self.data_df['high'] >= self.data_df['long_stop_profit_price']),
+                    1,
+                    np.nan
+                )
+            )
+
+            self.data_df['long_stop_profit_loss'] = np.where(
+                self.data_df['long_stop_profit'].notnull(),
+                self.data_df['long_stop_profit'],
+                np.where(
+                    self.data_df['long_stop_loss'].notnull(),
+                    self.data_df['long_stop_loss'],
+                    np.nan
+                )
+            )
+
+            self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].fillna(method='bfill').fillna(0)
+
+            self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].shift(-1)
+
+            temp_long_df = self.data_df[self.data_df['final_vegas_long_fire']][['id', 'time', 'final_vegas_long_fire', 'long_stop_profit_loss']]
+            temp_long_df['prev_long_stop_profit_loss'] = temp_long_df['long_stop_profit_loss'].shift(1).fillna(1)
+            temp_long_df['next_id'] = temp_long_df['id'].shift(-1).fillna(-1).astype(int)
+
+            print("temp_long_df:")
+            print(temp_long_df)
+
+            not_finished_long_df = temp_long_df[(temp_long_df['long_stop_profit_loss'] == 0) & (temp_long_df['prev_long_stop_profit_loss'] != 0) & (temp_long_df['next_id'] != -1)]
+
+            print("not_finished_long_df:")
+            print(not_finished_long_df)
+
+            if not_finished_long_df.shape[0] == 0:
+                break
+            else:
+                ids_erase = not_finished_long_df['next_id'].tolist()
+
+                print("ids_erase:")
+                print(ids_erase)
+
+                for erase_id in ids_erase:
+                    if erase_id != -1:
+                        print("erase_id = " + str(erase_id))
+                        #self.data_df.iloc[-1]['final_vegas_long_fire'] = True
+                        self.data_df.at[erase_id, 'final_vegas_long_fire'] = False
+
+
+                print("")
+                print("df after erase:")
+                print(self.data_df.iloc[-50:][['id','time','open','high','low','close','vegas_long_fire', 'final_vegas_long_fire']])
+
+        sys.exit(0)
         self.data_df['vegas_long_fire_rt'] = self.data_df['final_vegas_long_fire']
 
-        #self.data_df['final_vegas_long_fire'] = self.data_df['vegas_long_fire']
-        self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method = 'bfill')
+
+        ##################
+
+
+
+
+
+
+
+
+
 
         # temp_df = self.data_df[self.data_df['final_vegas_long_fire'].isnull()]
         # print("long fire null has " + str(temp_df.shape[0]))
@@ -688,10 +788,107 @@ class CurrencyTrader(threading.Thread):
         self.data_df['previous_short_lasting'] = self.data_df['short_lasting'].shift(1)
 
         self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
-        self.data_df['vegas_short_fire_rt'] = self.data_df['final_vegas_short_fire']
 
-        #self.data_df['final_vegas_short_fire'] = self.data_df['vegas_short_fire']
-        self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method = 'bfill')
+        ###################
+        while True:
+
+
+            self.data_df['short_stop_loss_price'] = np.where(
+                self.data_df['final_vegas_short_fire'],
+                self.data_df['prev_upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
+                np.nan)
+
+            self.data_df['short_stop_range'] = np.where(
+                self.data_df['final_vegas_short_fire'],
+                self.data_df['short_stop_loss_price'] - self.data_df['open'],
+                np.nan
+            )
+
+            self.data_df['short_stop_profit_price'] = np.where(
+                self.data_df['final_vegas_short_fire'],
+                self.data_df['open'] - profit_loss_ratio * self.data_df['short_stop_range'],
+                np.nan
+            )
+
+
+            self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].fillna(method='ffill').fillna(0)
+            self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].fillna(method='ffill').fillna(0)
+
+            self.data_df['short_stop_loss'] = np.where(
+                self.data_df['final_vegas_short_fire'],
+                0,
+                np.where(
+                    (self.data_df['short_stop_loss_price'] > 0) & (
+                                self.data_df['high'] >= self.data_df['short_stop_loss_price']),
+                    -1,
+                    np.nan
+                )
+            )
+
+            self.data_df['short_stop_profit'] = np.where(
+                self.data_df['final_vegas_short_fire'],
+                0,
+                np.where(
+                    (self.data_df['short_stop_profit_price'] > 0) & (
+                                self.data_df['low'] <= self.data_df['short_stop_profit_price']),
+                    1,
+                    np.nan
+                )
+            )
+
+            self.data_df['short_stop_profit_loss'] = np.where(
+                self.data_df['short_stop_profit'].notnull(),
+                self.data_df['short_stop_profit'],
+                np.where(
+                    self.data_df['short_stop_loss'].notnull(),
+                    self.data_df['short_stop_loss'],
+                    np.nan
+                )
+            )
+
+            self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].fillna(method='bfill').fillna(0)
+
+
+
+            self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].shift(-1)
+
+            temp_short_df = self.data_df[self.data_df['final_vegas_short_fire']][['id', 'time', 'final_vegas_short_fire', 'short_stop_profit_loss']]
+            temp_short_df['prev_short_stop_profit_loss'] = temp_short_df['short_stop_profit_loss'].shift(1).fillna(1)
+            temp_short_df['next_id'] = temp_short_df['id'].shift(-1).fillna(-1).astype(int)
+
+            print("temp_short_df:")
+            print(temp_short_df)
+
+            not_finished_short_df = temp_short_df[
+                (temp_short_df['short_stop_profit_loss'] == 0) & (temp_short_df['prev_short_stop_profit_loss'] != 0) & (temp_short_df['next_id'] != -1)]
+
+            print("not_finished_short_df:")
+            print(not_finished_short_df)
+
+            if not_finished_short_df.shape[0] == 0:
+                break
+            else:
+                ids_erase = not_finished_short_df['next_id'].tolist()
+
+                print("ids_erase:")
+                print(ids_erase)
+
+                for erase_id in ids_erase:
+                    if erase_id != -1:
+                        print("erase_id = " + str(erase_id))
+                        # self.data_df.iloc[-1]['final_vegas_long_fire'] = True
+                        self.data_df.at[erase_id, 'final_vegas_short_fire'] = False
+
+                print("")
+                print("df after erase:")
+                print(self.data_df.iloc[-50:][
+                          ['id', 'time', 'open', 'high', 'low', 'close', 'vegas_short_fire', 'final_vegas_short_fire']])
+
+        self.data_df['vegas_short_fire_rt'] = self.data_df['final_vegas_short_fire']
+        #self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method='bfill')
+
+        ##################
+
 
         ############# Long stop calculation #######################
 
