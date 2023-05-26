@@ -155,7 +155,7 @@ def start_do_trading():
     currency_df = pd.read_csv(currency_file)
 
 
-    currencies_to_run = ['GBPUSD'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
+    currencies_to_run = [] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
     #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
 
@@ -312,7 +312,7 @@ def start_do_trading():
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                        data_df = data_df.iloc[0:-50]
+                        #data_df = data_df.iloc[0:-50]
 
                         # print("data_df:")
                         # print(data_df.tail(10))
