@@ -441,26 +441,26 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             # print("Plot long_win_points:")
             # print(long_win_points)
             for point in long_win_points:
-                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'blue')
+                axes.plot(int_time_series[point], sub_data.iloc[point]['close'], marker = long_marker, markersize = 15, color = 'blue')
 
             # print("Plot long_lose_points:")
             # print(long_lose_points)
             for point in long_lose_points:
-                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'red')
+                axes.plot(int_time_series[point], sub_data.iloc[point]['close'], marker = long_marker, markersize = 15, color = 'red')
 
             for point in not_finished_long_points:
-                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = long_marker, markersize = 15, color = 'darkgreen')
+                axes.plot(int_time_series[point], sub_data.iloc[point]['close'], marker = long_marker, markersize = 15, color = 'darkgreen')
 
 
 
             for point in short_win_points:
-                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'blue')
+                axes.plot(int_time_series[point], sub_data.iloc[point]['close'], marker = short_marker, markersize = 15, color = 'blue')
 
             for point in short_lose_points:
-                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'red')
+                axes.plot(int_time_series[point], sub_data.iloc[point]['close'], marker = short_marker, markersize = 15, color = 'red')
 
             for point in not_finished_short_points:
-                axes.plot(int_time_series[point], sub_data.iloc[point]['open'], marker = short_marker, markersize = 15, color = 'darkorange')
+                axes.plot(int_time_series[point], sub_data.iloc[point]['close'], marker = short_marker, markersize = 15, color = 'darkorange')
 
 
             # print("long_hit_profit:")
