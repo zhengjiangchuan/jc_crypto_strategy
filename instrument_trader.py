@@ -432,6 +432,15 @@ class CurrencyTrader(threading.Thread):
         self.data_df['critical_num'] = self.data_df['critical_num'].fillna(method='ffill').fillna(0)
         self.data_df['vegas_phase_duration'] = self.data_df['num'] - self.data_df['critical_num']
 
+        self.data_df['prev_vegas_phase_entire_duration'] = self.data_df['vegas_phase_duration'].shift(1).fillna(0)
+        self.data_df['prev_vegas_phase_entire_duration'] = np.where(
+            (self.data_df['fast_vegas_cross_up']) | (self.data_df['fast_vegas_cross_down']),
+            self.data_df['prev_vegas_phase_entire_duration'],
+            np.nan
+        )
+        self.data_df['prev_vegas_phase_entire_duration'] = self.data_df['prev_vegas_phase_entire_duration'].fillna(method = 'ffill').fillna(0)
+
+
 
         ###############
 
@@ -493,8 +502,12 @@ class CurrencyTrader(threading.Thread):
                                          ((self.data_df['previous_slow_vegas_down']) & (self.data_df['pp_slow_vegas_down']))
                                          )
 
+        # self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) & (~self.data_df['long_encourage_condition'])) |\
+        #                                      ((self.data_df['final_long_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_below']))
+
         self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) & (~self.data_df['long_encourage_condition'])) |\
-                                             ((self.data_df['final_long_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_below']))
+                                             ((self.data_df['final_long_filter']) &\
+                                              ((self.data_df['vegas_phase_duration'] >= 48) | (self.data_df['prev_vegas_phase_entire_duration'] < 48)) & (self.data_df['fast_vegas_below']))
 
 
 
@@ -551,8 +564,12 @@ class CurrencyTrader(threading.Thread):
                                          ((self.data_df['previous_slow_vegas_up']) & (self.data_df['pp_slow_vegas_up']))
                                          )
 
+        # self.data_df['final_short_filter'] = ((self.data_df['final_short_filter']) & (~self.data_df['short_encourage_condition'])) |\
+        #                                      ((self.data_df['final_short_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_above']))
+
         self.data_df['final_short_filter'] = ((self.data_df['final_short_filter']) & (~self.data_df['short_encourage_condition'])) |\
-                                             ((self.data_df['final_short_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_above']))
+                                             ((self.data_df['final_short_filter']) &\
+                                              ((self.data_df['vegas_phase_duration'] >= 48) | (self.data_df['prev_vegas_phase_entire_duration'] < 48)) & (self.data_df['fast_vegas_above']))
 
 
 
@@ -570,7 +587,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 10  #2
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 1 #2
+        profit_loss_ratio = 2 #2
 
 
 
@@ -1091,8 +1108,8 @@ class CurrencyTrader(threading.Thread):
         long_df = self.data_df[self.data_df['final_vegas_long_fire']][['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'long_stop_profit_price',
                                                                        'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time']]
 
-        print("long_df:")
-        print(long_df)
+        # print("long_df:")
+        # print(long_df)
 
         long_df = long_df[(long_df['long_stop_profit_loss'] == 1) | (long_df['long_stop_profit_loss'] == -1)]
 
