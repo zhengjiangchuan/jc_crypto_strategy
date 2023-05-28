@@ -479,6 +479,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['prev_guppy_long_reverse'] = self.data_df['guppy_long_reverse'].shift(1)
         self.data_df['prev2_guppy_long_reverse'] = self.data_df['prev_guppy_long_reverse'].shift(1)
         self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) | (self.data_df['prev_guppy_long_reverse']) | (self.data_df['prev2_guppy_long_reverse'])
+        #self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) & (self.data_df['prev_guppy_long_reverse']) & (self.data_df['prev2_guppy_long_reverse'])
 
 
         self.data_df['can_long1'] = self.data_df['vegas_support_long'] &\
@@ -542,6 +543,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['prev_guppy_short_reverse'] = self.data_df['guppy_short_reverse'].shift(1)
         self.data_df['prev2_guppy_short_reverse'] = self.data_df['prev_guppy_short_reverse'].shift(1)
         self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) | (self.data_df['prev_guppy_short_reverse']) | (self.data_df['prev2_guppy_short_reverse'])
+        #self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) & (self.data_df['prev_guppy_short_reverse']) & (self.data_df['prev2_guppy_short_reverse'])
+
 
         self.data_df['can_short1'] = self.data_df['vegas_support_short'] &\
                                      (~self.data_df['guppy_half1_strong_aligned_long']) & (~self.data_df['prev_guppy_half1_strong_aligned_long']) & (~self.data_df['prev2_guppy_half1_strong_aligned_long']) #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
@@ -587,7 +590,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 10  #2
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 2 #2
+        profit_loss_ratio = 1 #2
 
 
 

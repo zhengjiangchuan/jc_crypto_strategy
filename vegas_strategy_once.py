@@ -120,7 +120,7 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -191,7 +191,7 @@ def start_do_trading():
     performance_files = []
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
-    chart_folder_name = "chart_ratio2Adjust_0512_correct2_filter2_realTime_w2_erase2_new"
+    chart_folder_name = "chart_ratio1Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
