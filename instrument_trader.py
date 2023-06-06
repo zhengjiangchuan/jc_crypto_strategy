@@ -838,26 +838,29 @@ class CurrencyTrader(threading.Thread):
             self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].fillna(method='ffill').fillna(0)
             self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].fillna(method='ffill').fillna(0)
 
+            self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].shift(1).fillna(0)
+            self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].shift(1).fillna(0)
+
             self.data_df['short_stop_loss'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                0,
-                np.where(
+                # self.data_df['final_vegas_short_fire'],
+                # 0,
+                # np.where(
                     (self.data_df['short_stop_loss_price'] > 0) & (
                                 self.data_df['high'] >= self.data_df['short_stop_loss_price']),
                     -1,
                     np.nan
-                )
+                #)
             )
 
             self.data_df['short_stop_profit'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                0,
-                np.where(
+                # self.data_df['final_vegas_short_fire'],
+                # 0,
+                # np.where(
                     (self.data_df['short_stop_profit_price'] > 0) & (
                                 self.data_df['low'] <= self.data_df['short_stop_profit_price']),
                     1,
                     np.nan
-                )
+                #)
             )
 
             self.data_df['short_stop_profit_loss'] = np.where(
@@ -870,8 +873,15 @@ class CurrencyTrader(threading.Thread):
                 )
             )
 
-            self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].fillna(method='bfill').fillna(0)
+            ############
+            self.data_df['short_stop_profit_loss'] = np.where(
+                self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss'].isnull()),
+                0,
+                self.data_df['short_stop_profit_loss']
+            )
+            ############
 
+            self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].fillna(method='bfill').fillna(0)
 
             self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].shift(-1)
 
@@ -882,8 +892,7 @@ class CurrencyTrader(threading.Thread):
             # print("temp_short_df:")
             # print(temp_short_df)
 
-            not_finished_short_df = temp_short_df[
-                (temp_short_df['short_stop_profit_loss'] == 0) & (temp_short_df['prev_short_stop_profit_loss'] != 0) & (temp_short_df['next_id'] != -1)]
+            not_finished_short_df = temp_short_df[(temp_short_df['short_stop_profit_loss'] == 0) & (temp_short_df['prev_short_stop_profit_loss'] != 0) & (temp_short_df['next_id'] != -1)]
 
             # print("not_finished_short_df:")
             # print(not_finished_short_df)
@@ -953,12 +962,21 @@ class CurrencyTrader(threading.Thread):
             np.nan
         )
 
+        self.data_df['long_stop_half_profit_price'] = np.where(
+            self.data_df['final_vegas_long_fire'],
+            self.data_df['close'] + 0.5* profit_loss_ratio * self.data_df['long_stop_range'],
+            np.nan
+        )
+
+
         self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].fillna(method = 'ffill').fillna(0)
         self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].fillna(method='ffill').fillna(0)
+        self.data_df['long_stop_half_profit_price'] = self.data_df['long_stop_half_profit_price'].fillna(method='ffill').fillna(0)
 
         ####################
         self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].shift(1).fillna(0)
         self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].shift(1).fillna(0)
+        self.data_df['long_stop_half_profit_price'] = self.data_df['long_stop_half_profit_price'].shift(1).fillna(0)
 
 
         self.data_df['long_stop_loss'] = np.where(
@@ -1104,10 +1122,11 @@ class CurrencyTrader(threading.Thread):
 
         ###########
         self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].shift(-1)
+        self.data_df['long_stop_half_profit_price'] = self.data_df['long_stop_half_profit_price'].shift(-1)
         self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].shift(-1)
         ###########
 
-        long_df = self.data_df[self.data_df['final_vegas_long_fire']][['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'long_stop_profit_price',
+        long_df = self.data_df[self.data_df['final_vegas_long_fire']][['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'long_stop_profit_price', 'long_stop_half_profit_price',
                                                                        'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time']]
 
         # print("long_df:")
@@ -1179,69 +1198,81 @@ class CurrencyTrader(threading.Thread):
             np.nan
         )
 
+        self.data_df['short_stop_half_profit_price'] = np.where(
+            self.data_df['final_vegas_short_fire'],
+            self.data_df['close'] - 0.5 * profit_loss_ratio * self.data_df['short_stop_range'],
+            np.nan
+        )
+
         self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].fillna(method = 'ffill').fillna(0)
         self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].fillna(method='ffill').fillna(0)
+        self.data_df['short_stop_half_profit_price'] = self.data_df['short_stop_half_profit_price'].fillna(method='ffill').fillna(0)
+
+        ####################
+        self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].shift(1).fillna(0)
+        self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].shift(1).fillna(0)
+        self.data_df['short_stop_half_profit_price'] = self.data_df['short_stop_half_profit_price'].shift(1).fillna(0)
 
         self.data_df['short_stop_loss'] = np.where(
-            self.data_df['final_vegas_short_fire'],
-            0,
-            np.where(
+            # self.data_df['final_vegas_short_fire'],
+            # 0,
+            # np.where(
                 (self.data_df['short_stop_loss_price'] > 0) & (self.data_df['high'] >= self.data_df['short_stop_loss_price']),
                 -1,
                 np.nan
-            )
+            #)
         )
 
         self.data_df['short_stop_loss_id'] = np.where(
-            self.data_df['final_vegas_short_fire'],
-            self.data_df['id'],
-            np.where(
+            # self.data_df['final_vegas_short_fire'],
+            # self.data_df['id'],
+            # np.where(
                 self.data_df['short_stop_loss'] == -1,
                 self.data_df['id'],
                 np.nan
-            )
+            #)
         )
 
         self.data_df['short_stop_loss_time'] = np.where(
-            self.data_df['final_vegas_short_fire'],
-            self.data_df['time'],
-            np.where(
+            # self.data_df['final_vegas_short_fire'],
+            # self.data_df['time'],
+            # np.where(
                 self.data_df['short_stop_loss'] == -1,
                 self.data_df['time'],
                 pd.NaT
-            )
+            #)
         )
         self.data_df['short_stop_loss_time'] = pd.to_datetime(self.data_df['short_stop_loss_time'])
 
 
         self.data_df['short_stop_profit'] = np.where(
-            self.data_df['final_vegas_short_fire'],
-            0,
-            np.where(
+            # self.data_df['final_vegas_short_fire'],
+            # 0,
+            # np.where(
                 (self.data_df['short_stop_profit_price'] > 0) & (self.data_df['low'] <= self.data_df['short_stop_profit_price']),
                 1,
                 np.nan
-            )
+            #)
         )
 
         self.data_df['short_stop_profit_id'] = np.where(
-            self.data_df['final_vegas_short_fire'],
-            self.data_df['id'],
-            np.where(
+            # self.data_df['final_vegas_short_fire'],
+            # self.data_df['id'],
+            # np.where(
                 self.data_df['short_stop_profit'] == 1,
                 self.data_df['id'],
                 np.nan
-            )
+            #)
         )
 
         self.data_df['short_stop_profit_time'] = np.where(
-            self.data_df['final_vegas_short_fire'],
-            self.data_df['time'],
-            np.where(
+            # self.data_df['final_vegas_short_fire'],
+            # self.data_df['time'],
+            # np.where(
                 self.data_df['short_stop_profit'] == 1,
                 self.data_df['time'],
                 pd.NaT
-            )
+            #)
         )
         self.data_df['short_stop_profit_time'] = pd.to_datetime(self.data_df['short_stop_profit_time'])
 
@@ -1258,6 +1289,15 @@ class CurrencyTrader(threading.Thread):
             )
         )
 
+        #################
+        self.data_df['short_stop_profit_loss'] = np.where(
+            self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss'].isnull()),
+            0,
+            self.data_df['short_stop_profit_loss']
+        )
+        #################
+
+
         self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].fillna(method='bfill').fillna(0)
 
         self.data_df['short_stop_profit_loss_id'] = np.where(
@@ -1269,6 +1309,14 @@ class CurrencyTrader(threading.Thread):
                 np.nan
             )
         )
+
+        #################
+        self.data_df['short_stop_profit_loss_id'] = np.where(
+                self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss_id'].isnull()),
+                self.data_df['id'],
+                self.data_df['short_stop_profit_loss_id']
+        )
+        #################
 
         self.data_df['short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].fillna(method = 'bfill').fillna(0)
 
@@ -1282,6 +1330,16 @@ class CurrencyTrader(threading.Thread):
                 pd.NaT
             )
         )
+
+        #################
+        self.data_df['short_stop_profit_loss_time'] = np.where(
+                self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss_time'].isnull()),
+                self.data_df['time'],
+                self.data_df['short_stop_profit_loss_time']
+        )
+        #################
+
+
         self.data_df['short_stop_profit_loss_time'] = pd.to_datetime(self.data_df['short_stop_profit_loss_time'])
 
         self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].fillna(method = 'bfill').fillna(0)
@@ -1292,7 +1350,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].shift(-1)
         self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].shift(-1)
 
-        short_df = self.data_df[self.data_df['final_vegas_short_fire']][['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'short_stop_profit_price',
+        ###########
+        self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].shift(-1)
+        self.data_df['short_stop_half_profit_price'] = self.data_df['short_stop_half_profit_price'].shift(-1)
+        self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].shift(-1)
+        ###########
+
+
+        short_df = self.data_df[self.data_df['final_vegas_short_fire']][['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'short_stop_profit_price', 'short_stop_half_profit_price',
                                                                        'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time']]
         short_df = short_df[(short_df['short_stop_profit_loss'] == 1) | (short_df['short_stop_profit_loss'] == -1)]
 

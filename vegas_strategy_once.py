@@ -75,8 +75,8 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
     query = query.replace("[app_id]", app_id).replace("[bar_number]", str(bar_number)).replace("[currency]", currency)
 
-    if start_timestamp != -1:
-        query = query + "/st-" + str(start_timestamp)
+    # if start_timestamp != -1:
+    #     query = query + "/st-" + str(start_timestamp)
 
     print("query:")
     print(query)
@@ -155,7 +155,7 @@ def start_do_trading():
     currency_df = pd.read_csv(currency_file)
 
 
-    currencies_to_run = ['EURCHF'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
+    currencies_to_run = [] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
     #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
 
@@ -191,7 +191,7 @@ def start_do_trading():
     performance_files = []
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
-    chart_folder_name = "chart_ratio1Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back_single"
+    chart_folder_name = "chart_ratio1Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -334,6 +334,10 @@ def start_do_trading():
                             # if is_weekend:
                             #     incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
                             # else:
+
+                            if incremental_data_df.iloc[0]['time'] > last_time:
+                                print("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
+
                             incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
                             print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
