@@ -589,7 +589,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 10  #2
         stop_loss_threshold = 100 #100
         #Guoji
-        profit_loss_ratio = 0.5 #2
+        profit_loss_ratio = 1 #2
 
 
 

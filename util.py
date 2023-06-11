@@ -27,7 +27,7 @@ import matplotlib.dates as mdates
 
 support_half_stop_loss = False
 
-plot_auxiliary_price_lines = False
+plot_auxiliary_price_lines = True
 
 import gzip
 
