@@ -1424,7 +1424,7 @@ class CurrencyTrader(threading.Thread):
                 stop_profit = last_data['short_stop_profit_price']
                 entry_time = str(last_data['time'] + timedelta(hours = 1))
 
-            if last_data['vegas_long_fire'] or last_data['vegas_short_fire']:
+            if last_data['final_vegas_long_fire'] or last_data['final_vegas_short_fire']:
 
                 #decimal_place = int(math.log(self.lot_size) / math.log(10))
                 stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
