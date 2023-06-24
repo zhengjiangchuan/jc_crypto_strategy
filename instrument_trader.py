@@ -586,7 +586,7 @@ class CurrencyTrader(threading.Thread):
 
         vegas_reverse_look_back_window = 10 #10
         exceed_vegas_threshold = 200 #200
-        signal_minimum_lasting_bars = 10  #2
+        signal_minimum_lasting_bars = 0  #2
         stop_loss_threshold = 100 #100
         #Guoji
         profit_loss_ratio = 1 #2
@@ -916,6 +916,7 @@ class CurrencyTrader(threading.Thread):
                 # print(self.data_df.iloc[-50:][
                 #           ['id', 'time', 'open', 'high', 'low', 'close', 'vegas_short_fire', 'final_vegas_short_fire']])
 
+        #sys.exit(0)
         #self.data_df['vegas_short_fire_rt'] = self.data_df['final_vegas_short_fire'].shift(-1).fillna(method='ffill')
         #self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method='bfill')
 
