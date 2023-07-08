@@ -120,7 +120,7 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
     is_weekend = True
 
