@@ -54,6 +54,8 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
+profit_loss_ratio = 1
+
 class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient):
@@ -120,9 +122,9 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -190,8 +192,11 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
+    selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
+
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
-    chart_folder_name = "chart_ratio1Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting"
+
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -226,8 +231,8 @@ def start_do_trading():
             fd.close()
 
         data_file = os.path.join(currency_data_folder, currency + ".csv")
-        trade_file = os.path.join(currency_folder, currency + "_all_trades.csv")
-        performance_file = os.path.join(currency_folder, currency + "_performance.csv")
+        trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
+        performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
         print("Fuck performance_file " + performance_file)
 
         currency_folders += [currency_folder]
@@ -271,7 +276,7 @@ def start_do_trading():
     is_do_trading = True
 
     if is_do_trading:
-        while not is_all_received:
+        while False: #not is_all_received:
             is_all_received = True
             for i in range(len(currency_traders)):
                 if not is_new_data_received[i]:
@@ -418,10 +423,10 @@ def start_do_trading():
         perf_dfs = []
         trade_dfs = []
         for currency in currency_list:
-            perf_file = os.path.join(root_folder, currency, currency + "_performance.csv")
+            perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
             perf_dfs += [pd.read_csv(perf_file)]
 
-            trade_file = os.path.join(root_folder, currency, currency + "_all_trades.csv")
+            trade_file = os.path.join(root_folder, currency, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
             trade_df = pd.read_csv(trade_file)
             trade_dfs += [trade_df]
 
@@ -434,24 +439,50 @@ def start_do_trading():
         perf_df = perf_df.drop(columns = ['index'])
         print(perf_df)
 
+        print("")
+        print("Selected currencies Performance Result:")
+        selected_perf_df = perf_df[perf_df['Currency'].isin(selected_currencies)]
+        print(selected_perf_df)
+
         perf_df.to_csv(os.path.join(root_folder, chart_folder_name + ".csv"), index = False)
 
         des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + chart_folder_name)
         if not os.path.exists(des_pnl_folder):
             os.makedirs(des_pnl_folder)
 
+
         old_pnl_files = os.listdir(des_pnl_folder)
         for file in old_pnl_files:
-            os.remove(os.path.join(des_pnl_folder, file))
+            target_file = os.path.join(des_pnl_folder, file)
+            if os.path.isdir(target_file):
+                shutil.rmtree(target_file)
+            else:
+                os.remove(target_file)
+
+        des_selected_pnl_folder = os.path.join(des_pnl_folder, 'selected')
+        if not os.path.exists(des_selected_pnl_folder):
+            os.makedirs(des_selected_pnl_folder)
+
 
 
         des_bar_folder = os.path.join(root_folder, 'all_bars_' + chart_folder_name)
         if not os.path.exists(des_bar_folder):
             os.makedirs(des_bar_folder)
 
+
+
         old_bar_files = os.listdir(des_bar_folder)
         for file in old_bar_files:
-            os.remove(os.path.join(des_bar_folder, file))
+            target_file = os.path.join(des_bar_folder, file)
+            if os.path.isdir(target_file):
+                shutil.rmtree(target_file)
+            else:
+                os.remove(target_file)
+
+        des_selected_bar_folder = os.path.join(des_bar_folder, 'selected')
+        if not os.path.exists(des_selected_bar_folder):
+            os.makedirs(des_selected_bar_folder)
+
 
 
         print("Copying bar charts and pnl charts...")
@@ -464,11 +495,18 @@ def start_do_trading():
             if os.path.exists(pic_path):
                 shutil.copy2(pic_path, des_pnl_folder)
 
+                if currency in selected_currencies:
+                    shutil.copy2(pic_path, des_selected_pnl_folder)
+
+
             currency_chart_folder = os.path.join(root_folder, currency, chart_folder_name)
             chart_files = os.listdir(currency_chart_folder)
             for chart_file in chart_files:
                 if 'pnl' not in chart_file:
                     shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
+
+                    if currency in selected_currencies:
+                        shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_selected_bar_folder)
 
 
         #shutil.copy2(file_path, dest_folder)

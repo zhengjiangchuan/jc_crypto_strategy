@@ -19,6 +19,8 @@ from util import *
 import gzip
 
 from datetime import datetime, timedelta
+
+#from vegas_strategy_once import profit_loss_ratio
 import math
 
 from optparse import OptionParser
@@ -27,6 +29,7 @@ import matplotlib.ticker as ticker
 import urllib.request
 
 from io import StringIO
+
 
 
 pd.set_option('display.max_rows', 10000)
@@ -589,6 +592,7 @@ class CurrencyTrader(threading.Thread):
         signal_minimum_lasting_bars = 0  #2
         stop_loss_threshold = 100 #100
         #Guoji
+
         profit_loss_ratio = 1#2
 
 
