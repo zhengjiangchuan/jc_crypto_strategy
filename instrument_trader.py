@@ -312,7 +312,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['guppy_first_half_max'] = self.data_df[[guppy_lines[0], guppy_lines[1], guppy_lines[2]]].max()
 
         self.data_df['guppy_second_half_min'] = self.data_df[[guppy_lines[3], guppy_lines[4], guppy_lines[5]]].min()
-        self.data_df['guppy_second_half_max'] = self.data_df[[guppy_lines[3], guppy_lines[4], guppy_lines[5]]].min()
+        self.data_df['guppy_second_half_max'] = self.data_df[[guppy_lines[3], guppy_lines[4], guppy_lines[5]]].max()
 
 
         self.data_df['fastest_guppy_line_up'] = self.data_df['ma_close30_gradient'] > 0
