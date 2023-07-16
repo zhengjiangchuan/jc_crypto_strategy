@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-profit_loss_ratio = 0.5
+profit_loss_ratio = 1
 
 class CurrencyPair:
 
