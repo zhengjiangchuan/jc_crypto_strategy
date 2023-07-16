@@ -157,7 +157,7 @@ def start_do_trading():
     currency_df = pd.read_csv(currency_file)
 
 
-    currencies_to_run = [] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
+    currencies_to_run = ['EURCHF'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
     #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
 
@@ -276,7 +276,7 @@ def start_do_trading():
     is_do_trading = True
 
     if is_do_trading:
-        while False: #not is_all_received:
+        while not is_all_received:
             is_all_received = True
             for i in range(len(currency_traders)):
                 if not is_new_data_received[i]:
@@ -610,4 +610,4 @@ def start_do_trading():
     #sys.exit(0)
 
 
-#start_do_trading()
+start_do_trading()
