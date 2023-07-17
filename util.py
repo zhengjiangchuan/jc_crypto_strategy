@@ -241,7 +241,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                            num_days = 10, plot_jc = False, plot_bolling = False, is_jc_calculated = False, print_prefix = "",
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
-                           bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False):
+                           bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
+                           use_dynamic_TP = False):
 
     print("In plot_candle_bar_charts:")
     print("tick_interval = " + str(tick_interval))
@@ -398,8 +399,17 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         raw_long_points = sub_data[sub_data['final_vegas_long_fire']]['entry_id'].tolist()
         not_finished_long_points = [p for p in raw_long_points if p not in long_win_points and p not in long_lose_points]
 
-        long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'long_stop_half_profit_price']]
-        long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close',  'long_stop_profit_price', 'long_stop_half_profit_price']]
+
+        if use_dynamic_TP:
+
+            long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'tp_num', 'unit_range']]
+            long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close',  'long_stop_profit_price', 'tp_num', 'unit_range']]
+
+        else:
+
+            long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'long_stop_half_profit_price']]
+            long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close',  'long_stop_profit_price', 'long_stop_half_profit_price']]
+
 
         long_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_loss_price']]
         long_not_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'long_stop_loss_price']]
@@ -414,12 +424,22 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         raw_short_points = sub_data[sub_data['final_vegas_short_fire']]['entry_id'].tolist()
         not_finished_short_points = [p for p in raw_short_points if p not in short_win_points and p not in short_lose_points]
 
+        if use_dynamic_TP:
 
-        short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
-        short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
+            short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'tp_num', 'unit_range']]
+            short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'tp_num', 'unit_range']]
+
+        else:
+
+            short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
+            short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
+
+
 
         short_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_loss_price']]
         short_not_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'short_stop_loss_price']]
+
+
 
         # long_hit_profit['entry_id'] = long_hit_profit['entry_id'].astype(int)
         # long_hit_profit['exit_id'] = long_hit_profit['exit_id'].astype(int)
@@ -474,16 +494,34 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
             for j in range(long_hit_profit.shape[0]):
 
-                axes.hlines(y=long_hit_profit.iloc[j]['long_stop_profit_price'],
-                             xmin = int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
-                             xmax = int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
-                             ls = '-', color = 'blue', linewidth = 1)
 
-                if plot_auxiliary_price_lines:
-                    axes.hlines(y=long_hit_profit.iloc[j]['long_stop_half_profit_price'],
-                                xmin=int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
-                                xmax=int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
-                                ls='--', color='blue', linewidth=1)
+                if use_dynamic_TP:
+
+
+                    for tp_i in range(1, int(long_hit_profit.iloc[j]['tp_num']) + 1):
+                        axes.hlines(y=long_hit_profit.iloc[j]['close'] + tp_i * long_hit_profit.iloc[j]['unit_range'],
+                                     xmin = int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '-', color = 'blue', linewidth = 1)
+
+                    axes.hlines(y=long_hit_profit.iloc[j]['long_stop_profit_price'],
+                                     xmin = int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '-', color = 'blue', linewidth = 2.5)
+
+
+                else:
+
+                    axes.hlines(y=long_hit_profit.iloc[j]['long_stop_profit_price'],
+                                 xmin = int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'blue', linewidth = 1)
+
+                    if plot_auxiliary_price_lines:
+                        axes.hlines(y=long_hit_profit.iloc[j]['long_stop_half_profit_price'],
+                                    xmin=int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
+                                    xmax=int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
+                                    ls='--', color='blue', linewidth=1)
 
                 axes.hlines(y=long_hit_profit.iloc[j]['close'],
                             xmin=int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
@@ -493,16 +531,26 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             # print("long_not_hit_profit:")
             # print(long_not_hit_profit)
             for j in range(long_not_hit_profit.shape[0]):
-                axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_profit_price'],
-                             xmin = int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
-                             xmax = int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
-                             ls = '-', color = 'black', linewidth = 1)
 
-                if plot_auxiliary_price_lines:
-                    axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_half_profit_price'],
-                                xmin=int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
-                                xmax=int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
-                                ls='--', color='black', linewidth=1)
+                if use_dynamic_TP:
+
+                    axes.hlines(y=long_not_hit_profit.iloc[j]['close'] + long_not_hit_profit.iloc[j]['unit_range'],
+                                 xmin = int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'black', linewidth = 1)
+
+                else:
+
+                    axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_profit_price'],
+                                 xmin = int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'black', linewidth = 1)
+
+                    if plot_auxiliary_price_lines:
+                        axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_half_profit_price'],
+                                    xmin=int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
+                                    xmax=int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
+                                    ls='--', color='black', linewidth=1)
 
                 axes.hlines(y=long_not_hit_profit.iloc[j]['close'],
                             xmin=int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
@@ -530,16 +578,34 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
 
             for j in range(short_hit_profit.shape[0]):
-                axes.hlines(y=short_hit_profit.iloc[j]['short_stop_profit_price'],
-                             xmin = int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
-                             xmax = int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
-                             ls = '-', color = 'blue', linewidth = 1)
 
-                if plot_auxiliary_price_lines:
-                    axes.hlines(y=short_hit_profit.iloc[j]['short_stop_half_profit_price'],
-                                xmin=int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
-                                xmax=int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
-                                ls='--', color='blue', linewidth=1)
+
+
+                if use_dynamic_TP:
+
+                    for tp_i in range(1, int(short_hit_profit.iloc[j]['tp_num']) + 1):
+                        axes.hlines(y=short_hit_profit.iloc[j]['close'] - tp_i * short_hit_profit.iloc[j]['unit_range'],
+                                     xmin = int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '-', color = 'blue', linewidth = 1)
+
+                    axes.hlines(y=short_hit_profit.iloc[j]['short_stop_profit_price'],
+                                     xmin = int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '-', color = 'blue', linewidth = 2.5)
+
+                else:
+
+                    axes.hlines(y=short_hit_profit.iloc[j]['short_stop_profit_price'],
+                                 xmin = int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'blue', linewidth = 1)
+
+                    if plot_auxiliary_price_lines:
+                        axes.hlines(y=short_hit_profit.iloc[j]['short_stop_half_profit_price'],
+                                    xmin=int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
+                                    xmax=int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
+                                    ls='--', color='blue', linewidth=1)
 
                 axes.hlines(y=short_hit_profit.iloc[j]['close'],
                             xmin=int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
@@ -548,16 +614,30 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
 
             for j in range(short_not_hit_profit.shape[0]):
-                axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_profit_price'],
-                             xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
-                             xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
-                             ls = '-', color = 'black', linewidth = 1)
 
-                if plot_auxiliary_price_lines:
-                    axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_half_profit_price'],
+                if use_dynamic_TP:
+
+                    # print("short_not_hit_profit j = " + str(j))
+                    # print("close = " + str(short_not_hit_profit.iloc[j]['close']))
+                    # print("unit range = " + str(short_not_hit_profit.iloc[j]['unit_range']))
+                    # print("take profit price = " + str(short_not_hit_profit.iloc[j]['close'] - short_not_hit_profit.iloc[j]['unit_range']))
+
+                    axes.hlines(y=short_not_hit_profit.iloc[j]['close'] - short_not_hit_profit.iloc[j]['unit_range'],
                                  xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
                                  xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
-                                 ls = '--', color = 'black', linewidth = 1)
+                                 ls = '-', color = 'black', linewidth = 1)
+
+                else:
+                    axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_profit_price'],
+                                 xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'black', linewidth = 1)
+
+                    if plot_auxiliary_price_lines:
+                        axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_half_profit_price'],
+                                     xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '--', color = 'black', linewidth = 1)
 
                 axes.hlines(y=short_not_hit_profit.iloc[j]['close'],
                             xmin=int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
@@ -707,6 +787,22 @@ def plot_pnl_figure(trade_df, out_folder, currency):
         fig = plt.figure(figsize = (10,10))
 
         axes = fig.subplots(nrows = 2, ncols = 1)
+
+
+
+        # trade_df.reset_index(inplace = True)
+        # trade_df = trade_df.drop(columns = ['index'])
+
+        # print("trade_df:")
+        # print(trade_df)
+        #
+        # print("fucking type:")
+        # print(type(trade_df.iloc[2]['cum_pnl']))
+
+        trade_df['cum_pnl'] = trade_df['cum_pnl'].astype(int)
+        trade_df['cum_reverse_pnl'] = trade_df['cum_reverse_pnl'].astype(int)
+        #
+        # print(trade_df[['id','cum_pnl']])
 
         sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes[0])
         axes[0].set_title(currency + " Cum Pnl Curve")

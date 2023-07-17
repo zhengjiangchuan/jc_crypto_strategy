@@ -54,7 +54,12 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
+use_dynamic_TP = True
+
 profit_loss_ratio = 1
+
+if use_dynamic_TP:
+    profit_loss_ratio = 10
 
 class CurrencyPair:
 
@@ -122,9 +127,9 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -157,9 +162,12 @@ def start_do_trading():
     currency_df = pd.read_csv(currency_file)
 
 
-    currencies_to_run = [] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
+    #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
     #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
     #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
+
+    #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
+    currencies_to_run = []
 
     #if currency_to_run != 'all':
     if len(currencies_to_run) > 0:
@@ -196,7 +204,7 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
