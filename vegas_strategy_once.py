@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -204,7 +204,7 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -494,7 +494,9 @@ def start_do_trading():
 
 
         print("Copying bar charts and pnl charts...")
-        trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
+        #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
+
+        trade_df = trade_df.drop(columns=['id', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
         trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
 
         for currency in currency_list:
