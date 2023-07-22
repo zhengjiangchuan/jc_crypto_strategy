@@ -1,5 +1,5 @@
 
-is_production = True
+is_production = False
 
 def warn(*args, **kwargs):
     pass

@@ -373,7 +373,10 @@ def start_do_trading():
                             if incremental_data_df.iloc[0]['time'] > last_time:
                                 print("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
 
-                            incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+                            if is_weekend:
+                                incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
+                            else:
+                                incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
                             print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
