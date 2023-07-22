@@ -1,15 +1,28 @@
+
+is_production = True
+
 def warn(*args, **kwargs):
     pass
 import warnings
 warnings.warn = warn
-import talib
+
+if not is_production:
+    import talib
+
+
 import numpy as np
 import pandas as pd
-import seaborn as sns
-sns.set()
+
+if not is_production:
+    import seaborn as sns
+    sns.set()
+
+
 import matplotlib.ticker as ticker
 import datetime
-from mpl_finance import *
+
+if not is_production:
+    from mpl_finance import *
 
 
 #from mplfinance import *
@@ -369,7 +382,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             axes = fig.subplots(nrows = 1, ncols = 1)
 
         candle_df = sub_data[['artificial_time', 'open', 'high', 'low', 'close', 'time']
-                             + ['ma_' + 'close' + str(window) for window in windows] + ['upper_band_close', 'lower_band_close', 'middle_band_close']]
+                             + ['ma_' + 'close' + str(window) for window in windows] + ([] if is_production else ['upper_band_close', 'lower_band_close', 'middle_band_close'])]
         candle_df['artificial_time'] = candle_df['artificial_time'].apply(lambda x: mdates.date2num(x))
         int_time_series = candle_df['artificial_time'].values
         candle_matrix = candle_df.values
@@ -757,6 +770,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
     print("Plotting finishes")
     return None #list(zip(figs, intervals))
+
 
 
 def plot_pnl_figure(trade_df, out_folder, currency):

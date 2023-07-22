@@ -1,8 +1,14 @@
+
+
+is_production = True
+
+
 def warn(*args, **kwargs):
     pass
 import warnings
 warnings.warn = warn
-import talib
+
+#import talib
 
 import math
 import matplotlib.lines as mlines
@@ -276,7 +282,9 @@ class CurrencyTrader(threading.Thread):
         self.data_df['hour'] = self.data_df['time'].apply(lambda x: x.hour)
 
         calc_jc_lines(self.data_df, "close", windows)
-        calc_bolling_bands(self.data_df, "close", bolling_width)
+
+        if not is_production:
+            calc_bolling_bands(self.data_df, "close", bolling_width)
 
         self.data_df['prev_open'] = self.data_df['open'].shift(1)
 
@@ -1726,8 +1734,8 @@ class CurrencyTrader(threading.Thread):
         full_summary_df.to_csv(self.performance_file, index = False)
 
 
-
-        plot_pnl_figure(write_df, self.chart_folder, self.currency)
+        if not is_production:
+            plot_pnl_figure(write_df, self.chart_folder, self.currency)
 
 
 
@@ -1742,13 +1750,14 @@ class CurrencyTrader(threading.Thread):
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
-        plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
-                               num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-                               is_plot_candle_buy_sell_points=True,
-                               print_prefix=print_prefix,
-                               is_plot_aux = False,
-                               bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
-                               use_dynamic_TP = use_dynamic_TP)
+        if not is_production:
+            plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
+                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                                   is_plot_candle_buy_sell_points=True,
+                                   print_prefix=print_prefix,
+                                   is_plot_aux = False,
+                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
+                                   use_dynamic_TP = use_dynamic_TP)
 
 
         print("Finish")
