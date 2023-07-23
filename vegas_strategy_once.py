@@ -127,7 +127,7 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -238,7 +238,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_test"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmail"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -445,6 +445,20 @@ def start_do_trading():
 
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+
+
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 5, 31, 14, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 2, 16, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 5, 22, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 28, 8, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 14, 19, 0, 0)]
+
+
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 5, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 21, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 10, 12, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 5, 12, 20, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 7, 22, 0, 0)]
 
                         #data_df = data_df.iloc[0:-50]
 

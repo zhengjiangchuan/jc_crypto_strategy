@@ -279,6 +279,12 @@ class CurrencyTrader(threading.Thread):
         self.trade()
 
 
+    def round_price(self, price):
+
+        if 'JPY' in self.currency:
+            return round(price, 3)
+        else:
+            return round(price, 5)
 
 
     def calculate_signals(self):
@@ -1058,8 +1064,29 @@ class CurrencyTrader(threading.Thread):
                 margin = unit_loss * entry_price / (unit_range * leverage)
                 margin = round(margin/2.0, 2)
 
-
                 long_target_profit_price = long_fire_data['close'] + unit_range
+
+                ##########################
+                if long_start_id == self.data_df.shape[0] - 1:
+                    current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
+
+                    message = "At " + current_time + ", Long " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
+                    message += "Place stop loss at price " + str(self.round_price(long_stop_loss_price)) \
+                               + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
+                    message += "Place stop profit at price " + str(self.round_price(long_target_profit_price)) + " for only one of the two positions \n"
+                    message += "This position incurs a margin of " + str(margin*2) + " HK dollars\n"
+
+                    message_title = "Long " + self.currency + " " + str(round(position*2, 2)) + " lot"
+
+                    print("message_title = " + message_title)
+                    print("message:")
+                    print(message)
+                    sendEmail(message_title, message)
+
+
+
+                ##########################
+
 
                 long_actual_stop_profit_price = 0
 
@@ -1087,6 +1114,40 @@ class CurrencyTrader(threading.Thread):
                         long_stop_profit_loss_time = cur_data['time']
                         long_stop_profit_loss_id = cur_data['id']
 
+                        #####################################
+                        if long_start_id + j == self.data_df.shape[0] - 1:
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_stop_loss)) + '\n'
+
+                            if long_actual_stop_profit_price < entry_price:
+                                message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
+                                message += "It yields a loss of " + str(unit_loss) + " HK dollars"
+
+                                message_title = "Long position of " + self.currency + " hits stop loss"
+
+                                print("message_title = " + message_title)
+                                print("message:")
+                                print(message)
+                                sendEmail(message_title, message)
+
+                            else:
+                                message += "The second " + str(round(position, 2)) + "-lot position gets closed \n"
+                                if tp_number > 1:
+                                    message += "It yields a profit of " + str((tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"
+                                else:
+                                    assert(tp_number == 1)
+                                    message += "It yields zero pnl (only spread cost)"
+
+                                message_title = "Long position of " + self.currency + " hits MOVED stop loss"
+
+                                print("message_title = " + message_title)
+                                print("message:")
+                                print(message)
+                                sendEmail(message_title, message)
+
+                        #####################################
+
                         break
 
                     elif cur_data['high'] >= long_target_profit_price:
@@ -1095,6 +1156,28 @@ class CurrencyTrader(threading.Thread):
                         actual_stop_loss = current_stop_loss - unit_range * tp_tolerance
 
                         long_target_profit_price += unit_range
+
+                        #####################################
+                        if long_start_id + j == self.data_df.shape[0] - 1:
+
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
+                            message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_stop_loss)) + "\n"
+                            message += "The next profit level is price " + str(self.round_price(long_target_profit_price))
+
+                            if tp_number == 1:
+                                message += "The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
+
+                            message_title = "Long position of " + self.currency + " reaches next profit level"
+
+                            print("message_title = " + message_title)
+                            print("message:")
+                            print(message)
+                            sendEmail(message_title, message)
+                        ########################################
+
+
 
                     if temp_ii + 1 < len(long_start_ids) and long_start_ids[temp_ii + 1] == long_start_id + j:
 
@@ -1407,6 +1490,28 @@ class CurrencyTrader(threading.Thread):
 
                 short_target_profit_price = short_fire_data['close'] - unit_range
 
+                ##########################
+                if short_start_id == self.data_df.shape[0] - 1:
+                    current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
+
+                    message = "At " + current_time + ", Short " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
+                    message += "Place stop loss at price " + str(self.round_price(short_stop_loss_price)) \
+                               + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
+                    message += "Place stop profit at price " + str(self.round_price(short_target_profit_price)) + " for only one of the two positions \n"
+                    message += "This position incurs a margin of " + str(margin*2) + " HK dollars\n"
+
+                    message_title = "Short " + self.currency + " " + str(round(position*2, 2)) + " lot"
+
+                    print("message_title = " + message_title)
+                    print("message:")
+                    print(message)
+                    sendEmail(message_title, message)
+
+
+
+                ##########################
+
+
                 short_actual_stop_profit_price = 0
 
                 current_stop_loss = short_stop_loss_price
@@ -1436,6 +1541,43 @@ class CurrencyTrader(threading.Thread):
                         short_stop_profit_loss_time = cur_data['time']
                         short_stop_profit_loss_id = cur_data['id']
 
+
+                        #####################################
+                        if short_start_id + j == self.data_df.shape[0] - 1:
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_stop_loss)) + '\n'
+
+                            if short_actual_stop_profit_price > entry_price:
+                                message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
+                                message += "It yields a loss of " + str(unit_loss) + " HK dollars"
+
+                                message_title = "Short position of " + self.currency + " hits stop loss"
+
+                                print("message_title = " + message_title)
+                                print("message:")
+                                print(message)
+                                sendEmail(message_title, message)
+
+                            else:
+                                message += "The second " + str(round(position, 2)) + "-lot position gets closed \n"
+                                if tp_number > 1:
+                                    message += "It yields a profit of " + str((tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"
+                                else:
+                                    assert(tp_number == 1)
+                                    message += "It yields zero pnl (only spread cost)"
+
+                                message_title = "Short position of " + self.currency + " hits MOVED stop loss"
+
+                                print("message_title = " + message_title)
+                                print("message:")
+                                print(message)
+                                sendEmail(message_title, message)
+
+                        #####################################
+
+
+
                         break
 
                     elif cur_data['low'] <= short_target_profit_price:
@@ -1444,6 +1586,26 @@ class CurrencyTrader(threading.Thread):
                         actual_stop_loss = current_stop_loss + unit_range * tp_tolerance
 
                         short_target_profit_price -= unit_range
+
+                        #####################################
+                        if short_start_id + j == self.data_df.shape[0] - 1:
+
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
+                            message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_stop_loss)) + "\n"
+                            message += "The next profit level is price " + str(self.round_price(short_target_profit_price))
+
+                            if tp_number == 1:
+                                message += "The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
+
+                            message_title = "Short position of " + self.currency + " reaches next profit level"
+
+                            print("message_title = " + message_title)
+                            print("message:")
+                            print(message)
+                            sendEmail(message_title, message)
+                        ########################################
 
                     if temp_ii + 1 < len(short_start_ids) and short_start_ids[temp_ii + 1] == short_start_id + j:
                         is_effective[temp_ii + 1] = 0
@@ -1694,36 +1856,36 @@ class CurrencyTrader(threading.Thread):
                                    })
 
 
-
-        if is_send_email:
-
-            # test_data_df = self.data_df[self.data_df['time'] <= datetime(2023, 4, 6, 8, 0, 0)]
-            #
-            # print("test_data_df:")
-            # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
-
-            last_data = self.data_df.iloc[-1]
-            if last_data['final_vegas_long_fire']:
-                side = 'Long'
-                entry_price = last_data['close']
-                stop_loss = last_data['long_stop_loss_price']
-                stop_profit = last_data['long_stop_profit_price']
-                entry_time = str(last_data['time'] + timedelta(hours = 1))
-            elif last_data['final_vegas_short_fire']:
-                side = 'Short'
-                entry_price = last_data['close']
-                stop_loss = last_data['short_stop_loss_price']
-                stop_profit = last_data['short_stop_profit_price']
-                entry_time = str(last_data['time'] + timedelta(hours = 1))
-
-            if last_data['final_vegas_long_fire'] or last_data['final_vegas_short_fire']:
-
-                #decimal_place = int(math.log(self.lot_size) / math.log(10))
-                stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
-                stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
-
-                trading_message = "At " + entry_time + ", " + side + " " + self.currency + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and TP=" + str(stop_profit)
-                sendEmail(trading_message, trading_message)
+        #
+        # if is_send_email:
+        #
+        #     # test_data_df = self.data_df[self.data_df['time'] <= datetime(2023, 4, 6, 8, 0, 0)]
+        #     #
+        #     # print("test_data_df:")
+        #     # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
+        #
+        #     last_data = self.data_df.iloc[-1]
+        #     if last_data['final_vegas_long_fire']:
+        #         side = 'Long'
+        #         entry_price = last_data['close']
+        #         stop_loss = last_data['long_stop_loss_price']
+        #         stop_profit = last_data['long_stop_profit_price']
+        #         entry_time = str(last_data['time'] + timedelta(hours = 1))
+        #     elif last_data['final_vegas_short_fire']:
+        #         side = 'Short'
+        #         entry_price = last_data['close']
+        #         stop_loss = last_data['short_stop_loss_price']
+        #         stop_profit = last_data['short_stop_profit_price']
+        #         entry_time = str(last_data['time'] + timedelta(hours = 1))
+        #
+        #     if last_data['final_vegas_long_fire'] or last_data['final_vegas_short_fire']:
+        #
+        #         #decimal_place = int(math.log(self.lot_size) / math.log(10))
+        #         stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
+        #         stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
+        #
+        #         trading_message = "At " + entry_time + ", " + side + " " + self.currency + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and TP=" + str(stop_profit)
+        #         sendEmail(trading_message, trading_message)
 
 
         full_summary_df = summary_df

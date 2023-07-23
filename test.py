@@ -74,7 +74,7 @@ def sendEmail(title, content):
     except smtplib.SMTPException as e:
         print(e)
 
-sendEmail("Guoji", "I Love Guoji so much")
+sendEmail("Guoji", "I Love Guoji so much\n I reall love Guoji gay")
 
 #
 # for file in os.listdir(root_folder):

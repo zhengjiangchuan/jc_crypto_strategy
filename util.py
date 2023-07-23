@@ -820,12 +820,12 @@ def plot_pnl_figure(trade_df, out_folder, currency):
 
         sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes[0])
         axes[0].set_title(currency + " Cum Pnl Curve")
-        axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
+        #axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
         axes[0].axhline(0, ls='--', color='blue', linewidth=1)
 
         sns.lineplot(x='id', y='cum_reverse_pnl', markers='o', color='red', data=trade_df, ax=axes[1])
         axes[1].set_title(currency + " Cum Reverse Pnl Curve")
-        axes[1].yaxis.set_major_locator(plticker.MultipleLocator(1))
+        #axes[1].yaxis.set_major_locator(plticker.MultipleLocator(1))
         axes[1].axhline(0, ls='--', color='blue', linewidth=1)
 
         # plt.xticks(fontsize=18)
