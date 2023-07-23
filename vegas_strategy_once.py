@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -123,7 +123,11 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
 def start_do_trading():
 
-    print("Child process starts")
+    print("")
+    print("")
+    print("###########################################")
+    print("start do trading!")
+    #print("Child process starts")
 
     is_gege_server = False
 
@@ -238,7 +242,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmail"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -758,4 +762,4 @@ def start_do_trading():
     #sys.exit(0)
 
 
-start_do_trading()
+#start_do_trading()

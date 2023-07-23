@@ -11,12 +11,14 @@ import pandas as pd
 from vegas_strategy_once import *
 
 def wait_for_trigger():
+
+    print("Running wait_for_trigger")
     current_time = datetime.now()
 
     temp_time = current_time + timedelta(seconds=3600)
-    next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
+    #next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
 
-    #next_hour = current_time + timedelta(seconds = 30)  #Temp for debug
+    next_hour = current_time + timedelta(seconds = 120)  #Temp for debug
     print("Next hour: " + str(next_hour))
 
     seconds_remaining = (next_hour - current_time).seconds
@@ -92,4 +94,5 @@ if __name__ == '__main__':
         #os.system("python vegas_strategy_once.py")
         start_do_trading()
 
+        print("Going to enter wait_for_trigger")
         wait_for_trigger()
