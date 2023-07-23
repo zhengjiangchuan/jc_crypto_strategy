@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -169,6 +169,13 @@ def start_do_trading():
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     currencies_to_run = []
 
+    raw_currencies = currency_df['currency'].tolist()
+
+    raw_data_folders = []
+    for currency in raw_currencies:
+        currency_data_folder = os.path.join(root_folder, currency, 'data')
+        raw_data_folders += [currency_data_folder]
+
     #if currency_to_run != 'all':
     if len(currencies_to_run) > 0:
         currency_df = currency_df[currency_df['currency'].isin(currencies_to_run)]
@@ -201,6 +208,8 @@ def start_do_trading():
     print("currency_df:")
     print(currency_df)
 
+
+
     #sendEmail("Trader process starts", "")
 
     currency_pairs = []
@@ -226,7 +235,10 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax"
+
+
+
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_test"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -263,7 +275,7 @@ def start_do_trading():
         data_file = os.path.join(currency_data_folder, currency + ".csv")
         trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
         performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
-        print("Fuck performance_file " + performance_file)
+        #print("Fuck performance_file " + performance_file)
 
         currency_folders += [currency_folder]
         data_folders += [data_folder]
@@ -284,8 +296,95 @@ def start_do_trading():
 
     maximum_trial_number = 3
 
-    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file in list(
-            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files)):
+
+
+    ################
+
+    close_prices = []
+
+    currencies = []
+    fx_currencies = []
+    fx_raw = []
+    reciprocal = []
+    fx = []
+    for i in range(len(raw_currencies)):
+
+        currency = raw_currencies[i]
+        data_folder = raw_data_folders[i]
+        data_file = os.path.join(data_folder, currency + ".csv")
+
+        df = pd.read_csv(data_file)
+        close_prices += [float(df.iloc[-1]['close'])]
+
+    for i in range(len(currency_list)):
+
+        currency = currency_list[i]
+
+        #print("Processing currency " + currency)
+
+        currencies += [currency]
+
+        main_currency = currency[-3:]
+
+        use_reciprocal = False
+
+        if main_currency in ['EUR', 'GBP', 'AUD', 'NZD']:
+            fx_currency = main_currency + 'USD'
+        elif main_currency != 'USD':
+            use_reciprocal = True
+            fx_currency = 'USD' + main_currency
+        else:
+            fx_currencies += ['USD']
+            reciprocal += [False]
+            fx_raw += [1]
+            fx += [1]
+            continue
+
+
+        fx_currencies += [fx_currency]
+        reciprocal += [use_reciprocal]
+
+        for j in range(len(raw_currencies)):
+
+            if fx_currency == raw_currencies[j]:
+
+                target_fx = close_prices[j]
+
+                fx_raw += [target_fx]
+
+                if use_reciprocal:
+                    target_fx = 1.0 / target_fx
+
+                fx += [target_fx]
+
+                print("Found target currency " + fx_currency)
+                break
+
+        print("")
+
+    print("currencies = " + str(len(currencies)))
+    print("fx_currencies = " + str(len(fx_currencies)))
+    print("fx_raw = " + str(len(fx_raw)))
+    print("reciprocal = " + str(len(reciprocal)))
+    print("fx = " + str(len(fx)))
+
+    final_summary_data = pd.DataFrame({'currency' : currencies, 'fx_currency': fx_currencies, 'raw_fx' : fx_raw, 'reciprocal' : reciprocal, 'fx' : fx})
+
+    print("final_summary_data:")
+    print(final_summary_data)
+
+    #sys.exit(0)
+
+
+
+
+    ##############
+
+
+
+
+    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx in list(
+            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx)):
 
         currency = currency_pair.currency
         lot_size = currency_pair.lot_size
@@ -294,7 +393,7 @@ def start_do_trading():
 
         #print("Here performance_file = " + performance_file)
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file)
+                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
