@@ -16,9 +16,9 @@ def wait_for_trigger():
     current_time = datetime.now()
 
     temp_time = current_time + timedelta(seconds=3600)
-    #next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
+    next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
 
-    next_hour = current_time + timedelta(seconds = 120)  #Temp for debug
+    #next_hour = current_time + timedelta(seconds = 120)  #Temp for debug
     print("Next hour: " + str(next_hour))
 
     seconds_remaining = (next_hour - current_time).seconds
