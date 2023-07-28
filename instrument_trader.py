@@ -209,7 +209,7 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = True
 
-printed_figure_num = 1
+printed_figure_num = -1
 
 unit_loss = 1000 #This is HKD
 usdhkd = 7.85
@@ -551,8 +551,11 @@ class CurrencyTrader(threading.Thread):
         # self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) & (~self.data_df['long_encourage_condition'])) |\
         #                                      ((self.data_df['final_long_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_below']))
 
-        self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) & (~self.data_df['long_encourage_condition'])) |\
-                                             ((self.data_df['final_long_filter']) &\
+        # self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) & (~self.data_df['long_encourage_condition'])) |\
+        #                                      ((self.data_df['final_long_filter']) &\
+        #                                       ((self.data_df['vegas_phase_duration'] >= 48) | (self.data_df['prev_vegas_phase_entire_duration'] < 48)) & (self.data_df['fast_vegas_below']))
+
+        self.data_df['final_long_filter'] = ((self.data_df['final_long_filter']) &\
                                               ((self.data_df['vegas_phase_duration'] >= 48) | (self.data_df['prev_vegas_phase_entire_duration'] < 48)) & (self.data_df['fast_vegas_below']))
 
 
@@ -627,9 +630,13 @@ class CurrencyTrader(threading.Thread):
         # self.data_df['final_short_filter'] = ((self.data_df['final_short_filter']) & (~self.data_df['short_encourage_condition'])) |\
         #                                      ((self.data_df['final_short_filter']) & (self.data_df['vegas_phase_duration'] >= 48) & (self.data_df['fast_vegas_above']))
 
-        self.data_df['final_short_filter'] = ((self.data_df['final_short_filter']) & (~self.data_df['short_encourage_condition'])) |\
-                                             ((self.data_df['final_short_filter']) &\
+        # self.data_df['final_short_filter'] =  ((self.data_df['final_short_filter']) & (~self.data_df['short_encourage_condition'])) |\
+        #                                      ((self.data_df['final_short_filter']) &\
+        #                                       ((self.data_df['vegas_phase_duration'] >= 48) | (self.data_df['prev_vegas_phase_entire_duration'] < 48)) & (self.data_df['fast_vegas_above']))
+
+        self.data_df['final_short_filter'] =  ((self.data_df['final_short_filter']) &\
                                               ((self.data_df['vegas_phase_duration'] >= 48) | (self.data_df['prev_vegas_phase_entire_duration'] < 48)) & (self.data_df['fast_vegas_above']))
+
 
 
 
@@ -1134,7 +1141,7 @@ class CurrencyTrader(threading.Thread):
                                 sendEmail(message_title, message)
 
                             else:
-                                message += "The second " + str(round(position, 2)) + "-lot position gets closed \n"
+                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(tp_number - 1) + " \n"
                                 if tp_number > 1:
                                     message += "It yields a profit of " + str((tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"
                                 else:
@@ -1164,7 +1171,7 @@ class CurrencyTrader(threading.Thread):
 
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
-                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
+                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
                             message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_stop_loss)) + "\n"
                             message += "The next profit level is price " + str(self.round_price(long_target_profit_price))
 
@@ -1562,7 +1569,7 @@ class CurrencyTrader(threading.Thread):
                                 sendEmail(message_title, message)
 
                             else:
-                                message += "The second " + str(round(position, 2)) + "-lot position gets closed \n"
+                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(tp_number - 1) + " \n"
                                 if tp_number > 1:
                                     message += "It yields a profit of " + str((tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"
                                 else:
@@ -1594,7 +1601,7 @@ class CurrencyTrader(threading.Thread):
 
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
-                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
+                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
                             message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_stop_loss)) + "\n"
                             message += "The next profit level is price " + str(self.round_price(short_target_profit_price))
 
