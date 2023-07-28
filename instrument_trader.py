@@ -1,6 +1,6 @@
 
 
-is_production = True
+is_production = False
 
 
 def warn(*args, **kwargs):
@@ -208,6 +208,8 @@ aligned_conditions21_threshold = 5  #5 by default
 is_use_two_trend_following = False
 
 use_dynamic_TP = True
+
+printed_figure_num = 1
 
 unit_loss = 1000 #This is HKD
 usdhkd = 7.85
@@ -1955,7 +1957,7 @@ class CurrencyTrader(threading.Thread):
                                    print_prefix=print_prefix,
                                    is_plot_aux = False,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
-                                   use_dynamic_TP = use_dynamic_TP)
+                                   use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num)
 
 
         print("Finish")

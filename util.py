@@ -1,5 +1,5 @@
 
-is_production = True
+is_production = False
 
 def warn(*args, **kwargs):
     pass
@@ -255,7 +255,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
                            bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
-                           use_dynamic_TP = False):
+                           use_dynamic_TP = False, figure_num = -1):
 
     print("In plot_candle_bar_charts:")
     print("tick_interval = " + str(tick_interval))
@@ -288,7 +288,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
     figs = []
     intervals = []
-    for period in periods:
+
+    printed_periods = periods if figure_num == -1 else periods[-figure_num:]
+    for period in printed_periods:
         start_date = trading_days[period[0]]
 
         if period[1] < len(trading_days):
