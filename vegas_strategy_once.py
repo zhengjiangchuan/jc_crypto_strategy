@@ -243,7 +243,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_temp"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
