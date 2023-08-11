@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -173,6 +173,7 @@ def start_do_trading():
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
     currencies_to_run = []
+    currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY']
 
     raw_currencies = currency_df['currency'].tolist()
 
@@ -243,7 +244,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_temp"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -398,7 +399,7 @@ def start_do_trading():
 
         #print("Here performance_file = " + performance_file)
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx)
+                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, currency in currencies_to_notify)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]

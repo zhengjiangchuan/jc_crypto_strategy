@@ -207,11 +207,11 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 printed_figure_num = 1
 
-unit_loss = 1000 #This is HKD
+unit_loss = 500 #This is HKD
 usdhkd = 7.85
 leverage = 100
 
@@ -219,7 +219,7 @@ tp_tolerance = 0
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, is_notify):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -236,6 +236,7 @@ class CurrencyTrader(threading.Thread):
         self.trade_file = trade_file
         self.performance_file = performance_file
         self.usdfx = usdfx
+        self.is_notify = is_notify
 
         self.long_df = None
         self.short_df = None
@@ -1122,7 +1123,7 @@ class CurrencyTrader(threading.Thread):
                 long_target_profit_price = long_fire_data['close'] + unit_range
 
                 ##########################
-                if long_start_id == self.data_df.shape[0] - 1:
+                if self.is_notify and long_start_id == self.data_df.shape[0] - 1:
                     current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Long " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
@@ -1170,7 +1171,7 @@ class CurrencyTrader(threading.Thread):
                         long_stop_profit_loss_id = cur_data['id']
 
                         #####################################
-                        if long_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_stop_loss)) + '\n'
@@ -1213,7 +1214,7 @@ class CurrencyTrader(threading.Thread):
                         long_target_profit_price += unit_range
 
                         #####################################
-                        if long_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
 
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
@@ -1546,7 +1547,7 @@ class CurrencyTrader(threading.Thread):
                 short_target_profit_price = short_fire_data['close'] - unit_range
 
                 ##########################
-                if short_start_id == self.data_df.shape[0] - 1:
+                if self.is_notify and short_start_id == self.data_df.shape[0] - 1:
                     current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Short " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
@@ -1598,7 +1599,7 @@ class CurrencyTrader(threading.Thread):
 
 
                         #####################################
-                        if short_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_stop_loss)) + '\n'
@@ -1643,7 +1644,7 @@ class CurrencyTrader(threading.Thread):
                         short_target_profit_price -= unit_range
 
                         #####################################
-                        if short_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
 
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
