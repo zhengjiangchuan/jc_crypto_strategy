@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -172,7 +172,7 @@ def start_do_trading():
 
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
-    currencies_to_run = []
+    currencies_to_run = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
     currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
     raw_currencies = currency_df['currency'].tolist()
