@@ -207,7 +207,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
@@ -1082,7 +1082,7 @@ class CurrencyTrader(threading.Thread):
         ##############################
         if use_dynamic_TP:
 
-            result_columns = ['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'unit_range', 'position', 'margin',
+            result_columns = ['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
                               'long_stop_profit_price', 'tp_num',
                               'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time']
 
@@ -1121,6 +1121,7 @@ class CurrencyTrader(threading.Thread):
                 margin = round(margin/2.0, 2)
 
                 long_target_profit_price = long_fire_data['close'] + unit_range
+                TP1 = long_target_profit_price
 
                 ##########################
                 if self.is_notify and long_start_id == self.data_df.shape[0] - 1:
@@ -1223,7 +1224,7 @@ class CurrencyTrader(threading.Thread):
                             message += "The next profit level is price " + str(self.round_price(long_target_profit_price))
 
                             if tp_number == 1:
-                                message += "The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
+                                message += " The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
 
                             message_title = "Long position of " + self.currency + " reaches next profit level"
 
@@ -1249,7 +1250,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price,
+                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price, TP1,
                              unit_range, position, margin, long_actual_stop_profit_price, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time]]
 
             long_df = pd.DataFrame(data = result_data, columns = result_columns)
@@ -1456,6 +1457,7 @@ class CurrencyTrader(threading.Thread):
             # print("long_df:")
             # print(long_df)
 
+        long_df_copy = long_df.copy()
         long_df = long_df[(long_df['long_stop_profit_loss'] == 1) | (long_df['long_stop_profit_loss'] == -1)]
 
         long_df['long_stop_profit_loss_id'] = long_df['long_stop_profit_loss_id'].astype(int)
@@ -1466,11 +1468,12 @@ class CurrencyTrader(threading.Thread):
         long_lose_num = long_df[long_df['long_stop_profit_loss'] == -1].shape[0]
 
         long_df['side'] = 'long'
+        long_df_copy['side'] = 'long'
 
 
-        write_long_df = long_df[['currency', 'side', 'time', 'close',
+        write_long_df = long_df_copy[['currency', 'side', 'time', 'close',
                                  'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price'] +
-                                (['tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+                                (['TP1', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
 
 
         write_long_df = write_long_df.rename(columns = {
@@ -1480,10 +1483,11 @@ class CurrencyTrader(threading.Thread):
             'long_stop_profit_loss' : 'is_win'
         })
 
-        write_long_df['is_win'] = np.where(write_long_df['is_win'] == 1, 1, 0)
+        write_long_df['is_win'] = np.where(write_long_df['is_win'] == 1, 1,
+                                            np.where(write_long_df['is_win'] == -1, 0, -1))
         write_long_df['exit_price'] = np.where(write_long_df['is_win'] == 1, write_long_df['long_stop_profit_price'], write_long_df['long_stop_loss_price'])
 
-        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win'] + (['tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win'] + (['TP1', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
 
         ############## Short stop calculation ################
 
@@ -1510,7 +1514,7 @@ class CurrencyTrader(threading.Thread):
 
 
         if use_dynamic_TP:
-            result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'unit_range', 'position', 'margin',
+            result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
                               'short_stop_profit_price', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time']
 
             result_data = []
@@ -1545,6 +1549,7 @@ class CurrencyTrader(threading.Thread):
 
 
                 short_target_profit_price = short_fire_data['close'] - unit_range
+                TP1 = short_target_profit_price
 
                 ##########################
                 if self.is_notify and short_start_id == self.data_df.shape[0] - 1:
@@ -1653,7 +1658,7 @@ class CurrencyTrader(threading.Thread):
                             message += "The next profit level is price " + str(self.round_price(short_target_profit_price))
 
                             if tp_number == 1:
-                                message += "The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
+                                message += " The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
 
                             message_title = "Short position of " + self.currency + " reaches next profit level"
 
@@ -1670,7 +1675,7 @@ class CurrencyTrader(threading.Thread):
                     j += 1
 
 
-                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price,
+                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price, TP1,
                                  unit_range, position, margin, short_actual_stop_profit_price, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time]]
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
@@ -1866,6 +1871,7 @@ class CurrencyTrader(threading.Thread):
             short_df['margin'] = short_df['margin'].apply(lambda x: round(x, 2))
 
 
+        short_df_copy = short_df.copy()
         short_df = short_df[(short_df['short_stop_profit_loss'] == 1) | (short_df['short_stop_profit_loss'] == -1)]
 
         short_df['short_stop_profit_loss_id'] = short_df['short_stop_profit_loss_id'].astype(int)
@@ -1876,9 +1882,11 @@ class CurrencyTrader(threading.Thread):
         short_lose_num = short_df[short_df['short_stop_profit_loss'] == -1].shape[0]
 
         short_df['side'] = 'short'
-        write_short_df = short_df[['currency', 'side', 'time', 'close',
+        short_df_copy['side'] = 'short'
+
+        write_short_df = short_df_copy[['currency', 'side', 'time', 'close',
                                  'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price'] +
-                                (['tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+                                (['TP1', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
 
 
         write_short_df = write_short_df.rename(columns = {
@@ -1888,10 +1896,12 @@ class CurrencyTrader(threading.Thread):
             'short_stop_profit_loss' : 'is_win'
         })
 
-        write_short_df['is_win'] = np.where(write_short_df['is_win'] == 1, 1, 0)
+        write_short_df['is_win'] = np.where(write_short_df['is_win'] == 1, 1,
+                                            np.where(write_short_df['is_win'] == -1, 0, -1))
+
         write_short_df['exit_price'] = np.where(write_short_df['is_win'] == 1, write_short_df['short_stop_profit_price'], write_short_df['short_stop_loss_price'])
 
-        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win']  + (['tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win']  + (['TP1', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
 
         win_num = long_win_num + short_win_num
         lose_num = long_lose_num + short_lose_num
@@ -1966,6 +1976,8 @@ class CurrencyTrader(threading.Thread):
             write_df['pnl'] = np.where(write_df['is_win'] == 1, profit_loss_ratio, -1)
 
         write_df['pnl'] = write_df['pnl'] * unit_loss / 2.0
+
+        write_df['pnl'] = np.where(write_df['is_win'] == -1, 0, write_df['pnl'])
 
         write_df['cum_pnl'] = write_df['pnl'].cumsum()
 

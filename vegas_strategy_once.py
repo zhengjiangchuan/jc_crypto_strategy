@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -173,7 +173,7 @@ def start_do_trading():
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
     currencies_to_run = []
-    currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY']
+    currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
     raw_currencies = currency_df['currency'].tolist()
 
@@ -237,7 +237,9 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
-    selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
+    selected_currencies = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
+
+    #selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
 
     #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
 
@@ -464,7 +466,7 @@ def start_do_trading():
                         #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 21, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 7, 10, 12, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 5, 12, 20, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 7, 22, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 11, 20, 0, 0)]
 
                         #data_df = data_df.iloc[0:-50]
 
