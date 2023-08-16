@@ -207,11 +207,11 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
-unit_loss = 500 #This is HKD
+unit_loss = 150 #This is HKD
 usdhkd = 7.85
 leverage = 100
 
