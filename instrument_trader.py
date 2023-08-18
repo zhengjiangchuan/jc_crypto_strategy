@@ -1148,7 +1148,7 @@ class CurrencyTrader(threading.Thread):
                 long_actual_stop_profit_price = 0
 
                 current_stop_loss = long_stop_loss_price
-                actual_stop_loss = current_stop_loss
+                actual_stop_loss = current_stop_loss - unit_range * tp_tolerance
 
                 tp_number = 0
 
@@ -1576,7 +1576,7 @@ class CurrencyTrader(threading.Thread):
                 short_actual_stop_profit_price = 0
 
                 current_stop_loss = short_stop_loss_price
-                actual_stop_loss = current_stop_loss
+                actual_stop_loss = current_stop_loss + unit_range * tp_tolerance
 
                 tp_number = 0
 
@@ -1971,9 +1971,9 @@ class CurrencyTrader(threading.Thread):
 
 
         if use_dynamic_TP:
-            write_df['pnl'] = np.where(write_df['is_win'] == 1, write_df['tp_num']-1-tp_tolerance, -1)
+            write_df['pnl'] = np.where(write_df['is_win'] == 1, write_df['tp_num']-1-tp_tolerance, -1-tp_tolerance)
         else:
-            write_df['pnl'] = np.where(write_df['is_win'] == 1, profit_loss_ratio, -1)
+            write_df['pnl'] = np.where(write_df['is_win'] == 1, profit_loss_ratio, -1-tp_tolerance)
 
         write_df['pnl'] = write_df['pnl'] * unit_loss / 2.0
 
