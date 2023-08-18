@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -178,7 +178,7 @@ def start_do_trading():
 
     # currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
     currencies_to_remove = ['NZDJPY', 'NZDCAD', 'AUDUSD', 'EURUSD', 'NZDUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
-                            'GBPCAD', 'GBPCHF', 'USDCHF']
+                            'GBPCAD', 'GBPCHF'] + ['CHFJPY']
     currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
 
     print("currencies_to_notify:")
@@ -246,7 +246,8 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
-    selected_currencies = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
+    selected_currencies = currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
+
 
     #selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
 
@@ -255,7 +256,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency

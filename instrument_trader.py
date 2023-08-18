@@ -207,7 +207,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
@@ -299,6 +299,9 @@ class CurrencyTrader(threading.Thread):
 
         if not is_production:
             calc_bolling_bands(self.data_df, "close", bolling_width)
+
+        self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
+        self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
 
         self.data_df['prev_open'] = self.data_df['open'].shift(1)
 
@@ -419,6 +422,13 @@ class CurrencyTrader(threading.Thread):
         self.data_df['guppy_half2_aligned_short'] = reduce(lambda left, right: left & right, guppy_aligned_short_conditions[3:5])
         self.data_df['guppy_half2_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions[3:6])
         self.data_df['guppy_half2_strong_aligned_short'] = self.data_df['guppy_half2_aligned_short'] & self.data_df['guppy_half2_all_down']
+
+
+
+        self.data_df['guppy_all_above_vegas'] = reduce(lambda left, right: left & right, [(self.data_df[guppy_lines[i]] > self.data_df['upper_vegas'])
+                                                                                             for i in range(len(guppy_lines) - 1)])
+        self.data_df['guppy_all_below_vegas'] = reduce(lambda left, right: left & right, [(self.data_df[guppy_lines[i]] < self.data_df['lower_vegas'])
+                                                                                             for i in range(len(guppy_lines) - 1)])
 
 
 
@@ -558,8 +568,8 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['final_long_filter2'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 48)
         self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] &\
-                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0)
-        #self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
+                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_above_vegas']
+        self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
 
         self.data_df['final_long_filter'] = self.data_df['final_long_filter1'] | self.data_df['final_long_filter2']
 
@@ -657,8 +667,8 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['final_short_filter2'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 48)
         self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] &\
-                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0)
-        #self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
+                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_below_vegas']
+        self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
 
         self.data_df['final_short_filter'] = self.data_df['final_short_filter1'] | self.data_df['final_short_filter2']
 
@@ -720,8 +730,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
-        self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
+
 
         self.data_df['prev_upper_vegas'] = self.data_df['upper_vegas'].shift(1).fillna(0)
         self.data_df['prev_lower_vegas'] = self.data_df['lower_vegas'].shift(1).fillna(0)
