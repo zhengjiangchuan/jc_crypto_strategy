@@ -173,9 +173,18 @@ def start_do_trading():
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
     currencies_to_run = []
-    currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY']  #EURNZD
 
     raw_currencies = currency_df['currency'].tolist()
+
+    # currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
+    currencies_to_remove = ['NZDJPY', 'NZDCAD', 'AUDUSD', 'EURUSD', 'NZDUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
+                            'GBPCAD', 'GBPCHF', 'USDCHF']
+    currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
+
+    print("currencies_to_notify:")
+    print(currencies_to_notify)
+    print("Num = " + str(len(currencies_to_notify)))
+
 
     raw_data_folders = []
     for currency in raw_currencies:
