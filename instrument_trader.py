@@ -489,8 +489,13 @@ class CurrencyTrader(threading.Thread):
         self.data_df['prev_lower_vegas'] = self.data_df['lower_vegas'].shift(1).fillna(0)
 
         self.data_df['prev_middle'] = self.data_df['middle'].shift(1).fillna(0)
-        self.data_df['bar_cross_vegas_up'] = (self.data_df['prev_middle'] <= self.data_df['prev_lower_vegas']) & (self.data_df['middle'] > self.data_df['lower_vegas'])
-        self.data_df['bar_cross_vegas_down'] = (self.data_df['prev_middle'] >= self.data_df['prev_upper_vegas']) & (self.data_df['middle'] < self.data_df['upper_vegas'])
+
+        self.data_df['bar_cross_up_upper_vegas'] = (self.data_df['prev_middle'] <= self.data_df['prev_upper_vegas']) & (self.data_df['middle'] > self.data_df['upper_vegas'])
+        self.data_df['bar_cross_down_upper_vegas'] = (self.data_df['prev_middle'] > self.data_df['prev_upper_vegas']) & (self.data_df['middle'] <= self.data_df['upper_vegas'])
+
+        self.data_df['bar_cross_down_lower_vegas'] = (self.data_df['prev_middle'] >= self.data_df['prev_lower_vegas']) & (self.data_df['middle'] < self.data_df['lower_vegas'])
+        self.data_df['bar_cross_up_lower_vegas'] = (self.data_df['prev_middle'] < self.data_df['prev_lower_vegas']) & (self.data_df['middle'] >= self.data_df['lower_vegas'])
+
 
 
         self.data_df['num'] = list(range(self.data_df.shape[0]))
@@ -511,13 +516,22 @@ class CurrencyTrader(threading.Thread):
         self.data_df['prev_vegas_phase_entire_duration'] = self.data_df['prev_vegas_phase_entire_duration'].fillna(method = 'ffill').fillna(0)
 
 
-        self.data_df['critical_bar_cross_num'] = np.where(
-            (self.data_df['bar_cross_vegas_up']) | (self.data_df['bar_cross_vegas_down']),
+        self.data_df['critical_bar_down_num'] = np.where(
+            (self.data_df['bar_cross_up_upper_vegas']) | (self.data_df['bar_cross_down_upper_vegas']),
             self.data_df['num'],
             np.nan
         )
-        self.data_df['critical_bar_cross_num'] = self.data_df['critical_bar_cross_num'].fillna(method='ffill').fillna(0)
-        self.data_df['bar_phase_duration'] = self.data_df['num'] - self.data_df['critical_bar_cross_num']
+        self.data_df['critical_bar_down_num'] = self.data_df['critical_bar_down_num'].fillna(method='ffill').fillna(0)
+        self.data_df['bar_down_phase_duration'] = self.data_df['num'] - self.data_df['critical_bar_down_num']
+
+
+        self.data_df['critical_bar_up_num'] = np.where(
+            (self.data_df['bar_cross_down_lower_vegas']) | (self.data_df['bar_cross_up_lower_vegas']),
+            self.data_df['num'],
+            np.nan
+        )
+        self.data_df['critical_bar_up_num'] = self.data_df['critical_bar_up_num'].fillna(method='ffill').fillna(0)
+        self.data_df['bar_up_phase_duration'] = self.data_df['num'] - self.data_df['critical_bar_up_num']
 
 
 
@@ -632,10 +646,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_long_condition'] = self.data_df['final_long_condition'] & (self.data_df['guppy_first_half_min'] > self.data_df['guppy_second_half_max'])
 
 
-        self.data_df['final_long_condition2'] = (self.data_df['bar_phase_duration'] > 48) & (self.data_df['middle'] > self.data_df['upper_vegas'])
+        self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) & (self.data_df['middle'] > self.data_df['upper_vegas']) & (self.data_df['fast_vegas'] > self.data_df['slow_vegas'])
 
 
-        self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition'] | self.data_df['final_long_condition2'])
+        self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition']  | self.data_df['final_long_condition2'])
         ###############
 
 
@@ -734,7 +748,7 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['final_short_condition'] = self.data_df['final_short_condition'] & (~self.data_df['fastest_guppy_line_lasting_up'])
         self.data_df['final_short_condition'] = self.data_df['final_short_condition'] & (self.data_df['guppy_first_half_max'] < self.data_df['guppy_second_half_min'])
 
-        self.data_df['final_short_condition2'] = (self.data_df['bar_phase_duration'] > 48) & (self.data_df['middle'] < self.data_df['lower_vegas'])
+        self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) & (self.data_df['middle'] < self.data_df['lower_vegas']) & (self.data_df['fast_vegas'] < self.data_df['slow_vegas'])
 
         self.data_df['can_short'] = (self.data_df['can_short']) & (self.data_df['final_short_condition'] | self.data_df['final_short_condition2'])
         ############
