@@ -177,10 +177,14 @@ def start_do_trading():
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
-    currencies_to_remove = ['NZDJPY', 'NZDCAD', 'AUDUSD', 'EURUSD', 'NZDUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
+    # currencies_to_remove = ['NZDJPY', 'NZDCAD', 'AUDUSD', 'EURUSD', 'NZDUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
+    #                         'GBPCAD', 'GBPCHF'] + ['CHFJPY']
+
+    currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
                             'GBPCAD', 'GBPCHF'] + ['CHFJPY']
-    #currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
-    currencies_to_notify = []
+
+    currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
+    #currencies_to_notify = []
 
     print("currencies_to_notify:")
     print(currencies_to_notify)
@@ -257,7 +261,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_prod"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
