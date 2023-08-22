@@ -1,6 +1,6 @@
 
 
-is_production = True
+is_production = False
 
 
 def warn(*args, **kwargs):
@@ -209,13 +209,13 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 unit_loss = 150 #This is HKD
 usdhkd = 7.85
 leverage = 100
 
-tp_tolerance = 0
+tp_tolerance = 0.05
 
 class CurrencyTrader(threading.Thread):
 
@@ -1177,7 +1177,7 @@ class CurrencyTrader(threading.Thread):
                     current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Long " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
-                    message += "Place stop loss at price " + str(self.round_price(long_stop_loss_price)) \
+                    message += "Place stop loss at price " + str(self.round_price(long_stop_loss_price - unit_range * tp_tolerance)) \
                                + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
                     message += "Place stop profit at price " + str(self.round_price(long_target_profit_price)) + " for only one of the two positions \n"
                     message += "This position incurs a margin of " + str(margin*2) + " HK dollars\n"
@@ -1299,7 +1299,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price, TP1,
+                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, TP1,
                              unit_range, position, margin, long_actual_stop_profit_price, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time]]
 
             long_df = pd.DataFrame(data = result_data, columns = result_columns)
@@ -1320,6 +1320,11 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['close'] - self.data_df['long_stop_loss_price'],
                 np.nan
             )
+
+            self.data_df['long_stop_loss_price'] = np.where(
+                self.data_df['final_vegas_long_fire'],
+                self.data_df['long_stop_loss_price'] - self.data_df['long_stop_range'] * tp_tolerance,
+                np.nan)
 
 
             self.data_df['long_stop_profit_price'] = np.where(
@@ -1605,7 +1610,7 @@ class CurrencyTrader(threading.Thread):
                     current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Short " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
-                    message += "Place stop loss at price " + str(self.round_price(short_stop_loss_price)) \
+                    message += "Place stop loss at price " + str(self.round_price(short_stop_loss_price + unit_range * tp_tolerance)) \
                                + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
                     message += "Place stop profit at price " + str(self.round_price(short_target_profit_price)) + " for only one of the two positions \n"
                     message += "This position incurs a margin of " + str(margin*2) + " HK dollars\n"
@@ -1724,7 +1729,7 @@ class CurrencyTrader(threading.Thread):
                     j += 1
 
 
-                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price, TP1,
+                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, TP1,
                                  unit_range, position, margin, short_actual_stop_profit_price, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time]]
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
@@ -1742,6 +1747,11 @@ class CurrencyTrader(threading.Thread):
                 self.data_df['short_stop_loss_price'] - self.data_df['close'],
                 np.nan
             )
+
+            self.data_df['short_stop_loss_price'] = np.where(
+                self.data_df['final_vegas_short_fire'],
+                self.data_df['short_stop_loss_price'] + self.data_df['short_stop_range'] * tp_tolerance,
+                np.nan)
 
             self.data_df['short_stop_profit_price'] = np.where(
                 self.data_df['final_vegas_short_fire'],

@@ -172,7 +172,7 @@ def start_do_trading():
 
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
-    currencies_to_run = []
+    currencies_to_run = ['EURCAD']
 
     raw_currencies = currency_df['currency'].tolist()
 
@@ -257,7 +257,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance"
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -657,7 +657,7 @@ def start_do_trading():
         trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
 
         for currency in currency_list:
-            #print("currency = " + str(currency))
+            print("currency = " + str(currency))
             pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
             if os.path.exists(pic_path):
                 shutil.copy2(pic_path, des_pnl_folder)
@@ -671,6 +671,8 @@ def start_do_trading():
             for chart_file in chart_files:
                 if 'pnl' not in chart_file:
                     shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
+                    print("des_bar_folder:")
+                    print(des_bar_folder)
 
                     if currency in selected_currencies:
                         shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_selected_bar_folder)
