@@ -39,7 +39,7 @@ def wait_for_trigger():
         total_sleep_seconds += actual_sleep_seconds
         now = datetime.now()
 
-        seconds_remaining = (next_hour - now).seconds
+        seconds_remaining = (next_hour - now).seconds if now < next_hour else 0
 
         if sleep_number % 12 == 0:
             print("Current time: " + now.strftime("%Y-%m-%d %H:%M:%S"))
