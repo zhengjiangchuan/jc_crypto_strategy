@@ -191,6 +191,7 @@ def start_do_trading():
     print("Num = " + str(len(currencies_to_notify)))
 
 
+
     raw_data_folders = []
     for currency in raw_currencies:
         currency_data_folder = os.path.join(root_folder, currency, 'data')
