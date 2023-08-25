@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -181,7 +181,7 @@ def start_do_trading():
     #                         'GBPCAD', 'GBPCHF'] + ['CHFJPY']
 
     currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
-                            'GBPCAD', 'GBPCHF'] + ['CHFJPY']
+                            'GBPCAD', 'GBPCHF'] + ['CHFJPY'] + ['AUDCHF', 'AUDNZD']
 
     currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
     #currencies_to_notify = []
