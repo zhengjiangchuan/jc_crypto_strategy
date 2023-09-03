@@ -264,8 +264,8 @@ def start_do_trading():
 
 
 
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod_all_macd"
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod_all_macd"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod_all"
+
 
     for currency_pair in currency_pairs:
 
