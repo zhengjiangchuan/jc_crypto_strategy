@@ -299,6 +299,7 @@ class CurrencyTrader(threading.Thread):
 
         if not is_production:
             calc_bolling_bands(self.data_df, "close", bolling_width)
+            calc_macd(self.data_df, "close")
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
@@ -656,7 +657,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
                                                 (self.data_df['middle'] > self.data_df['upper_vegas']) &\
                                                 (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-                                                (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) &\
+                                                (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) & (~self.data_df['guppy_half1_strong_aligned_short']) &\
                                                 (self.data_df['middle'] < self.data_df['guppy_max'])
 
         self.data_df['must_reject_long'] = self.data_df['final_long_condition'] & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
@@ -770,7 +771,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
                                                  (self.data_df['middle'] < self.data_df['lower_vegas']) &\
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) &\
+                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) & (~self.data_df['guppy_half1_strong_aligned_long']) &\
                                                  (self.data_df['middle'] > self.data_df['guppy_min'])
 
         self.data_df['must_reject_short'] = self.data_df['final_short_condition'] & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
@@ -2107,7 +2108,7 @@ class CurrencyTrader(threading.Thread):
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
-                                   is_plot_aux = False,
+                                   is_plot_aux = True,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num)
 

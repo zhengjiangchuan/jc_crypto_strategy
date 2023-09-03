@@ -264,7 +264,9 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_prod_all"
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod_all_macd"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod_all_macd"
+
     for currency_pair in currency_pairs:
 
         currency = currency_pair.currency
@@ -652,6 +654,8 @@ def start_do_trading():
                 os.remove(target_file)
 
         des_selected_bar_folder = os.path.join(des_bar_folder, 'selected')
+        print("des_selected_bar_folder")
+        print(des_selected_bar_folder)
         if not os.path.exists(des_selected_bar_folder):
             os.makedirs(des_selected_bar_folder)
 
@@ -682,6 +686,19 @@ def start_do_trading():
                     #print(des_bar_folder)
 
                     if currency in selected_currencies:
+                        # print("currency_chart_folder:")
+                        # print(currency_chart_folder)
+                        # print("source file:")
+                        # print(os.path.join(currency_chart_folder, chart_file))
+                        # print("des folder:")
+                        # print(des_selected_bar_folder)
+
+                        source_exists = os.path.exists(os.path.join(currency_chart_folder, chart_file))
+                        des_exists = os.path.exists(des_selected_bar_folder)
+
+                        # print("source_exist = " + str(source_exists))
+                        # print("des_exist = " + str(des_exists))
+
                         shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_selected_bar_folder)
 
 

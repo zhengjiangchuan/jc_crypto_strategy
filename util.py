@@ -97,7 +97,7 @@ def calc_bolling_bands(df, attr, window):
     df['middle_band_' +attr] = middle
 
 
-def calc_macd(df, attr, window):
+def calc_macd(df, attr):
 
     values = df[attr].values
     macd, macdsignal, macdhist = talib.MACD(values, fastperiod = 12, slowperiod = 26, signalperiod = 9)
@@ -105,8 +105,8 @@ def calc_macd(df, attr, window):
     df['macd'] = macd
     df['msignal'] = macdsignal
 
-    df['macd_period_high' + str(window)] = df['macd'].rolling(window, min_periods = window).max()
-    df['macd_period_low' + str(window)] = df['macd'].rolling(window, min_periods = window).min()
+    #df['macd_period_high' + str(window)] = df['macd'].rolling(window, min_periods = window).max()
+    #df['macd_period_low' + str(window)] = df['macd'].rolling(window, min_periods = window).min()
 
     #print("In calc_macd:")
     #print(df[['time','close','macd','msignal', 'macd_period_high' + str(window), 'macd_period_low' + str(window)]])
@@ -384,7 +384,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             axes = fig.subplots(nrows = 1, ncols = 1)
 
         candle_df = sub_data[['artificial_time', 'open', 'high', 'low', 'close', 'time']
-                             + ['ma_' + 'close' + str(window) for window in windows] + ([] if is_production else ['upper_band_close', 'lower_band_close', 'middle_band_close'])]
+                             + ['ma_' + 'close' + str(window) for window in windows] + ([] if is_production else ['upper_band_close', 'lower_band_close',
+                                                                                                                  'middle_band_close', 'macd', 'msignal'])]
         candle_df['artificial_time'] = candle_df['artificial_time'].apply(lambda x: mdates.date2num(x))
         int_time_series = candle_df['artificial_time'].values
         candle_matrix = candle_df.values
@@ -732,11 +733,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
             sub_df = pd.concat([sub_df1, sub_df2])
 
-            sns.lineplot(x = 'time_id', y = 'macd_indicator', hue = 'signal', data = sub_df, ax = aux_axes, legend = False)
-            candle_df.plot(x="time_id", y="macd_period_high" + str(high_low_window2), ax=aux_axes, linewidth=1, color='darkorange', legend = False)
-            candle_df.plot(x="time_id", y="macd_period_low" + str(high_low_window2), ax=aux_axes, linewidth=1, color='darkorange', legend = False)
-            candle_df.plot(x="time_id", y="macd_period_high" + str(high_low_window), ax=aux_axes, linewidth=1, color='darkgreen', legend = False)
-            candle_df.plot(x="time_id", y="macd_period_low" + str(high_low_window), ax=aux_axes, linewidth=1, color='darkgreen', legend = False)
+            sns.lineplot(x = 'time_id', y = 'macd_indicator', hue = 'signal', data = sub_df, ax = aux_axes)
+            # candle_df.plot(x="time_id", y="macd_period_high" + str(high_low_window2), ax=aux_axes, linewidth=1, color='darkorange', legend = False)
+            # candle_df.plot(x="time_id", y="macd_period_low" + str(high_low_window2), ax=aux_axes, linewidth=1, color='darkorange', legend = False)
+            # candle_df.plot(x="time_id", y="macd_period_high" + str(high_low_window), ax=aux_axes, linewidth=1, color='darkgreen', legend = False)
+            # candle_df.plot(x="time_id", y="macd_period_low" + str(high_low_window), ax=aux_axes, linewidth=1, color='darkgreen', legend = False)
 
 
             plt.setp(aux_axes.get_xticklabels(), rotation=45)
