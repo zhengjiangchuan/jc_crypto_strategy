@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -264,7 +264,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod"
 
 
     for currency_pair in currency_pairs:
