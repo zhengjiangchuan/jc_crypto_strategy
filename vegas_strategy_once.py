@@ -133,7 +133,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -264,7 +264,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod_all"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Adjust_0512_correct2_filter2_realTime_w2_erase2_new_back3_noLasting_GuppyKickIn_new2_relax_testEmailP_simplify_tighten2_removeFucking2_barPhaseCond_tolerance_filter2_reduce_prod"
 
 
     for currency_pair in currency_pairs:
