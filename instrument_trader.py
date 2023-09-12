@@ -318,6 +318,26 @@ class CurrencyTrader(threading.Thread):
         self.data_df['is_positive'] = (self.data_df['close'] > self.data_df['open'])
         self.data_df['is_negative'] = (self.data_df['close'] < self.data_df['open'])
 
+
+        ############ Added feature #############
+        self.data_df['positive'] = np.where(self.data_df['is_positive'], 1, 0)
+        self.data_df['negative'] = np.where(self.data_df['is_negative'], 1, 0)
+
+        self.data_df['prev_is_positive'] = self.data_df['is_positive'].shift(1)
+        self.data_df['pp_is_positive'] = self.data_df['prev_is_positive'].shift(1)
+
+        self.data_df['prev_is_negative'] = self.data_df['is_negative'].shift(1)
+        self.data_df['pp_is_negative'] = self.data_df['prev_is_negative'].shift(1)
+
+        self.data_df['is_small_body'] = (self.data_df['max_price'] - self.data_df['min_price']) / (self.data_df['high'] - self.data_df['low']) < 1/5
+        self.data_df['prev_is_small_body'] = self.data_df['is_small_body'].shift(1).fillna(False)
+        self.data_df['pp_is_small_body'] = self.data_df['prev_is_small_body'].shift(1).fillna(False)
+        ############################
+
+
+
+
+
         self.data_df['price_range'] = self.data_df['max_price'] - self.data_df['min_price']
         self.data_df['price_volatility'] = self.data_df['high'] - self.data_df['low']
 
@@ -657,8 +677,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
                                                 (self.data_df['middle'] > self.data_df['upper_vegas']) &\
                                                 (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-                                                (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) & (~self.data_df['guppy_half1_strong_aligned_short']) &\
-                                                (self.data_df['middle'] < self.data_df['guppy_max'])
+                                                (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) & (self.data_df['middle'] < self.data_df['guppy_max']) #& (~self.data_df['guppy_half1_strong_aligned_short'])
+
 
         self.data_df['must_reject_long'] = self.data_df['final_long_condition'] & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
 
@@ -771,8 +791,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
                                                  (self.data_df['middle'] < self.data_df['lower_vegas']) &\
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) & (~self.data_df['guppy_half1_strong_aligned_long']) &\
-                                                 (self.data_df['middle'] > self.data_df['guppy_min'])
+                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) & (self.data_df['middle'] > self.data_df['guppy_min']) #& (~self.data_df['guppy_half1_strong_aligned_long'])
+
 
         self.data_df['must_reject_short'] = self.data_df['final_short_condition'] & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
 
@@ -837,6 +857,86 @@ class CurrencyTrader(threading.Thread):
                                                                                                    min_periods = vegas_reverse_look_back_window).min()
 
 
+        ################## Added features #########################
+
+        bar_lookback_num = 5
+
+        self.data_df['positive_close'] = np.where(self.data_df['is_positive'], self.data_df['close'], np.nan)
+        self.data_df['positive_close'] = self.data_df['positive_close'].fillna(method = 'bfill').fillna(0)
+        self.data_df['positive_close_diff'] = self.data_df['positive_close'].diff()
+
+        self.data_df['negative_close'] = np.where(self.data_df['is_negative'], self.data_df['close'], np.nan)
+        self.data_df['negative_close'] = self.data_df['negative_close'].fillna(method = 'bfill').fillna(0)
+        self.data_df['negative_close_diff'] = self.data_df['negative_close'].diff()
+
+        self.data_df['positive_close_increase'] = np.where(self.data_df['positive_close_diff'] >= 0, 1, 0)
+        self.data_df['positive_close_decrease'] = np.where(self.data_df['positive_close_diff'] < 0, 1, 0)
+
+        self.data_df['negative_close_decrease'] = np.where(self.data_df['negative_close_diff'] <= 0, 1, 0)
+        self.data_df['negative_close_increase'] = np.where(self.data_df['negative_close_diff'] > 0, 1, 0)
+
+        self.data_df['recent_positive_close_decrease_num'] = self.data_df['positive_close_decrease'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+        self.data_df['recent_negative_close_increase_num'] = self.data_df['negative_close_increase'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+
+        self.data_df['prev_recent_positive_close_decrease_num'] = self.data_df['recent_positive_close_decrease_num'].shift(1)  ###
+        self.data_df['prev_recent_negative_close_increase_num'] = self.data_df['recent_negative_close_increase_num'].shift(1)
+
+
+
+        self.data_df['positive_open'] = np.where(self.data_df['positive'], self.data_df['open'], np.nan)
+        self.data_df['positive_open'] = self.data_df['positive_open'].fillna(method = 'bfill').fillna(0)
+        self.data_df['positive_open_diff'] = self.data_df['positive_open'].diff()
+
+        self.data_df['negative_open'] = np.where(self.data_df['negative'], self.data_df['open'], np.nan)
+        self.data_df['negative_open'] = self.data_df['negative_open'].fillna(method = 'bfill').fillna(0)
+        self.data_df['negative_open_diff'] = self.data_df['negative_open'].diff()
+
+        self.data_df['positive_open_increase'] = np.where(self.data_df['positive_open_diff'] >= 0, 1, 0)
+        self.data_df['positive_open_decrease'] = np.where(self.data_df['positive_open_diff'] < 0, 1, 0)
+
+        self.data_df['negative_open_decrease'] = np.where(self.data_df['negative_open_diff'] <= 0, 1, 0)
+        self.data_df['negative_open_increase'] = np.where(self.data_df['negative_open_diff'] > 0, 1, 0)
+
+        self.data_df['recent_positive_open_decrease_num'] = self.data_df['positive_open_decrease'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+        self.data_df['recent_negative_open_increase_num'] = self.data_df['negative_open_increase'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+
+        self.data_df['prev_recent_positive_open_decrease_num'] = self.data_df['recent_positive_open_decrease_num'].shift(1)  ###
+        self.data_df['prev_recent_negative_open_increase_num'] = self.data_df['recent_negative_open_increase_num'].shift(1)
+
+
+
+
+        self.data_df['recent_positive_bar_num'] = self.data_df['positive'].rolling(bar_lookback_num, min_periods = bar_lookback_num).sum()
+        self.data_df['recent_negative_bar_num'] = self.data_df['negative'].rolling(bar_lookback_num, min_periods = bar_lookback_num).sum()
+
+        self.data_df['prev_recent_positive_bar_num'] = self.data_df['recent_positive_bar_num'].shift(1)
+        self.data_df['prev_recent_negative_bar_num'] = self.data_df['recent_negative_bar_num'].shift(1)
+
+
+        self.data_df['backward_min_price'] = self.data_df['min_price'].shift(bar_lookback_num)
+        self.data_df['backward_max_price'] = self.data_df['max_price'].shift(bar_lookback_num)
+
+
+        self.data_df['special_reject_short_cond1'] = self.data_df['prev_recent_positive_bar_num'] >= 3
+        self.data_df['special_reject_short_cond2'] = self.data_df['prev_is_positive'] & (~self.data_df['prev_is_small_body']) & self.data_df['pp_is_positive'] & (~self.data_df['pp_is_small_body'])
+        self.data_df['special_reject_short_cond3'] = (self.data_df['prev_recent_positive_close_decrease_num'] == 0) & (self.data_df['prev_recent_positive_open_decrease_num'] == 0)
+        self.data_df['special_reject_short_cond4'] = self.data_df['is_negative'] & (self.data_df['min_price'] <= self.data_df['backward_min_price'])
+        self.data_df['special_reject_short_cond'] = reduce(lambda left, right: left & right, [self.data_df['special_reject_short_cond' + str(i)] for i in range(1, 5)])
+
+        self.data_df['special_reject_long_cond1'] = self.data_df['prev_recent_negative_bar_num'] >= 3
+        self.data_df['special_reject_long_cond2'] = self.data_df['prev_is_negative'] & (~self.data_df['prev_is_small_body']) & self.data_df['pp_is_negative'] & (~self.data_df['pp_is_small_body'])
+        self.data_df['special_reject_long_cond3'] = (self.data_df['prev_recent_negative_close_increase_num'] == 0) & (self.data_df['prev_recent_negative_open_increase_num'] == 0)
+        self.data_df['special_reject_long_cond4'] = self.data_df['is_positive'] & (self.data_df['max_price'] >= self.data_df['backward_max_price'])
+        self.data_df['special_reject_long_cond'] = reduce(lambda left, right: left & right, [self.data_df['special_reject_long_cond' + str(i)] for i in range(1, 5)])
+
+
+
+
+
+        ###########################################################
+
+
+
 
         self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
         self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
@@ -846,6 +946,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
         self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['lower_vegas']) & (self.data_df['ma_close35'] > self.data_df['lower_vegas']) #EURAUD Stuff
         self.data_df['vegas_long_cond8'] = self.data_df['can_long']
+        self.data_df['vegas_long_cond9'] = ~self.data_df['special_reject_long_cond']
 
 
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
@@ -856,9 +957,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
         self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['upper_vegas']) & (self.data_df['ma_close35'] < self.data_df['upper_vegas']) #EURAUD Stuff
         self.data_df['vegas_short_cond8'] = self.data_df['can_short']
+        self.data_df['vegas_short_cond9'] = ~self.data_df['special_reject_short_cond']
 
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 9)])
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 9)])
+        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 10)])
+        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 10)])
 
 
         # print("Check data_df:")

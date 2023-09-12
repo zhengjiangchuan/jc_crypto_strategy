@@ -172,9 +172,13 @@ def start_do_trading():
 
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
     #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
-    currencies_to_run = []
 
+
+    #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
+    currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
+
+    #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
 
     # currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
     # currencies_to_remove = ['NZDJPY', 'NZDCAD', 'AUDUSD', 'EURUSD', 'NZDUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
@@ -219,6 +223,7 @@ def start_do_trading():
     #     if not os.path.exists(out_folder):
     #         os.makedirs(out_folder)
     #
+    #     print("Copy from " + file_path + " to " + out_folder)
     #     shutil.copy2(file_path, out_folder)
     #
     # sys.exit(0)
@@ -264,7 +269,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special2"
 
 
     for currency_pair in currency_pairs:
@@ -338,9 +343,15 @@ def start_do_trading():
     for i in range(len(raw_currencies)):
 
         currency = raw_currencies[i]
+
+        # if currency == 'GBPUSD':
+        #     continue
+
         data_folder = raw_data_folders[i]
         data_file = os.path.join(data_folder, currency + ".csv")
 
+        print("Problem data_file:")
+        print(data_file)
         df = pd.read_csv(data_file)
         close_prices += [float(df.iloc[-1]['close'])]
 
