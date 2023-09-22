@@ -57,6 +57,8 @@ high_low_window2 = 200
 
 plot_both_high_low_windows = True
 
+plot_macd_signal = False
+
 def which(bool_array):
 
     a = np.arange(len(bool_array))
@@ -373,6 +375,17 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                 'end' : 'last'
             }
         )
+
+
+        macd_long_signal_idx = which(sub_data['macd_long_signal'])
+        macd_short_signal_idx = which(sub_data['macd_short_signal'])
+
+        # print("macd_long_signal_idx:")
+        # print(macd_long_signal_idx)
+        #
+        # print("macd_short_signal_idx:")
+        # print(macd_short_signal_idx)
+
 
         fig = plt.figure(figsize = (30, 15))
 
@@ -697,6 +710,13 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         for day_point in d_data['start'].values[1:]:
             axes.axvline(int_time_series[day_point], ls = '--', color = 'black', linewidth = 1)
 
+        if plot_macd_signal:
+            for macd_long_point in macd_long_signal_idx:
+                axes.axvline(int_time_series[macd_long_point], ls = '-', color = 'blue', linewidth = 1.3)
+
+            for macd_short_point in macd_short_signal_idx:
+                axes.axvline(int_time_series[macd_short_point], ls = '-', color = 'red', linewidth = 1.3)
+
         axes.set_title(raw_symbol + " from " + start_date_str + " to " + end_date_str, fontsize = 20)
 
 
@@ -743,6 +763,15 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             plt.setp(aux_axes.get_xticklabels(), rotation=45)
             for day_point in d_data['start'].values[1:]:
                 aux_axes.axvline(time_id_array[day_point], ls = '--', color = 'black', linewidth = 1)
+
+            if plot_macd_signal:
+                for macd_long_point in macd_long_signal_idx:
+                    aux_axes.axvline(time_id_array[macd_long_point], ls='-', color='blue', linewidth=1.3)
+
+                for macd_short_point in macd_short_signal_idx:
+                    aux_axes.axvline(time_id_array[macd_short_point], ls='-', color='red', linewidth=1.3)
+
+
 
             # for buy_reverse_point in buy_real_points_reverse:
             #     aux_axes.axvline(time_id_array[buy_reverse_point], ls='--', color='blue', linewidth=1)
