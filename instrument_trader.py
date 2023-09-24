@@ -1455,20 +1455,25 @@ class CurrencyTrader(threading.Thread):
                             print(message)
                             sendEmail(message_title, message)
                         ########################################
-                    else:  #New
+                    elif use_smart_close_position_logic:  #New
 
                         ###############New
-                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_long']:
+                        if cur_data['guppy_all_strong_aligned_long']:
                             current_used_stop_loss = current_stop_loss - unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
                             if current_used_stop_loss - long_stop_loss_price < -(1e-5): #Guoji
                                 current_used_stop_loss = current_stop_loss
                                 actual_tp_number = tp_number #Guoji
-
                         else:
-                            current_used_stop_loss = current_stop_loss
-                            actual_tp_number = tp_number #Guoji
+
+                            if current_used_stop_loss - current_stop_loss < -(1e-5):
+                                if cur_data['high'] > current_stop_loss + unit_range:
+                                    current_used_stop_loss = current_stop_loss
+                                    actual_tp_number = tp_number
+                            else:
+                                current_used_stop_loss = current_stop_loss
+                                actual_tp_number = tp_number #Guoji
 
                         new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
                         if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
@@ -1972,10 +1977,10 @@ class CurrencyTrader(threading.Thread):
                             print(message)
                             sendEmail(message_title, message)
                         ########################################
-                    else:  #New
+                    elif use_smart_close_position_logic:  #New
 
                         ###############New
-                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_short']:
+                        if cur_data['guppy_all_strong_aligned_short']:
                             current_used_stop_loss = current_stop_loss + unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
@@ -1984,8 +1989,14 @@ class CurrencyTrader(threading.Thread):
                                 actual_tp_number = tp_number  #Guoji
 
                         else:
-                            current_used_stop_loss = current_stop_loss
-                            actual_tp_number = tp_number  #Guoji
+
+                            if current_used_stop_loss - current_stop_loss > 1e-5:
+                                if cur_data['low'] < current_stop_loss - unit_range:
+                                    current_used_stop_loss = current_stop_loss
+                                    actual_tp_number = tp_number
+                            else:
+                                current_used_stop_loss = current_stop_loss
+                                actual_tp_number = tp_number  #Guoji
 
                         new_actual_used_stop_loss = current_used_stop_loss + unit_range * tp_tolerance
                         if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
