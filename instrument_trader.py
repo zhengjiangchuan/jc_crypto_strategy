@@ -1487,7 +1487,7 @@ class CurrencyTrader(threading.Thread):
 
                             else:
 
-                                message = "At " + current_time + ", Guppy lines strongly aligned long, hence move stop loss forward to price " + str(self.round_Price(actual_used_stop_loss)) + "\n"
+                                message = "At " + current_time + ", Guppy lines NOT strongly aligned long, hence move stop loss forward to price " + str(self.round_Price(actual_used_stop_loss)) + "\n"
                                 message_title = "Long position of " + self.currency + " adjusts stop loss forward"
 
 
