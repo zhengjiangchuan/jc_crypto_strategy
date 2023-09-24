@@ -217,6 +217,8 @@ leverage = 100
 
 tp_tolerance = 0.05
 
+use_smart_close_position_logic = True
+
 class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, is_notify):
@@ -1339,7 +1341,11 @@ class CurrencyTrader(threading.Thread):
                 current_stop_loss = long_stop_loss_price
                 actual_stop_loss = current_stop_loss - unit_range * tp_tolerance
 
+                current_used_stop_loss = current_stop_loss
+                actual_used_stop_loss = actual_stop_loss #New
+
                 tp_number = 0
+                actual_tp_number = 0 #Guoji
 
                 long_stop_profit_loss = 0
                 long_stop_profit_loss_time = self.data_df.iloc[-1]['time']
@@ -1348,10 +1354,12 @@ class CurrencyTrader(threading.Thread):
                 j = 1
                 while long_start_id + j < self.data_df.shape[0]:
 
+                    is_actual_used_stop_loss_changed = False #New
+
                     cur_data = self.data_df.iloc[long_start_id + j]
 
-                    if cur_data['low'] <= actual_stop_loss:
-                        long_actual_stop_profit_price = current_stop_loss
+                    if cur_data['low'] <= actual_used_stop_loss: #New
+                        long_actual_stop_profit_price = current_used_stop_loss  #New
                         if long_actual_stop_profit_price < entry_price:
                             long_stop_profit_loss = -1
                         else:
@@ -1364,9 +1372,9 @@ class CurrencyTrader(threading.Thread):
                         if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
-                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_stop_loss)) + '\n'
+                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n' #New
 
-                            if long_actual_stop_profit_price < entry_price:
+                            if long_actual_stop_profit_price < entry_price and tp_number == 0:  #Guoji
                                 message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
                                 message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance)) + " HK dollars"
 
@@ -1378,12 +1386,17 @@ class CurrencyTrader(threading.Thread):
                                 sendEmail(message_title, message)
 
                             else:
-                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(tp_number - 1) + " \n"
-                                if tp_number > 1:
-                                    message += "It yields a profit of " + str((tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"
+                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(actual_tp_number - 1) + " \n"  #Guoji
+
+                                if not use_smart_close_position_logic:
+                                    if actual_tp_number > 1:  #Guoji
+                                        message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+                                    else:
+                                        assert(actual_tp_number == 1)
+                                        message += "It yields zero pnl (only spread cost)"
                                 else:
-                                    assert(tp_number == 1)
-                                    message += "It yields zero pnl (only spread cost)"
+                                    message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+
 
                                 message_title = "Long position of " + self.currency + " hits MOVED stop loss"
 
@@ -1399,7 +1412,23 @@ class CurrencyTrader(threading.Thread):
                     elif cur_data['high'] >= long_target_profit_price:
                         tp_number += 1
                         current_stop_loss += unit_range
-                        actual_stop_loss = current_stop_loss - unit_range * tp_tolerance
+                        #actual_stop_loss = current_stop_loss - unit_range * tp_tolerance  #New
+
+                        ############### New
+                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_long']:
+                            current_used_stop_loss = current_stop_loss - unit_range
+                            actual_tp_number = tp_number - 1  #Guoji
+                        else:
+                            current_used_stop_loss = current_stop_loss
+                            actual_tp_number = tp_number #Guoji
+
+                        new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
+                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
+                            actual_used_stop_loss = new_actual_used_stop_loss
+                            is_actual_used_stop_loss_changed = True
+                        #################
+
+
 
                         long_target_profit_price += unit_range
 
@@ -1409,7 +1438,11 @@ class CurrencyTrader(threading.Thread):
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
-                            message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_stop_loss)) + "\n"
+
+                            if is_actual_used_stop_loss_changed:
+                                message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
+
+
                             message += "The next profit level is price " + str(self.round_price(long_target_profit_price))
 
                             if tp_number == 1:
@@ -1422,6 +1455,52 @@ class CurrencyTrader(threading.Thread):
                             print(message)
                             sendEmail(message_title, message)
                         ########################################
+                    else:  #New
+
+                        ###############New
+                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_long']:
+                            current_used_stop_loss = current_stop_loss - unit_range
+                            actual_tp_number = tp_number - 1  #Guoji
+
+                            if current_used_stop_loss - long_stop_loss_price < -(1e-5): #Guoji
+                                current_used_stop_loss = current_stop_loss
+                                actual_tp_number = tp_number #Guoji
+
+                        else:
+                            current_used_stop_loss = current_stop_loss
+                            actual_tp_number = tp_number #Guoji
+
+                        new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
+                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
+                            actual_used_stop_loss = new_actual_used_stop_loss
+                            is_actual_used_stop_loss_changed = True
+                        #################
+
+                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1 and is_actual_used_stop_loss_changed:
+
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            if cur_data['guppy_all_strong_aligned_long']:
+
+                                message = "At " + current_time + ", Guppy lines strongly aligned long, hence move stop loss back to price " + str(self.round_Price(actual_used_stop_loss)) + "\n"
+                                message_title = "Long position of " + self.currency + " adjusts stop loss back"
+
+                            else:
+
+                                message = "At " + current_time + ", Guppy lines strongly aligned long, hence move stop loss forward to price " + str(self.round_Price(actual_used_stop_loss)) + "\n"
+                                message_title = "Long position of " + self.currency + " adjusts stop loss forward"
+
+
+                            print("message_title = " + message_title)
+                            print("message:")
+                            print(message)
+                            sendEmail(message_title, message)
+
+
+
+
+
+
 
 
 
@@ -1438,9 +1517,9 @@ class CurrencyTrader(threading.Thread):
                     j += 1
 
 
-
+                #Guoji
                 result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, TP1,
-                             unit_range, position, margin, long_actual_stop_profit_price, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time]]
+                             unit_range, position, margin, long_actual_stop_profit_price, actual_tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time]]
 
             long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -1772,7 +1851,12 @@ class CurrencyTrader(threading.Thread):
                 current_stop_loss = short_stop_loss_price
                 actual_stop_loss = current_stop_loss + unit_range * tp_tolerance
 
+                current_used_stop_loss = current_stop_loss
+                actual_used_stop_loss = actual_stop_loss  # New
+
                 tp_number = 0
+                actual_tp_number = 0 #Guoji
+
 
                 short_stop_profit_loss = 0
                 short_stop_profit_loss_time = self.data_df.iloc[-1]['time']
@@ -1785,9 +1869,12 @@ class CurrencyTrader(threading.Thread):
                 #print("current_stop_loss = " + str(current_stop_loss))
                 while short_start_id + j < self.data_df.shape[0]:
 
+                    is_actual_used_stop_loss_changed = False #New
+
                     cur_data = self.data_df.iloc[short_start_id + j]
-                    if cur_data['high'] >= actual_stop_loss:
-                        short_actual_stop_profit_price = current_stop_loss
+
+                    if cur_data['high'] >= actual_used_stop_loss:  #New
+                        short_actual_stop_profit_price = current_used_stop_loss  #New
                         if short_actual_stop_profit_price > entry_price:
                             short_stop_profit_loss = -1
                         else:
@@ -1801,9 +1888,9 @@ class CurrencyTrader(threading.Thread):
                         if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
-                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_stop_loss)) + '\n'
+                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n'  #New
 
-                            if short_actual_stop_profit_price > entry_price:
+                            if short_actual_stop_profit_price > entry_price and tp_number == 0:  #Guoji
                                 message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
                                 message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance)) + " HK dollars"
 
@@ -1815,12 +1902,17 @@ class CurrencyTrader(threading.Thread):
                                 sendEmail(message_title, message)
 
                             else:
-                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(tp_number - 1) + " \n"
-                                if tp_number > 1:
-                                    message += "It yields a profit of " + str((tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"
+                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(actual_tp_number - 1) + " \n"   #Guoji
+
+                                if not use_smart_close_position_logic:
+                                    if actual_tp_number > 1:  #Guoji
+                                        message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+                                    else:
+                                        assert(actual_tp_number == 1)
+                                        message += "It yields zero pnl (only spread cost)"
                                 else:
-                                    assert(tp_number == 1)
-                                    message += "It yields zero pnl (only spread cost)"
+                                    message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+
 
                                 message_title = "Short position of " + self.currency + " hits MOVED stop loss"
 
@@ -1838,7 +1930,22 @@ class CurrencyTrader(threading.Thread):
                     elif cur_data['low'] <= short_target_profit_price:
                         tp_number += 1
                         current_stop_loss -= unit_range
-                        actual_stop_loss = current_stop_loss + unit_range * tp_tolerance
+                        #actual_stop_loss = current_stop_loss + unit_range * tp_tolerance  #New
+
+                        ############### New
+                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_short']:
+                            current_used_stop_loss = current_stop_loss + unit_range
+                            actual_tp_number = tp_number - 1  #Guoji
+                        else:
+                            current_used_stop_loss = current_stop_loss
+                            actual_tp_number = tp_number  #Guoji
+
+                        new_actual_used_stop_loss = current_used_stop_loss + unit_range * tp_tolerance
+                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
+                            actual_used_stop_loss = new_actual_used_stop_loss
+                            is_actual_used_stop_loss_changed = True
+                        #################
+
 
                         short_target_profit_price -= unit_range
 
@@ -1848,7 +1955,11 @@ class CurrencyTrader(threading.Thread):
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
-                            message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_stop_loss)) + "\n"
+
+                            if is_actual_used_stop_loss_changed:
+                                message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
+
+
                             message += "The next profit level is price " + str(self.round_price(short_target_profit_price))
 
                             if tp_number == 1:
@@ -1861,6 +1972,48 @@ class CurrencyTrader(threading.Thread):
                             print(message)
                             sendEmail(message_title, message)
                         ########################################
+                    else:  #New
+
+                        ###############New
+                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_short']:
+                            current_used_stop_loss = current_stop_loss + unit_range
+                            actual_tp_number = tp_number - 1  #Guoji
+
+                            if current_used_stop_loss - short_stop_loss_price > 1e-5:  #Guoji
+                                current_used_stop_loss = current_stop_loss
+                                actual_tp_number = tp_number  #Guoji
+
+                        else:
+                            current_used_stop_loss = current_stop_loss
+                            actual_tp_number = tp_number  #Guoji
+
+                        new_actual_used_stop_loss = current_used_stop_loss + unit_range * tp_tolerance
+                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
+                            actual_used_stop_loss = new_actual_used_stop_loss
+                            is_actual_used_stop_loss_changed = True
+                        #################
+
+                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1 and is_actual_used_stop_loss_changed:
+
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            if cur_data['guppy_all_strong_aligned_short']:
+
+                                message = "At " + current_time + ", Guppy lines strongly aligned short, hence move stop loss back to price " + str(self.round_Price(actual_used_stop_loss)) + "\n"
+                                message_title = "Short position of " + self.currency + " adjusts stop loss back"
+
+                            else:
+                                message = "At " + current_time + ", Guppy lines NOT strongly aligned short, hence move stop loss forward to price " + str(self.round_Price(actual_used_stop_loss)) + "\n"
+                                message_title = "Short position of " + self.currency + " adjusts stop loss forward"
+
+
+                            print("message_title = " + message_title)
+                            print("message:")
+                            print(message)
+                            sendEmail(message_title, message)
+
+
+
 
                     if temp_ii + 1 < len(short_start_ids) and short_start_ids[temp_ii + 1] == short_start_id + j:
                         is_effective[temp_ii + 1] = 0
@@ -1868,9 +2021,9 @@ class CurrencyTrader(threading.Thread):
 
                     j += 1
 
-
+                #Guoji
                 result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, TP1,
-                                 unit_range, position, margin, short_actual_stop_profit_price, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time]]
+                                 unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time]]
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
 
