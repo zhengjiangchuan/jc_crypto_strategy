@@ -2067,6 +2067,7 @@ class CurrencyTrader(threading.Thread):
                                 print("guppy_all_strong_aligned_short becomes true")
                                 print("Set current_used_stop_loss to " + str(current_used_stop_loss) + ", while current_stop_loss = " + str(current_stop_loss))
                                 print("actual_tp_number=" + str(actual_tp_number) + ", while tp_number=" + str(tp_number))
+                                print("")
 
 
                             if current_used_stop_loss - short_stop_loss_price > 1e-5:  #Guoji
@@ -2076,6 +2077,7 @@ class CurrencyTrader(threading.Thread):
                                 if last_message_type != 1:  #Comment
                                     print("However, because current_used_stop_loss set higher than stop loss, revert it back to " + str(current_used_stop_loss))
                                     print("Revert actual_tp_number back to " + str(actual_tp_number))
+                                    print("")
 
                             last_message_type = 1
 
