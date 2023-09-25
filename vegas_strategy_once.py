@@ -175,7 +175,7 @@ def start_do_trading():
 
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
-    currencies_to_run = []
+    currencies_to_run = ['EURCAD']
     raw_currencies = currency_df['currency'].tolist()
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
