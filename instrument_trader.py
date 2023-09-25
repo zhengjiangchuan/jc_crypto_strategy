@@ -207,7 +207,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
@@ -1352,6 +1352,8 @@ class CurrencyTrader(threading.Thread):
                 long_stop_profit_loss_id = self.data_df.iloc[-1]['id']
 
                 j = 1
+
+                last_message_type = 0
                 while long_start_id + j < self.data_df.shape[0]:
 
                     is_actual_used_stop_loss_changed = False #New
@@ -1361,6 +1363,9 @@ class CurrencyTrader(threading.Thread):
                     last_data = self.data_df.iloc[long_start_id + j - 1]  #Hu Comment
 
                     if cur_data['low'] <= actual_used_stop_loss: #New
+
+                        last_message_type = 0
+
                         long_actual_stop_profit_price = current_used_stop_loss  #New
                         if long_actual_stop_profit_price < entry_price:
                             long_stop_profit_loss = -1
@@ -1412,6 +1417,9 @@ class CurrencyTrader(threading.Thread):
                         break
 
                     elif cur_data['high'] >= long_target_profit_price:
+
+                        last_message_type = 0
+
                         tp_number += 1
                         current_stop_loss += unit_range
                         #actual_stop_loss = current_stop_loss - unit_range * tp_tolerance  #New
@@ -1474,26 +1482,30 @@ class CurrencyTrader(threading.Thread):
                             current_used_stop_loss = current_stop_loss - unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
-                            if not last_data['guppy_all_strong_aligned_long']:  #Comment
+                            if last_message_type != 1:  #Comment
                                 print("Special: time = " + str(cur_data['time']))
                                 print("guppy_all_strong_aligned_long becomes true")
                                 print("Set current_used_stop_loss to " + str(current_used_stop_loss) + ", while current_stop_loss = " + str(current_stop_loss))
                                 print("actual_tp_number=" + str(actual_tp_number) + ", while tp_number=" + str(tp_number))
+                                print("")
 
 
                             if current_used_stop_loss - long_stop_loss_price < -(1e-5): #Guoji
                                 current_used_stop_loss = current_stop_loss
                                 actual_tp_number = tp_number #Guoji
 
-                                if not last_data['guppy_all_strong_aligned_long']:  #Comment
+                                if last_message_type != 1:  #Comment
                                     print("However, because current_used_stop_loss set lower than stop loss, revert it back to " + str(current_used_stop_loss))
                                     print("Revert actual_tp_number back to " + str(actual_tp_number))
+                                    print("")
+
+                            last_message_type = 1
 
                         else:
 
                             if current_used_stop_loss - current_stop_loss < -(1e-5):
 
-                                if last_data['guppy_all_strong_aligned_long']:  #Comment
+                                if last_message_type != 2 and last_message_type != 3:  #Comment
                                     print("Special: time = " + str(cur_data['time']))
                                     print("current_stop_loss=" + str(current_stop_loss) + ", current_used_stop_loss=" + str(current_used_stop_loss))
                                     print("tp_number=" + str(tp_number) + ", actual_tp_number=" + str(actual_tp_number)) ########################
@@ -1504,22 +1516,25 @@ class CurrencyTrader(threading.Thread):
                                     current_used_stop_loss = current_stop_loss
                                     actual_tp_number = tp_number
 
-                                    if last_data['guppy_all_strong_aligned_long']:  #Comment
+                                    if last_message_type != 2:  #Comment
                                         print("Becuase high price breaks up reached profit level " + str(tp_number) + ": " + str(current_stop_loss + unit_range))
                                         print("Adjust current_used_stop_loss forward to " + str(current_used_stop_loss))
                                         print("Adjust actual_tp_number forward to " + str(actual_tp_number))
                                         print("")
+                                        last_message_type = 2
 
                                 else:
-                                    if last_data['guppy_all_strong_aligned_long']:  # Comment
+                                    if last_message_type != 3:  # Comment
                                         print("But because high price does not break up reached profit level " + str(tp_number) + ": " + str(current_stop_loss + unit_range))
                                         print("Not adjust current_used_stop_loss and actual_tp_number forward")
                                         print("")
+                                        last_message_type = 3
 
 
                             else:
                                 current_used_stop_loss = current_stop_loss
                                 actual_tp_number = tp_number #Guoji
+                                last_message_type = 0
 
                         new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
                         if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
@@ -1918,6 +1933,7 @@ class CurrencyTrader(threading.Thread):
                 #print("unit_range = " + str(unit_range))
 
                 #print("current_stop_loss = " + str(current_stop_loss))
+                last_message_type = 0
                 while short_start_id + j < self.data_df.shape[0]:
 
                     is_actual_used_stop_loss_changed = False #New
@@ -1927,6 +1943,9 @@ class CurrencyTrader(threading.Thread):
                     last_data = self.data_df.iloc[short_start_id + j - 1]  #Hu Comment
 
                     if cur_data['high'] >= actual_used_stop_loss:  #New
+
+                        last_message_type = 0
+
                         short_actual_stop_profit_price = current_used_stop_loss  #New
                         if short_actual_stop_profit_price > entry_price:
                             short_stop_profit_loss = -1
@@ -1981,6 +2000,9 @@ class CurrencyTrader(threading.Thread):
                         break
 
                     elif cur_data['low'] <= short_target_profit_price:
+
+                        last_message_type = 0
+
                         tp_number += 1
                         current_stop_loss -= unit_range
                         #actual_stop_loss = current_stop_loss + unit_range * tp_tolerance  #New
@@ -2040,7 +2062,7 @@ class CurrencyTrader(threading.Thread):
                             current_used_stop_loss = current_stop_loss + unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
-                            if not last_data['guppy_all_strong_aligned_short']:  #Comment
+                            if last_message_type != 1:  #Comment
                                 print("Special: time = " + str(cur_data['time']))
                                 print("guppy_all_strong_aligned_short becomes true")
                                 print("Set current_used_stop_loss to " + str(current_used_stop_loss) + ", while current_stop_loss = " + str(current_stop_loss))
@@ -2051,15 +2073,17 @@ class CurrencyTrader(threading.Thread):
                                 current_used_stop_loss = current_stop_loss
                                 actual_tp_number = tp_number  #Guoji
 
-                                if not last_data['guppy_all_strong_aligned_short']:  #Comment
+                                if last_message_type != 1:  #Comment
                                     print("However, because current_used_stop_loss set higher than stop loss, revert it back to " + str(current_used_stop_loss))
                                     print("Revert actual_tp_number back to " + str(actual_tp_number))
+
+                            last_message_type = 1
 
                         else:
 
                             if current_used_stop_loss - current_stop_loss > 1e-5:
 
-                                if last_data['guppy_all_strong_aligned_short']:  #Comment
+                                if last_message_type != 2 and last_message_type != 3:  #Comment
                                     print("Special: time = " + str(cur_data['time']))
                                     print("current_stop_loss=" + str(current_stop_loss) + ", current_used_stop_loss=" + str(current_used_stop_loss))
                                     print("tp_number=" + str(tp_number) + ", actual_tp_number=" + str(actual_tp_number)) ########################
@@ -2070,22 +2094,25 @@ class CurrencyTrader(threading.Thread):
                                     current_used_stop_loss = current_stop_loss
                                     actual_tp_number = tp_number
 
-                                    if last_data['guppy_all_strong_aligned_short']:  #Comment
+                                    if last_message_type != 2:  #Comment
                                         print("Becuase low price breaks up reached profit level " + str(tp_number) + ": " + str(current_stop_loss - unit_range))
                                         print("Adjust current_used_stop_loss forward to " + str(current_used_stop_loss))
                                         print("Adjust actual_tp_number forward to " + str(actual_tp_number))
                                         print("")
+                                        last_message_type = 2
 
                                 else:
-                                    if last_data['guppy_all_strong_aligned_short']:  # Comment
+                                    if last_message_type != 3:  # Comment
                                         print("But because low price does not break up reached profit level " + str(tp_number) + ": " + str(current_stop_loss - unit_range))
                                         print("Not adjust current_used_stop_loss and actual_tp_number forward")
                                         print("")
+                                        last_message_type = 3
 
 
                             else:
                                 current_used_stop_loss = current_stop_loss
                                 actual_tp_number = tp_number  #Guoji
+                                last_message_type = 0
 
                         new_actual_used_stop_loss = current_used_stop_loss + unit_range * tp_tolerance
                         if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
