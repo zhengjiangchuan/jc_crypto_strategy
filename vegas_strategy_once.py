@@ -175,7 +175,7 @@ def start_do_trading():
 
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
-    currencies_to_run = ['EURCAD']
+    currencies_to_run = ['GBPCAD']
     raw_currencies = currency_df['currency'].tolist()
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
@@ -269,7 +269,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_NoSmartClose"
 
 
     for currency_pair in currency_pairs:
