@@ -207,9 +207,9 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
@@ -1281,6 +1281,10 @@ class CurrencyTrader(threading.Thread):
 
             long_start_ids = which(self.data_df['final_vegas_long_fire'])
 
+            print("")
+            print("Calculating Long positions.............")
+            print("")
+
             is_effective = [1] * len(long_start_ids)
 
             for ii in range(0, len(long_start_ids)):
@@ -1459,7 +1463,8 @@ class CurrencyTrader(threading.Thread):
 
                             if is_actual_used_stop_loss_changed:
                                 message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
-
+                            else:
+                                message += "Due to Guppy lines strongly aligned long, no need to move current stop loss price " + str(self.round_price(actual_used_stop_loss)) + " forward\n"
 
                             message += "The next profit level is price " + str(self.round_price(self.round_price(long_target_profit_price)))
 
@@ -1868,6 +1873,10 @@ class CurrencyTrader(threading.Thread):
 
             short_start_ids = which(self.data_df['final_vegas_short_fire'])
 
+            print("")
+            print("Calculating Short positions.............")
+            print("")
+
             is_effective = [1] * len(short_start_ids)
 
             for ii in range(0, len(short_start_ids)):
@@ -2049,6 +2058,8 @@ class CurrencyTrader(threading.Thread):
 
                             if is_actual_used_stop_loss_changed:
                                 message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
+                            else:
+                                message += "Due to Guppy lines strongly aligned short, no need to move current stop loss price " + str(self.round_price(actual_used_stop_loss)) + " forward\n"
 
 
                             message += "The next profit level is price " + str(self.round_price(short_target_profit_price))

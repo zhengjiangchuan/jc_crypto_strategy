@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -175,7 +175,7 @@ def start_do_trading():
 
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
-    currencies_to_run = ['EURJPY']
+    currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
@@ -269,7 +269,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_test"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose"
 
 
     for currency_pair in currency_pairs:
@@ -486,7 +486,7 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
 
-                        data_df = data_df[data_df['time'] <= datetime(2023, 9, 29, 10, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 14, 20, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 2, 16, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 5, 22, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 28, 8, 0, 0)]
