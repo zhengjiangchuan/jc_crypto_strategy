@@ -2144,11 +2144,13 @@ class CurrencyTrader(threading.Thread):
 
                             if cur_data['guppy_all_strong_aligned_short']:
 
+                                #Tested
                                 message = "At " + current_time + ", Guppy lines strongly aligned short, hence move stop loss back to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
                                 message_title = "Short position of " + self.currency + " adjusts stop loss back"
 
                             else:
 
+                                #Tested
                                 message = "At " + current_time +  ", Guppy lines NOT strongly aligned short, and price breaks down profit level " + str(tp_number) + ": "+ str(self.round_price(current_stop_loss - unit_range)) + " hence move stop loss forward to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
                                 message_title = "Short position of " + self.currency + " adjusts stop loss forward"
 
