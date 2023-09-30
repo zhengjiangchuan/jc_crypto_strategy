@@ -133,7 +133,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -175,7 +175,7 @@ def start_do_trading():
 
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
-    currencies_to_run = ['GBPCAD']
+    currencies_to_run = ['EURUSD']
     raw_currencies = currency_df['currency'].tolist()
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
@@ -269,7 +269,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_NoSmartClose"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_all"
 
 
     for currency_pair in currency_pairs:
@@ -458,7 +458,7 @@ def start_do_trading():
 
                     print("Query initial for currency pair " + currency)
 
-                    #if is_real_time_trading:
+
                     data_file = os.path.join(data_folder, currency + ".csv")
                     print("data_file:")
                     print(data_file)

@@ -217,7 +217,7 @@ leverage = 100
 
 tp_tolerance = 0.05
 
-use_smart_close_position_logic = False
+use_smart_close_position_logic = True
 
 class CurrencyTrader(threading.Thread):
 
@@ -1517,6 +1517,10 @@ class CurrencyTrader(threading.Thread):
                                     actual_tp_number = tp_number
 
                                     if last_message_type != 2:  #Comment
+
+                                        if last_message_type in [2, 3]:
+                                            print("Special: time = " + str(cur_data['time']))
+
                                         print("Becuase high price breaks up reached profit level " + str(tp_number) + ": " + str(current_stop_loss + unit_range))
                                         print("Adjust current_used_stop_loss forward to " + str(current_used_stop_loss))
                                         print("Adjust actual_tp_number forward to " + str(actual_tp_number))
@@ -1525,6 +1529,10 @@ class CurrencyTrader(threading.Thread):
 
                                 else:
                                     if last_message_type != 3:  # Comment
+
+                                        if last_message_type in [2, 3]:
+                                            print("Special: time = " + str(cur_data['time']))
+
                                         print("But because high price does not break up reached profit level " + str(tp_number) + ": " + str(current_stop_loss + unit_range))
                                         print("Not adjust current_used_stop_loss and actual_tp_number forward")
                                         print("")
@@ -2097,6 +2105,10 @@ class CurrencyTrader(threading.Thread):
                                     actual_tp_number = tp_number
 
                                     if last_message_type != 2:  #Comment
+
+                                        if last_message_type in [2, 3]:
+                                            print("Special: time = " + str(cur_data['time']))
+
                                         print("Becuase low price breaks up reached profit level " + str(tp_number) + ": " + str(current_stop_loss - unit_range))
                                         print("Adjust current_used_stop_loss forward to " + str(current_used_stop_loss))
                                         print("Adjust actual_tp_number forward to " + str(actual_tp_number))
@@ -2105,6 +2117,10 @@ class CurrencyTrader(threading.Thread):
 
                                 else:
                                     if last_message_type != 3:  # Comment
+
+                                        if last_message_type in [2, 3]:
+                                            print("Special: time = " + str(cur_data['time']))
+
                                         print("But because low price does not break up reached profit level " + str(tp_number) + ": " + str(current_stop_loss - unit_range))
                                         print("Not adjust current_used_stop_loss and actual_tp_number forward")
                                         print("")
