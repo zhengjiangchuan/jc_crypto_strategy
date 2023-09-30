@@ -131,7 +131,7 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -269,7 +269,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_all"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_test"
 
 
     for currency_pair in currency_pairs:
@@ -486,7 +486,7 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 5, 31, 14, 0, 0)]
+                        data_df = data_df[data_df['time'] <= datetime(2023, 8, 29, 20, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 2, 16, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 5, 22, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 28, 8, 0, 0)]
