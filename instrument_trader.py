@@ -207,7 +207,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
@@ -1267,7 +1267,8 @@ class CurrencyTrader(threading.Thread):
         # )
         #################################################
 
-
+        smart_close_long_cond = "guppy_all_strong_aligned_long"
+        smart_close_short_cond = "guppy_all_strong_aligned_short"
 
 
         ##############################
@@ -1429,7 +1430,7 @@ class CurrencyTrader(threading.Thread):
                         #actual_stop_loss = current_stop_loss - unit_range * tp_tolerance  #New
 
                         ############### New
-                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_long']:
+                        if use_smart_close_position_logic and cur_data[smart_close_long_cond]:
                             current_used_stop_loss = current_stop_loss - unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
@@ -1481,7 +1482,7 @@ class CurrencyTrader(threading.Thread):
                     elif use_smart_close_position_logic:  #New
 
                         ###############New
-                        if cur_data['guppy_all_strong_aligned_long']:
+                        if cur_data[smart_close_long_cond]:
 
 
                             current_used_stop_loss = current_stop_loss - unit_range
@@ -1559,7 +1560,7 @@ class CurrencyTrader(threading.Thread):
 
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
-                            if cur_data['guppy_all_strong_aligned_long']:
+                            if cur_data[smart_close_long_cond]:
 
                                 message = "At " + current_time + ", Guppy lines strongly aligned long, hence move stop loss back to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
                                 message_title = "Long position of " + self.currency + " adjusts stop loss back"
@@ -2025,7 +2026,7 @@ class CurrencyTrader(threading.Thread):
                         #actual_stop_loss = current_stop_loss + unit_range * tp_tolerance  #New
 
                         ############### New
-                        if use_smart_close_position_logic and cur_data['guppy_all_strong_aligned_short']:
+                        if use_smart_close_position_logic and cur_data[smart_close_short_cond]:
                             current_used_stop_loss = current_stop_loss + unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
@@ -2077,7 +2078,7 @@ class CurrencyTrader(threading.Thread):
                     elif use_smart_close_position_logic:  #New
 
                         ###############New
-                        if cur_data['guppy_all_strong_aligned_short']:
+                        if cur_data[smart_close_short_cond]:
                             current_used_stop_loss = current_stop_loss + unit_range
                             actual_tp_number = tp_number - 1  #Guoji
 
@@ -2153,7 +2154,7 @@ class CurrencyTrader(threading.Thread):
 
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
 
-                            if cur_data['guppy_all_strong_aligned_short']:
+                            if cur_data[smart_close_short_cond]:
 
                                 #Tested
                                 message = "At " + current_time + ", Guppy lines strongly aligned short, hence move stop loss back to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
