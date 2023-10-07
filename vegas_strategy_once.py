@@ -270,7 +270,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant8_selectedAll"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant9_selectedAll"
 
 
     for currency_pair in currency_pairs:
