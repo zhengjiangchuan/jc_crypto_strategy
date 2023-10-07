@@ -131,9 +131,9 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
