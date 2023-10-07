@@ -622,15 +622,15 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['final_long_filter1'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] < 48) & (self.data_df['prev_vegas_phase_entire_duration'] < 48) &\
+        self.data_df['final_long_filter1'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] < 96) & (self.data_df['prev_vegas_phase_entire_duration'] < 96) &\
                                               ( ((self.data_df['fast_vegas_down']) & (self.data_df['previous_fast_vegas_down'])) |\
                                              ((self.data_df['slow_vegas_down']) & (self.data_df['previous_slow_vegas_down'])) |\
                                              ((self.data_df['previous_fast_vegas_down']) & (self.data_df['pp_fast_vegas_down'])) |\
                                              ((self.data_df['previous_slow_vegas_down']) & (self.data_df['pp_slow_vegas_down']))
                                              )
 
-        self.data_df['final_long_filter2'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 48)
-        self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] & self.data_df['slow_vegas_up'] & self.data_df['previous_slow_vegas_up'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
+        self.data_df['final_long_filter2'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 96)
+        self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] &\
                                              (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_above_vegas']# & self.data_df['guppy_all_strong_aligned_long']
         self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
 
@@ -740,15 +740,15 @@ class CurrencyTrader(threading.Thread):
         self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
 
 
-        self.data_df['final_short_filter1'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] < 48) & (self.data_df['prev_vegas_phase_entire_duration'] < 48) &\
+        self.data_df['final_short_filter1'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] < 96) & (self.data_df['prev_vegas_phase_entire_duration'] < 96) &\
                                               ( ((self.data_df['fast_vegas_up']) & (self.data_df['previous_fast_vegas_up'])) |\
                                              ((self.data_df['slow_vegas_up']) & (self.data_df['previous_slow_vegas_up'])) |\
                                              ((self.data_df['previous_fast_vegas_up']) & (self.data_df['pp_fast_vegas_up'])) |\
                                              ((self.data_df['previous_slow_vegas_up']) & (self.data_df['pp_slow_vegas_up']))
                                              )
 
-        self.data_df['final_short_filter2'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 48)
-        self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] & self.data_df['slow_vegas_down'] & self.data_df['previous_slow_vegas_down'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
+        self.data_df['final_short_filter2'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 96)
+        self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] &\
                                              (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_below_vegas']# & self.data_df['guppy_all_strong_aligned_short']
         self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
 
