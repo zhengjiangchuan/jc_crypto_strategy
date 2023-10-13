@@ -1605,7 +1605,7 @@ class CurrencyTrader(threading.Thread):
 
 
                 #Guoji
-                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, TP1,
+                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, self.round_price(TP1),
                              unit_range, position, margin, long_actual_stop_profit_price, actual_tp_number, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time]]
 
             long_df = pd.DataFrame(data = result_data, columns = result_columns)
@@ -1848,6 +1848,8 @@ class CurrencyTrader(threading.Thread):
         write_long_df['exit_price'] = np.where(write_long_df['is_win'] == 1, write_long_df['long_stop_profit_price'], write_long_df['long_stop_loss_price'])
 
         write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win'] + (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+
+        write_long_df['exit_price'] = write_long_df['exit_price'].apply(lambda x: self.round_price(x))
 
         ############## Short stop calculation ################
 
@@ -2189,7 +2191,7 @@ class CurrencyTrader(threading.Thread):
                     j += 1
 
                 #Guoji
-                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, TP1,
+                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, self.round_price(TP1),
                                  unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time]]
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
@@ -2422,6 +2424,8 @@ class CurrencyTrader(threading.Thread):
 
         write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win']  + (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
 
+        write_short_df['exit_price'] = write_short_df['exit_price'].apply(lambda x: self.round_price(x))
+
         win_num = long_win_num + short_win_num
         lose_num = long_lose_num + short_lose_num
 
@@ -2441,36 +2445,96 @@ class CurrencyTrader(threading.Thread):
                                    })
 
 
-        #
-        # if is_send_email:
-        #
-        #     # test_data_df = self.data_df[self.data_df['time'] <= datetime(2023, 4, 6, 8, 0, 0)]
-        #     #
-        #     # print("test_data_df:")
-        #     # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
-        #
-        #     last_data = self.data_df.iloc[-1]
-        #     if last_data['final_vegas_long_fire']:
-        #         side = 'Long'
-        #         entry_price = last_data['close']
-        #         stop_loss = last_data['long_stop_loss_price']
-        #         stop_profit = last_data['long_stop_profit_price']
-        #         entry_time = str(last_data['time'] + timedelta(hours = 1))
-        #     elif last_data['final_vegas_short_fire']:
-        #         side = 'Short'
-        #         entry_price = last_data['close']
-        #         stop_loss = last_data['short_stop_loss_price']
-        #         stop_profit = last_data['short_stop_profit_price']
-        #         entry_time = str(last_data['time'] + timedelta(hours = 1))
-        #
-        #     if last_data['final_vegas_long_fire'] or last_data['final_vegas_short_fire']:
-        #
-        #         #decimal_place = int(math.log(self.lot_size) / math.log(10))
-        #         stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
-        #         stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
-        #
-        #         trading_message = "At " + entry_time + ", " + side + " " + self.currency + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and TP=" + str(stop_profit)
-        #         sendEmail(trading_message, trading_message)
+
+        if is_send_email and not use_dynamic_TP:
+
+            # test_data_df = self.data_df[self.data_df['time'] <= datetime(2023, 4, 6, 8, 0, 0)]
+            #
+            # print("test_data_df:")
+            # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
+
+            last_data = self.data_df.iloc[-1]
+            if last_data['final_vegas_long_fire']:
+                side = 'Long'
+                entry_price = last_data['close']
+                stop_loss = last_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                long_stop_range = entry_price - stop_loss
+                stop_profit = entry_price + long_stop_range
+                unit_range = entry_price - stop_loss
+
+                stop_loss = stop_loss - long_stop_range * tp_tolerance
+
+                entry_time = str(last_data['time'] + timedelta(hours = 1))
+
+            elif last_data['final_vegas_short_fire']:
+                side = 'Short'
+                entry_price = last_data['close']
+                stop_loss = last_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                short_stop_range = stop_loss - entry_price
+                stop_profit = entry_price - short_stop_range
+                unit_range = stop_loss - entry_price
+
+                stop_loss = stop_loss + short_stop_range * tp_tolerance
+
+
+                entry_time = str(last_data['time'] + timedelta(hours = 1))
+
+            # if last_data['final_vegas_long_fire']:
+            #     print("long here*********")
+            #     unit_range = entry_price - stop_loss
+            # elif last_data['final_vegas_short_fire']:
+            #     print("short here********")
+            #     unit_range = stop_loss - entry_price
+
+
+            if last_data['final_vegas_long_fire'] or last_data['final_vegas_short_fire']:
+
+                #decimal_place = int(math.log(self.lot_size) / math.log(10))
+                #stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
+                #stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
+
+                stop_loss = self.round_price(stop_loss)
+                stop_profit = self.round_price(stop_profit)
+
+                position = unit_loss / (unit_range * self.lot_size * self.usdfx * usdhkd)
+                position = round(position/2.0, 4)
+
+                margin = unit_loss * entry_price / (unit_range * leverage)
+                margin = round(margin/2.0, 2)
+
+
+                message_title = side + " " + self.currency + " " + str(round(position, 2)) + " lot"
+                trading_message = "At " + entry_time + ", " + side + " " + self.currency + " " + str(round(position, 2)) + " lot " + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and TP=" + str(stop_profit) + "\n"
+                trading_message += "This position incurs a margin of " + str(margin) + " HK dollars\n"
+
+                sendEmail(message_title, trading_message)
+
+
+            message_title = None
+            trading_message = None
+
+            a = last_data['time']
+            b = write_long_df.iloc[-1]['exit_time']
+
+            if last_data['time'] == write_long_df.iloc[-1]['exit_time']:
+                if write_long_df.iloc[-1]['is_win'] == 1:
+                    message_title = "Long position of " + self.currency + " hits target profit"
+                    trading_message = "At " + str(last_data['time']) + ", Long position of " + self.currency + " hit target profit " + str(write_long_df.iloc[-1]['exit_price'])
+                elif write_long_df.iloc[-1]['is_win'] == 0:
+                    message_title = "Long position of " + self.currency + " hits stop loss"
+                    trading_message = "At " + str(last_data['time']) + ", Long position of " + self.currency + " hit stop loss " + str(write_long_df.iloc[-1]['exit_price'])
+            elif last_data['time'] == write_short_df.iloc[-1]['exit_time']:
+                if write_short_df.iloc[-1]['is_win'] == 1:
+                    message_title = "Short position of " + self.currency + " hits target profit"
+                    trading_message = "At " + str(last_data['time']) + ", Short position of " + self.currency + " hit target profit " + str(write_short_df.iloc[-1]['exit_price'])
+                elif write_short_df.iloc[-1]['is_win'] == 0:
+                    message_title = "Short position of " + self.currency + " hits stop loss"
+                    trading_message = "At " + str(last_data['time']) + ", Short position of " + self.currency + " hit stop loss " + str(write_short_df.iloc[-1]['exit_price'])
+
+            if trading_message is not None:
+                sendEmail(message_title, trading_message)
+
+
 
 
         full_summary_df = summary_df

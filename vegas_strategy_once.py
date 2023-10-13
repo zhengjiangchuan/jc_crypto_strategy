@@ -131,9 +131,9 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -176,7 +176,7 @@ def start_do_trading():
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
     #currencies_to_run = ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
-    currencies_to_run = []
+    currencies_to_run = ['USDCHF']
     raw_currencies = currency_df['currency'].tolist()
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
@@ -270,7 +270,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant10_ALL"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant10_new_singletest"
 
 
     for currency_pair in currency_pairs:
@@ -487,7 +487,11 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 14, 20, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 1, 22, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 5, 15, 0, 0)]
+
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 22, 10, 0, 0)]
+
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 2, 16, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 5, 22, 0, 0)]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 6, 28, 8, 0, 0)]
