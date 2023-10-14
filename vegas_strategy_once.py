@@ -54,7 +54,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -133,7 +133,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -176,7 +176,7 @@ def start_do_trading():
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
     #currencies_to_run = ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
-    currencies_to_run = ['USDCHF']
+    currencies_to_run = ['USDCAD']
     raw_currencies = currency_df['currency'].tolist()
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
@@ -270,7 +270,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant10_new_singletest"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant10_new_USDCAD"
 
 
     for currency_pair in currency_pairs:
