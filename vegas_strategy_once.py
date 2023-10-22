@@ -26,6 +26,8 @@ import math
 from optparse import OptionParser
 import matplotlib.ticker as ticker
 
+from twelvedata import TDClient
+
 import urllib.request
 
 import shutil
@@ -54,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -73,6 +75,38 @@ class CurrencyPair:
 def convert_to_time(timestamp):
    #return datetime.fromtimestamp(timestamp+28800)
     return datetime.fromtimestamp(timestamp)
+
+def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_time = True):
+    # Initialize client - apikey parameter is requiered
+    td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
+
+    # Construct the necessary time series
+    ts = td.time_series(
+        symbol=currency[:3] + '/' + currency[3:],
+        interval="1h",
+        outputsize=initial_bar_number,
+        timezone="Asia/Singapore",
+    )
+
+    # Returns pandas.DataFrame
+    data_df = ts.as_pandas()
+
+    data_df = data_df.iloc[::-1]
+
+    data_df.reset_index(inplace=True)
+
+    data_df = data_df.rename(columns = {'datetime' : 'time'})
+
+    data_df['currency'] = currency
+
+    data_df = data_df[['time', 'currency', 'open', 'high', 'low', 'close']]
+
+    print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+
+    return data_df
+
+
+
 
 
 def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_time=True):
@@ -121,6 +155,110 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
 
 
+
+def preprocess_data(data_df):
+    #data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+    data_df['prev_time'] = data_df['time'].shift(1)
+
+    data_df['time_delta'] = data_df['time'] - data_df['prev_time']
+
+    data_df['delta_seconds'] = data_df['time_delta'].apply(lambda x: x.seconds).fillna(0).astype(int)
+    data_df['delta_days'] = data_df['time_delta'].apply(lambda x: x.days).fillna(0).astype(int)
+
+    data_df['total_seconds'] = data_df['delta_days'] * 24 * 3600 + data_df['delta_seconds']
+
+    #print(type(data_df.iloc[-1]['time_delta']))
+    #print(data_df.iloc[-1]['time_delta'].seconds)
+
+    critical_index = list(which(data_df['total_seconds'] > 3600)) + [data_df.shape[0]]
+
+    sub_dfs = []
+
+    print(critical_index)
+
+    start = 0
+    for i in range(len(critical_index)):
+        #     print("start = " + str(start))
+        #     print("end = " + str(critical_index[i]))
+        sub_df = data_df.iloc[start:critical_index[i]]
+        #     print("sub_df length = " + str(sub_df.shape[0]))
+        #     print("")
+        start = critical_index[i]
+
+        sub_dfs += [sub_df]
+
+    last_close_price = None
+    price_cols = ['open', 'high', 'low', 'close']
+    new_sub_dfs = []
+    for j in range(len(sub_dfs)):
+
+        sub_df = sub_dfs[j]
+
+        print("sub df size = " + str(sub_df.shape[0]))
+
+        # sub_df.at[sub_df.index[0], 'open'] = 0.0
+
+        currency = sub_df.iloc[0]['currency']
+        first_time = sub_df.iloc[0]['time']
+        last_time = sub_df.iloc[-1]['time']
+
+        print("first_time = " + str(first_time))
+        print("last_time = " + str(last_time))
+        print("")
+
+        #     print("Old head:")
+        #     display(sub_df.iloc[0:5])
+
+        #     print("Old tail:")
+        #     display(sub_df.iloc[-5:])
+
+        if last_close_price is not None:
+
+            if first_time.hour < 5:
+                sub_df = sub_df.iloc[1:]
+
+            if sub_df.iloc[0]['time'].hour == 5:
+                for col in price_cols:
+                    sub_df.at[sub_df.index[0], col] = last_close_price
+
+        if j < len(sub_dfs) - 1:
+
+            last_close_price = sub_df.iloc[-1]['close']
+
+            if last_time.hour < 5:
+                add_row_num = 5 - last_time.hour
+
+                added_data = []
+                for i in range(1, add_row_num + 1):
+                    new_time = last_time + timedelta(hours=i)
+                    added_data += [[currency, new_time] + [last_close_price] * 4]
+
+                added_df = pd.DataFrame(data=added_data, columns=['currency', 'time'] + price_cols)
+
+                sub_df = sub_df[['currency', 'time'] + price_cols]
+
+                sub_df = pd.concat([sub_df, added_df])
+
+        else:
+            sub_df = sub_df[['currency', 'time'] + price_cols]
+
+            #     print("New head:")
+        #     display(sub_df.iloc[0:5])
+
+        #     print("New tail:")
+        #     display(sub_df.iloc[-5:])
+
+        new_sub_dfs += [sub_df]
+
+    new_data_df = pd.concat(new_sub_dfs)
+
+    new_data_df.reset_index(inplace=True)
+    new_data_df = new_data_df.drop(columns=['index'])
+
+    return new_data_df
+
+
 def start_do_trading():
 
     print("")
@@ -133,7 +271,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -144,6 +282,8 @@ def start_do_trading():
         #     root_folder = "C:\\JCForex_prod"
         # else:
         root_folder = "C:\\JCForex_prod"
+
+        root_folder2 = "C:\\JCForex_prod2"
 
 
     if not os.path.exists(root_folder):
@@ -176,8 +316,21 @@ def start_do_trading():
 
     #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
     #currencies_to_run = ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
+    #currencies_to_run = ['EURUSD','GBPUSD','USDJPY','USDCAD','EURGBP','EURJPY','GBPJPY','USDCHF']
+    #currencies_to_run = ['NZDCHF']
+
+    #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
+
     currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
+
+    # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
+    #
+    # print("currencies_str:")
+    # print(currencies_str)
+    # sys.exit(0)
+
+
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
 
@@ -214,7 +367,7 @@ def start_do_trading():
     ################### Temp Copy Currency data outside ##################
     # print("root_folder: ")
     # print(root_folder)
-    # temp_data_folder = os.path.join(root_folder, "all_data")
+    # temp_data_folder = os.path.join(root_folder, "all_data_newSource")
     # if not os.path.exists(temp_data_folder):
     #     os.makedirs(temp_data_folder)
     # for currency in currency_list:
@@ -228,6 +381,30 @@ def start_do_trading():
     #     shutil.copy2(file_path, out_folder)
     #
     # sys.exit(0)
+
+    # print("root_folder: ")
+    # print(root_folder)
+    # temp_data_folder = os.path.join(root_folder, "all_data")
+    # if not os.path.exists(temp_data_folder):
+    #     os.makedirs(temp_data_folder)
+    # for currency in currency_list:
+    #     print("Copy data of " + currency)
+    #     file_path = os.path.join(root_folder, currency, "data")
+    #
+    #     if not os.path.exists(file_path):
+    #         os.makedirs(file_path)
+    #
+    #     out_folder = os.path.join(temp_data_folder, currency, "data")
+    #     out_folder_path = os.path.join(out_folder, currency + ".csv")
+    #
+    #     if not os.path.exists(out_folder):
+    #         os.makedirs(out_folder)
+    #
+    #     print("Copy from " + out_folder_path + " to " + file_path)
+    #     shutil.copy2(out_folder_path, file_path)
+    #
+    # sys.exit(0)
+
 
 
     ######################################################################
@@ -270,7 +447,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_barPhaseCond_tolerance_filter2_reduce_prod4_special3_smartClose_improve2_variant10_new_filter"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter"
 
 
     for currency_pair in currency_pairs:
@@ -487,7 +664,16 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 1, 22, 0, 0)]
+
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
+
+
+
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 24, 18, 0, 0)]
+
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 10, 17, 9, 0, 0)]
+
+
                         #data_df = data_df[data_df['time'] <= datetime(2023, 9, 5, 15, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 8, 22, 10, 0, 0)]
@@ -568,6 +754,9 @@ def start_do_trading():
 
                         data_df = data_df.iloc[:-1]
 
+
+
+                    #data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
 
                     if is_real_time_trading and not is_weekend:
 
