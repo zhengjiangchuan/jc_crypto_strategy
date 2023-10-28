@@ -2397,7 +2397,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                    if (not readjust_position_when_new_signal) and temp_ii + 1 < len(long_start_ids) and long_start_ids[temp_ii + 1] == long_start_id + j:
+                    if (not readjust_position_when_new_signal) and temp_ii + 1 < len(short_start_ids) and short_start_ids[temp_ii + 1] == short_start_id + j:
                         is_effective[temp_ii + 1] = 0
                         temp_ii += 1
 
