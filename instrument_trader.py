@@ -1989,7 +1989,7 @@ class CurrencyTrader(threading.Thread):
 
         if use_dynamic_TP:
             result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
-                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time']
+                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount']
 
             result_data = []
 
@@ -2001,6 +2001,7 @@ class CurrencyTrader(threading.Thread):
 
             is_effective = [1] * len(short_start_ids)
 
+            last_position = 0
             for ii in range(0, len(short_start_ids)):
 
                 #print("process short ii = " + str(ii))
@@ -2008,6 +2009,9 @@ class CurrencyTrader(threading.Thread):
                 if is_effective[ii] == 0:
                     self.data_df.at[short_start_ids[ii], 'final_vegas_short_fire'] = False
                     continue
+
+                entry_com_discount = 0.0
+                exit_com_discount = 0.0
 
                 temp_ii = ii
 
@@ -2025,6 +2029,15 @@ class CurrencyTrader(threading.Thread):
                 margin = unit_loss * entry_price / (unit_range * leverage)
                 margin = round(margin/2.0, 2)
 
+                position_delta = 0
+                if last_position > 0:
+                    position_delta = position - last_position
+                    abs_position_delta = abs(position_delta)
+                    entry_com_discount = (position -abs_position_delta)/position
+
+
+                last_position = position
+
 
                 short_target_profit_price = short_fire_data['close'] - unit_range
                 TP1 = short_target_profit_price
@@ -2034,6 +2047,22 @@ class CurrencyTrader(threading.Thread):
                     current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Short " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
+
+                    if position_delta != 0:
+
+                        if position_delta > 0:
+                            if tp_number >= 1: #The first position is already gone
+                                message += "Open a new " + str(round(position, 2)) + " lots, and for the existing position, add " + str(round(position_delta, 2)) + " lots\n"
+                            else:
+                                message += "For each of the existing positions, add " + str(round(position_delta, 2)) + " lots\n"
+                        else:
+                            if tp_number >= 1: #The first position is already gone
+                                message += "Open a new " + str(round(position, 2)) + " lots, and for the existing position, close " + str(round(-position_delta, 2)) + " lots\n"
+                            else:
+                                message += "For each of the existing positions, close " + str(round(-position_delta, 2)) + " lots\n"
+
+
+
                     message += "Place stop loss at price " + str(self.round_price(short_stop_loss_price + unit_range * tp_tolerance)) \
                                + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
                     message += "Place stop profit at price " + str(self.round_price(short_target_profit_price)) + " for only one of the two positions \n"
@@ -2081,6 +2110,48 @@ class CurrencyTrader(threading.Thread):
 
                     last_data = self.data_df.iloc[short_start_id + j - 1]  #Hu Comment
 
+
+                    if readjust_position_when_new_signal and ii + 1 < len(short_start_ids) and short_start_ids[ii + 1] == short_start_id + j:
+
+                        exit_com_discount = 1.0
+                        short_stop_profit_loss_time = cur_data['time']
+                        short_stop_profit_loss_id = cur_data['id']
+
+                        short_actual_stop_profit_price = cur_data['close']
+
+                        if short_actual_stop_profit_price > entry_price:
+                            short_stop_profit_loss = -1
+                        else:
+                            short_stop_profit_loss = 1
+
+                        actual_tp_number = round(-(short_actual_stop_profit_price - entry_price)/unit_range, 2)
+
+                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
+
+                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                            message_title = "Short position of " + self.currency + " logically gets closed due to new short signal fire"
+
+                            message = "At " + current_time + ", a new short signal is fired\n"
+
+                            if tp_number >= 1:
+                                message += "Logically (Not Physically) close the second " +  str(round(position, 2)) + "-lot position\n"
+                                message += "It generates a pnl of " + str(actual_tp_number * unit_loss / 2.0) + " HK dollars"
+                            else:
+                                message += "Logically (Not Physically) close the two " +  str(round(position, 2)) + "-lots position\n"
+                                message += "It generates a pnl of " + str(actual_tp_number * unit_loss) + " HK dollars"
+
+                            print("message_title = " + message_title)
+                            print("message:")
+                            print(message)
+                            sendEmail(message_title, message)
+
+
+                        break
+
+
+
+
                     if cur_data['high'] >= actual_used_stop_loss:  #New
 
                         last_message_type = 0
@@ -2102,8 +2173,13 @@ class CurrencyTrader(threading.Thread):
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n'  #New
 
                             if short_actual_stop_profit_price > entry_price and tp_number == 0:  #Guoji
-                                message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
-                                message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance)) + " HK dollars"
+
+                                if use_dynamic_TP:
+                                    message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
+                                    message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance)) + " HK dollars"
+                                else:
+                                    message += "One " + str(round(position, 2)) + "-lot positions get closed \n"
+                                    message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance) / 2.0) + " HK dollars"
 
                                 message_title = "Short position of " + self.currency + " hits stop loss"
 
@@ -2135,7 +2211,7 @@ class CurrencyTrader(threading.Thread):
                         #####################################
 
 
-
+                        last_position = 0
                         break
 
                     elif cur_data['low'] <= short_target_profit_price:
@@ -2143,6 +2219,32 @@ class CurrencyTrader(threading.Thread):
                         last_message_type = 0
 
                         tp_number += 1
+
+                        if not use_dynamic_TP:
+                            short_stop_profit_loss_time = cur_data['time']
+                            short_stop_profit_loss_id = cur_data['id']
+                            short_actual_stop_profit_price = short_target_profit_price
+                            short_stop_profit_loss = 1
+                            actual_tp_number = tp_number
+
+                            if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
+
+                                current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+
+                                message_title = "Short position of " + self.currency + " hits stop profit"
+
+                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price - unit_range)) + "\n"
+                                message = "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
+
+                                print("message_title = " + message_title)
+                                print("message:")
+                                print(message)
+                                sendEmail(message_title, message)
+
+
+                            last_position = 0
+                            break
+
                         current_stop_loss -= unit_range
                         #actual_stop_loss = current_stop_loss + unit_range * tp_tolerance  #New
 
@@ -2295,8 +2397,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-
-                    if temp_ii + 1 < len(short_start_ids) and short_start_ids[temp_ii + 1] == short_start_id + j:
+                    if (not readjust_position_when_new_signal) and temp_ii + 1 < len(long_start_ids) and long_start_ids[temp_ii + 1] == long_start_id + j:
                         is_effective[temp_ii + 1] = 0
                         temp_ii += 1
 
@@ -2304,7 +2405,8 @@ class CurrencyTrader(threading.Thread):
 
                 #Guoji
                 result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, self.round_price(TP1),
-                                 unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time]]
+                                 unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time,
+                                 entry_com_discount, exit_com_discount]]
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -2534,7 +2636,8 @@ class CurrencyTrader(threading.Thread):
 
         write_short_df['exit_price'] = np.where(write_short_df['is_win'] == 1, write_short_df['short_stop_profit_price'], write_short_df['short_stop_loss_price'])
 
-        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win']  + (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win'] +\
+                                        (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
         write_short_df['exit_price'] = write_short_df['exit_price'].apply(lambda x: self.round_price(x))
 
