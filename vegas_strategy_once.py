@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -367,7 +367,7 @@ def start_do_trading():
     ################### Temp Copy Currency data outside ##################
     # print("root_folder: ")
     # print(root_folder)
-    # temp_data_folder = os.path.join(root_folder, "all_data_newSource")
+    # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
     #     os.makedirs(temp_data_folder)
     # for currency in currency_list:
@@ -447,7 +447,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod"
 
 
     for currency_pair in currency_pairs:
