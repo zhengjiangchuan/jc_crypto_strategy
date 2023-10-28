@@ -209,7 +209,7 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
-printed_figure_num = 1
+printed_figure_num = -1
 
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
@@ -1029,7 +1029,7 @@ class CurrencyTrader(threading.Thread):
 
         ###################
 
-        if not use_dynamic_TP:
+        if not use_dynamic_TP and (not always_use_new_close_logic):
             while True:
                 self.data_df['long_stop_loss_price'] = np.where(
                     self.data_df['final_vegas_long_fire'],
@@ -1154,7 +1154,7 @@ class CurrencyTrader(threading.Thread):
 
         ###################
 
-        if not use_dynamic_TP:
+        if not use_dynamic_TP and (not always_use_new_close_logic):
             while True:
 
                 self.data_df['short_stop_loss_price'] = np.where(
@@ -1430,7 +1430,7 @@ class CurrencyTrader(threading.Thread):
                         else:
                             long_stop_profit_loss = 1
 
-                        actual_tp_number = round((long_actual_stop_profit_price - entry_price)/unit_range, 2)
+                        actual_tp_number = round((long_actual_stop_profit_price - entry_price)/unit_range, 4)
 
                         if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
 
@@ -1944,7 +1944,7 @@ class CurrencyTrader(threading.Thread):
 
         write_long_df = long_df_copy[['currency', 'side', 'time', 'close',
                                  'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price'] +
-                                (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+                                (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
 
         write_long_df = write_long_df.rename(columns = {
@@ -1987,7 +1987,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        if use_dynamic_TP:
+        if use_dynamic_TP or always_use_new_close_logic:
             result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
                               'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount']
 
@@ -2124,7 +2124,12 @@ class CurrencyTrader(threading.Thread):
                         else:
                             short_stop_profit_loss = 1
 
-                        actual_tp_number = round(-(short_actual_stop_profit_price - entry_price)/unit_range, 2)
+                        print("entry_price = " + str(entry_price))
+                        print("short_actual_stop_profit_price = " + str(short_actual_stop_profit_price))
+
+                        print(-(short_actual_stop_profit_price - entry_price)/unit_range)
+
+                        actual_tp_number = round(-(short_actual_stop_profit_price - entry_price)/unit_range, 4)
 
                         if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
 
@@ -2621,7 +2626,7 @@ class CurrencyTrader(threading.Thread):
 
         write_short_df = short_df_copy[['currency', 'side', 'time', 'close',
                                  'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price'] +
-                                (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin'] if use_dynamic_TP else ['position', 'margin'])]
+                                (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin','entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
 
         write_short_df = write_short_df.rename(columns = {

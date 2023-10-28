@@ -436,11 +436,19 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         else:
 
-            long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'long_stop_half_profit_price']]
-            long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close',  'long_stop_profit_price', 'long_stop_half_profit_price']]
+            if 'long_stop_half_profit_price' in long_sub_data.columns:
+                long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'long_stop_half_profit_price']]
+                long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close',  'long_stop_profit_price', 'long_stop_half_profit_price']]
+            else:
+                long_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][
+                    ['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'TP1']]
+                long_not_hit_profit = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][
+                    ['entry_id', 'exit_id', 'close', 'long_stop_profit_price', 'TP1']]
 
 
-        long_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_loss_price']]
+
+
+        long_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'long_stop_loss_price', 'long_stop_profit_price', 'close']]
         long_not_hit_loss = long_sub_data[long_sub_data['long_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'long_stop_loss_price']]
 
 
@@ -460,12 +468,18 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         else:
 
-            short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
-            short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
+            if 'short_stop_half_profit_price' in short_sub_data.columns:
+                short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
+                short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'short_stop_half_profit_price']]
+            else:
+                short_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][
+                    ['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'TP1']]
+                short_not_hit_profit = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][
+                    ['entry_id', 'exit_id', 'close', 'short_stop_profit_price', 'TP1']]
 
 
 
-        short_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_loss_price']]
+        short_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == -1][['entry_id', 'exit_id', 'short_stop_loss_price', 'short_stop_profit_price', 'close']]
         short_not_hit_loss = short_sub_data[short_sub_data['short_stop_profit_loss'] == 1][['entry_id', 'exit_id', 'short_stop_loss_price']]
 
 
@@ -546,7 +560,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                                  xmax = int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
                                  ls = '-', color = 'blue', linewidth = 1)
 
-                    if plot_auxiliary_price_lines:
+                    if plot_auxiliary_price_lines and 'long_stop_half_profit_price' in long_hit_profit:
                         axes.hlines(y=long_hit_profit.iloc[j]['long_stop_half_profit_price'],
                                     xmin=int_time_series[int(long_hit_profit.iloc[j]['entry_id'])],
                                     xmax=int_time_series[int(long_hit_profit.iloc[j]['exit_id'])],
@@ -570,12 +584,18 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
                 else:
 
-                    axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_profit_price'],
-                                 xmin = int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
-                                 xmax = int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
-                                 ls = '-', color = 'black', linewidth = 1)
+                    if long_not_hit_profit.iloc[j]['long_stop_profit_price'] > long_not_hit_profit.iloc[j]['close']:
+                        axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_profit_price'],
+                                     xmin = int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '-', color = 'black', linewidth = 1)
+                    else:
+                        axes.hlines(y=long_not_hit_profit.iloc[j]['TP1'],
+                                    xmin=int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
+                                    xmax=int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
+                                    ls='-', color='black', linewidth=1)
 
-                    if plot_auxiliary_price_lines:
+                    if plot_auxiliary_price_lines and 'long_stop_half_profit_price' in long_not_hit_profit.columns:
                         axes.hlines(y=long_not_hit_profit.iloc[j]['long_stop_half_profit_price'],
                                     xmin=int_time_series[int(long_not_hit_profit.iloc[j]['entry_id'])],
                                     xmax=int_time_series[int(long_not_hit_profit.iloc[j]['exit_id'])],
@@ -589,10 +609,22 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             # print("long_hit_loss:")
             # print(long_hit_loss)
             for j in range(long_hit_loss.shape[0]):
-                axes.hlines(y=long_hit_loss.iloc[j]['long_stop_loss_price'],
+
+                if long_hit_loss.iloc[j]['long_stop_profit_price'] != long_hit_loss.iloc[j]['long_stop_loss_price'] and long_hit_loss.iloc[j]['long_stop_profit_price'] < long_hit_loss.iloc[j]['close']:
+                    axes.hlines(y=long_hit_loss.iloc[j]['long_stop_loss_price'],
+                             xmin = int_time_series[int(long_hit_loss.iloc[j]['entry_id'])],
+                             xmax = int_time_series[int(long_hit_loss.iloc[j]['exit_id'])],
+                             ls = '-', color = 'black', linewidth = 1)
+
+                    axes.hlines(y=long_hit_loss.iloc[j]['long_stop_profit_price'],
                              xmin = int_time_series[int(long_hit_loss.iloc[j]['entry_id'])],
                              xmax = int_time_series[int(long_hit_loss.iloc[j]['exit_id'])],
                              ls = '-', color = 'red', linewidth = 1)
+                else:
+                    axes.hlines(y=long_hit_loss.iloc[j]['long_stop_loss_price'],
+                                 xmin = int_time_series[int(long_hit_loss.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(long_hit_loss.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'red', linewidth = 1)
 
             # print("long_not_hit_loss:")
             # print(long_not_hit_loss)
@@ -630,7 +662,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                                  xmax = int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
                                  ls = '-', color = 'blue', linewidth = 1)
 
-                    if plot_auxiliary_price_lines:
+                    if plot_auxiliary_price_lines and 'short_stop_half_profit_price' in short_hit_profit:
                         axes.hlines(y=short_hit_profit.iloc[j]['short_stop_half_profit_price'],
                                     xmin=int_time_series[int(short_hit_profit.iloc[j]['entry_id'])],
                                     xmax=int_time_series[int(short_hit_profit.iloc[j]['exit_id'])],
@@ -657,12 +689,19 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                                  ls = '-', color = 'black', linewidth = 1)
 
                 else:
-                    axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_profit_price'],
-                                 xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
-                                 xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
-                                 ls = '-', color = 'black', linewidth = 1)
 
-                    if plot_auxiliary_price_lines:
+                    if short_not_hit_profit.iloc[j]['short_stop_profit_price'] < short_not_hit_profit.iloc[j]['close']:
+                        axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_profit_price'],
+                                     xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
+                                     xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
+                                     ls = '-', color = 'black', linewidth = 1)
+                    else:
+                        axes.hlines(y=short_not_hit_profit.iloc[j]['TP1'],
+                                    xmin=int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
+                                    xmax=int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
+                                    ls='-', color='black', linewidth=1)
+
+                    if plot_auxiliary_price_lines and 'short_stop_half_profit_price' in short_not_hit_profit.columns:
                         axes.hlines(y=short_not_hit_profit.iloc[j]['short_stop_half_profit_price'],
                                      xmin = int_time_series[int(short_not_hit_profit.iloc[j]['entry_id'])],
                                      xmax = int_time_series[int(short_not_hit_profit.iloc[j]['exit_id'])],
@@ -675,10 +714,25 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
 
             for j in range(short_hit_loss.shape[0]):
-                axes.hlines(y=short_hit_loss.iloc[j]['short_stop_loss_price'],
-                             xmin = int_time_series[int(short_hit_loss.iloc[j]['entry_id'])],
-                             xmax = int_time_series[int(short_hit_loss.iloc[j]['exit_id'])],
-                             ls = '-', color = 'red', linewidth = 1)
+
+                if short_hit_loss.iloc[j]['short_stop_profit_price'] != short_hit_loss.iloc[j]['short_stop_loss_price'] and short_hit_loss.iloc[j]['short_stop_profit_price'] > short_hit_loss.iloc[j]['close']:
+
+                    axes.hlines(y=short_hit_loss.iloc[j]['short_stop_loss_price'],
+                                 xmin = int_time_series[int(short_hit_loss.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(short_hit_loss.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'black', linewidth = 1)
+
+                    axes.hlines(y=short_hit_loss.iloc[j]['short_stop_profit_price'],
+                                 xmin = int_time_series[int(short_hit_loss.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(short_hit_loss.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'red', linewidth = 1)
+
+                else:
+
+                    axes.hlines(y=short_hit_loss.iloc[j]['short_stop_loss_price'],
+                                 xmin = int_time_series[int(short_hit_loss.iloc[j]['entry_id'])],
+                                 xmax = int_time_series[int(short_hit_loss.iloc[j]['exit_id'])],
+                                 ls = '-', color = 'red', linewidth = 1)
 
             for j in range(short_not_hit_loss.shape[0]):
                 axes.hlines(y=short_not_hit_loss.iloc[j]['short_stop_loss_price'],
