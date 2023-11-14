@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -269,7 +269,7 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -447,7 +447,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_readjust_rerun"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1106"
 
 
     for currency_pair in currency_pairs:
@@ -663,7 +663,7 @@ def start_do_trading():
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 11, 13, 21, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
 
