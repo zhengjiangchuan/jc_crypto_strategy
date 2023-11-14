@@ -688,6 +688,12 @@ class CurrencyTrader(threading.Thread):
                                                 (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
+        # self.data_df['final_long_condition2'] = (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+
+
+
 
         self.data_df['must_reject_long'] = self.data_df['final_long_condition'] & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
 
@@ -697,10 +703,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['must_reject_long2'] = self.data_df['must_reject_long2'] &\
                                             (((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)) | (self.data_df['fast_vegas'] < self.data_df['slow_vegas']))
 
+        self.data_df['must_reject_long3'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down'])
 
 
         self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition1']  | self.data_df['final_long_condition2'])
-        self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long']) & (~self.data_df['must_reject_long2'])
+        self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long']) & (~self.data_df['must_reject_long2']) & (~self.data_df['must_reject_long3'])
         ###############
 
 
@@ -809,6 +816,13 @@ class CurrencyTrader(threading.Thread):
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                                  (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
+
+        # self.data_df['final_short_condition2'] = (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
+
+
+
         self.data_df['must_reject_short'] = self.data_df['final_short_condition'] & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
 
         self.data_df['must_reject_short2'] = (~self.data_df['vegas_support_short']) & (self.data_df['ma_close30_gradient'] > 0) & (self.data_df['ma_close35_gradient'] > 0) & (self.data_df['ma_close30'] > self.data_df['ma_close35'])
@@ -817,10 +831,12 @@ class CurrencyTrader(threading.Thread):
         self.data_df['must_reject_short2'] = self.data_df['must_reject_short2'] &\
                                             (((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)) | (self.data_df['fast_vegas'] > self.data_df['slow_vegas']))
 
+        self.data_df['must_reject_short3'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up'])
+
 
 
         self.data_df['can_short'] = (self.data_df['can_short']) & (self.data_df['final_short_condition1'] | self.data_df['final_short_condition2'])
-        self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short']) & (~self.data_df['must_reject_short2'])
+        self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short']) & (~self.data_df['must_reject_short2']) & (~self.data_df['must_reject_short3'])
         ############
 
 
