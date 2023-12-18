@@ -207,7 +207,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
@@ -1554,7 +1554,7 @@ class CurrencyTrader(threading.Thread):
                                 message_title = "Long position of " + self.currency + " hits stop profit"
 
                                 message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
-                                message = "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
+                                message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
 
                                 print("message_title = " + message_title)
                                 print("message:")
@@ -2255,7 +2255,7 @@ class CurrencyTrader(threading.Thread):
                                 message_title = "Short position of " + self.currency + " hits stop profit"
 
                                 message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price - unit_range)) + "\n"
-                                message = "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
+                                message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
 
                                 print("message_title = " + message_title)
                                 print("message:")
