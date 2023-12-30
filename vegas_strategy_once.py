@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -171,19 +171,28 @@ def preprocess_data(data_df):
     #print(type(data_df.iloc[-1]['time_delta']))
     #print(data_df.iloc[-1]['time_delta'].seconds)
 
+    # print("###########")
+    # print(data_df.iloc[3500:3900])
+    # print("###########")
+
     critical_index = list(which(data_df['total_seconds'] > 3600)) + [data_df.shape[0]]
 
     sub_dfs = []
 
     print(critical_index)
 
+    print("critical_index length = " + str(len(critical_index)))
+    print("")
+
     start = 0
     for i in range(len(critical_index)):
-        #     print("start = " + str(start))
-        #     print("end = " + str(critical_index[i]))
+
+        # print("i = " + str(i))
+        # print("start = " + str(start))
+        # print("end = " + str(critical_index[i]))
         sub_df = data_df.iloc[start:critical_index[i]]
-        #     print("sub_df length = " + str(sub_df.shape[0]))
-        #     print("")
+        # print("sub_df length = " + str(sub_df.shape[0]))
+        # print("")
         start = critical_index[i]
 
         sub_dfs += [sub_df]
@@ -195,7 +204,13 @@ def preprocess_data(data_df):
 
         sub_df = sub_dfs[j]
 
-        print("sub df size = " + str(sub_df.shape[0]))
+        ########Added Code ##########
+        if sub_df.shape[0] < 2:
+            continue
+
+        #############################
+
+        #print("sub df size = " + str(sub_df.shape[0]))
 
         # sub_df.at[sub_df.index[0], 'open'] = 0.0
 
@@ -203,9 +218,9 @@ def preprocess_data(data_df):
         first_time = sub_df.iloc[0]['time']
         last_time = sub_df.iloc[-1]['time']
 
-        print("first_time = " + str(first_time))
-        print("last_time = " + str(last_time))
-        print("")
+        # print("first_time = " + str(first_time))
+        # print("last_time = " + str(last_time))
+        # print("")
 
         #     print("Old head:")
         #     display(sub_df.iloc[0:5])
@@ -213,10 +228,23 @@ def preprocess_data(data_df):
         #     print("Old tail:")
         #     display(sub_df.iloc[-5:])
 
+
         if last_close_price is not None:
+
+            # if j == 32:
+            #     print("j = " + str(j))
+            #
+            #     print("Before sub_df:")
+            #     print(sub_df)
 
             if first_time.hour < 5:
                 sub_df = sub_df.iloc[1:]
+
+            # if j == 32:
+            #     print("After sub_df:")
+            #     print(sub_df)
+            #
+            #     print("")
 
             if sub_df.iloc[0]['time'].hour == 5:
                 for col in price_cols:
@@ -269,9 +297,12 @@ def start_do_trading():
 
     is_gege_server = False
 
-    is_real_time_trading = True
 
-    is_weekend = False
+    data_source = 1
+
+    is_real_time_trading = False
+
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -281,9 +312,11 @@ def start_do_trading():
         # if is_real_time_trading:
         #     root_folder = "C:\\JCForex_prod"
         # else:
-        root_folder = "C:\\JCForex_prod"
+        root_folder1 = "C:\\JCForex_prod"
 
-        root_folder2 = "C:\\JCForex_prod2"
+        root_folder = "C:\\JCForex_prod" if data_source == 1 else "C:\\JCForex_prod2"
+
+        #root_folder = "C:\\JCForex_prod2"
 
 
     if not os.path.exists(root_folder):
@@ -341,7 +374,7 @@ def start_do_trading():
     #currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
     #                        'GBPCAD', 'GBPCHF'] + ['CHFJPY'] + ['AUDCHF', 'AUDNZD']
 
-    currencies_to_remove = []
+    currencies_to_remove = ['AUDJPY']
 
     currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
     #currencies_to_notify = []
@@ -665,6 +698,7 @@ def start_do_trading():
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 11, 13, 21, 0, 0)]
 
+
                         #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
 
 
@@ -705,7 +739,12 @@ def start_do_trading():
                         # time.sleep(15)
 
                         if is_real_time_trading:
-                            incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+
+                            if data_source == 1:
+                                incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+                            else:
+                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+
                             # print("incremental_data_df:")
                             # print(incremental_data_df)
 
@@ -756,7 +795,12 @@ def start_do_trading():
 
 
 
-                    #data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                    # print("Initial data_df:")
+                    # print(data_df.iloc[-20:])
+
+
+                    if data_source == 2:
+                        data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
 
                     if is_real_time_trading and not is_weekend:
 
