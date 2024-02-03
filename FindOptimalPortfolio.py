@@ -23,6 +23,7 @@ warnings.filterwarnings("ignore")
 
 start_date = datetime(2023, 4, 1)  # 4.1
 
+forex_dir = "C:\\JCForex_prod"
 root_dir = "C:\\JCForex_prod\\portfolio_construction"
 
 if not os.path.exists(root_dir):
@@ -58,14 +59,35 @@ def preprocess_time(t): #t is string
 
 def construct_portfolio_for_end_date(end_date) :
 
+    print("")
+    print("Constructing Optimal Portfolio for end_date = " + end_date.strftime("%Y-%m%d"))
 
-    currency_df = pd.read_csv(os.path.join(root_dir, "currency.csv"))
+    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv"))
 
     currency_list = currency_df['currency'].tolist()
 
-    summary_df = calculate_currency_performance(end_date, currency_list, False, False)
+    print("")
+    print("Calculate performance for each currency............." + end_date.strftime("%Y-%m%d"))
+    summary_df = calculate_currency_performance(end_date, currency_list, sorted=False, accumulated_mode=False)
 
-    sorted_currency_list = summary_df.iloc[:-1][]
+    sorted_currency_list = summary_df.iloc[:-1]['currency'].tolist()
+
+    print("")
+    print("Calculate performance again for each of sorted currencies" + end_date.strftime("%Y-%m%d"))
+    summary_df = calculate_currency_performance(end_date, sorted_currency_list, sorted=True, accumulated_mode=False)
+
+    print("")
+    print("Calculate performance for accumulated currencies..........." + end_date.strftime("%Y-%m%d"))
+    summary_df = calculate_currency_performance(end_date, sorted_currency_list, sorted=True, accumulated_mode=True)
+
+    max_pnl_id = summary_df['last_cum_pnl'].argmax()
+
+    optimal_currency_list = summary_df.iloc[:(max_pnl_id+1)]['currency'].tolist()
+
+    optimal_currency_list = [currency[len('Until '):] for currency in optimal_currency_list]
+
+    return optimal_currency_list
+
 
 
 def calculate_currency_performance(end_date, currency_list, sorted, accumulated_mode):
@@ -81,16 +103,16 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     if not accumulated_mode:
         currency_list += ['All']
 
-    print("currency_list = ")
-    print(currency_list)
+    #print("currency_list = ")
+    #print(currency_list)
 
 
     if accumulated_mode:
         final_output_folder = os.path.join(root_dir,
-                                           "all_combined_accumulated_pnl_chart_" + str(end_date))
+                                           "all_combined_accumulated_pnl_chart_" + end_date.strftime("%Y-%m%d"))
     else:
         final_output_folder = os.path.join(root_dir,
-                                           "all_combined_pnl_chart_" + str(end_date))
+                                           "all_combined_pnl_chart_" + end_date.strftime("%Y-%m%d"))
 
     if not os.path.exists(final_output_folder):
         os.makedirs(final_output_folder)
@@ -100,15 +122,15 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
                        'adj_return', 'return_rate', 'drawdown_rate', 'trading_days', 'trade_num', 'trades_per_day']
 
     # This is even better settings for all currencies, and also even better for larger set of selected currencies (with GBPJPY EURCHF added)
-    trade_files = [os.path.join(root_dir,
+    trade_files = [os.path.join(forex_dir,
                                 "all_pnl_chart_ratio1RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd\\all_trades.csv"),
-                   os.path.join(root_dir,
+                   os.path.join(forex_dir,
                                 "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd\\all_trades.csv")]
 
-    output_file = os.path.join(root_dir,
-                               "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all.csv")
-    temp_output_file = os.path.join(root_dir,
-                                    "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all_temp.csv")
+    # output_file = os.path.join(root_dir,
+    #                            "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all.csv")
+    # temp_output_file = os.path.join(root_dir,
+    #                                 "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all_temp.csv")
 
     raw_trade_dfs = []
 
@@ -119,7 +141,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         currency = currency_list[i]
 
-        print("Process Currency " + currency + "....................")
+        print("Process Currency " + currency + "...................." + end_date.strftime("%Y-%m%d"))
 
         if accumulated_mode:
             selected_currencies = currency_list[0:(i + 1)]
@@ -259,7 +281,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         trade_df_copy = trade_df_copy.drop(columns=['index'])
         # display(trade_df_copy.iloc[-51:]) ####################################################**********************************************************************************************************************************************
 
-        trade_df_copy.to_csv(output_file, index=False)
+        #trade_df_copy.to_csv(output_file, index=False)
 
         entry_df = trade_df[['currency', 'side', 'position', 'id', 'entry_time']]
         entry_df = entry_df.rename(columns={
@@ -353,7 +375,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         # display(temp_df.iloc[:20])
         # display(temp_df)
 
-        temp_df.to_csv(temp_output_file, index=False)
+        #temp_df.to_csv(temp_output_file, index=False)
 
         ########################################
 
@@ -495,7 +517,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     summary_df = pd.concat([temp_summary_df, summary_df.iloc[-1:]]) if not accumulated_mode else temp_summary_df
 
-    print(summary_df)
+    #print(summary_df)
 
     if sorted:
         file_name = "summary_result.csv" if not accumulated_mode else "accumulated_summary_result.csv"
@@ -503,3 +525,49 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
     return summary_df
+
+
+end_dates = [datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)]
+
+#end_dates = [datetime(2024,2,4)]
+
+columns = ['by_date', 'optimal_currency_list']
+final_data = []
+
+optimal_portfolio = None
+
+for end_date in end_dates:
+
+    optimal_currency_list = construct_portfolio_for_end_date(end_date)
+
+    print("")
+    print("Optimal currency list by date " + end_date.strftime("%Y-%m%d"))
+    print(optimal_currency_list)
+
+    if optimal_portfolio is None:
+        optimal_portfolio = set(optimal_currency_list)
+    else:
+        optimal_portfolio = optimal_portfolio.intersection(set(optimal_currency_list))
+
+    final_data += [[end_date.strftime("%Y-%m%d"), ','.join(optimal_currency_list)]]
+
+
+final_data += [["All", list(optimal_portfolio)]]
+
+portfolio_df = pd.DataFrame(data = final_data, columns = columns)
+
+portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_date.csv"), index = False)
+
+print("")
+print("Optimal Portfolio By date:")
+
+print(portfolio_df)
+
+print("")
+print("Optimal portfolio is:")
+print(optimal_portfolio)
+
+print("Number of selected currencies = " + str(len(optimal_portfolio)))
+
+
+
