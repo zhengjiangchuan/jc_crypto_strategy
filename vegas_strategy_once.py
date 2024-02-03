@@ -300,7 +300,7 @@ def start_do_trading():
 
     data_source = 1
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
     is_weekend = True
 
@@ -374,7 +374,7 @@ def start_do_trading():
     #currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
     #                        'GBPCAD', 'GBPCHF'] + ['CHFJPY'] + ['AUDCHF', 'AUDNZD']
 
-    currencies_to_remove = ['AUDJPY']
+    currencies_to_remove = []
 
     currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
     #currencies_to_notify = []
@@ -480,7 +480,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_relaxCond2_noSmartClose"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd"
 
 
     for currency_pair in currency_pairs:
