@@ -57,28 +57,32 @@ def preprocess_time(t): #t is string
 
 
 
-def construct_portfolio_for_end_date(end_date) :
+def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)) :
 
     print("")
-    print("Constructing Optimal Portfolio for end_date = " + end_date.strftime("%Y-%m%d"))
+    print("Constructing Optimal Portfolio for end_date = " + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
 
     currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv"))
 
     currency_list = currency_df['currency'].tolist()
 
     print("")
-    print("Calculate performance for each currency............." + end_date.strftime("%Y-%m%d"))
-    summary_df = calculate_currency_performance(end_date, currency_list, sorted=False, accumulated_mode=False)
+    print("Calculate performance for each currency............." + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
+    summary_df = calculate_currency_performance(end_date, currency_list, sorted=False, accumulated_mode=False, start_date = start_date)
 
     sorted_currency_list = summary_df.iloc[:-1]['currency'].tolist()
 
-    print("")
-    print("Calculate performance again for each of sorted currencies" + end_date.strftime("%Y-%m%d"))
-    summary_df = calculate_currency_performance(end_date, sorted_currency_list, sorted=True, accumulated_mode=False)
+    currencies_with_no_data = [currency for currency in currency_list if currency != "All" and currency not in sorted_currency_list]
+
+    print("Currencies with no data: " + str(currencies_with_no_data))
 
     print("")
-    print("Calculate performance for accumulated currencies..........." + end_date.strftime("%Y-%m%d"))
-    summary_df = calculate_currency_performance(end_date, sorted_currency_list, sorted=True, accumulated_mode=True)
+    print("Calculate performance again for each of sorted currencies" + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
+    summary_df = calculate_currency_performance(end_date, sorted_currency_list, sorted=True, accumulated_mode=False, start_date = start_date)
+
+    print("")
+    print("Calculate performance for accumulated currencies..........." + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
+    summary_df = calculate_currency_performance(end_date, sorted_currency_list, sorted=True, accumulated_mode=True, start_date = start_date)
 
     max_pnl_id = summary_df['last_cum_pnl'].argmax()
 
@@ -86,11 +90,13 @@ def construct_portfolio_for_end_date(end_date) :
 
     optimal_currency_list = [currency[len('Until '):] for currency in optimal_currency_list]
 
-    return optimal_currency_list
+
+
+    return optimal_currency_list + currencies_with_no_data
 
 
 
-def calculate_currency_performance(end_date, currency_list, sorted, accumulated_mode):
+def calculate_currency_performance(end_date, currency_list, sorted, accumulated_mode, start_date = datetime(2023, 4, 1)):
 
     init_deposit = 8000  # 25000
 
@@ -109,10 +115,10 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     if accumulated_mode:
         final_output_folder = os.path.join(root_dir,
-                                           "all_combined_accumulated_pnl_chart_" + end_date.strftime("%Y-%m%d"))
+                                           "all_combined_accumulated_pnl_chart_" + start_date.strftime("%Y%m%d") + '_' + end_date.strftime("%Y%m%d"))
     else:
         final_output_folder = os.path.join(root_dir,
-                                           "all_combined_pnl_chart_" + end_date.strftime("%Y-%m%d"))
+                                           "all_combined_pnl_chart_" + start_date.strftime("%Y%m%d") + '_' + end_date.strftime("%Y%m%d"))
 
     if not os.path.exists(final_output_folder):
         os.makedirs(final_output_folder)
@@ -134,6 +140,8 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     raw_trade_dfs = []
 
+    #currencies_with_no_data = []
+
     for trade_file in trade_files:
         raw_trade_dfs += [pd.read_csv(trade_file)]
 
@@ -141,7 +149,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         currency = currency_list[i]
 
-        print("Process Currency " + currency + "...................." + end_date.strftime("%Y-%m%d"))
+        print("Process Currency " + currency + "...................." + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
 
         if accumulated_mode:
             selected_currencies = currency_list[0:(i + 1)]
@@ -169,7 +177,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
             for col in ['entry_time', 'exit_time']:
                 trade_df[col] = trade_df[col].apply(lambda x: preprocess_time(x))
 
-            trade_df = trade_df[(trade_df['entry_time'] >= start_date) & (trade_df['exit_time'] < end_date)]
+            #trade_df = trade_df[(trade_df['entry_time'] >= start_date) & (trade_df['exit_time'] < end_date)]
+
+            trade_df = trade_df[(trade_df['exit_time'] >= start_date) & (trade_df['exit_time'] < end_date)]
 
             trade_df.reset_index(inplace=True)
             trade_df = trade_df.drop(columns=['index'])
@@ -205,11 +215,17 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         else:
             trade_df = trade_df_small
 
+
+        if trade_df.shape[0] == 0:
+            continue
+
         # if cutoff_end_date is not None:
         #     # cutoff_trade_df = trade_df[(trade_df['exit_time'] >= start_date) & (trade_df['exit_time'] < cutoff_end_date)]
         #
         #     cutoff_trade_df = trade_df[(trade_df['entry_time'] >= start_date) & (trade_df['exit_time'] < cutoff_end_date)]
         #     cutoff_trade_num = cutoff_trade_df.shape[0]
+
+        #print("trade_df length = " + str(trade_df.shape[0]))
 
         trade_df = trade_df.sort_values(by=['exit_time', 'currency'])
 
@@ -356,6 +372,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         temp_df['total_num_currency'] = temp_df['add_currency'].cumsum()
 
         # print("Here Here temp_df length = " + str(temp_df.shape[0]))
+        #
+        # print("temp_df:")
+        # print(temp_df)
 
         min_margin_level = temp_df['margin_level'].min()
         min_margin_level_id = temp_df['margin_level'].argmin()
@@ -527,7 +546,26 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     return summary_df
 
 
-end_dates = [datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)]
+#start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1)]
+#end_dates = [datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
+
+#1 month rolling forward
+#start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1)]
+#end_dates = [datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
+
+#2 months rolling forward
+# start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1)]
+# end_dates = [datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
+
+#3 months rolling forward
+# start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1)]
+# end_dates = [datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
+
+#4 months rolling forward
+start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1)]
+end_dates = [datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
+
+
 
 #end_dates = [datetime(2024,2,4)]
 
@@ -536,12 +574,12 @@ final_data = []
 
 optimal_portfolio = None
 
-for end_date in end_dates:
+for start_date, end_date in list(zip(start_dates, end_dates)) :
 
-    optimal_currency_list = construct_portfolio_for_end_date(end_date)
+    optimal_currency_list = construct_portfolio_for_end_date(end_date=end_date, start_date = start_date)
 
     print("")
-    print("Optimal currency list by date " + end_date.strftime("%Y-%m%d"))
+    print("Optimal currency list by date " + start_date.strftime("%Y%m%d") + "- " + end_date.strftime("%Y%m%d"))
     print(optimal_currency_list)
 
     if optimal_portfolio is None:
@@ -549,14 +587,16 @@ for end_date in end_dates:
     else:
         optimal_portfolio = optimal_portfolio.intersection(set(optimal_currency_list))
 
-    final_data += [[end_date.strftime("%Y-%m%d"), ','.join(optimal_currency_list)]]
+    final_data += [[start_date.strftime("%Y%m%d") + "-" +end_date.strftime("%Y%m%d"), ','.join(optimal_currency_list)]]
 
 
 final_data += [["All", list(optimal_portfolio)]]
 
 portfolio_df = pd.DataFrame(data = final_data, columns = columns)
 
-portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_date.csv"), index = False)
+#portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_date.csv"), index = False)
+
+portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_start_end_date_4month.csv"), index = False)
 
 print("")
 print("Optimal Portfolio By date:")
