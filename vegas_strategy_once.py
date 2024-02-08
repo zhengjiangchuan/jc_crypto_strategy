@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -302,7 +302,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -415,7 +415,7 @@ def start_do_trading():
     #
     # sys.exit(0)
 
-    # print("root_folder: ")
+    # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
     # print(root_folder)
     # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
@@ -480,7 +480,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_checking"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_0204"
 
 
     for currency_pair in currency_pairs:
