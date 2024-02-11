@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = True
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
@@ -312,6 +312,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
+
 
         self.data_df['prev_open'] = self.data_df['open'].shift(1)
 
@@ -692,11 +693,11 @@ class CurrencyTrader(threading.Thread):
                                                 (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
-        # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) & \
-        #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) & \
-        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) #&\
-                                                #(self.data_df['vegas_phase_duration'] > 48) #& (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
+        # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
 
 
@@ -830,10 +831,10 @@ class CurrencyTrader(threading.Thread):
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                                  (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
-        # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) & \
-        #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) & \
-        #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) #&\
-        #                                          #(self.data_df['vegas_phase_duration'] > 48) #& (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
+        # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
+        #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
 
 
@@ -1010,6 +1011,10 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_long_cond10'] = (self.data_df['macd'] > self.data_df['prev_macd']) | (self.data_df['msignal'] > self.data_df['prev_msignal'])
 
+        #self.data_df['vegas_long_cond11'] = (self.data_df['close'] - self.data_df['upper_vegas']) < 5 * self.data_df['vegas_distance']
+
+        self.data_df['vegas_long_cond11'] = self.data_df['close'] < self.data_df['guppy_max']
+
         self.data_df['macd_long_signal'] = (self.data_df['prev_macd'] < 0) & (self.data_df['macd'] > 0)
         self.data_df['macd_long_signal2'] = (self.data_df['prev_macd'] < self.data_df['prev_msignal']) & (self.data_df['macd'] > self.data_df['msignal']) &\
                                             (self.data_df['macd'] < 0) & (self.data_df['prev_macd'] < 0)
@@ -1027,12 +1032,16 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_short_cond10'] = (self.data_df['macd'] < self.data_df['prev_macd']) | (self.data_df['msignal'] < self.data_df['prev_msignal'])
 
+        #self.data_df['vegas_short_cond11'] = (self.data_df['lower_vegas'] - self.data_df['close']) < 5 * self.data_df['vegas_distance']
+
+        self.data_df['vegas_short_cond11'] = self.data_df['close'] > self.data_df['guppy_min']
+
         self.data_df['macd_short_signal'] = (self.data_df['prev_macd'] > 0) & (self.data_df['macd'] < 0)
         self.data_df['macd_short_signal2'] = (self.data_df['prev_macd'] > self.data_df['prev_msignal']) & (self.data_df['macd'] < self.data_df['msignal']) &\
                                             (self.data_df['macd'] > 0) & (self.data_df['prev_macd'] > 0)
 
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 11)])  #10
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 11)])  #10
+        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(1, 12)])  #10
+        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(1, 12)])  #10
 
 
         # print("Check data_df:")
