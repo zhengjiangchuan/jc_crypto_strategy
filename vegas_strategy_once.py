@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -300,9 +300,9 @@ def start_do_trading():
 
     data_source = 1
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -480,7 +480,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_0204_notExceedGuppy2"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow" #_relaxFastSlow
 
 
     for currency_pair in currency_pairs:
