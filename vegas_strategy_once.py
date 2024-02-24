@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -363,6 +363,14 @@ def start_do_trading():
     # print(currencies_str)
     # sys.exit(0)
 
+    # critical_one = 'GBPAUD'
+    # critical_idx = 0
+    # for i in range(len(raw_currencies)):
+    #     if raw_currencies[i] == critical_one:
+    #         critical_idx = i
+    #         break
+    #
+    # currencies_to_run = raw_currencies[critical_idx:]
 
 
     #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
