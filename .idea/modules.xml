@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ForexStrategy.iml" filepath="$PROJECT_DIR$/.idea/ForexStrategy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/forex_strategy.iml" filepath="$PROJECT_DIR$/.idea/forex_strategy.iml" />
     </modules>
   </component>
 </project>
