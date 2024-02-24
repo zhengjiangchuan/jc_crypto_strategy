@@ -8,6 +8,8 @@ import random
 import sys
 import pandas as pd
 
+
+
 # random_id = int(random.random()*10000)
 #
 # root_folder = "C:\\Forex\\formal_trading"
