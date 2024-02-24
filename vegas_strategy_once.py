@@ -300,9 +300,9 @@ def start_do_trading():
 
     data_source = 1
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -314,7 +314,9 @@ def start_do_trading():
         # else:
         root_folder1 = "C:\\JCForex_prod"
 
-        root_folder = "C:\\JCForex_prod" if data_source == 1 else "C:\\JCForex_prod2"
+        #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
+
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -478,7 +480,7 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
-    selected_currencies = currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
+    selected_currencies = [] #currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
 
     #selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
