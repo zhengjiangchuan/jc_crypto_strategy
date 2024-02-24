@@ -9,7 +9,7 @@ import sys
 import pandas as pd
 
 
-
+#Wenshenlao
 # random_id = int(random.random()*10000)
 #
 # root_folder = "C:\\Forex\\formal_trading"
