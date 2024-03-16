@@ -210,7 +210,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 printed_figure_num = 1
 
@@ -447,6 +447,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['guppy_half2_all_up'] = reduce(lambda left, right: left & right, guppy_up_conditions[3:6])
         self.data_df['guppy_half2_strong_aligned_long'] = self.data_df['guppy_half2_aligned_long'] & self.data_df['guppy_half2_all_up']
 
+        self.data_df['guppy_lines_up_num'] = reduce(lambda left, right: left + right, guppy_up_conditions)
+
 
         guppy_aligned_short_conditions = [(self.data_df[guppy_lines[i]] < self.data_df[guppy_lines[i + 1]]) for i in
                                     range(len(guppy_lines) - 1)]
@@ -468,6 +470,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['guppy_half2_all_down'] = reduce(lambda left, right: left & right, guppy_down_conditions[3:6])
         self.data_df['guppy_half2_strong_aligned_short'] = self.data_df['guppy_half2_aligned_short'] & self.data_df['guppy_half2_all_down']
 
+        self.data_df['guppy_lines_down_num'] = reduce(lambda left, right: left + right, guppy_down_conditions)
 
 
         self.data_df['guppy_all_above_vegas'] = reduce(lambda left, right: left & right, [(self.data_df[guppy_lines[i]] > self.data_df['upper_vegas'])
@@ -706,6 +709,14 @@ class CurrencyTrader(threading.Thread):
         # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
         #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
         #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        #                                         (self.data_df['vegas_phase_duration'] > 48) & (self.data_df['guppy_lines_down_num'] < 3) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+
+
+
+
+        # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
         #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
 
@@ -715,8 +726,8 @@ class CurrencyTrader(threading.Thread):
         #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
         #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
-
-        self.data_df['must_reject_long'] = (self.data_df['final_long_condition']) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
+        #Change Change
+        self.data_df['must_reject_long'] = False #(self.data_df['final_long_condition']) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
 
         #self.data_df['must_reject_long'] = (self.data_df['final_long_condition'] & (~self.data_df['final_long_condition2'])) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
 
@@ -728,9 +739,11 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['must_reject_long3'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down'])
 
+        self.data_df['must_reject_long4'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['bar_up_phase_duration'] >= 24*5) & (self.data_df['guppy_lines_down_num'] >= 3)
 
         self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition1']  | self.data_df['final_long_condition2'])
         self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long']) & (~self.data_df['must_reject_long2'])# & (~self.data_df['must_reject_long3'])
+        #self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long4'])
         ###############
 
 
@@ -842,6 +855,12 @@ class CurrencyTrader(threading.Thread):
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                                  (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
+        # self.data_df['final_short_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        #                                         (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        #                                         (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        #                                         (self.data_df['vegas_phase_duration'] > 48) & (self.data_df['guppy_lines_up_num'] < 3) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+
+
         # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
         #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) &\
         #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
@@ -853,8 +872,8 @@ class CurrencyTrader(threading.Thread):
         #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
         #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
-
-        self.data_df['must_reject_short'] = (self.data_df['final_short_condition']) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
+        #Change Change
+        self.data_df['must_reject_short'] = False #(self.data_df['final_short_condition']) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
 
 
         #self.data_df['must_reject_short'] = (self.data_df['final_short_condition'] & (~self.data_df['final_short_condition2'])) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
@@ -867,10 +886,14 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['must_reject_short3'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up'])
 
+        self.data_df['must_reject_short4'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['bar_up_phase_duration'] >= 24*5) & (self.data_df['guppy_lines_up_num'] >= 3)
+
 
 
         self.data_df['can_short'] = (self.data_df['can_short']) & (self.data_df['final_short_condition1'] | self.data_df['final_short_condition2'])
         self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short']) & (~self.data_df['must_reject_short2'])# & (~self.data_df['must_reject_short3'])
+        #self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short4'])
+
         ############
 
 
@@ -1027,6 +1050,8 @@ class CurrencyTrader(threading.Thread):
         #_notExceedGuppy3
         self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) | (self.data_df['fast_vegas'] > self.data_df['slow_vegas'])
 
+        #self.data_df['vegas_long_cond12'] = self.data_df['open'] < self.data_df['guppy_max']
+
         # _notExceedGuppy3Strong
         # self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) |\
         #                                     ((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['middle_price'] < self.data_df['guppy_max']))
@@ -1057,6 +1082,8 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['vegas_short_cond11'] = (self.data_df['lower_vegas'] - self.data_df['close']) < 5 * self.data_df['vegas_distance']
 
         self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) | (self.data_df['fast_vegas'] < self.data_df['slow_vegas'])
+
+        #self.data_df['vegas_short_cond12'] = self.data_df['open'] > self.data_df['guppy_min']
 
         # _notExceedGuppy3Strong
         # self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) |\
@@ -2368,7 +2395,7 @@ class CurrencyTrader(threading.Thread):
                             message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
 
                             if is_actual_used_stop_loss_changed:
-                                message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
+                                message += "Move stop loss down by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
                             else:
                                 message += "Due to Guppy lines strongly aligned short, no need to move current stop loss price " + str(self.round_price(actual_used_stop_loss)) + " forward\n"
 

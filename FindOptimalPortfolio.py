@@ -23,8 +23,8 @@ warnings.filterwarnings("ignore")
 
 start_date = datetime(2023, 4, 1)  # 4.1
 
-forex_dir = "C:\\JCForex_prod"
-root_dir = "C:\\JCForex_prod\\portfolio_construction"
+forex_dir = "C:\\Users\\admin\\JCForex_prod"
+root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -65,6 +65,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv"))
 
     currency_list = currency_df['currency'].tolist()
+    #currency_list = currency_list[0:2]
 
     print("")
     print("Calculate performance for each currency............." + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
@@ -129,9 +130,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     # This is even better settings for all currencies, and also even better for larger set of selected currencies (with GBPJPY EURCHF added)
     trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd\\all_trades.csv"),
+                                "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv"),
                    os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd\\all_trades.csv")]
+                                "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
     # output_file = os.path.join(root_dir,
     #                            "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all.csv")
@@ -438,10 +439,14 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         axes = fig.subplots(nrows=3, ncols=1)
 
-        font_size = 15
+        font_size = 25
 
         sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes[0])
         axes[0].set_title("All Cum Pnl Curve", fontsize=font_size)
+        axes[0].set_xlabel(axes[0].get_xlabel(), size=font_size)
+        #axes[0].set_xticklabels(axes[0].get_xticks(), size=font_size)
+        axes[0].set_ylabel(axes[0].get_ylabel(), size=font_size)
+        #axes[0].set_yticklabels(axes[0].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
         axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
         axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
@@ -465,6 +470,10 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         sns.lineplot(x='index', y='cum_margin', markers='o', color='blue', data=temp_df, ax=axes[1])
         axes[1].set_title("Cum Margin", fontsize=font_size)
+        axes[1].set_xlabel(axes[1].get_xlabel(), size=font_size)
+        #axes[1].set_xticklabels(axes[1].get_xticks(), size=font_size)
+        axes[1].set_ylabel(axes[1].get_ylabel(), size=font_size)
+        #axes[1].set_yticklabels(axes[1].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
         axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
         axes[1].axhline(0, ls='--', color='green', linewidth=1)
@@ -473,6 +482,10 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         sns.lineplot(x='index', y='margin_level', markers='o', color='blue', data=temp_df, ax=axes[2])
         axes[2].set_title("Margin Level", fontsize=font_size)
+        axes[2].set_xlabel(axes[2].get_xlabel(), size=font_size)
+        #axes[2].set_xticklabels(axes[2].get_xticks(), size=font_size)
+        axes[2].set_ylabel(axes[2].get_ylabel(), size=font_size)
+        #axes[2].set_yticklabels(axes[2].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
         axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
         axes[2].axhline(0, ls='--', color='green', linewidth=1)
@@ -562,12 +575,13 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 # end_dates = [datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
 
 #4 months rolling forward
-start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1)]
-end_dates = [datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
+#start_dates = [datetime(2023, 4, 1), datetime(2023, 5, 1), datetime(2023, 6, 1), datetime(2023, 7, 1), datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1)]
+#end_dates = [datetime(2023, 8, 1), datetime(2023, 9, 1), datetime(2023, 10, 1), datetime(2023, 11, 1), datetime(2023, 12, 1), datetime(2024, 1, 1), datetime(2024, 2, 4)] #5 months rolling forward
 
 
 
-#end_dates = [datetime(2024,2,4)]
+start_dates = [datetime(2023,4,1)]
+end_dates = [datetime(2024,3,3)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
@@ -596,7 +610,9 @@ portfolio_df = pd.DataFrame(data = final_data, columns = columns)
 
 #portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_date.csv"), index = False)
 
-portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_start_end_date_4month.csv"), index = False)
+portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_start_end_date.csv"), index = False)
+
+#portfolio_df.to_csv(os.path.join(root_dir, "optimal_portfolio_by_start_end_date_4month.csv"), index = False)
 
 print("")
 print("Optimal Portfolio By date:")
