@@ -210,7 +210,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
@@ -727,7 +727,7 @@ class CurrencyTrader(threading.Thread):
         #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
         #Change Change
-        self.data_df['must_reject_long'] = False #(self.data_df['final_long_condition']) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
+        self.data_df['must_reject_long'] = (self.data_df['final_long_condition']) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
 
         #self.data_df['must_reject_long'] = (self.data_df['final_long_condition'] & (~self.data_df['final_long_condition2'])) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
 
@@ -743,7 +743,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition1']  | self.data_df['final_long_condition2'])
         self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long']) & (~self.data_df['must_reject_long2'])# & (~self.data_df['must_reject_long3'])
-        #self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long4'])
+        self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long4'])
         ###############
 
 
@@ -873,7 +873,7 @@ class CurrencyTrader(threading.Thread):
         #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
         #Change Change
-        self.data_df['must_reject_short'] = False #(self.data_df['final_short_condition']) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
+        self.data_df['must_reject_short'] = (self.data_df['final_short_condition']) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
 
 
         #self.data_df['must_reject_short'] = (self.data_df['final_short_condition'] & (~self.data_df['final_short_condition2'])) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
@@ -892,7 +892,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['can_short'] = (self.data_df['can_short']) & (self.data_df['final_short_condition1'] | self.data_df['final_short_condition2'])
         self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short']) & (~self.data_df['must_reject_short2'])# & (~self.data_df['must_reject_short3'])
-        #self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short4'])
+        self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short4'])
 
         ############
 
