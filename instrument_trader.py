@@ -210,9 +210,9 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
@@ -328,6 +328,9 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['min_price'] = self.data_df[['open', 'close']].min(axis=1)
         self.data_df['max_price'] = self.data_df[['open', 'close']].max(axis=1)
+
+        self.data_df['prev_min_price'] = self.data_df['min_price'].shift(1)
+        self.data_df['prev_max_price'] = self.data_df['max_price'].shift(1)
 
         self.data_df['middle_price'] = (self.data_df['open'] + self.data_df['close']) / 2.0
         self.data_df['middle'] = self.data_df['middle_price']
@@ -1037,8 +1040,17 @@ class CurrencyTrader(threading.Thread):
 
 
         ############### Reversal Strategy ###########################
-        self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_middle'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max']) & self.data_df['is_positive']
-        self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_middle'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min']) & self.data_df['is_negative']
+        #self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_middle'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max']) & self.data_df['is_positive']
+        #self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_middle'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min']) & self.data_df['is_negative']
+
+        #self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_min_price'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max']) & self.data_df['is_positive']
+        #self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_max_price'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min']) & self.data_df['is_negative']
+
+        self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_min_price'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max'])
+        self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_max_price'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min'])
+
+
+        duration_threshold = 10  # 10, 5(USDJPY)
 
         self.data_df['bar_cross_guppy_label'] = np.where(
             self.data_df['bar_cross_up_max_guppy'], 0,
@@ -1070,7 +1082,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df = pd.merge(self.data_df, temp_group_summary_df, on = ['bar_cross_guppy_num'], how = 'left')
 
         self.data_df['bar_cross_guppy_label'] = np.where(
-            self.data_df['bar_cross_guppy_num_count'] < 10,
+            self.data_df['bar_cross_guppy_num_count'] < duration_threshold,
             np.nan,
             self.data_df['bar_cross_guppy_label']
         )
@@ -1255,19 +1267,21 @@ class CurrencyTrader(threading.Thread):
 
 
         need_look_backward_cols = ["prevGroup_1critical_price", "prevGroup_1critical_price_id", 'prevGroup_1bar_cross_guppy_duration',
+                                   'prevGroup_2critical_price', 'prevGroup_2critical_price_id',
                                    'prevGroup_3critical_price', 'prevGroup_3critical_price_id',
                                    'prevGroup_3lower_vegas', 'prevGroup_3upper_vegas','prevGroup_2bar_cross_guppy_total_duration',
                                    'prevGroup_3bar_cross_guppy_total_duration']
 
 
         no_need_look_backward_cols = ['critical_price', 'critical_price_id',  'critical_bar_cross_guppy_duration',
-                                      'prevGroup_2critical_price',
-                                      'prevGroup_2critical_price_id',
+                                      'prevGroup_1critical_price', 'prevGroup_1critical_price_id',
+                                      'prevGroup_2critical_price', 'prevGroup_2critical_price_id',
                                       'prevGroup_2lower_vegas', 'prevGroup_2upper_vegas', 'prevGroup_1bar_cross_guppy_total_duration',
                                       'prevGroup_2bar_cross_guppy_total_duration']
 
         self.data_df['long_need_look_backward'] = self.data_df['bar_cross_guppy_label'] == 0
         target_long_cols = ['long_critical_price', 'long_critical_price_id', 'long_critical_bar_cross_guppy_duration',
+                            'long_prevGroup_1critical_price', 'long_prevGroup_1critical_price_id',
                             'long_prevGroup_2critical_price',  'long_prevGroup_2critical_price_id',
                             'long_prevGroup_2lower_vegas', 'long_prevGroup_2upper_vegas', 'long_prevGroup_1bar_cross_guppy_total_duration', 'long_prevGroup_2bar_cross_guppy_total_duration']
 
@@ -1280,6 +1294,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['short_need_look_backward'] = self.data_df['bar_cross_guppy_label'] == 1
         target_short_cols = ['short_critical_price', 'short_critical_price_id', 'short_critical_bar_cross_guppy_duration',
+                             'short_prevGroup_1critical_price', 'short_prevGroup_1critical_price_id',
                              'short_prevGroup_2critical_price', 'short_prevGroup_2critical_price_id',
                             'short_prevGroup_2lower_vegas', 'short_prevGroup_2upper_vegas', 'short_prevGroup_1bar_cross_guppy_total_duration', 'short_prevGroup_2bar_cross_guppy_total_duration']
 
@@ -1304,10 +1319,15 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond3'] = self.data_df['close'] < self.data_df['lower_vegas']
         self.data_df['vegas_long_cond4'] = self.data_df['long_critical_price'] > self.data_df['long_prevGroup_2critical_price']
         self.data_df['vegas_long_cond5'] = self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_2critical_price_id'] >= 48
+
         self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_2lower_vegas'])/2.0
+        #self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_1critical_price'])/2.0
+
+
         self.data_df['vegas_long_cond7'] = self.data_df['long_prevGroup_2bar_cross_guppy_total_duration'] >= 24
+
         self.data_df['vegas_long_cond8'] = self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] >= 10
-        self.data_df['vegas_long_cond9'] = self.data_df['long_critical_bar_cross_guppy_duration'] >= 10
+        self.data_df['vegas_long_cond9'] = self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
 
 
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
@@ -1316,10 +1336,15 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond3'] = self.data_df['close'] > self.data_df['upper_vegas']
         self.data_df['vegas_short_cond4'] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_2critical_price']
         self.data_df['vegas_short_cond5'] = self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_2critical_price_id'] >= 48
+
         self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_2upper_vegas'])/2.0
+        #self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_1critical_price'])/2.0
+
+
         self.data_df['vegas_short_cond7'] = self.data_df['short_prevGroup_2bar_cross_guppy_total_duration'] >= 24
+
         self.data_df['vegas_short_cond8'] = self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] >= 10
-        self.data_df['vegas_short_cond9'] = self.data_df['short_critical_bar_cross_guppy_duration'] >= 10
+        self.data_df['vegas_short_cond9'] = self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
 
 
 
