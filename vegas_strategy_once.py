@@ -101,7 +101,9 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     data_df = data_df[['time', 'currency', 'open', 'high', 'low', 'close']]
 
-    print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    #
+    # print(data_df.iloc[0:20])
 
     return data_df
 
@@ -172,7 +174,8 @@ def preprocess_data(data_df):
     #print(data_df.iloc[-1]['time_delta'].seconds)
 
     # print("###########")
-    # print(data_df.iloc[3500:3900])
+    # print("Temp data")
+    # print(data_df.iloc[1500:1510])
     # print("###########")
 
     critical_index = list(which(data_df['total_seconds'] > 3600)) + [data_df.shape[0]]
@@ -202,10 +205,17 @@ def preprocess_data(data_df):
     new_sub_dfs = []
     for j in range(len(sub_dfs)):
 
+       # print("j = " + str(j))
+
         sub_df = sub_dfs[j]
+
+        # print("now sub_df.columns = ")
+        # print(sub_df.columns)
+        # print("length = " + str(sub_df.shape[0]))
 
         ########Added Code ##########
         if sub_df.shape[0] < 2:
+
             continue
 
         #############################
@@ -268,6 +278,13 @@ def preprocess_data(data_df):
 
                 sub_df = pd.concat([sub_df, added_df])
 
+                # print("sub_df.columns = ")
+                # print(sub_df.columns)
+                # print("added_df.columns = ")
+                # print(added_df.columns)
+            else:
+                sub_df = sub_df[['currency', 'time'] + price_cols]
+
         else:
             sub_df = sub_df[['currency', 'time'] + price_cols]
 
@@ -284,6 +301,8 @@ def preprocess_data(data_df):
     new_data_df.reset_index(inplace=True)
     new_data_df = new_data_df.drop(columns=['index'])
 
+    # print("new_data_df.columns = ")
+    # print(new_data_df.columns)
     return new_data_df
 
 
@@ -302,7 +321,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -316,7 +335,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -498,7 +517,7 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow" #_relaxFastSlow
 
     #2
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilter"
 
     #3
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple" #_relaxFastSlow
@@ -726,6 +745,8 @@ def start_do_trading():
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
 
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 3, 15, 1, 0, 0)]
+
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 8, 24, 18, 0, 0)]
@@ -824,8 +845,12 @@ def start_do_trading():
                     # print(data_df.iloc[-20:])
 
 
-                    if data_source == 2:
-                        data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                    # if data_source == 2:
+                    #     print("preprocess data")
+                    #     data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                    #     print("preprocess finished")
+                        # print("preprocessed data:")
+                        # print(data_df.iloc[1500:1510])
 
                     if is_real_time_trading and not is_weekend:
 
