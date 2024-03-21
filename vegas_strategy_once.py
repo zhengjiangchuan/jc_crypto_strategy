@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -84,7 +84,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
     ts = td.time_series(
         symbol=currency[:3] + '/' + currency[3:],
         interval="1h",
-        outputsize=initial_bar_number,
+        outputsize=bar_number,
         timezone="Asia/Singapore",
     )
 
@@ -302,7 +302,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -316,7 +316,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -721,6 +721,8 @@ def start_do_trading():
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
+                        #data_df = data_df.iloc[:-1]
+
                         #data_df = data_df[data_df['time'] <= datetime(2023, 11, 13, 21, 0, 0)]
 
 
@@ -824,8 +826,8 @@ def start_do_trading():
                     # print(data_df.iloc[-20:])
 
 
-                    if data_source == 2:
-                        data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                    # if data_source == 2:
+                    #     data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
 
                     if is_real_time_trading and not is_weekend:
 
