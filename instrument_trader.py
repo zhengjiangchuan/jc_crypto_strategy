@@ -1412,15 +1412,24 @@ class CurrencyTrader(threading.Thread):
             self.data_df['vegas_long_cond7' + str(li)] = self.data_df['long_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
             self.data_df['vegas_long_cond8' + str(li)] = self.data_df['long_bar_cross_guppy_num'] - self.data_df['long_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] >= 10
 
+            #self.data_df['vegas_long_cond8' + str(li)] = self.data_df['vegas_long_cond8' + str(li)] & (self.data_df['long_bar_cross_guppy_num'] - self.data_df['long_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
+
+
+
         self.data_df['vegas_long_cond9'] = True #self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
 
-        self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4))
+        #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4))
 
         # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
         #                                       self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
 
         #Weaker
-        self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
+        self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+                                             (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+        #Weaker Stronger
+        # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        #                                       (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 48))
 
 
 
@@ -1443,16 +1452,23 @@ class CurrencyTrader(threading.Thread):
             self.data_df['vegas_short_cond7' + str(li)] = self.data_df['short_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
             self.data_df['vegas_short_cond8' + str(li)] = self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] >= 10
 
+            #self.data_df['vegas_short_cond8' + str(li)] = self.data_df['vegas_short_cond8' + str(li)] & (self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
+
 
         self.data_df['vegas_short_cond9'] = True #self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
 
         #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4))
 
         #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                       self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration']) > 24)
+        #                                       self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
 
         #Weaker
-        self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
+        self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+                                               (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+        #Weaker Stronger
+        # self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        #                                        (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 48))
 
 
 
