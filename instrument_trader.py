@@ -214,6 +214,9 @@ use_dynamic_TP = False
 
 printed_figure_num = 1
 
+plot_day_line = False
+plot_cross_point = True
+
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
 leverage = 100
@@ -1063,6 +1066,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['prev_bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].shift(1)
 
 
+        self.data_df['bar_cross_guppy_label_line'] = self.data_df['bar_cross_guppy_label'].diff()
+
 
 
 
@@ -1409,7 +1414,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['vegas_long_cond5' + str(li)] = self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_' + str(li*2) + 'critical_price_id'] >= 48 #48, 10
             self.data_df['vegas_long_cond6' + str(li)] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_' + str(li*2) + 'critical_price'] + self.data_df['long_prevGroup_' + str(li*2) + 'lower_vegas'])/2.0
             #self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_1critical_price'])/2.0
-            self.data_df['vegas_long_cond7' + str(li)] = self.data_df['long_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
+            self.data_df['vegas_long_cond7' + str(li)] = True #self.data_df['long_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
             self.data_df['vegas_long_cond8' + str(li)] = self.data_df['long_bar_cross_guppy_num'] - self.data_df['long_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] >= 10
 
             #self.data_df['vegas_long_cond8' + str(li)] = self.data_df['vegas_long_cond8' + str(li)] & (self.data_df['long_bar_cross_guppy_num'] - self.data_df['long_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
@@ -1449,7 +1454,7 @@ class CurrencyTrader(threading.Thread):
             self.data_df['vegas_short_cond5' + str(li)] = self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_' + str(li*2) + 'critical_price_id'] >= 48 #48, 10
             self.data_df['vegas_short_cond6' + str(li)] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + self.data_df['short_prevGroup_' + str(li*2) + 'upper_vegas'])/2.0
             #self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_1critical_price'])/2.0
-            self.data_df['vegas_short_cond7' + str(li)] = self.data_df['short_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
+            self.data_df['vegas_short_cond7' + str(li)] = True #self.data_df['short_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
             self.data_df['vegas_short_cond8' + str(li)] = self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] >= 10
 
             #self.data_df['vegas_short_cond8' + str(li)] = self.data_df['vegas_short_cond8' + str(li)] & (self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
@@ -2132,12 +2137,12 @@ class CurrencyTrader(threading.Thread):
 
                                 if not use_smart_close_position_logic:
                                     if actual_tp_number > 1:  #Guoji
-                                        message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+                                        message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0, 2)) + " HK dollars"  #Guoji
                                     else:
                                         assert(actual_tp_number == 1)
                                         message += "It yields zero pnl (only spread cost)"
                                 else:
-                                    message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+                                    message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0,2)) + " HK dollars"  #Guoji
 
 
                                 message_title = "Long position of " + self.currency + " hits MOVED stop loss"
@@ -2875,12 +2880,12 @@ class CurrencyTrader(threading.Thread):
 
                                 if not use_smart_close_position_logic:
                                     if actual_tp_number > 1:  #Guoji
-                                        message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+                                        message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0, 2)) + " HK dollars"  #Guoji
                                     else:
                                         assert(actual_tp_number == 1)
                                         message += "It yields zero pnl (only spread cost)"
                                 else:
-                                    message += "It yields a profit of " + str((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0) + " HK dollars"  #Guoji
+                                    message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0, 2)) + " HK dollars"  #Guoji
 
 
                                 message_title = "Short position of " + self.currency + " hits MOVED stop loss"
@@ -3529,7 +3534,7 @@ class CurrencyTrader(threading.Thread):
                                    print_prefix=print_prefix,
                                    is_plot_aux = True,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
-                                   use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num)
+                                   use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num, plot_day_line = plot_day_line, plot_cross_point = plot_cross_point)
 
 
         print("Finish")

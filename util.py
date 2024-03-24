@@ -257,7 +257,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
                            bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
-                           use_dynamic_TP = False, figure_num = -1):
+                           use_dynamic_TP = False, figure_num = -1, plot_day_line = True, plot_cross_point = False):
 
     print("In plot_candle_bar_charts:")
     print("tick_interval = " + str(tick_interval))
@@ -379,6 +379,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         macd_long_signal_idx = which(sub_data['macd_long_signal'])
         macd_short_signal_idx = which(sub_data['macd_short_signal'])
+
+        cross_guppy_up_idx = which(sub_data['bar_cross_guppy_label_line'] == -1)
+        cross_guppy_down_idx = which(sub_data['bar_cross_guppy_label_line'] == 1)
 
         # print("macd_long_signal_idx:")
         # print(macd_long_signal_idx)
@@ -761,8 +764,16 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         axes.set_ylabel('price', size = 20)
         axes.tick_params(labeltop = False, labelright = True)
 
-        for day_point in d_data['start'].values[1:]:
-            axes.axvline(int_time_series[day_point], ls = '--', color = 'black', linewidth = 1)
+        if plot_day_line:
+            for day_point in d_data['start'].values[1:]:
+                axes.axvline(int_time_series[day_point], ls = '--', color = 'black', linewidth = 1)
+
+        if plot_cross_point:
+            for cross_point in cross_guppy_up_idx:
+                axes.axvline(int_time_series[cross_point], ls = '-', color = 'blue', linewidth = 1)
+
+            for cross_point in cross_guppy_down_idx:
+                axes.axvline(int_time_series[cross_point], ls = '-', color = 'red', linewidth = 1)
 
         if plot_macd_signal:
             for macd_long_point in macd_long_signal_idx:
