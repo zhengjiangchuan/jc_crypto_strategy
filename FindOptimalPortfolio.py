@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore")
 start_date = datetime(2023, 4, 1)  # 4.1
 
 forex_dir = "C:\\Users\\admin\\JCForex_prod"
-root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_Stronger_noDurationThreshold"
+root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -135,9 +135,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
     trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_Stronger_noDurationThreshold\\all_trades.csv"),
+                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7\\all_trades.csv"),
                    os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_Stronger_noDurationThreshold\\all_trades.csv")]
+                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7\\all_trades.csv")]
 
     # output_file = os.path.join(root_dir,
     #                            "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all.csv")
@@ -606,10 +606,10 @@ for start_date, end_date in list(zip(start_dates, end_dates)) :
     else:
         optimal_portfolio = optimal_portfolio.intersection(set(optimal_currency_list))
 
-    final_data += [[start_date.strftime("%Y%m%d") + "-" +end_date.strftime("%Y%m%d"), ','.join(optimal_currency_list)]]
+    final_data += [[start_date.strftime("%Y%m%d") + "-" +end_date.strftime("%Y%m%d"), ','.join(["\'" + currency + "\'" for currency in optimal_currency_list])]]
 
 
-final_data += [["All", list(optimal_portfolio)]]
+final_data += [["All", ','.join(["\'" + currency + "\'" for currency in list(optimal_portfolio)])]]
 
 portfolio_df = pd.DataFrame(data = final_data, columns = columns)
 
