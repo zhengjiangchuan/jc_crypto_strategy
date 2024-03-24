@@ -586,7 +586,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,3,18)]
+end_dates = [datetime(2024,3,25)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
