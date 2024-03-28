@@ -59,10 +59,10 @@ bar_high_percentile = 0.1
 
 vegas_bar_percentile = 0.2
 
-data_source = 1
+data_source = 2
 
 #initial_bar_number = 5000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 5000
+initial_bar_number = 50 if data_source == 1 else 500
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -210,7 +210,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 printed_figure_num = 1
 
