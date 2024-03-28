@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -321,7 +321,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -517,7 +517,7 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow" #_relaxFastSlow
 
     #2
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_reg"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7"
 
     #3
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple" #_relaxFastSlow
@@ -740,7 +740,9 @@ def start_do_trading():
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 11, 13, 21, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2023, 10, 13, 18, 0, 0)]
+
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 3, 23, 4, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
@@ -806,14 +808,14 @@ def start_do_trading():
                             else:
                                 incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
-                            print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
-
+                            # print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
+                            #
                             # print("incremental_data_df after:")
                             # print(incremental_data_df)
-
-                            # incremental_data_df = incremental_data_df.iloc[1:-1]
-
-                            print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
+                            #
+                            # # incremental_data_df = incremental_data_df.iloc[1:-1]
+                            #
+                            # print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
                         if is_real_time_trading and incremental_data_df.shape[0] > 0:
 
