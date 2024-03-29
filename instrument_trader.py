@@ -210,9 +210,9 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
@@ -1048,7 +1048,14 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['vegas_long_cond11'] = (self.data_df['close'] - self.data_df['upper_vegas']) < 5 * self.data_df['vegas_distance']
 
         #_notExceedGuppy3
-        self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) | (self.data_df['fast_vegas'] > self.data_df['slow_vegas'])
+        self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) | \
+                                            (self.data_df['fast_vegas'] > self.data_df['slow_vegas'])
+
+        #Relax
+        # self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) |\
+        #                                     (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) | (self.data_df['guppy_all_strong_aligned_long'])
+
+
 
         #self.data_df['vegas_long_cond12'] = self.data_df['open'] < self.data_df['guppy_max']
 
@@ -1081,7 +1088,12 @@ class CurrencyTrader(threading.Thread):
 
         #self.data_df['vegas_short_cond11'] = (self.data_df['lower_vegas'] - self.data_df['close']) < 5 * self.data_df['vegas_distance']
 
-        self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) | (self.data_df['fast_vegas'] < self.data_df['slow_vegas'])
+        self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) | \
+                                             (self.data_df['fast_vegas'] < self.data_df['slow_vegas'])
+
+        #Relax
+        # self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) |\
+        #                                      (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) | (self.data_df['guppy_all_strong_aligned_short'])
 
         #self.data_df['vegas_short_cond12'] = self.data_df['open'] > self.data_df['guppy_min']
 
