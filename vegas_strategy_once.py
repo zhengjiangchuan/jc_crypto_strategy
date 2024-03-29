@@ -103,7 +103,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     #
-    # print(data_df.iloc[0:20])
+    print(data_df.iloc[-10:])
 
     return data_df
 
@@ -486,6 +486,10 @@ def start_do_trading():
         row = currency_df.iloc[i]
         currency_pairs += [CurrencyPair(row['currency'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'])]
 
+    print("currencies:")
+    print([currencyPair.currency for currencyPair in currency_pairs])
+    #sys.exit(0)
+
     # currencies = list(currency_df['currency'])
 
     # currencies = ['CADJPY']
@@ -517,7 +521,11 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow" #_relaxFastSlow
 
     #2
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
+
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas_new"
+
+
 
     #3
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple" #_relaxFastSlow

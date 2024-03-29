@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 plot_day_line = False
 plot_cross_point = True
