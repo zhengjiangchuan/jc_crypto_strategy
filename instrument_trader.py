@@ -210,9 +210,9 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
-printed_figure_num = 1
+printed_figure_num = 2
 
 plot_day_line = False
 plot_cross_point = True
@@ -1407,7 +1407,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
         self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
-        self.data_df['vegas_long_cond3'] = self.data_df['close'] < self.data_df['lower_vegas']
+        self.data_df['vegas_long_cond3'] = True #self.data_df['close'] < self.data_df['lower_vegas']
 
         #*self.lot_size * self.exchange_rate
         for li in range(1, (look_backward_group_num-1)//2+1):
@@ -1448,7 +1448,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
         self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
-        self.data_df['vegas_short_cond3'] = self.data_df['close'] > self.data_df['upper_vegas']
+        self.data_df['vegas_short_cond3'] = True #self.data_df['close'] > self.data_df['upper_vegas']
 
         for li in range(1, (look_backward_group_num-1)//2+1):
             self.data_df['vegas_short_cond4' + str(li)] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + tolerance_bps/(self.lot_size * self.exchange_rate)

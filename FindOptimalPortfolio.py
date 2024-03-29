@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore")
 start_date = datetime(2023, 4, 1)  # 4.1
 
 forex_dir = "C:\\Users\\admin\\JCForex_prod"
-root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7"
+root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -135,9 +135,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
     trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7\\all_trades.csv"),
+                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas\\all_trades.csv"),
                    os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7\\all_trades.csv")]
+                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas\\all_trades.csv")]
 
     # output_file = os.path.join(root_dir,
     #                            "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all.csv")
@@ -586,7 +586,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,3,25)]
+end_dates = [datetime(2024,3,30)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
