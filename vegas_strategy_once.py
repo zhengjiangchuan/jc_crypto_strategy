@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
@@ -376,7 +376,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = ['USDCAD']
+    currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -428,22 +428,22 @@ def start_do_trading():
     currency_list = currency_df['currency'].tolist()
 
     ################### Temp Copy Currency data outside ##################
-    print("root_folder: ")
-    print(root_folder)
-    temp_data_folder = os.path.join(root_folder, "all_data")
-    if not os.path.exists(temp_data_folder):
-        os.makedirs(temp_data_folder)
-    for currency in currency_list:
-        print("Copy data of " + currency)
-        file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
-        out_folder = os.path.join(temp_data_folder, currency, "data")
-        if not os.path.exists(out_folder):
-            os.makedirs(out_folder)
-
-        print("Copy from " + file_path + " to " + out_folder)
-        shutil.copy2(file_path, out_folder)
-
-    sys.exit(0)
+    # print("root_folder: ")
+    # print(root_folder)
+    # temp_data_folder = os.path.join(root_folder, "all_data")
+    # if not os.path.exists(temp_data_folder):
+    #     os.makedirs(temp_data_folder)
+    # for currency in currency_list:
+    #     print("Copy data of " + currency)
+    #     file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
+    #     out_folder = os.path.join(temp_data_folder, currency, "data")
+    #     if not os.path.exists(out_folder):
+    #         os.makedirs(out_folder)
+    #
+    #     print("Copy from " + file_path + " to " + out_folder)
+    #     shutil.copy2(file_path, out_folder)
+    #
+    # sys.exit(0)
 
     # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
     # print(root_folder)
