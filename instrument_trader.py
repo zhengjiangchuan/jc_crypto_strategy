@@ -1414,6 +1414,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond4'] = (self.data_df['long_prevGroup_1critical_price'] > self.data_df['long_prevGroup_3critical_price'])
 
         self.data_df['vegas_long_cond5'] = self.data_df['bar_cross_guppy_label'] == 1
+        self.data_df['vegas_long_cond6'] = ~self.data_df['guppy_all_strong_aligned_short']
+
 
 
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
@@ -1424,6 +1426,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond4'] = (self.data_df['short_prevGroup_1critical_price'] < self.data_df['short_prevGroup_3critical_price'])
 
         self.data_df['vegas_short_cond5'] = self.data_df['bar_cross_guppy_label'] == 0
+        self.data_df['vegas_short_cond6'] = ~self.data_df['guppy_all_strong_aligned_long']
+
 
         #########################################################
 
@@ -1601,8 +1605,8 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 6)])  #10
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 6)])  #10
+        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 7)])  #10
+        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 7)])  #10
 
         # for li in range(1, (look_backward_group_num-1)//2+1):
         #     self.data_df['vegas_long_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij)] for ij in range(0, 4)])
