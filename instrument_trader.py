@@ -214,7 +214,7 @@ use_dynamic_TP = True
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -1422,6 +1422,9 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_long_cond9'] = True #self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
+        self.data_df['vegas_long_cond10'] = True #~(((self.data_df['bar_up_phase_duration']>=24*5) | (self.data_df['vegas_phase_duration'] >= 24*5)) & (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['open'] > self.data_df['upper_vegas']))
+
+
 
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
@@ -1438,6 +1441,10 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond8'] = True #self.data_df['guppy_half1_strong_aligned_short']
 
         self.data_df['vegas_short_cond9'] = True #self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] < 48
+
+        self.data_df['vegas_short_cond10'] = True #~(((self.data_df['bar_down_phase_duration']>=24*5) | (self.data_df['vegas_phase_duration'] >= 24*5)) & (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['open'] < self.data_df['lower_vegas']))
+
+
 
         #########################################################
 
@@ -1615,8 +1622,8 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 10)])  #10
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 10)])  #10
+        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 11)])  #10
+        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 11)])  #10
 
         # for li in range(1, (look_backward_group_num-1)//2+1):
         #     self.data_df['vegas_long_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij)] for ij in range(0, 4)])
@@ -1988,10 +1995,10 @@ class CurrencyTrader(threading.Thread):
 
                     long_stop_loss_price = long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
-                    if long_fire_data['bar_cross_guppy_label'] == 0 and (long_fire_data['open'] > long_fire_data['guppy_min']):
-                        long_stop_loss_price = max(long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
-                                               long_fire_data['guppy_min'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                                               )
+                    # if long_fire_data['bar_cross_guppy_label'] == 0 and (long_fire_data['open'] > long_fire_data['guppy_min']):
+                    #     long_stop_loss_price = max(long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
+                    #                            long_fire_data['guppy_min'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    #                            )
 
 
 
@@ -2737,10 +2744,10 @@ class CurrencyTrader(threading.Thread):
 
                     short_stop_loss_price = short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
-                    if short_fire_data['bar_cross_guppy_label'] == 1 and (short_fire_data['open'] < short_fire_data['guppy_max']):
-                        short_stop_loss_price = min(short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
-                                               short_fire_data['guppy_max'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                                               )
+                    # if short_fire_data['bar_cross_guppy_label'] == 1 and (short_fire_data['open'] < short_fire_data['guppy_max']):
+                    #     short_stop_loss_price = min(short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
+                    #                            short_fire_data['guppy_max'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    #                            )
 
                     # short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/2.0,
                     #                            short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)

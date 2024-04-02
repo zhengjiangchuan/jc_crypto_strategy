@@ -517,7 +517,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_V0_adjStopLoss_all"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_V0_reg"
 
 
 
