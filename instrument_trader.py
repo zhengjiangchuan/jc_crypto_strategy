@@ -210,11 +210,11 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = -1
 
 plot_day_line = True
 plot_cross_point = True
@@ -1420,7 +1420,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_long_cond8'] = True #self.data_df['guppy_half1_strong_aligned_long']
 
-        self.data_df['vegas_long_cond9'] = self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] < 48
+        self.data_df['vegas_long_cond9'] = True #self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
 
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
@@ -1437,7 +1437,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_short_cond8'] = True #self.data_df['guppy_half1_strong_aligned_short']
 
-        self.data_df['vegas_short_cond9'] = self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] < 48
+        self.data_df['vegas_short_cond9'] = True #self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
         #########################################################
 
@@ -1987,6 +1987,15 @@ class CurrencyTrader(threading.Thread):
                     #print("use prevGroup " + str(li) + " to calculate short stop price")
 
                     long_stop_loss_price = long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                    if long_fire_data['bar_cross_guppy_label'] == 0 and (long_fire_data['open'] > long_fire_data['guppy_min']):
+                        long_stop_loss_price = max(long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
+                                               long_fire_data['guppy_min'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                                               )
+
+
+
+
 
                     # long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_2critical_price'])/2.0,
                     #                            long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
@@ -2727,6 +2736,11 @@ class CurrencyTrader(threading.Thread):
                     #print("use prevGroup " + str(li) + " to calculate short stop price")
 
                     short_stop_loss_price = short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                    if short_fire_data['bar_cross_guppy_label'] == 1 and (short_fire_data['open'] < short_fire_data['guppy_max']):
+                        short_stop_loss_price = min(short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
+                                               short_fire_data['guppy_max'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                                               )
 
                     # short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/2.0,
                     #                            short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
