@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -517,7 +517,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_all"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_V1"
 
 
 
