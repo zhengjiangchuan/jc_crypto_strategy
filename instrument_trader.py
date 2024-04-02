@@ -214,7 +214,7 @@ use_dynamic_TP = True
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 plot_day_line = False
 plot_cross_point = True
@@ -1439,6 +1439,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
 
+        self.data_df['vegas_long_cond11'] = True #self.data_df['bar_down_phase_duration'] >= 24*5
+
         #self.data_df['vegas_long_cond10'] = True
 
         #Weaker Stronger
@@ -1483,6 +1485,8 @@ class CurrencyTrader(threading.Thread):
         #Weaker
         self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+        self.data_df['vegas_short_cond11'] = True #self.data_df['bar_up_phase_duration'] >= 24 * 5
 
         #self.data_df['vegas_short_cond10'] = True
 
@@ -1583,12 +1587,12 @@ class CurrencyTrader(threading.Thread):
 
         for li in range(1, (look_backward_group_num-1)//2+1):
             self.data_df['vegas_long_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij)] for ij in range(0, 4)])
-            self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond10']
+            self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond10'] & self.data_df['vegas_long_cond11']
             self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij) + str(li)] for ij in range(4, 9)]))
 
         for li in range(1, (look_backward_group_num-1)//2+1):
             self.data_df['vegas_short_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij)] for ij in range(0, 4)])
-            self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond10']
+            self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond10'] & self.data_df['vegas_short_cond11']
             self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij) + str(li)] for ij in range(4, 9)]))
 
 
