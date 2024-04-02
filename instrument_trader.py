@@ -210,11 +210,11 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = 2
 
 plot_day_line = False
 plot_cross_point = True
@@ -1439,6 +1439,8 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
 
+        #self.data_df['vegas_long_cond10'] = True
+
         #Weaker Stronger
         # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
         #                                       (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 48))
@@ -1481,6 +1483,8 @@ class CurrencyTrader(threading.Thread):
         #Weaker
         self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+        #self.data_df['vegas_short_cond10'] = True
 
         #Weaker Stronger
         # self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
