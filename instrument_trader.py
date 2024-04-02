@@ -216,7 +216,7 @@ use_conditional_stop_loss = False
 
 printed_figure_num = 1
 
-plot_day_line = False
+plot_day_line = True
 plot_cross_point = True
 
 unit_loss = 100 #This is HKD
@@ -1413,9 +1413,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond3'] = (self.data_df['long_critical_price'] > self.data_df['long_prevGroup_2critical_price'])
         self.data_df['vegas_long_cond4'] = (self.data_df['long_prevGroup_1critical_price'] > self.data_df['long_prevGroup_3critical_price'])
 
-        self.data_df['vegas_long_cond5'] = self.data_df['bar_cross_guppy_label'] == 1
-        self.data_df['vegas_long_cond6'] = ~self.data_df['guppy_all_strong_aligned_short']
+        self.data_df['vegas_long_cond5'] = True #self.data_df['bar_cross_guppy_label'] == 1
+        self.data_df['vegas_long_cond6'] = True #~self.data_df['guppy_all_strong_aligned_short']
 
+        self.data_df['vegas_long_cond7'] = True #((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & self.data_df['slow_vegas_up'])
+
+        self.data_df['vegas_long_cond8'] = True #self.data_df['guppy_half1_strong_aligned_long']
+
+        self.data_df['vegas_long_cond9'] = self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
 
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
@@ -1425,9 +1430,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond3'] = (self.data_df['short_critical_price'] < self.data_df['short_prevGroup_2critical_price'])
         self.data_df['vegas_short_cond4'] = (self.data_df['short_prevGroup_1critical_price'] < self.data_df['short_prevGroup_3critical_price'])
 
-        self.data_df['vegas_short_cond5'] = self.data_df['bar_cross_guppy_label'] == 0
-        self.data_df['vegas_short_cond6'] = ~self.data_df['guppy_all_strong_aligned_long']
+        self.data_df['vegas_short_cond5'] = True #self.data_df['bar_cross_guppy_label'] == 0
+        self.data_df['vegas_short_cond6'] = True #~self.data_df['guppy_all_strong_aligned_long']
 
+        self.data_df['vegas_short_cond7'] = True #((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & self.data_df['slow_vegas_down'])
+
+        self.data_df['vegas_short_cond8'] = True #self.data_df['guppy_half1_strong_aligned_short']
+
+        self.data_df['vegas_short_cond9'] = self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
         #########################################################
 
@@ -1605,8 +1615,8 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 7)])  #10
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 7)])  #10
+        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 10)])  #10
+        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 10)])  #10
 
         # for li in range(1, (look_backward_group_num-1)//2+1):
         #     self.data_df['vegas_long_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij)] for ij in range(0, 4)])
