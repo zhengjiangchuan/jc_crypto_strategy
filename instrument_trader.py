@@ -212,6 +212,8 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
+use_conditional_stop_loss = False
+
 printed_figure_num = 1
 
 plot_day_line = False
@@ -1407,7 +1409,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
         self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
-        self.data_df['vegas_long_cond3'] = True #self.data_df['close'] < self.data_df['lower_vegas']
+        #self.data_df['vegas_long_cond3'] = True #self.data_df['close'] < self.data_df['lower_vegas']
+
+        self.data_df['vegas_long_cond3'] = self.data_df['open'] < self.data_df['upper_vegas'] #relaxReqBelowVegas
+
+        #self.data_df['vegas_long_cond3'] = self.data_df['close'] >= self.data_df['lower_vegas']
 
         #*self.lot_size * self.exchange_rate
         for li in range(1, (look_backward_group_num-1)//2+1):
@@ -1431,7 +1437,7 @@ class CurrencyTrader(threading.Thread):
 
         #Weaker
         self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-                                             (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
+                                            (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
 
         #Weaker Stronger
         # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
@@ -1448,7 +1454,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
         self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
-        self.data_df['vegas_short_cond3'] = True #self.data_df['close'] > self.data_df['upper_vegas']
+        #self.data_df['vegas_short_cond3'] = True #self.data_df['close'] > self.data_df['upper_vegas']
+
+        self.data_df['vegas_short_cond3'] = self.data_df['open'] > self.data_df['lower_vegas'] #relaxReqBelowVegas
+
+        #self.data_df['vegas_short_cond3'] = self.data_df['close'] <= self.data_df['upper_vegas']
 
         for li in range(1, (look_backward_group_num-1)//2+1):
             self.data_df['vegas_short_cond4' + str(li)] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + tolerance_bps/(self.lot_size * self.exchange_rate)
@@ -1924,50 +1934,51 @@ class CurrencyTrader(threading.Thread):
 
                 entry_price = long_fire_data['close']
 
-                #long_stop_loss_price = long_fire_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                if use_conditional_stop_loss and (long_fire_data['open'] > long_fire_data['upper_vegas']):
 
-                #for li in range(1, (look_backward_group_num-1)//2+1):
+                    long_stop_loss_price = long_fire_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
-                for li in range(1, (look_backward_group_num - 1) // 2 + 1):
-                    if long_fire_data['vegas_long_fire' + str(li)]:
-                        break
+                else:
+                    for li in range(1, (look_backward_group_num - 1) // 2 + 1):
+                        if long_fire_data['vegas_long_fire' + str(li)]:
+                            break
 
-                #print("use prevGroup " + str(li) + " to calculate short stop price")
+                    #print("use prevGroup " + str(li) + " to calculate short stop price")
 
-                long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_2critical_price'])/2.0,
-                                           long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                                           )
+                    long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_2critical_price'])/2.0,
+                                               long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                                               )
 
-                # long_stop_loss_price = min((long_fire_data['long_critical_low'] + long_fire_data['long_prevGroup_2low'])/2.0,
-                #                            long_fire_data['long_critical_low'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                #                            )
-
-
-
-                # long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0,
-                #                            long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                #                            )
+                    # long_stop_loss_price = min((long_fire_data['long_critical_low'] + long_fire_data['long_prevGroup_2low'])/2.0,
+                    #                            long_fire_data['long_critical_low'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    #                            )
 
 
 
-                #long_stop_loss_price = long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    # long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0,
+                    #                            long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    #                            )
 
-                #long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0
 
 
-                # print("long_start_id = " + str(long_start_id))
-                # print("entry_price = " + str(entry_price))
-                # print("li = " + str(li))
-                # print("prev odd group critical price = " + str(long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price']))
-                # print("prev even group critical price = " + str(long_fire_data['long_prevGroup_' + str(li*2-1) + 'critical_price']))
-                #
-                #
-                # print("long_stop_loss_price = " + str(long_stop_loss_price))
-                #
-                # if (entry_price < long_stop_loss_price):
-                #     print("Something is wrong here ###############################################")
-                #
-                # print("")
+                    #long_stop_loss_price = long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                    #long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0
+
+
+                    # print("long_start_id = " + str(long_start_id))
+                    # print("entry_price = " + str(entry_price))
+                    # print("li = " + str(li))
+                    # print("prev odd group critical price = " + str(long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price']))
+                    # print("prev even group critical price = " + str(long_fire_data['long_prevGroup_' + str(li*2-1) + 'critical_price']))
+                    #
+                    #
+                    # print("long_stop_loss_price = " + str(long_stop_loss_price))
+                    #
+                    # if (entry_price < long_stop_loss_price):
+                    #     print("Something is wrong here ###############################################")
+                    #
+                    # print("")
 
 
 
@@ -2660,48 +2671,51 @@ class CurrencyTrader(threading.Thread):
                 short_fire_data = self.data_df.iloc[short_start_id]
 
                 entry_price = short_fire_data['close']
-                #short_stop_loss_price = short_fire_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                if use_conditional_stop_loss and (short_fire_data['open'] < short_fire_data['lower_vegas']):
+
+                    short_stop_loss_price = short_fire_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                else:
+                    for li in range(1, (look_backward_group_num - 1) // 2 + 1):
+                        if short_fire_data['vegas_short_fire' + str(li)]:
+                            break
+
+                    #print("use prevGroup " + str(li) + " to calculate short stop price")
+
+                    short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/2.0,
+                                               short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                                               )
+
+                    # short_stop_loss_price = max((short_fire_data['short_critical_high'] + short_fire_data['short_prevGroup_2high'])/2.0,
+                    #                            short_fire_data['short_critical_high'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    #                            )
 
 
-                for li in range(1, (look_backward_group_num - 1) // 2 + 1):
-                    if short_fire_data['vegas_short_fire' + str(li)]:
-                        break
 
-                #print("use prevGroup " + str(li) + " to calculate short stop price")
+                    # short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0,
+                    #                            short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    #                            )
 
-                short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/2.0,
-                                           short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                                           )
+                    # short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
-                # short_stop_loss_price = max((short_fire_data['short_critical_high'] + short_fire_data['short_prevGroup_2high'])/2.0,
-                #                            short_fire_data['short_critical_high'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                #                            )
+                    #short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0
 
-
-
-                # short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0,
-                #                            short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                #                            )
-
-                # short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-
-                #short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0
-
-                # print("short_start_id = " + str(short_start_id))
-                # print("entry_price = " + str(entry_price))
-                # print("entry_time = " + str(short_fire_data['time']))
-                # print("short_critical_price = " + str(short_fire_data['short_critical_price']))
-                # print("li = " + str(li))
-                # print("prev odd group critical price = " + str(short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price']))
-                # print("prev even group critical price = " + str(short_fire_data['short_prevGroup_' + str(li*2-1) + 'critical_price']))
-                #
-                #
-                # print("short_stop_loss_price = " + str(short_stop_loss_price))
-                #
-                # if (entry_price > short_stop_loss_price):
-                #     print("Something is wrong here ###############################################")
-                #
-                # print("")
+                    # print("short_start_id = " + str(short_start_id))
+                    # print("entry_price = " + str(entry_price))
+                    # print("entry_time = " + str(short_fire_data['time']))
+                    # print("short_critical_price = " + str(short_fire_data['short_critical_price']))
+                    # print("li = " + str(li))
+                    # print("prev odd group critical price = " + str(short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price']))
+                    # print("prev even group critical price = " + str(short_fire_data['short_prevGroup_' + str(li*2-1) + 'critical_price']))
+                    #
+                    #
+                    # print("short_stop_loss_price = " + str(short_stop_loss_price))
+                    #
+                    # if (entry_price > short_stop_loss_price):
+                    #     print("Something is wrong here ###############################################")
+                    #
+                    # print("")
 
 
 
