@@ -300,9 +300,9 @@ def start_do_trading():
 
     data_source = 1
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -501,7 +501,7 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_removeMustReject1"
 
     #3
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple" #_relaxFastSlow
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple_0403" #_relaxFastSlow
 
     #4
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_removeMustReject1_rejectLongTrend_simple" #_relaxFastSlow
