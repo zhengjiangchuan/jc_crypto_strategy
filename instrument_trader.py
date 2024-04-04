@@ -210,7 +210,7 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 printed_figure_num = 1
 
@@ -703,7 +703,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
                                                 (self.data_df['middle'] > self.data_df['upper_vegas']) &\
                                                 (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-                                                (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+                                                (self.data_df['vegas_phase_duration'] > 24) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
 
 
         # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
@@ -853,7 +853,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
                                                  (self.data_df['middle'] < self.data_df['lower_vegas']) &\
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
+                                                 (self.data_df['vegas_phase_duration'] > 24) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
         # self.data_df['final_short_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
         #                                         (self.data_df['middle'] < self.data_df['lower_vegas']) &\
