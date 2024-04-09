@@ -214,9 +214,9 @@ use_dynamic_TP = False
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
-plot_day_line = False
+plot_day_line = True
 plot_cross_point = True
 
 unit_loss = 100 #This is HKD
@@ -1906,7 +1906,9 @@ class CurrencyTrader(threading.Thread):
 
             result_columns = ['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
                               'long_stop_profit_price', 'actual_tp_num', 'tp_num',
-                              'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount']
+                              'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount', 'reach_tp1_time'] #Gavin
+
+
 
             result_data = []
 
@@ -1927,6 +1929,8 @@ class CurrencyTrader(threading.Thread):
                 if is_effective[ii] == 0:
                     self.data_df.at[long_start_ids[ii], 'final_vegas_long_fire'] = False
                     continue
+
+                reach_tp1_time = None  # Gavin
 
                 entry_com_discount = 0.0
                 exit_com_discount = 0.0
@@ -2183,6 +2187,9 @@ class CurrencyTrader(threading.Thread):
 
                         tp_number += 1
 
+                        if reach_tp1_time is None:
+                            reach_tp1_time = cur_data['time']  #Gavin
+
                         if not use_dynamic_TP:
                             long_stop_profit_loss_time = cur_data['time']
                             long_stop_profit_loss_id = cur_data['id']
@@ -2376,7 +2383,7 @@ class CurrencyTrader(threading.Thread):
                 #Guoji
                 result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, self.round_price(TP1),
                              unit_range, position, margin, long_actual_stop_profit_price, actual_tp_number, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time,
-                                 entry_com_discount, exit_com_discount]]
+                                 entry_com_discount, exit_com_discount, reach_tp1_time]] #Gavin
 
             long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -2602,7 +2609,7 @@ class CurrencyTrader(threading.Thread):
 
 
         write_long_df = long_df_copy[['currency', 'side', 'time', 'close',
-                                 'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price'] +
+                                 'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price', 'reach_tp1_time'] +
                                 (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
 
@@ -2617,7 +2624,7 @@ class CurrencyTrader(threading.Thread):
                                             np.where(write_long_df['is_win'] == -1, 0, -1))
         write_long_df['exit_price'] = np.where(write_long_df['is_win'] == 1, write_long_df['long_stop_profit_price'], write_long_df['long_stop_loss_price'])
 
-        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win'] +\
+        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time'] +\
                                       (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
         write_long_df['exit_price'] = write_long_df['exit_price'].apply(lambda x: self.round_price(x))
@@ -2648,7 +2655,9 @@ class CurrencyTrader(threading.Thread):
 
         if use_dynamic_TP or always_use_new_close_logic:
             result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
-                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount']
+                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount', 'reach_tp1_time'] #Gavin
+
+
 
             result_data = []
 
@@ -2668,6 +2677,8 @@ class CurrencyTrader(threading.Thread):
                 if is_effective[ii] == 0:
                     self.data_df.at[short_start_ids[ii], 'final_vegas_short_fire'] = False
                     continue
+
+                reach_tp1_time = None  # Gavin
 
                 entry_com_discount = 0.0
                 exit_com_discount = 0.0
@@ -2930,6 +2941,9 @@ class CurrencyTrader(threading.Thread):
 
                         tp_number += 1
 
+                        if reach_tp1_time is None:
+                            reach_tp1_time = cur_data['time']  # Gavin
+
                         if not use_dynamic_TP:
                             short_stop_profit_loss_time = cur_data['time']
                             short_stop_profit_loss_id = cur_data['id']
@@ -3116,7 +3130,7 @@ class CurrencyTrader(threading.Thread):
                 #Guoji
                 result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, self.round_price(TP1),
                                  unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time,
-                                 entry_com_discount, exit_com_discount]]
+                                 entry_com_discount, exit_com_discount, reach_tp1_time]] #Gavin
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -3330,7 +3344,7 @@ class CurrencyTrader(threading.Thread):
         short_df_copy['side'] = 'short'
 
         write_short_df = short_df_copy[['currency', 'side', 'time', 'close',
-                                 'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price'] +
+                                 'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price', 'reach_tp1_time'] +
                                 (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin','entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
 
@@ -3346,7 +3360,7 @@ class CurrencyTrader(threading.Thread):
 
         write_short_df['exit_price'] = np.where(write_short_df['is_win'] == 1, write_short_df['short_stop_profit_price'], write_short_df['short_stop_loss_price'])
 
-        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win'] +\
+        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time'] +\
                                         (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
         write_short_df['exit_price'] = write_short_df['exit_price'].apply(lambda x: self.round_price(x))
@@ -3469,6 +3483,10 @@ class CurrencyTrader(threading.Thread):
 
 
         write_df = pd.concat([write_long_df, write_short_df])
+        write_df['reach_tp1_time'] = np.where(write_df['reach_tp1_time'].notnull(),
+                                              write_df['reach_tp1_time'],
+                                              write_df['exit_time'])
+
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
         self.data_df.to_csv(self.data_file, index = False)
