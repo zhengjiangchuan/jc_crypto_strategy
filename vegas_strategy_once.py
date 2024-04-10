@@ -503,8 +503,8 @@ def start_do_trading():
     data_files = []
     trade_files = []
     performance_files = []
-
-    selected_currencies = [] #currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
+    'GBPUSD', 'EURJPY'
+    selected_currencies = [] #currencies_to_notify #['CADCHF',, 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
 
     #selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
