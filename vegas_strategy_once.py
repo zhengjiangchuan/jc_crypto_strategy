@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 profit_loss_ratio = 1
 
