@@ -296,7 +296,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
     elif figure_num == -2:
         printed_periods = periods[1:]
     else:
-        printed_periods = periods[-figure_num]
+        printed_periods = periods[-figure_num:]
 
     #printed_periods = periods if figure_num == -1 else periods[-figure_num:]
 

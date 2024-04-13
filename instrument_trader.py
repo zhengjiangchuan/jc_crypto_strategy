@@ -223,7 +223,7 @@ plot_cross_point = True
 
 unit_loss = 1000 if is_crypto else 100 #This is HKD
 usdhkd = 7.85
-leverage = 10 #100 for forex, 10 for crypto
+leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
 tp_tolerance = 0.05  #0.05
 
@@ -1962,7 +1962,11 @@ class CurrencyTrader(threading.Thread):
                     #print("use prevGroup " + str(li) + " to calculate short stop price")
 
                     if is_crypto:
-                        long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0
+
+                        if long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'] > 0:
+                            long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0
+                        else:
+                            long_stop_loss_price = long_fire_data['long_critical_price']
 
                         #long_stop_loss_price = long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price']
 
@@ -2719,7 +2723,11 @@ class CurrencyTrader(threading.Thread):
                     #print("use prevGroup " + str(li) + " to calculate short stop price")
 
                     if is_crypto:
-                        short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0
+
+                        if short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'] > 0:
+                            short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0
+                        else:
+                            short_stop_loss_price = short_fire_data['short_critical_price']
 
                         #short_stop_loss_price = short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price']
 

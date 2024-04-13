@@ -23,10 +23,12 @@ warnings.filterwarnings("ignore")
 
 start_date = datetime(2023, 4, 1)  # 4.1
 
-filter_hasty_trades = True
+filter_hasty_trades = False
 
-forex_dir = "C:\\Users\\admin\\JCForex_prod"
-root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0405"
+is_crypto = True
+
+forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0405"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -71,7 +73,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     print("")
     print("Constructing Optimal Portfolio for end_date = " + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
 
-    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv"))
+    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv")) if not is_crypto else pd.read_csv(os.path.join(forex_dir, "crypto.csv"))
 
     currency_list = currency_df['currency'].tolist()
     #currency_list = currency_list[0:2]
@@ -451,8 +453,8 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         trade_df_copy = trade_df_copy.drop(columns=['index'])
         # display(trade_df_copy.iloc[-51:]) ####################################################**********************************************************************************************************************************************
 
-        if output_file is not None:
-            trade_df_copy.to_csv(output_file, index=False)
+        # if output_file is not None:
+        #     trade_df_copy.to_csv(output_file, index=False)
 
 
         #Cut from here
