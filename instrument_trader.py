@@ -210,18 +210,20 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
+
+is_crypto = True
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
 
-unit_loss = 100 #This is HKD
+unit_loss = 1000 if is_crypto else 100 #This is HKD
 usdhkd = 7.85
-leverage = 10 #100 for forex, 10 for crypto
+leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
 tp_tolerance = 0.05  #0.05
 
@@ -1993,7 +1995,25 @@ class CurrencyTrader(threading.Thread):
 
                     #print("use prevGroup " + str(li) + " to calculate short stop price")
 
-                    long_stop_loss_price = long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    if is_crypto:
+
+                        if long_fire_data['long_prevGroup_2critical_price'] > 0:
+                            #long_stop_loss_price = (2 * long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_2critical_price'])/3.0
+                            long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_2critical_price'])/2.0
+
+                        else:
+                            long_stop_loss_price = long_fire_data['long_critical_price']
+
+                        # print("time = " + str(long_fire_data['time']))
+                        # print("long_critical_price = " + str(long_fire_data['long_critical_price']))
+                        # print("long_prevGroup_2critical_price = " + str(long_fire_data['long_prevGroup_2critical_price']))
+                        # print("long_stop_loss_price = " + str(long_stop_loss_price))
+                        # print("")
+
+                    else:
+                        long_stop_loss_price = long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                    assert(long_stop_loss_price < long_fire_data['close'])
 
                     # if long_fire_data['bar_cross_guppy_label'] == 0 and (long_fire_data['open'] > long_fire_data['guppy_min']):
                     #     long_stop_loss_price = max(long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
@@ -2742,7 +2762,25 @@ class CurrencyTrader(threading.Thread):
 
                     #print("use prevGroup " + str(li) + " to calculate short stop price")
 
-                    short_stop_loss_price = short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                    if is_crypto:
+
+                        if short_fire_data['short_prevGroup_2critical_price'] > 0:
+                            #short_stop_loss_price = (2 * short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/3.0
+                            short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/2.0
+
+                        else:
+                            short_stop_loss_price = short_fire_data['short_critical_price']
+
+                        # print("time = " + str(short_fire_data['time']))
+                        # print("short_critical_price = " + str(short_fire_data['short_critical_price']))
+                        # print("short_prevGroup_2critical_price = " + str(short_fire_data['short_prevGroup_2critical_price']))
+                        # print("short_stop_loss_price = " + str(short_stop_loss_price))
+                        # print("")
+
+                    else:
+                        short_stop_loss_price = short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                    assert(short_stop_loss_price > short_fire_data['close'])
 
                     # if short_fire_data['bar_cross_guppy_label'] == 1 and (short_fire_data['open'] < short_fire_data['guppy_max']):
                     #     short_stop_loss_price = min(short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
