@@ -59,7 +59,7 @@ bar_high_percentile = 0.1
 
 vegas_bar_percentile = 0.2
 
-data_source = 1
+data_source = 2
 
 #initial_bar_number = 5000 #3555  50
 initial_bar_number = 50 if data_source == 1 else 500
@@ -221,7 +221,7 @@ plot_cross_point = True
 
 unit_loss = 100 #This is HKD
 usdhkd = 7.85
-leverage = 100
+leverage = 10 #100 for forex, 10 for crypto
 
 tp_tolerance = 0.05  #0.05
 
