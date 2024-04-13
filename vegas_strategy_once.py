@@ -317,7 +317,7 @@ def start_do_trading():
     is_gege_server = False
 
 
-    data_source = 1
+    data_source = 2
 
     is_real_time_trading = True
 
@@ -376,7 +376,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = []
+    currencies_to_run = ['BTCUSD']
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -605,6 +605,9 @@ def start_do_trading():
     fx_raw = []
     reciprocal = []
     fx = []
+
+    raw_currencies = [raw_currency for raw_currency in raw_currencies if raw_currency[0:3] in ['USD','EUR','GBP','CHF','CAD','JPY','AUD','NZD']]
+
     for i in range(len(raw_currencies)):
 
         currency = raw_currencies[i]
@@ -838,16 +841,29 @@ def start_do_trading():
 
                     else:
                         print("Currency file does not exit, query initial data from web")
-                        temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
+
+                        if data_source == 1:
+                            temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
+                        else:
+                            temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
+
                         last_timestamp = temp_data_df.iloc[-1]['time']
+
+
                         print("last_timestamp: " + str(last_timestamp))
-                        print(datetime.fromtimestamp(last_timestamp))
-                        start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
+                        #print(datetime.fromtimestamp(last_timestamp))
+                        #start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
+                        print("initial_bar_num = " + str(initial_bar_number))
+                        start_timestamp = last_timestamp - timedelta(hours = initial_bar_number - 1)
+
 
                         print("last_timestamp = " + str(last_timestamp))
                         print("start_timestamp = " + str(start_timestamp))
 
-                        data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+                        if data_source == 1:
+                            data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+                        else:
+                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
 
                         data_df = data_df.iloc[:-1]
 
