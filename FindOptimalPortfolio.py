@@ -112,7 +112,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     init_deposit = 8000  # 25000
 
-    commission_rate = 28.17 * 2
+    commission_rate = 28.17 * 2 if not is_crypto else 0
 
     consider_cost = True
 
