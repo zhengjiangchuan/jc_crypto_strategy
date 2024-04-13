@@ -82,7 +82,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     # Construct the necessary time series
     ts = td.time_series(
-        symbol=currency[:3] + '/' + currency[3:],
+        symbol=currency[:-3] + '/' + currency[-3:],
         interval="1h",
         outputsize=initial_bar_number,
         timezone="Asia/Singapore",
@@ -355,9 +355,10 @@ def start_do_trading():
         communicate_files += [communicate_file]
     communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
-    currency_file = os.path.join(root_folder, "currency.csv")
+    currency_file = os.path.join(root_folder, "currency.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
 
     currency_df = pd.read_csv(currency_file)
+
 
 
     #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
@@ -376,7 +377,8 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = ['BTCUSD']
+
+    currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -606,22 +608,23 @@ def start_do_trading():
     reciprocal = []
     fx = []
 
-    raw_currencies = [raw_currency for raw_currency in raw_currencies if raw_currency[0:3] in ['USD','EUR','GBP','CHF','CAD','JPY','AUD','NZD']]
+    #raw_currencies = [raw_currency for raw_currency in raw_currencies if raw_currency[0:-3] in ['USD','EUR','GBP','CHF','CAD','JPY','AUD','NZD']]
 
-    for i in range(len(raw_currencies)):
+    if not is_crypto:
+        for i in range(len(raw_currencies)):
 
-        currency = raw_currencies[i]
+            currency = raw_currencies[i]
 
-        # if currency == 'GBPUSD':
-        #     continue
+            # if currency == 'GBPUSD':
+            #     continue
 
-        data_folder = raw_data_folders[i]
-        data_file = os.path.join(data_folder, currency + ".csv")
+            data_folder = raw_data_folders[i]
+            data_file = os.path.join(data_folder, currency + ".csv")
 
-        print("Problem data_file:")
-        print(data_file)
-        df = pd.read_csv(data_file)
-        close_prices += [float(df.iloc[-1]['close'])]
+            print("Problem data_file:")
+            print(data_file)
+            df = pd.read_csv(data_file)
+            close_prices += [float(df.iloc[-1]['close'])]
 
     for i in range(len(currency_list)):
 

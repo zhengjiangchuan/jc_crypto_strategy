@@ -291,7 +291,15 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
     figs = []
     intervals = []
 
-    printed_periods = periods if figure_num == -1 else periods[-figure_num:]
+    if figure_num == -1:
+        printed_periods = periods
+    elif figure_num == -2:
+        printed_periods = periods[1:]
+    else:
+        printed_periods = periods[-figure_num]
+
+    #printed_periods = periods if figure_num == -1 else periods[-figure_num:]
+
     for period in printed_periods:
         start_date = trading_days[period[0]]
 
@@ -859,7 +867,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         plt.xticks(fontsize = 20)
         plt.yticks(fontsize = 20)
 
-        fig.savefig(fig_file_path)
+        try:
+            fig.savefig(fig_file_path)
+        except Exception as error:
+            print(error)
         plt.close(fig)
 
 
