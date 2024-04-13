@@ -73,7 +73,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     print("")
     print("Constructing Optimal Portfolio for end_date = " + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
 
-    currency_df = pd.read_csv(os.path.join(forex_dir, "crypto.csv"))
+    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv")) if not is_crypto else pd.read_csv(os.path.join(forex_dir, "crypto.csv"))
 
     currency_list = currency_df['currency'].tolist()
     #currency_list = currency_list[0:2]
@@ -112,7 +112,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     init_deposit = 8000  # 25000
 
-    commission_rate = 28.17 * 2 if not is_crypto else 0
+    commission_rate = 28.17 * 2
 
     consider_cost = True
 
