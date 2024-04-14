@@ -27,8 +27,14 @@ filter_hasty_trades = False
 
 is_crypto = True
 
+is_mixed = True
+
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_TrendFollowingStrategy_allCurrency_V0_0403"
+
+if is_mixed:
+    root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_mixed_strategies"
+else:
+    root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_TrendFollowingStrategy_allCurrency_V0_0403"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -110,7 +116,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
 def calculate_currency_performance(end_date, currency_list, sorted, accumulated_mode, start_date = datetime(2023, 4, 1)):
 
-    init_deposit = 8000  # 25000
+    init_deposit = 8000 if not is_crypto else 20000  # 25000
 
     commission_rate = 28.17 * 2 if not is_crypto else 0
 
@@ -145,10 +151,28 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                os.path.join(forex_dir,
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
-    trade_files = [os.path.join(forex_dir,
+
+
+
+    if is_mixed:
+        trade_files = [[os.path.join(forex_dir, "all_pnl_chart_ratio1TrendFollowingStrategy_allCurrency_V0_0403\\all_trades.csv"),
+                os.path.join(forex_dir, "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv"),
+                os.path.join(forex_dir, "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")
+               ],
+                [os.path.join(forex_dir, "all_pnl_chart_ratio10TrendFollowingStrategy_allCurrency_V0_0403\\all_trades.csv"),
+                os.path.join(forex_dir, "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv"),
+                os.path.join(forex_dir, "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")
+               ]]
+    else:
+         trade_files = [os.path.join(forex_dir,
                                 "all_pnl_chart_ratio1TrendFollowingStrategy_allCurrency_V0_0403\\all_trades.csv"),
                    os.path.join(forex_dir,
                                 "all_pnl_chart_ratio10TrendFollowingStrategy_allCurrency_V0_0403\\all_trades.csv")]
+
+
+
+
+
 
     output_file = None
 
@@ -160,7 +184,18 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #currencies_with_no_data = []
 
     for trade_file in trade_files:
-        raw_trade_dfs += [pd.read_csv(trade_file)]
+        if 'list' in str(type(trade_file)):
+            trade_df = pd.concat([pd.read_csv(file) for file in trade_file])
+            trade_df.reset_index(inplace=True)
+            if 'reach_tp1_time' in trade_df.columns:
+                trade_df = trade_df.drop(columns=['reach_tp1_time'])
+            raw_trade_dfs += [trade_df]
+        else:
+            raw_trade_dfs += [pd.read_csv(trade_file)]
+
+
+    # for trade_file in trade_files:
+    #     raw_trade_dfs += [pd.read_csv(trade_file)]
 
     for i in range(0, len(currency_list)):
 
