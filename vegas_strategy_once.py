@@ -298,7 +298,7 @@ def start_do_trading():
     is_gege_server = False
 
 
-    data_source = 1
+    data_source = 1 if not is_crypto else 2
 
     is_real_time_trading = True
 
@@ -503,7 +503,10 @@ def start_do_trading():
     #3
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple_0403" #_relaxFastSlow
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify" #_relaxFastSlow
+    if use_0threshold:
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
+    else:
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify" #_relaxFastSlow
 
 
     #4

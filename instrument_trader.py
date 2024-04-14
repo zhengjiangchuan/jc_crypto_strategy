@@ -212,6 +212,8 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
+use_0threshold = False
+
 is_crypto = True
 
 crypto_stop_loss_coefficient = 2
@@ -235,6 +237,9 @@ relax_vegas = True
 vegas_threshold = 1 if relax_vegas else 0
 
 vegas_condition_threshold = 10 if relax_vegas else 1
+
+if is_crypto and use_0threshold:
+    vegas_condition_threshold = 0
 
 
 
