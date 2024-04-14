@@ -32,7 +32,7 @@ is_mixed = True
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
 
 if is_mixed:
-    root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_mixed_strategies"
+    root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_mixed_2strategies"
 else:
     root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_TrendFollowingStrategy_allCurrency_V0_0403"
 
@@ -156,12 +156,12 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     if is_mixed:
         trade_files = [[os.path.join(forex_dir, "all_pnl_chart_ratio1TrendFollowingStrategy_allCurrency_V0_0403\\all_trades.csv"),
-                os.path.join(forex_dir, "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv"),
-                os.path.join(forex_dir, "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")
+                os.path.join(forex_dir, "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv")
+                #os.path.join(forex_dir, "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")
                ],
                 [os.path.join(forex_dir, "all_pnl_chart_ratio10TrendFollowingStrategy_allCurrency_V0_0403\\all_trades.csv"),
-                os.path.join(forex_dir, "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv"),
-                os.path.join(forex_dir, "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")
+                os.path.join(forex_dir, "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv")
+                #os.path.join(forex_dir, "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")
                ]]
     else:
          trade_files = [os.path.join(forex_dir,
