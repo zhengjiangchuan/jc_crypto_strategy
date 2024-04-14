@@ -597,8 +597,8 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         axes[0].set_ylabel(axes[0].get_ylabel(), size=font_size)
         #axes[0].set_yticklabels(axes[0].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
-        axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
+        #axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
+        #axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
         axes[0].axhline(0, ls='--', color='green', linewidth=1)
 
         axes[0].axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
@@ -624,7 +624,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         axes[1].set_ylabel(axes[1].get_ylabel(), size=font_size)
         #axes[1].set_yticklabels(axes[1].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
+        #axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
         axes[1].axhline(0, ls='--', color='green', linewidth=1)
 
         plt.setp(axes[1].get_xticklabels(), rotation=45)
@@ -636,7 +636,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         axes[2].set_ylabel(axes[2].get_ylabel(), size=font_size)
         #axes[2].set_yticklabels(axes[2].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
+        #axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
         axes[2].axhline(0, ls='--', color='green', linewidth=1)
 
         plt.setp(axes[2].get_xticklabels(), rotation=45)
@@ -675,6 +675,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
                           trading_days, trade_num, round(trades_per_day, 2)]]
 
         if sorted:
+            #print(os.path.join(final_output_folder, currency_name + ".png"))
             fig.savefig(os.path.join(final_output_folder, currency_name + ".png"))
 
         plt.close(fig)
@@ -730,7 +731,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,4,5)]
+end_dates = [datetime(2024,4,15)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
