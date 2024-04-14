@@ -317,11 +317,11 @@ def start_do_trading():
     is_gege_server = False
 
 
-    data_source = 2
+    data_source = 2 if is_crypto else 1
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -428,22 +428,22 @@ def start_do_trading():
     currency_list = currency_df['currency'].tolist()
 
     ################### Temp Copy Currency data outside ##################
-    # print("root_folder: ")
-    # print(root_folder)
-    # temp_data_folder = os.path.join(root_folder, "all_data")
-    # if not os.path.exists(temp_data_folder):
-    #     os.makedirs(temp_data_folder)
-    # for currency in currency_list:
-    #     print("Copy data of " + currency)
-    #     file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
-    #     out_folder = os.path.join(temp_data_folder, currency, "data")
-    #     if not os.path.exists(out_folder):
-    #         os.makedirs(out_folder)
-    #
-    #     print("Copy from " + file_path + " to " + out_folder)
-    #     shutil.copy2(file_path, out_folder)
-    #
-    # sys.exit(0)
+    print("root_folder: ")
+    print(root_folder)
+    temp_data_folder = os.path.join(root_folder, "all_data")
+    if not os.path.exists(temp_data_folder):
+        os.makedirs(temp_data_folder)
+    for currency in currency_list:
+        print("Copy data of " + currency)
+        file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
+        out_folder = os.path.join(temp_data_folder, currency, "data")
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+
+        print("Copy from " + file_path + " to " + out_folder)
+        shutil.copy2(file_path, out_folder)
+
+    sys.exit(0)
 
     # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
     # print(root_folder)

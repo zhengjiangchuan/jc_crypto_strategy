@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
-is_crypto = True
+is_crypto = False
 
 use_conditional_stop_loss = False
 
