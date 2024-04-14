@@ -109,7 +109,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
 def calculate_currency_performance(end_date, currency_list, sorted, accumulated_mode, start_date = datetime(2023, 4, 1)):
 
-    init_deposit = 8000  # 25000
+    init_deposit = 8000 if not is_crypto else 80000  # 25000
 
     commission_rate = 28.17 * 2 if not is_crypto else 0
 
