@@ -23,8 +23,12 @@ warnings.filterwarnings("ignore")
 
 start_date = datetime(2023, 4, 1)  # 4.1
 
-forex_dir = "C:\\Users\\admin\\JCForex_prod"
-root_dir = "C:\\Users\\admin\\JCForex_prod\\portfolio_construction"
+is_crypto = True
+
+forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_vegasStrategy"
+
+
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -62,7 +66,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     print("")
     print("Constructing Optimal Portfolio for end_date = " + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
 
-    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv"))
+    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv")) if not is_crypto else pd.read_csv(os.path.join(forex_dir, "crypto.csv"))
 
     currency_list = currency_df['currency'].tolist()
     #currency_list = currency_list[0:2]

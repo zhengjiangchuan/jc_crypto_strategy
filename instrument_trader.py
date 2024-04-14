@@ -62,7 +62,7 @@ vegas_bar_percentile = 0.2
 data_source = 1
 
 #initial_bar_number = 5000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 200
+initial_bar_number = 50 if data_source == 1 else 500
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -212,11 +212,15 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
+is_crypto = True
+
+crypto_stop_loss_coefficient = 2
+
 printed_figure_num = 1
 
-unit_loss = 100 #This is HKD
+unit_loss = 1000 if is_crypto else 100 #This is HKD
 usdhkd = 7.85
-leverage = 100
+leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
 tp_tolerance = 0.05  #0.05
 
@@ -1450,7 +1454,13 @@ class CurrencyTrader(threading.Thread):
                 long_fire_data = self.data_df.iloc[long_start_id]
 
                 entry_price = long_fire_data['close']
-                long_stop_loss_price = long_fire_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                if is_crypto:
+
+                    long_stop_loss_price = long_fire_data['lower_vegas'] - crypto_stop_loss_coefficient*(long_fire_data['upper_vegas'] - long_fire_data['lower_vegas'])
+
+                else:
+                    long_stop_loss_price = long_fire_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
                 unit_range = long_fire_data['close'] - long_stop_loss_price
 
@@ -2141,7 +2151,13 @@ class CurrencyTrader(threading.Thread):
                 short_fire_data = self.data_df.iloc[short_start_id]
 
                 entry_price = short_fire_data['close']
-                short_stop_loss_price = short_fire_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                if is_crypto:
+
+                    short_stop_loss_price = short_fire_data['upper_vegas'] + crypto_stop_loss_coefficient*(short_fire_data['upper_vegas'] - short_fire_data['lower_vegas'])
+
+                else:
+                    short_stop_loss_price = short_fire_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
                 unit_range = short_stop_loss_price - short_fire_data['close']
 

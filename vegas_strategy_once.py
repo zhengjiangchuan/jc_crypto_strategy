@@ -82,7 +82,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     # Construct the necessary time series
     ts = td.time_series(
-        symbol=currency[:3] + '/' + currency[3:],
+        symbol=currency[:-3] + '/' + currency[-3:],
         interval="1h",
         outputsize=bar_number,
         timezone="Asia/Singapore",
@@ -336,7 +336,7 @@ def start_do_trading():
         communicate_files += [communicate_file]
     communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
-    currency_file = os.path.join(root_folder, "currency.csv")
+    currency_file = os.path.join(root_folder, "currency.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -579,20 +579,22 @@ def start_do_trading():
     fx_raw = []
     reciprocal = []
     fx = []
-    for i in range(len(raw_currencies)):
 
-        currency = raw_currencies[i]
+    if not is_crypto:
+        for i in range(len(raw_currencies)):
 
-        # if currency == 'GBPUSD':
-        #     continue
+            currency = raw_currencies[i]
 
-        data_folder = raw_data_folders[i]
-        data_file = os.path.join(data_folder, currency + ".csv")
+            # if currency == 'GBPUSD':
+            #     continue
 
-        print("Problem data_file:")
-        print(data_file)
-        df = pd.read_csv(data_file)
-        close_prices += [float(df.iloc[-1]['close'])]
+            data_folder = raw_data_folders[i]
+            data_file = os.path.join(data_folder, currency + ".csv")
+
+            print("Problem data_file:")
+            print(data_file)
+            df = pd.read_csv(data_file)
+            close_prices += [float(df.iloc[-1]['close'])]
 
     for i in range(len(currency_list)):
 
@@ -810,16 +812,28 @@ def start_do_trading():
 
                     else:
                         print("Currency file does not exit, query initial data from web")
-                        temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
+
+                        if data_source == 1:
+                            temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
+                        else:
+                            temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
+
                         last_timestamp = temp_data_df.iloc[-1]['time']
                         print("last_timestamp: " + str(last_timestamp))
-                        print(datetime.fromtimestamp(last_timestamp))
-                        start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
+
+                        #print(datetime.fromtimestamp(last_timestamp))
+                        #start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
+
+                        print("initial_bar_num = " + str(initial_bar_number))
+                        start_timestamp = last_timestamp - timedelta(hours = initial_bar_number - 1)
 
                         print("last_timestamp = " + str(last_timestamp))
                         print("start_timestamp = " + str(start_timestamp))
 
-                        data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+                        if data_source == 1:
+                            data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+                        else:
+                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
 
                         data_df = data_df.iloc[:-1]
 
