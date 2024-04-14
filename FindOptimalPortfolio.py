@@ -28,7 +28,7 @@ filter_hasty_trades = False
 is_crypto = True
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0405"
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -112,7 +112,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     init_deposit = 8000  # 25000
 
-    commission_rate = 28.17 * 2
+    commission_rate = 28.17 * 2 if not is_crypto else 0
 
     consider_cost = True
 
@@ -146,9 +146,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
     trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_st\\all_trades.csv"),
+                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv"),
                    os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_st\\all_trades.csv")]
+                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv")]
 
 
     output_file = None

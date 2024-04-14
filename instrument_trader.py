@@ -210,13 +210,13 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 is_crypto = True
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -2
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
