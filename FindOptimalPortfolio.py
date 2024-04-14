@@ -23,15 +23,21 @@ warnings.filterwarnings("ignore")
 
 start_date = datetime(2023, 4, 1)  # 4.1
 
+filter_hasty_trades = False
+
 is_crypto = True
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
 root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_vegasStrategy"
-
-
-
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
+
+
+def opposite_side(side):
+    if side == 'long':
+        return 'short'
+    else:
+        return 'long'
 
 def which(bool_array):
 
@@ -105,7 +111,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     init_deposit = 8000  # 25000
 
-    commission_rate = 28.17 * 2
+    commission_rate = 28.17 * 2 if not is_crypto else 0
 
     consider_cost = True
 
@@ -133,13 +139,19 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
                        'adj_return', 'return_rate', 'drawdown_rate', 'trading_days', 'trade_num', 'trades_per_day']
 
     # This is even better settings for all currencies, and also even better for larger set of selected currencies (with GBPJPY EURCHF added)
-    trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv"),
-                   os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
+    # trade_files = [os.path.join(forex_dir,
+    #                             "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv"),
+    #                os.path.join(forex_dir,
+    #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
-    # output_file = os.path.join(root_dir,
-    #                            "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all.csv")
+    trade_files = [os.path.join(forex_dir,
+                                "all_pnl_chart_ratio1ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv"),
+                   os.path.join(forex_dir,
+                                "all_pnl_chart_ratio10ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new\\all_trades.csv")]
+
+
+    output_file = None
+
     # temp_output_file = os.path.join(root_dir,
     #                                 "all_pnl_chart_ratio10RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_result_all_temp.csv")
 
@@ -160,6 +172,10 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
             selected_currencies = currency_list[0:(i + 1)]
         else:
             selected_currencies = None if currency in [None, "All"] else [currency]
+
+        if not accumulated_mode and sorted:
+            output_file = os.path.join(final_output_folder,
+                                       currency + "_trades.csv")
 
         removed_currencies = None
 
@@ -239,6 +255,140 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         # trade_df = trade_df.iloc[28:] #####Temp #################################################################
 
         trade_df['id'] = list(range(trade_df.shape[0]))
+
+
+
+        ############ Filter trade logic here ################
+        #print("here trade df length = " + str(trade_df.shape[0]))
+
+        entry_df = trade_df[['currency', 'side', 'position', 'id', 'entry_time']]
+        entry_df = entry_df.rename(columns={
+            'entry_time': 'time'
+        })
+        entry_df['is_entry'] = True
+
+        exit_df = trade_df[['currency', 'side', 'position', 'id', 'exit_time']]
+        exit_df = exit_df.rename(columns={
+            'exit_time': 'time'
+        })
+        exit_df['is_entry'] = False
+
+        temp_df = pd.concat([entry_df, exit_df])
+
+        temp_df = temp_df.sort_values(by=['time'])
+
+
+
+        by_symbols_positions = {}  # {symbol1: {long:2, short:1}}
+        by_symbols_open_trades = {}  # {symbol1: {id1, id2}}
+
+        trade_id_column = []
+        filter_column = []
+
+
+        if filter_hasty_trades:
+
+            for i in range(temp_df.shape[0]):
+
+                data = temp_df.iloc[i]
+
+                currency = data['currency']
+                side = data['side']
+                trade_id = data['id']
+
+                if currency in by_symbols_positions:
+                    symbol_by_sides = by_symbols_positions[currency]
+                else:
+                    symbol_by_sides = {}
+                    by_symbols_positions[currency] = symbol_by_sides
+
+                if currency in by_symbols_open_trades:
+                    symbol_open_trades = by_symbols_open_trades[currency]
+                else:
+                    symbol_open_trades = set()
+                    by_symbols_open_trades[currency] = symbol_open_trades
+
+                if data['is_entry']:
+
+                    filter_this_one = False
+
+                    # print("trade_id######### = " + str(trade_id))
+
+                    opp_side = opposite_side(side)
+                    if opp_side in symbol_by_sides:
+                        opp_side_position = symbol_by_sides[opp_side]
+                        if opp_side_position == 1:
+                            filter_this_one = True
+                            # print("")
+                            # print("Filter entry_time = " + str(data['time']) + " side = " + str(data['side']))
+                            # print("by_symbol_positions:")
+                            # print(by_symbols_positions)
+                            # print("by_symbol_open_trades:")
+                            # print(by_symbols_open_trades)
+                            # print("trade_id = " + str(trade_id))
+                            # print("")
+
+                    if not filter_this_one:
+                        symbol_by_sides[side] = symbol_by_sides[side] + 1 if side in symbol_by_sides else 1
+                        symbol_open_trades.add(trade_id)
+
+                    trade_id_column += [trade_id]
+                    filter_column += [filter_this_one]
+
+                else:
+
+                    if trade_id in symbol_open_trades:
+                        symbol_open_trades.remove(trade_id)
+                        symbol_by_sides[side] = symbol_by_sides[side] - 1
+
+            filter_table = pd.DataFrame({'id': trade_id_column, 'filter_out': filter_column})
+            # print("filter_table:")
+            # print(filter_table)
+
+            assert (trade_df.shape[0] == len(filter_column))
+
+            trade_df = pd.merge(trade_df, filter_table, on=['id'], how='left')
+
+            filtered_trade_df = trade_df[trade_df['filter_out']]
+            trade_df = trade_df[~trade_df['filter_out']]
+
+            # trade_df['filter_out'] = filter_column
+
+            # print("filtered_trade_df rows = " + str(filtered_trade_df.shape[0]))
+            # print("trade_df rows = " + str(trade_df.shape[0]))
+            #
+            # print("filtered_trade_df:")
+            # print(filtered_trade_df)
+            #
+            # print("")
+
+
+            ########### Re-calculate temp_df #########
+            trade_df['id'] = list(range(trade_df.shape[0]))  # Paste
+
+            entry_df = trade_df[['currency', 'side', 'position', 'id', 'entry_time']]
+            entry_df = entry_df.rename(columns={
+                'entry_time': 'time'
+            })
+            entry_df['is_entry'] = True
+
+            exit_df = trade_df[['currency', 'side', 'position', 'id', 'exit_time']]
+            exit_df = exit_df.rename(columns={
+                'exit_time': 'time'
+            })
+            exit_df['is_entry'] = False
+
+            temp_df = pd.concat([entry_df, exit_df])
+
+            temp_df = temp_df.sort_values(by=['time'])
+
+
+
+        #####################################################
+
+
+
+
         # trade_df['pnl'] = np.where(trade_df['is_win'] == 1, trade_df['profit_loss_ratio'],
         #                           np.where(trade_df['is_win'] == -1, 0, -1))
 
@@ -302,23 +452,18 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         trade_df_copy = trade_df_copy.drop(columns=['index'])
         # display(trade_df_copy.iloc[-51:]) ####################################################**********************************************************************************************************************************************
 
-        #trade_df_copy.to_csv(output_file, index=False)
+        # if output_file is not None:
+        #     trade_df_copy.to_csv(output_file, index=False)
 
-        entry_df = trade_df[['currency', 'side', 'position', 'id', 'entry_time']]
-        entry_df = entry_df.rename(columns={
-            'entry_time': 'time'
-        })
-        entry_df['is_entry'] = True
 
-        exit_df = trade_df[['currency', 'side', 'position', 'id', 'exit_time']]
-        exit_df = exit_df.rename(columns={
-            'exit_time': 'time'
-        })
-        exit_df['is_entry'] = False
+        #Cut from here
 
-        temp_df = pd.concat([entry_df, exit_df])
 
-        temp_df = temp_df.sort_values(by=['time'])
+
+
+
+
+
 
         cum_margin = 0
         cum_pnl = 0
@@ -585,7 +730,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,3,3)]
+end_dates = [datetime(2024,4,5)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
@@ -605,10 +750,10 @@ for start_date, end_date in list(zip(start_dates, end_dates)) :
     else:
         optimal_portfolio = optimal_portfolio.intersection(set(optimal_currency_list))
 
-    final_data += [[start_date.strftime("%Y%m%d") + "-" +end_date.strftime("%Y%m%d"), ','.join(optimal_currency_list)]]
+    final_data += [[start_date.strftime("%Y%m%d") + "-" +end_date.strftime("%Y%m%d"), ','.join(["\'" + currency + "\'" for currency in optimal_currency_list])]]
 
 
-final_data += [["All", list(optimal_portfolio)]]
+final_data += [["All", ','.join(["\'" + currency + "\'" for currency in list(optimal_portfolio)])]]
 
 portfolio_df = pd.DataFrame(data = final_data, columns = columns)
 
