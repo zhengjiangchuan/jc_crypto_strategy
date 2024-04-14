@@ -25,7 +25,7 @@ start_date = datetime(2023, 4, 1)  # 4.1
 
 filter_hasty_trades = False
 
-is_crypto = True
+is_crypto = False
 
 is_mixed = True
 
