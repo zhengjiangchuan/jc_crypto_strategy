@@ -598,8 +598,8 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         axes[0].set_ylabel(axes[0].get_ylabel(), size=font_size)
         #axes[0].set_yticklabels(axes[0].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
-        axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
+        #axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
+        #axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
         axes[0].axhline(0, ls='--', color='green', linewidth=1)
 
         axes[0].axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
@@ -625,7 +625,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         axes[1].set_ylabel(axes[1].get_ylabel(), size=font_size)
         #axes[1].set_yticklabels(axes[1].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
+        #axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
         axes[1].axhline(0, ls='--', color='green', linewidth=1)
 
         plt.setp(axes[1].get_xticklabels(), rotation=45)
@@ -637,7 +637,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         axes[2].set_ylabel(axes[2].get_ylabel(), size=font_size)
         #axes[2].set_yticklabels(axes[2].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
+        #axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
         axes[2].axhline(0, ls='--', color='green', linewidth=1)
 
         plt.setp(axes[2].get_xticklabels(), rotation=45)
