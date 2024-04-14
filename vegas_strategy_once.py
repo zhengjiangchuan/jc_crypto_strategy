@@ -317,7 +317,7 @@ def start_do_trading():
     is_gege_server = False
 
 
-    data_source = 2
+    data_source = 2 if is_crypto else 1
 
     is_real_time_trading = True
 
