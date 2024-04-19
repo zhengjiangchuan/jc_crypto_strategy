@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -610,7 +610,6 @@ def start_do_trading():
     fx_raw = []
     reciprocal = []
     fx = []
-
     #raw_currencies = [raw_currency for raw_currency in raw_currencies if raw_currency[0:3] in ['USD', 'EUR', 'GBP', 'CHF', 'CAD', 'JPY', 'AUD', 'NZD']]
 
     if not is_crypto:
