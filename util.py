@@ -1,6 +1,8 @@
 
 is_production = False
 
+#use_dynamic_TP = True
+
 def warn(*args, **kwargs):
     pass
 import warnings
@@ -12,6 +14,8 @@ if not is_production:
 
 import numpy as np
 import pandas as pd
+
+import instrument_trader
 
 if not is_production:
     import seaborn as sns
@@ -992,6 +996,10 @@ receivers = ['jczheng198508@gmail.com']
 
 
 def sendEmail(title, content):
+
+    #version = 'V2' if use_dynamic_TP else 'V1'
+    #title = "[Trend Following Strategy " + version +  "] " + title
+
     message = MIMEText(content, 'plain', 'utf-8')
     message['From'] = "{}".format(sender)
     message['To'] = ",".join(receivers)

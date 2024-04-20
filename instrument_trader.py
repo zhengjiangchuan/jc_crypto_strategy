@@ -22,6 +22,7 @@ import sys
 import os
 
 from util import *
+
 import gzip
 
 from datetime import datetime, timedelta
@@ -210,11 +211,11 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = False
-
-correct_precision = False
+use_dynamic_TP = True
 
 is_crypto = False
+
+correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
@@ -1986,6 +1987,9 @@ class CurrencyTrader(threading.Thread):
 
                 entry_price = long_fire_data['close']
 
+                if not is_crypto and correct_precision:
+                    entry_price = self.round_price(entry_price)
+
                 if use_conditional_stop_loss and (long_fire_data['open'] > long_fire_data['upper_vegas']):
 
                     long_stop_loss_price = long_fire_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
@@ -2197,11 +2201,19 @@ class CurrencyTrader(threading.Thread):
 
 
 
-                    if cur_data['low'] <= actual_used_stop_loss: #New
+                    if cur_data['low'] < actual_used_stop_loss + (1e-6): #New
 
                         last_message_type = 0
 
                         long_actual_stop_profit_price = current_used_stop_loss  #New
+
+                        # if True: #cur_data['time'] == datetime(2023, 10, 31, 23, 0, 0):
+                        #     print("")
+                        #     print("time = " + str(cur_data['time']))
+                        #     print("entry_price = " + str(entry_price))
+                        #     print("long_actual_stop_profit_price = " + str(long_actual_stop_profit_price))
+                        #     print("")
+
                         if long_actual_stop_profit_price < entry_price:
                             long_stop_profit_loss = -1
                         else:
@@ -2257,7 +2269,7 @@ class CurrencyTrader(threading.Thread):
                         last_position = 0
                         break
 
-                    elif cur_data['high'] >= long_target_profit_price:
+                    elif cur_data['high'] > long_target_profit_price - (1e-6):
 
                         last_message_type = 0
 
@@ -2766,6 +2778,9 @@ class CurrencyTrader(threading.Thread):
 
                 entry_price = short_fire_data['close']
 
+                if not is_crypto and correct_precision:
+                    entry_price = self.round_price(entry_price)
+
                 if use_conditional_stop_loss and (short_fire_data['open'] < short_fire_data['lower_vegas']):
 
                     short_stop_loss_price = short_fire_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
@@ -2992,7 +3007,7 @@ class CurrencyTrader(threading.Thread):
                     #     print("")
 
 
-                    if cur_data['high'] >= actual_used_stop_loss:  #New
+                    if cur_data['high'] > actual_used_stop_loss - (1e-6):  #New
 
                         last_message_type = 0
 
@@ -3054,7 +3069,7 @@ class CurrencyTrader(threading.Thread):
                         last_position = 0
                         break
 
-                    elif cur_data['low'] <= short_target_profit_price:
+                    elif cur_data['low'] < short_target_profit_price + (1e-6):
 
                         last_message_type = 0
 
