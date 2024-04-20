@@ -215,7 +215,7 @@ is_use_two_trend_following = False
 
 is_crypto = False
 
-correct_precision = False #not is_crypto
+correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
