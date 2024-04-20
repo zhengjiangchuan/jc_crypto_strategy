@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 profit_loss_ratio = 1
 
@@ -408,8 +408,9 @@ def start_do_trading():
 
     currencies_to_remove = []
 
-    currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
-    #currencies_to_notify = []
+    #currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
+    currencies_to_notify = ['EURAUD', 'AUDUSD', 'AUDJPY', 'NZDCHF', 'CADCHF', 'USDCAD', 'GBPCAD', 'GBPUSD', 'CHFJPY', 'AUDCHF',
+                            'NZDUSD', 'USDJPY', 'AUDCAD', 'NZDCAD', 'GBPCHF', 'GBPAUD']
 
     print("currencies_to_notify:")
     print(currencies_to_notify)
@@ -525,7 +526,7 @@ def start_do_trading():
     #2
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_0403_tp1_new"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
 

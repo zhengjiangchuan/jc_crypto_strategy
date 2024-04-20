@@ -1,6 +1,8 @@
 
 is_production = False
 
+use_dynamic_TP = False
+
 def warn(*args, **kwargs):
     pass
 import warnings
@@ -991,6 +993,10 @@ receivers = ['jczheng198508@gmail.com']
 
 
 def sendEmail(title, content):
+
+    version = 'V2' if use_dynamic_TP else 'V1'
+    title = "[Reversal Strategy " + version + "] " + title
+
     message = MIMEText(content, 'plain', 'utf-8')
     message['From'] = "{}".format(sender)
     message['To'] = ",".join(receivers)
