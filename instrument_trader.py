@@ -212,6 +212,8 @@ is_use_two_trend_following = False
 
 use_dynamic_TP = False
 
+correct_precision = False
+
 is_crypto = False
 
 use_conditional_stop_loss = False
@@ -2015,6 +2017,9 @@ class CurrencyTrader(threading.Thread):
 
                     assert(long_stop_loss_price < long_fire_data['close'])
 
+                    if not is_crypto and correct_precision:
+                        long_stop_loss_price = self.round_price(long_stop_loss_price)
+
                     # if long_fire_data['bar_cross_guppy_label'] == 0 and (long_fire_data['open'] > long_fire_data['guppy_min']):
                     #     long_stop_loss_price = max(long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
                     #                            long_fire_data['guppy_min'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
@@ -2079,6 +2084,10 @@ class CurrencyTrader(threading.Thread):
                 last_position = position
 
                 long_target_profit_price = long_fire_data['close'] + unit_range
+
+                if not is_crypto and correct_precision:
+                    long_target_profit_price = self.round_price(long_target_profit_price)
+
                 TP1 = long_target_profit_price
 
                 ##########################
@@ -2281,6 +2290,9 @@ class CurrencyTrader(threading.Thread):
 
 
                         current_stop_loss += unit_range
+                        if not is_crypto and correct_precision:
+                            current_stop_loss = self.round_price(current_stop_loss)
+
                         #actual_stop_loss = current_stop_loss - unit_range * tp_tolerance  #New
 
                         ############### New
@@ -2308,6 +2320,9 @@ class CurrencyTrader(threading.Thread):
 
 
                         long_target_profit_price += unit_range
+                        if not is_crypto and correct_precision:
+                            long_target_profit_price = self.round_price(long_target_profit_price)
+
 
                         #####################################
                         if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
@@ -2782,6 +2797,9 @@ class CurrencyTrader(threading.Thread):
 
                     assert(short_stop_loss_price > short_fire_data['close'])
 
+                    if not is_crypto and correct_precision:
+                        short_stop_loss_price = self.round_price(short_stop_loss_price)
+
                     # if short_fire_data['bar_cross_guppy_label'] == 1 and (short_fire_data['open'] < short_fire_data['guppy_max']):
                     #     short_stop_loss_price = min(short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
                     #                            short_fire_data['guppy_max'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
@@ -2841,7 +2859,14 @@ class CurrencyTrader(threading.Thread):
 
 
                 short_target_profit_price = short_fire_data['close'] - unit_range
+                if not is_crypto and correct_precision:
+                    short_target_profit_price = self.round_price(short_target_profit_price)
+
                 TP1 = short_target_profit_price
+
+                # if short_fire_data['time'] == datetime(2023,5,26,3,0,0):
+                #     print("short_time = " + str(short_fire_data['time']))
+                #     print("short_target_profit_price = " + str(short_target_profit_price))
 
                 ##########################
                 if self.is_notify and short_start_id == self.data_df.shape[0] - 1:
@@ -2956,6 +2981,15 @@ class CurrencyTrader(threading.Thread):
                         break
 
 
+                    # if cur_data['time'] == datetime(2023,5,30,15,0,0):
+                    #     print("")
+                    #     print("#################")
+                    #     print("Close position time: " + str(cur_data['time']))
+                    #     print("low = " + str(cur_data['low']))
+                    #     print("short_target_profit_price = " + str(short_target_profit_price))
+                    #     print("Close position? " + str(cur_data['low'] <= short_target_profit_price))
+                    #     print("##################")
+                    #     print("")
 
 
                     if cur_data['high'] >= actual_used_stop_loss:  #New
@@ -3052,6 +3086,8 @@ class CurrencyTrader(threading.Thread):
                             break
 
                         current_stop_loss -= unit_range
+                        if not is_crypto and correct_precision:
+                            current_stop_loss = self.round_price(current_stop_loss)
                         #actual_stop_loss = current_stop_loss + unit_range * tp_tolerance  #New
 
                         ############### New
@@ -3078,6 +3114,8 @@ class CurrencyTrader(threading.Thread):
 
 
                         short_target_profit_price -= unit_range
+                        if not is_crypto and correct_precision:
+                            short_target_profit_price = self.round_price(short_target_profit_price)
 
                         #####################################
                         if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
