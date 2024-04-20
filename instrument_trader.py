@@ -211,11 +211,11 @@ aligned_conditions21_threshold = 5  #5 by default
 
 is_use_two_trend_following = False
 
-use_dynamic_TP = True
+#use_dynamic_TP = True
 
 is_crypto = False
 
-correct_precision = not is_crypto
+correct_precision = False #not is_crypto
 
 use_conditional_stop_loss = False
 
