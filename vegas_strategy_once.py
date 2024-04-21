@@ -324,9 +324,9 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
