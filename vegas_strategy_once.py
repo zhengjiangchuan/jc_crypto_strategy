@@ -58,6 +58,9 @@ app_id = "168180645499516"
 
 use_dynamic_TP = False
 
+is_run_individual_good_ones = False
+is_run_aggregated_good_ones = True
+
 profit_loss_ratio = 1
 
 if use_dynamic_TP:
@@ -381,6 +384,8 @@ def start_do_trading():
     currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
 
+
+
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
     #
     # print("currencies_str:")
@@ -408,14 +413,27 @@ def start_do_trading():
 
     currencies_to_remove = []
 
+    good_currencies = []
+    if is_run_individual_good_ones:
+        good_currencies = ['EURAUD', 'AUDUSD', 'AUDJPY', 'NZDCHF', 'CADCHF', 'USDCAD', 'GBPCAD', 'GBPUSD', 'CHFJPY',
+                           'AUDCHF',
+                           'NZDUSD', 'USDJPY', 'AUDCAD', 'NZDCAD', 'GBPCHF', 'GBPAUD']
+    elif is_run_aggregated_good_ones:
+        good_currencies = [
+            'CADCHF', 'NZDCHF', 'AUDCHF', 'EURAUD', 'USDCAD', 'GBPCHF', 'EURNZD', 'AUDJPY', 'CHFJPY', 'GBPCAD',
+            'GBPAUD', 'NZDJPY', 'GBPUSD', 'AUDNZD', 'AUDUSD', 'NZDCAD', 'USDCHF'
+        ]
+
     #currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
-    currencies_to_notify = ['EURAUD', 'AUDUSD', 'AUDJPY', 'NZDCHF', 'CADCHF', 'USDCAD', 'GBPCAD', 'GBPUSD', 'CHFJPY', 'AUDCHF',
-                            'NZDUSD', 'USDJPY', 'AUDCAD', 'NZDCAD', 'GBPCHF', 'GBPAUD']
+    currencies_to_notify = good_currencies if len(good_currencies) > 0 else [currency for currency in raw_currencies if currency not in currencies_to_remove]
 
     print("currencies_to_notify:")
     print(currencies_to_notify)
     print("Num = " + str(len(currencies_to_notify)))
 
+
+    print("good_currencies:")
+    print(good_currencies)
 
 
     raw_data_folders = []
@@ -429,6 +447,27 @@ def start_do_trading():
 
 
     currency_list = currency_df['currency'].tolist()
+
+    pre_run_currency_list = [currency for currency in good_currencies if currency in currency_list]
+
+    post_run_currency_list = [currency for currency in currency_list if currency not in good_currencies]
+
+    print("pre_run_currency_list:")
+    print(pre_run_currency_list)
+    print("post_run_currency_list:")
+    print(post_run_currency_list)
+
+    currency_list = pre_run_currency_list + post_run_currency_list
+
+    print("final currency_list:")
+    print(currency_list)
+
+    sorted_currency_df = pd.DataFrame({'currency' : currency_list, 'cid' : list(range(len(currency_list)))})
+    currency_df = pd.merge(currency_df, sorted_currency_df, on = ['currency'], how='inner')
+    currency_df = currency_df.sort_values(by = ['cid'])
+    currency_df = currency_df.drop(columns = ['cid'])
+
+
 
     ################### Temp Copy Currency data outside ##################
     # print("root_folder: ")
@@ -526,7 +565,7 @@ def start_do_trading():
     #2
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_test"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
 
