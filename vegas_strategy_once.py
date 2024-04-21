@@ -807,6 +807,8 @@ def start_do_trading():
 
                         if use_short_data_for_prod:
                             data_df = data_df[data_df['time'] >= datetime(2024, 3, 1, 0, 0, 0)]
+                            data_df.reset_index(inplace=True)
+                            data_df = data_df.drop(columns=['index'])
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 10, 13, 18, 0, 0)]
 
