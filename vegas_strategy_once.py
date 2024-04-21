@@ -385,7 +385,7 @@ def start_do_trading():
     #currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
     #                        'GBPCAD', 'GBPCHF'] + ['CHFJPY'] + ['AUDCHF', 'AUDNZD']
 
-    currencies_to_remove = []
+    currencies_to_remove = ['EURUSD', 'NZDCAD', 'AUDCAD']
 
     currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
     #currencies_to_notify = []
@@ -506,7 +506,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_rounding" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_rounding_300" #_relaxFastSlow
 
 
     #4
