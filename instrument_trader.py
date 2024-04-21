@@ -214,7 +214,7 @@ is_use_two_trend_following = False
 
 use_0threshold = False
 
-is_crypto = False
+is_crypto = True
 
 correct_precision = not is_crypto
 
@@ -3033,14 +3033,14 @@ class CurrencyTrader(threading.Thread):
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
-        # if not is_production:
-        #     plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
-        #                            num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
-        #                            is_plot_candle_buy_sell_points=True,
-        #                            print_prefix=print_prefix,
-        #                            is_plot_aux = True,
-        #                            bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
-        #                            use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num)
+        if not is_production:
+            plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
+                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                                   is_plot_candle_buy_sell_points=True,
+                                   print_prefix=print_prefix,
+                                   is_plot_aux = True,
+                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
+                                   use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num)
 
 
         print("Finish")
