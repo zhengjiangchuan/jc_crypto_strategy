@@ -565,7 +565,7 @@ def start_do_trading():
     #2
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_test"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
 
@@ -659,10 +659,15 @@ def start_do_trading():
             #     continue
 
             data_folder = raw_data_folders[i]
-            data_file = os.path.join(data_folder, currency + ".csv")
 
-            print("Problem data_file:")
-            print(data_file)
+            data_file = os.path.join(data_folder, currency + "_lastRow.csv")
+
+            if not os.path.exists(data_file):
+                data_file = os.path.join(data_folder, currency + ".csv")
+
+
+            print("Read: " + data_file)
+
             df = pd.read_csv(data_file)
             close_prices += [float(df.iloc[-1]['close'])]
 

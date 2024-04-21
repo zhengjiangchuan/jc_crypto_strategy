@@ -1428,7 +1428,7 @@ class CurrencyTrader(threading.Thread):
 
         #*self.lot_size * self.exchange_rate
         for li in range(1, (look_backward_group_num-1)//2+1):
-            self.data_df['vegas_long_cond4' + str(li)] = self.data_df['long_critical_price'] > self.data_df['long_prevGroup_' + str(li*2) + 'critical_price'] - tolerance_bps/(self.lot_size * self.exchange_rate)
+            self.data_df['vegas_long_cond4' + str(li)] = self.data_df['long_critical_price'] > self.data_df['long_prevGroup_' + str(li*2) + 'critical_price'] - tolerance_bps/(self.lot_size * self.exchange_rate) + (1e-6)
             self.data_df['vegas_long_cond5' + str(li)] = self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_' + str(li*2) + 'critical_price_id'] >= 48 #48, 10
             self.data_df['vegas_long_cond6' + str(li)] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_' + str(li*2) + 'critical_price'] + self.data_df['long_prevGroup_' + str(li*2) + 'lower_vegas'])/2.0
             #self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_1critical_price'])/2.0
@@ -1476,8 +1476,11 @@ class CurrencyTrader(threading.Thread):
 
         #self.data_df['vegas_short_cond3'] = self.data_df['close'] <= self.data_df['upper_vegas']
 
+        # print("short_critical_price = " + str(self.data_df.iloc[6268]['short_critical_price']))
+        # print("short_prevGroup_6critical_price = " + str(self.data_df.iloc[6268]['short_prevGroup_6critical_price']))
+
         for li in range(1, (look_backward_group_num-1)//2+1):
-            self.data_df['vegas_short_cond4' + str(li)] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + tolerance_bps/(self.lot_size * self.exchange_rate)
+            self.data_df['vegas_short_cond4' + str(li)] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + tolerance_bps/(self.lot_size * self.exchange_rate) - (1e-6)
             self.data_df['vegas_short_cond5' + str(li)] = self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_' + str(li*2) + 'critical_price_id'] >= 48 #48, 10
             self.data_df['vegas_short_cond6' + str(li)] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + self.data_df['short_prevGroup_' + str(li*2) + 'upper_vegas'])/2.0
             #self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_1critical_price'])/2.0
@@ -3573,6 +3576,8 @@ class CurrencyTrader(threading.Thread):
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
         self.data_df.to_csv(self.data_file, index = False)
+
+        self.data_df.iloc[-1:][['currency','time', 'open', 'high', 'low', 'close']].to_csv(self.data_file[:-len('.csv')] + '_lastRow.csv', index = False)
 
         self.group_summary_df.to_csv(self.data_file[:-len('.csv')] + '_group_summary.csv', index = False)
         self.critical_price_data_df.to_csv(self.data_file[:-len('.csv')] + '_critial_prices.csv', index = False)
