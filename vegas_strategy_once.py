@@ -526,7 +526,7 @@ def start_do_trading():
     #2
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
 
