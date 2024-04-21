@@ -283,7 +283,14 @@ class CurrencyTrader(threading.Thread):
         # self.data_df_backup200 = None
         #
         # self.data_dfs_backup = []
+        self.write_long_df = None
+        self.write_short_df = None
+        self.group_summary_df = None
+        self.critical_price_data_df = None
 
+        self.profit_loss_ratio = -1
+
+        self.full_summary_df = None
 
         self.log_msg("Initializing...")
 
@@ -924,10 +931,10 @@ class CurrencyTrader(threading.Thread):
         stop_loss_threshold = 100 #100
         #Guoji
 
-        profit_loss_ratio = 1#2
+        self.profit_loss_ratio = 1#2
 
         if use_dynamic_TP:
-            profit_loss_ratio = 10
+            self.profit_loss_ratio = 10
 
 
 
@@ -1662,7 +1669,7 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['long_stop_profit_price'] = np.where(
                     self.data_df['final_vegas_long_fire'],
-                    self.data_df['close'] + profit_loss_ratio * self.data_df['long_stop_range'],
+                    self.data_df['close'] + self.profit_loss_ratio * self.data_df['long_stop_range'],
                     np.nan
                 )
 
@@ -1788,7 +1795,7 @@ class CurrencyTrader(threading.Thread):
 
                 self.data_df['short_stop_profit_price'] = np.where(
                     self.data_df['final_vegas_short_fire'],
-                    self.data_df['close'] - profit_loss_ratio * self.data_df['short_stop_range'],
+                    self.data_df['close'] - self.profit_loss_ratio * self.data_df['short_stop_range'],
                     np.nan
                 )
 
@@ -2448,13 +2455,13 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['long_stop_profit_price'] = np.where(
                 self.data_df['final_vegas_long_fire'],
-                self.data_df['close'] + profit_loss_ratio * self.data_df['long_stop_range'],
+                self.data_df['close'] + self.profit_loss_ratio * self.data_df['long_stop_range'],
                 np.nan
             )
 
             self.data_df['long_stop_half_profit_price'] = np.where(
                 self.data_df['final_vegas_long_fire'],
-                self.data_df['close'] + 0.5* profit_loss_ratio * self.data_df['long_stop_range'],
+                self.data_df['close'] + 0.5* self.profit_loss_ratio * self.data_df['long_stop_range'],
                 np.nan
             )
 
@@ -3221,13 +3228,13 @@ class CurrencyTrader(threading.Thread):
 
             self.data_df['short_stop_profit_price'] = np.where(
                 self.data_df['final_vegas_short_fire'],
-                self.data_df['close'] - profit_loss_ratio * self.data_df['short_stop_range'],
+                self.data_df['close'] - self.profit_loss_ratio * self.data_df['short_stop_range'],
                 np.nan
             )
 
             self.data_df['short_stop_half_profit_price'] = np.where(
                 self.data_df['final_vegas_short_fire'],
-                self.data_df['close'] - 0.5 * profit_loss_ratio * self.data_df['short_stop_range'],
+                self.data_df['close'] - 0.5 * self.profit_loss_ratio * self.data_df['short_stop_range'],
                 np.nan
             )
 
@@ -3441,10 +3448,10 @@ class CurrencyTrader(threading.Thread):
         win_pct = 0 if total_num == 0 else win_num / total_num
         long_win_pct = 0 if total_long_num == 0 else long_win_num/total_long_num
         short_win_pct = 0 if total_short_num == 0 else short_win_num/total_short_num
-        profit_on_average = win_pct * profit_loss_ratio - (1 - win_pct) if total_num > 0 else 0
+        profit_on_average = win_pct * self.profit_loss_ratio - (1 - win_pct) if total_num > 0 else 0
         can_make_money = profit_on_average >= 0.1
         summary_df = pd.DataFrame({'Currency' : [self.currency], 'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
-                                   'PL Ratio' : [round(profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
+                                   'PL Ratio' : [round(self.profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
                                    'Long Trade Num' : [total_long_num], 'Long Win Num' : [long_win_num], 'Long Win Pct' : [ round(long_win_pct*100.0)/100.0],
                                    'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_pct*100.0)/100.0],
                                    })
@@ -3540,15 +3547,25 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        full_summary_df = summary_df
+        self.full_summary_df = summary_df
 
 
 
         print("Performance Summary")
-        print(full_summary_df)
+        print(self.full_summary_df)
+
+        self.write_long_df = write_long_df
+        self.write_short_df = write_short_df
+        self.group_summary_df = group_summary_df
+        self.critical_price_data_df = critical_price_data_df
 
 
-        write_df = pd.concat([write_long_df, write_short_df])
+    def post_processing(self):
+
+        print("")
+        print("Post processing currency pair " + str(self.currency))
+
+        write_df = pd.concat([self.write_long_df, self.write_short_df])
         write_df['reach_tp1_time'] = np.where(write_df['reach_tp1_time'].notnull(),
                                               write_df['reach_tp1_time'],
                                               write_df['exit_time'])
@@ -3557,8 +3574,8 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df.to_csv(self.data_file, index = False)
 
-        group_summary_df.to_csv(self.data_file[:-len('.csv')] + '_group_summary.csv', index = False)
-        critical_price_data_df.to_csv(self.data_file[:-len('.csv')] + '_critial_prices.csv', index = False)
+        self.group_summary_df.to_csv(self.data_file[:-len('.csv')] + '_group_summary.csv', index = False)
+        self.critical_price_data_df.to_csv(self.data_file[:-len('.csv')] + '_critial_prices.csv', index = False)
 
 
         write_df['id'] = list(range(write_df.shape[0]))
@@ -3591,7 +3608,7 @@ class CurrencyTrader(threading.Thread):
                     write_df['pnl'] = np.where(write_df['is_win'] == 1, write_df['actual_tp_num'], -1-tp_tolerance)
 
         else:
-            write_df['pnl'] = np.where(write_df['is_win'] == 1, profit_loss_ratio, -1-tp_tolerance)
+            write_df['pnl'] = np.where(write_df['is_win'] == 1, self.profit_loss_ratio, -1-tp_tolerance)
 
         write_df['pnl'] = write_df['pnl'] * unit_loss / 2.0
 
@@ -3603,7 +3620,7 @@ class CurrencyTrader(threading.Thread):
         if use_dynamic_TP:
             write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, 1+tp_tolerance-write_df['actual_tp_num'])
         else:
-            write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, -profit_loss_ratio)
+            write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, -self.profit_loss_ratio)
 
         write_df['reverse_pnl'] = write_df['reverse_pnl'] * unit_loss / 2.0
 
@@ -3615,7 +3632,7 @@ class CurrencyTrader(threading.Thread):
         write_df.to_csv(self.trade_file, index = False)
 
         print("performance_file: " + str(self.performance_file))
-        full_summary_df.to_csv(self.performance_file, index = False)
+        self.full_summary_df.to_csv(self.performance_file, index = False)
 
 
         if not is_production:

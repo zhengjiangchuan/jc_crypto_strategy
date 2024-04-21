@@ -59,7 +59,7 @@ app_id = "168180645499516"
 use_dynamic_TP = False
 
 is_run_individual_good_ones = False
-is_run_aggregated_good_ones = True
+is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
@@ -955,7 +955,10 @@ def start_do_trading():
                             currency_trader.feed_data(data_df)
                             currency_trader.trade()
 
-
+        for i in range(len(currency_traders)):
+            if is_new_data_received[i]:
+                currency_trader = currency_traders[i]
+                currency_trader.post_processing()
 
         #sendEmail("Trader process ends", "")
 
