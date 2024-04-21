@@ -56,7 +56,10 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
+
+is_run_individual_good_ones = False
+is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
@@ -385,10 +388,22 @@ def start_do_trading():
     #currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
     #                        'GBPCAD', 'GBPCHF'] + ['CHFJPY'] + ['AUDCHF', 'AUDNZD']
 
-    currencies_to_remove = ['EURUSD', 'NZDCAD', 'AUDCAD']
+    currencies_to_remove = []
 
-    currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
-    #currencies_to_notify = []
+    good_currencies = []
+    if is_run_individual_good_ones:
+        good_currencies = ['GBPUSD','USDJPY','USDCAD','EURGBP','EURJPY','GBPJPY','USDCHF','EURCHF','EURNZD','AUDCHF','AUDJPY','AUDNZD','AUDUSD','EURAUD','GBPAUD','GBPNZD','NZDCHF',
+                       'NZDJPY','NZDUSD','CADCHF','CADJPY','CHFJPY','EURCAD','GBPCAD','GBPCHF']
+    elif is_run_aggregated_good_ones:
+        good_currencies = [
+            'CADCHF', 'NZDCHF', 'AUDCHF', 'EURAUD', 'USDCAD', 'GBPCHF', 'EURNZD', 'AUDJPY', 'CHFJPY', 'GBPCAD',
+            'GBPAUD', 'NZDJPY', 'GBPUSD', 'AUDNZD', 'AUDUSD', 'NZDCAD', 'USDCHF'
+        ]
+
+    print("good_currencies:")
+    print(good_currencies)
+
+    currencies_to_notify = good_currencies if len(good_currencies) > 0 else [currency for currency in raw_currencies if currency not in currencies_to_remove]
 
     print("currencies_to_notify:")
     print(currencies_to_notify)
@@ -407,6 +422,25 @@ def start_do_trading():
 
 
     currency_list = currency_df['currency'].tolist()
+
+    pre_run_currency_list = [currency for currency in good_currencies if currency in currency_list]
+
+    post_run_currency_list = [currency for currency in currency_list if currency not in good_currencies]
+
+    print("pre_run_currency_list:")
+    print(pre_run_currency_list)
+    print("post_run_currency_list:")
+    print(post_run_currency_list)
+
+    currency_list = pre_run_currency_list + post_run_currency_list
+
+    print("final currency_list:")
+    print(currency_list)
+
+    sorted_currency_df = pd.DataFrame({'currency': currency_list, 'cid': list(range(len(currency_list)))})
+    currency_df = pd.merge(currency_df, sorted_currency_df, on=['currency'], how='inner')
+    currency_df = currency_df.sort_values(by=['cid'])
+    currency_df = currency_df.drop(columns=['cid'])
 
     ################### Temp Copy Currency data outside ##################
     # print("root_folder: ")
@@ -506,7 +540,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_rounding_500" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_rounding_500_old" #_relaxFastSlow
 
 
     #4
@@ -592,10 +626,13 @@ def start_do_trading():
             #     continue
 
             data_folder = raw_data_folders[i]
-            data_file = os.path.join(data_folder, currency + ".csv")
+            data_file = os.path.join(data_folder, currency + "_lastRow.csv")
 
-            print("Problem data_file:")
-            print(data_file)
+            if not os.path.exists(data_file):
+                data_file = os.path.join(data_folder, currency + ".csv")
+
+            print("Read: " + data_file)
+
             df = pd.read_csv(data_file)
             close_prices += [float(df.iloc[-1]['close'])]
 
@@ -882,6 +919,10 @@ def start_do_trading():
                             currency_trader.trade()
 
 
+        for i in range(len(currency_traders)):
+            if is_new_data_received[i]:
+                currency_trader = currency_traders[i]
+                currency_trader.post_processing()
 
         #sendEmail("Trader process ends", "")
 
