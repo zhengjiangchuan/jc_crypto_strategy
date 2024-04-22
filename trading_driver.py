@@ -10,6 +10,7 @@ import pandas as pd
 
 from vegas_strategy_once import *
 
+
 def wait_for_trigger():
 
     print("Running wait_for_trigger")
