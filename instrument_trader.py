@@ -1422,7 +1422,7 @@ class CurrencyTrader(threading.Thread):
         ############# Trend Following Strategy ##################
         self.data_df['vegas_long_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
-        self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
+        self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12'] + (1e-6)) & ((self.data_df['open'] < self.data_df['ma_close12'] - (1e-6)) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12'] - (1e-6)))
 
         self.data_df['vegas_long_cond3'] = (self.data_df['long_critical_price'] > self.data_df['long_prevGroup_2critical_price'] + (1e-6))
         self.data_df['vegas_long_cond4'] = (self.data_df['long_prevGroup_1critical_price'] > self.data_df['long_prevGroup_3critical_price'] + (1e-6))
@@ -1442,7 +1442,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
         self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
-        self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
+        self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12'] - (1e-6)) & ((self.data_df['open'] > self.data_df['ma_close12'] + (1e-6)) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12'] + (1e-6)))
 
         self.data_df['vegas_short_cond3'] = (self.data_df['short_critical_price'] < self.data_df['short_prevGroup_2critical_price'] - (1e-6))
         self.data_df['vegas_short_cond4'] = (self.data_df['short_prevGroup_1critical_price'] < self.data_df['short_prevGroup_3critical_price'] - (1e-6))

@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -555,7 +555,7 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_rounding_500_old"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_rounding_500_old_precision"
 
 
 
@@ -801,7 +801,10 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
                         if use_short_data_for_prod:
-                            data_df = data_df[data_df['time'] >= datetime(2024, 3, 1, 0, 0, 0)]
+                            data_df = data_df[data_df['time'] >= datetime(2023, 10, 1, 0, 0, 0)]
+                            data_df.reset_index(inplace = True)
+                            data_df = data_df.drop(columns = ['index'])
+
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 10, 13, 18, 0, 0)]
 
