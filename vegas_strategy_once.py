@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -326,7 +326,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -810,6 +810,7 @@ def start_do_trading():
                             data_df.reset_index(inplace=True)
                             data_df = data_df.drop(columns=['index'])
 
+                        #data_df = data_df.iloc[0:-2]
                         #data_df = data_df[data_df['time'] <= datetime(2023, 10, 13, 18, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 3, 23, 4, 0, 0)]
