@@ -58,8 +58,6 @@ app_id = "168180645499516"
 
 use_dynamic_TP = True
 
-b = 3
-
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
 is_run_individual_good_ones = False
@@ -307,7 +305,7 @@ def start_do_trading():
 
     data_source = 1 if not is_crypto else 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
     is_weekend = True
 
@@ -447,24 +445,24 @@ def start_do_trading():
     currency_df = currency_df.drop(columns=['cid'])
 
     ################### Temp Copy Currency data outside ##################
-    print("root_folder: ")
-    print(root_folder)
-    temp_data_folder = os.path.join(root_folder, "all_data")
-    if not os.path.exists(temp_data_folder):
-        os.makedirs(temp_data_folder)
-    for currency in currency_list:
-        print("Copy data of " + currency)
-        file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
-        file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
-        out_folder = os.path.join(temp_data_folder, currency, "data")
-        if not os.path.exists(out_folder):
-            os.makedirs(out_folder)
-
-        print("Copy from " + file_path + " to " + out_folder)
-        shutil.copy2(file_path, out_folder)
-        shutil.copy2(file_path2, out_folder)
-
-    sys.exit(0)
+    # print("root_folder: ")
+    # print(root_folder)
+    # temp_data_folder = os.path.join(root_folder, "all_data")
+    # if not os.path.exists(temp_data_folder):
+    #     os.makedirs(temp_data_folder)
+    # for currency in currency_list:
+    #     print("Copy data of " + currency)
+    #     file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
+    #     file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
+    #     out_folder = os.path.join(temp_data_folder, currency, "data")
+    #     if not os.path.exists(out_folder):
+    #         os.makedirs(out_folder)
+    #
+    #     print("Copy from " + file_path + " to " + out_folder)
+    #     shutil.copy2(file_path, out_folder)
+    #     shutil.copy2(file_path2, out_folder)
+    #
+    # sys.exit(0)
 
     # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
     # print(root_folder)
@@ -779,7 +777,7 @@ def start_do_trading():
 
                         #data_df = data_df.iloc[:-1]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 11, 13, 21, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 4, 26, 22, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
