@@ -63,7 +63,7 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 5000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 500
+initial_bar_number = 50 if data_source == 1 else 1000
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -213,11 +213,13 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = False
+is_crypto = True
 
 correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
+
+use_guppy_stop_loss = False
 
 printed_figure_num = 1
 
@@ -2026,7 +2028,11 @@ class CurrencyTrader(threading.Thread):
                         # print("")
 
                     else:
-                        long_stop_loss_price = long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                        if use_guppy_stop_loss and (long_fire_data['open'] > long_fire_data['guppy_max']):
+                            long_stop_loss_price = long_fire_data['guppy_min'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
+                        else:
+                            long_stop_loss_price = long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
                     assert(long_stop_loss_price < long_fire_data['close'])
 
@@ -2817,7 +2823,13 @@ class CurrencyTrader(threading.Thread):
                         # print("")
 
                     else:
-                        short_stop_loss_price = short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                        if use_guppy_stop_loss and (short_fire_data['open'] < short_fire_data['guppy_min']):
+
+                            short_stop_loss_price = short_fire_data['guppy_max'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
+
+                        else:
+                            short_stop_loss_price = short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
 
                     assert(short_stop_loss_price > short_fire_data['close'])
 

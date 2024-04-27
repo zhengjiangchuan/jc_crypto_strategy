@@ -110,7 +110,12 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     #
+    print("Received query data df:")
     print(data_df.iloc[-10:])
+    print("length = " + str(data_df.shape[0]))
+
+    #sys.exit(0)
+
 
     return data_df
 
@@ -328,7 +333,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -876,7 +881,10 @@ def start_do_trading():
                             else:
                                 incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
-                            # print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
+                            print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
+                            if incremental_data_df.shape[0] > 0:
+                                print("incremental_data_df first time = " + str(incremental_data_df.iloc[0]['time']))
+                                print("incremental_data_df last time = " + str(incremental_data_df.iloc[-1]['time']))
                             #
                             # print("incremental_data_df after:")
                             # print(incremental_data_df)
@@ -940,6 +948,7 @@ def start_do_trading():
                         else:
                             last_time = None
 
+                        print("last_time here here = " + str(last_time))
                         if last_time is not None:
                             delta = datetime.now() - last_time
                             if delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0:
