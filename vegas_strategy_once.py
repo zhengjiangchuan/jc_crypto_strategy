@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -305,7 +305,7 @@ def start_do_trading():
 
     data_source = 1 if not is_crypto else 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -464,7 +464,7 @@ def start_do_trading():
     #
     # sys.exit(0)
 
-    # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
+    # print("root_folder: ") #Never run this, keep alearted, running this will make your data lost
     # print(root_folder)
     # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
@@ -763,12 +763,16 @@ def start_do_trading():
                     if os.path.exists(data_file):
 
                         data_df = pd.read_csv(data_file)
+
+                        #prev_data_df = pd.read_csv("C:\\Users\\admin\\Dropbox\\forex_data\\" + currency + "\\data\\" + currency + ".csv")
+
                         #data_df100 = data_df100.iloc[0:-20]
 
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
-
+                        #prev_data_df['time'] = prev_data_df['time'].apply(lambda x: preprocess_time(x))
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
+                        #prev_data_df = prev_data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
                         if use_short_data_for_prod:
                             data_df = data_df[data_df['time'] >= datetime(2024,3,1,0,0,0)]
@@ -779,33 +783,24 @@ def start_do_trading():
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 4, 26, 22, 0, 0)]
 
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
-
-
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 24, 18, 0, 0)]
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 10, 17, 9, 0, 0)]
+                        # critical_time = datetime(2023, 10, 3, 7, 0, 0)
+                        # prev_data_df = prev_data_df[prev_data_df['time'] < critical_time]
+                        # new_data_df = data_df[data_df['time'] >= critical_time]
+                        # assert(prev_data_df.iloc[-1]['time'] == critical_time - timedelta(hours = 1))
+                        # assert(new_data_df.iloc[0]['time'] == critical_time)
+                        # data_df = pd.concat([prev_data_df, new_data_df])
 
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 5, 15, 0, 0)]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 22, 10, 0, 0)]
+                        # data_df.reset_index(inplace = True)
+                        # data_df = data_df.drop(columns = ['index'])
+                        # print("concatenated data_df:")
+                        # print(data_df.iloc[0:10])
+                        # print(data_df.iloc[-10:])
+                        #sys.exit(0)
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 2, 16, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 5, 22, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 28, 8, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 14, 19, 0, 0)]
 
 
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 5, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 21, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 10, 12, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 5, 12, 20, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 11, 20, 0, 0)]
-
-                        #data_df = data_df.iloc[0:-50]
 
                         # print("data_df:")
                         # print(data_df.tail(10))
