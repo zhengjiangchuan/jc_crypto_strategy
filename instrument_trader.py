@@ -214,7 +214,7 @@ is_use_two_trend_following = False
 
 use_0threshold = False
 
-is_crypto = False
+is_crypto = True
 
 correct_precision = not is_crypto
 
