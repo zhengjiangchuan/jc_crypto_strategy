@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -383,7 +383,7 @@ def start_do_trading():
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
-    currencies_to_run = []
+    currencies_to_run = [] #['CHFJPY', 'AUDJPY', 'USDCAD']
     raw_currencies = currency_df['currency'].tolist()
 
 
@@ -460,6 +460,9 @@ def start_do_trading():
     print(post_run_currency_list)
 
     currency_list = pre_run_currency_list + post_run_currency_list
+
+    # if len(currency_list) == 0:
+    #     currency_list = currencies_to_run
 
     print("final currency_list:")
     print(currency_list)
@@ -569,7 +572,7 @@ def start_do_trading():
     #2
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
 

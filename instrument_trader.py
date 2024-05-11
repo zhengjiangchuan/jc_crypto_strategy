@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = True
+is_crypto = False
 
 correct_precision = not is_crypto
 
@@ -1441,6 +1441,8 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_long_cond9'] = True #self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
 
+        self.data_df['vegas_long_cond9'] = ~self.data_df['guppy_all_strong_aligned_short']
+
         #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4))
 
         # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
@@ -1491,6 +1493,8 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['vegas_short_cond9'] = True #self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
+
+        self.data_df['vegas_short_cond9'] = ~self.data_df['guppy_all_strong_aligned_long']
 
         #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4))
 
@@ -1652,6 +1656,9 @@ class CurrencyTrader(threading.Thread):
         self.data_df['previous_long_lasting'] = self.data_df['long_lasting'].shift(1)
 
         self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
+
+        # print("Buggy framework:")
+        # print(self.data_df.iloc[6900:6905][['time', 'vegas_long_fire', 'final_vegas_long_fire', 'previous_long_lasting']])
 
         #self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method='bfill')
 
@@ -1922,13 +1929,22 @@ class CurrencyTrader(threading.Thread):
 
             result_columns = ['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
                               'long_stop_profit_price', 'actual_tp_num', 'tp_num',
-                              'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount', 'reach_tp1_time'] #Gavin
+                              'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount',
+                              'reach_tp1_time', 'morning_price'] #Gavin
 
 
 
             result_data = []
 
+            raw_long_start_ids = which(self.data_df['vegas_long_fire'])
+
             long_start_ids = which(self.data_df['final_vegas_long_fire'])
+
+            print("raw_long_start_ids:")
+            print(raw_long_start_ids)
+
+            print("long_start_ids:")
+            print(long_start_ids)
 
             print("")
             print("Calculating Long positions.............")
@@ -1940,9 +1956,10 @@ class CurrencyTrader(threading.Thread):
             for ii in range(0, len(long_start_ids)):
 
                 #print("")
-                #print("Process long ii = " + str(ii))
+                # print("Process long ii = " + str(ii))
 
                 if is_effective[ii] == 0:
+                    #print("Set final_vegas_long_fire at " + str(ii) + " to False")
                     self.data_df.at[long_start_ids[ii], 'final_vegas_long_fire'] = False
                     continue
 
@@ -1961,6 +1978,8 @@ class CurrencyTrader(threading.Thread):
                 long_fire_data = self.data_df.iloc[long_start_id]
 
                 entry_price = long_fire_data['close']
+
+                #print("Entry time = " + str(long_fire_data['time']))
 
                 if not is_crypto and correct_precision:
                     entry_price = self.round_price(entry_price)
@@ -2113,6 +2132,9 @@ class CurrencyTrader(threading.Thread):
                 j = 1
 
                 last_message_type = 0
+
+                morning_price = 0
+
                 while long_start_id + j < self.data_df.shape[0]:
 
                     is_actual_used_stop_loss_changed = False #New
@@ -2121,6 +2143,8 @@ class CurrencyTrader(threading.Thread):
 
                     last_data = self.data_df.iloc[long_start_id + j - 1]  #Hu Comment
 
+                    if long_fire_data['time'].hour <= 5 and cur_data['time'].hour == 6:
+                        morning_price = cur_data['close']
 
                     if readjust_position_when_new_signal and ii + 1 < len(long_start_ids) and long_start_ids[ii + 1] == long_start_id + j:
 
@@ -2420,8 +2444,12 @@ class CurrencyTrader(threading.Thread):
                         # print("current id = " + str(long_start_id + j))
                         # print("current time = " + str(self.data_df.iloc[long_start_id + j]['time']))
 
+                        #print("temp_ii = " + str(temp_ii))
+                        #print("j=" + str(j))
                         is_effective[temp_ii + 1] = 0
                         temp_ii += 1
+
+                        #print("temp_ii then = " + str(temp_ii))
 
                     j += 1
 
@@ -2429,7 +2457,7 @@ class CurrencyTrader(threading.Thread):
                 #Guoji
                 result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, self.round_price(TP1),
                              unit_range, position, margin, long_actual_stop_profit_price, actual_tp_number, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time,
-                                 entry_com_discount, exit_com_discount, reach_tp1_time]] #Gavin
+                                 entry_com_discount, exit_com_discount, reach_tp1_time, morning_price]] #Gavin
 
             long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -2655,7 +2683,7 @@ class CurrencyTrader(threading.Thread):
 
 
         write_long_df = long_df_copy[['currency', 'side', 'time', 'close',
-                                 'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price', 'reach_tp1_time'] +
+                                 'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price', 'reach_tp1_time', 'morning_price'] +
                                 (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
 
@@ -2670,7 +2698,7 @@ class CurrencyTrader(threading.Thread):
                                             np.where(write_long_df['is_win'] == -1, 0, -1))
         write_long_df['exit_price'] = np.where(write_long_df['is_win'] == 1, write_long_df['long_stop_profit_price'], write_long_df['long_stop_loss_price'])
 
-        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time'] +\
+        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time', 'morning_price'] +\
                                       (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
         write_long_df['exit_price'] = write_long_df['exit_price'].apply(lambda x: self.round_price(x))
@@ -2701,7 +2729,8 @@ class CurrencyTrader(threading.Thread):
 
         if use_dynamic_TP or always_use_new_close_logic:
             result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
-                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount', 'reach_tp1_time'] #Gavin
+                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id',
+                               'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount', 'reach_tp1_time', 'morning_price'] #Gavin
 
 
 
@@ -2890,6 +2919,9 @@ class CurrencyTrader(threading.Thread):
 
                 #print("current_stop_loss = " + str(current_stop_loss))
                 last_message_type = 0
+
+                morning_price = 0
+
                 while short_start_id + j < self.data_df.shape[0]:
 
                     is_actual_used_stop_loss_changed = False #New
@@ -2898,6 +2930,8 @@ class CurrencyTrader(threading.Thread):
 
                     last_data = self.data_df.iloc[short_start_id + j - 1]  #Hu Comment
 
+                    if short_fire_data['time'].hour <= 5 and cur_data['time'].hour == 6:
+                        morning_price = cur_data['close']
 
                     if readjust_position_when_new_signal and ii + 1 < len(short_start_ids) and short_start_ids[ii + 1] == short_start_id + j:
 
@@ -3206,7 +3240,7 @@ class CurrencyTrader(threading.Thread):
                 #Guoji
                 result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, self.round_price(TP1),
                                  unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time,
-                                 entry_com_discount, exit_com_discount, reach_tp1_time]] #Gavin
+                                 entry_com_discount, exit_com_discount, reach_tp1_time, morning_price]] #Gavin
 
             short_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -3420,7 +3454,7 @@ class CurrencyTrader(threading.Thread):
         short_df_copy['side'] = 'short'
 
         write_short_df = short_df_copy[['currency', 'side', 'time', 'close',
-                                 'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price', 'reach_tp1_time'] +
+                                 'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price', 'reach_tp1_time', 'morning_price'] +
                                 (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin','entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
 
@@ -3436,7 +3470,7 @@ class CurrencyTrader(threading.Thread):
 
         write_short_df['exit_price'] = np.where(write_short_df['is_win'] == 1, write_short_df['short_stop_profit_price'], write_short_df['short_stop_loss_price'])
 
-        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time'] +\
+        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time', 'morning_price'] +\
                                         (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
 
         write_short_df['exit_price'] = write_short_df['exit_price'].apply(lambda x: self.round_price(x))
