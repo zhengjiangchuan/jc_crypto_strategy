@@ -213,7 +213,7 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = True
+is_crypto = False
 
 correct_precision = not is_crypto
 
@@ -1434,7 +1434,9 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_long_cond7'] = True #((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & self.data_df['slow_vegas_up'])
 
-        self.data_df['vegas_long_cond8'] = True #self.data_df['guppy_half1_strong_aligned_long']
+        #self.data_df['vegas_long_cond8'] = True #self.data_df['guppy_half1_strong_aligned_long']
+
+        self.data_df['vegas_long_cond8'] = ~self.data_df['guppy_all_strong_aligned_short']
 
         self.data_df['vegas_long_cond9'] = True #self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
@@ -1454,7 +1456,9 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['vegas_short_cond7'] = True #((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & self.data_df['slow_vegas_down'])
 
-        self.data_df['vegas_short_cond8'] = True #self.data_df['guppy_half1_strong_aligned_short']
+        #self.data_df['vegas_short_cond8'] = True #self.data_df['guppy_half1_strong_aligned_short']
+
+        self.data_df['vegas_short_cond8'] = ~self.data_df['guppy_all_strong_aligned_long']
 
         self.data_df['vegas_short_cond9'] = True #self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] < 48
 
