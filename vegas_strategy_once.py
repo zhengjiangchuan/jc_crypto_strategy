@@ -324,9 +324,11 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    is_real_time_trading = False
+    #data_source = 1
 
-    is_weekend = True
+    is_real_time_trading = True
+
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -340,7 +342,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -383,7 +385,7 @@ def start_do_trading():
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
-    currencies_to_run = [] #['CHFJPY', 'AUDJPY', 'USDCAD']
+    currencies_to_run = [] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
 
 
@@ -572,7 +574,18 @@ def start_do_trading():
     #2
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy"
+    ##################
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_removeSpecial_prod"
+
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_prod"
+
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_specialStronger_prod"
+
+
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_prod"
+
+    ###################
+
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
 
@@ -814,7 +827,9 @@ def start_do_trading():
                             data_df = data_df.drop(columns=['index'])
 
                         #data_df = data_df.iloc[0:-2]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 10, 13, 18, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 5, 17, 21, 0, 0)]
+
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 5, 20, 10, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 3, 23, 4, 0, 0)]
 

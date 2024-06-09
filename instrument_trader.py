@@ -62,7 +62,7 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 5000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 500
+initial_bar_number = 50 if data_source == 1 else 700
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = False
+is_crypto = True
 
 correct_precision = not is_crypto
 
@@ -1439,9 +1439,12 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['vegas_long_cond9'] = True #self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
+        #self.data_df['vegas_long_cond9'] = True #self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
 
         self.data_df['vegas_long_cond9'] = ~self.data_df['guppy_all_strong_aligned_short']
+
+        #self.data_df['vegas_long_cond9'] = ~(self.data_df['guppy_all_strong_aligned_short'] & (self.data_df['guppy_max'] < self.data_df['lower_vegas']))
+
 
         #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4))
 
@@ -1451,6 +1454,14 @@ class CurrencyTrader(threading.Thread):
         #Weaker
         self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+        #Stronger
+        #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        #                                    (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
+
+
+        #self.data_df['vegas_long_cond10'] = True
+
 
         self.data_df['vegas_long_cond11'] = True #self.data_df['bar_down_phase_duration'] >= 24*5
 
@@ -1492,9 +1503,11 @@ class CurrencyTrader(threading.Thread):
             #self.data_df['vegas_short_cond8' + str(li)] = self.data_df['vegas_short_cond8' + str(li)] & (self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
 
 
-        self.data_df['vegas_short_cond9'] = True #self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
+        #self.data_df['vegas_short_cond9'] = True #self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
 
         self.data_df['vegas_short_cond9'] = ~self.data_df['guppy_all_strong_aligned_long']
+
+        #self.data_df['vegas_short_cond9'] = ~(self.data_df['guppy_all_strong_aligned_long'] & (self.data_df['guppy_min'] > self.data_df['upper_vegas']))
 
         #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4))
 
@@ -1504,6 +1517,13 @@ class CurrencyTrader(threading.Thread):
         #Weaker
         self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+        #Stronger
+        #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        #                                       (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
+
+
+        #self.data_df['vegas_short_cond10'] = True
 
         self.data_df['vegas_short_cond11'] = True #self.data_df['bar_up_phase_duration'] >= 24 * 5
 
@@ -1940,11 +1960,11 @@ class CurrencyTrader(threading.Thread):
 
             long_start_ids = which(self.data_df['final_vegas_long_fire'])
 
-            print("raw_long_start_ids:")
-            print(raw_long_start_ids)
-
-            print("long_start_ids:")
-            print(long_start_ids)
+            # print("raw_long_start_ids:")
+            # print(raw_long_start_ids)
+            #
+            # print("long_start_ids:")
+            # print(long_start_ids)
 
             print("")
             print("Calculating Long positions.............")
