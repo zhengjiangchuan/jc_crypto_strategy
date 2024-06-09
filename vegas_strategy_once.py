@@ -331,9 +331,9 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -388,7 +388,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = []
+    currencies_to_run = ['BTCUSD', 'ETHUSD']
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -563,6 +563,7 @@ def start_do_trading():
 
 
     chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "TrendFollowingStrategy_allCurrency_rounding_500_old_precision_filterGuppy"
+
 
 
 
