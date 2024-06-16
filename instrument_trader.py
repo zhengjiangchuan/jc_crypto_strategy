@@ -212,13 +212,13 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = True
+is_crypto = False
 
 correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = -1
 
 plot_day_line = True
 plot_cross_point = True

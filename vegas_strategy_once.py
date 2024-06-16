@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -324,11 +324,11 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    #data_source = 1
+    #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -577,7 +577,7 @@ def start_do_trading():
     ##################
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_removeSpecial_prod"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_prod"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_prod_all"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_specialStronger_prod"
 
@@ -827,7 +827,7 @@ def start_do_trading():
                             data_df = data_df.drop(columns=['index'])
 
                         #data_df = data_df.iloc[0:-2]
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 5, 17, 21, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 5, 20, 10, 0, 0)]
 
