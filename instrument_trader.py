@@ -218,7 +218,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
