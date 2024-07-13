@@ -328,7 +328,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend =False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -827,6 +827,9 @@ def start_do_trading():
                             data_df = data_df.drop(columns=['index'])
 
                         #data_df = data_df.iloc[0:-2]
+
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 7, 4, 13, 0, 0)]
+
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 5, 20, 10, 0, 0)]
