@@ -62,7 +62,7 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 5000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 700
+initial_bar_number = 50 if data_source == 1 else 1000
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = False
+is_crypto = True
 
 correct_precision = not is_crypto
 

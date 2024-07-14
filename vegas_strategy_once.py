@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -108,6 +108,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     #
+    print("here printing")
     print(data_df.iloc[-10:])
 
     return data_df
@@ -328,7 +329,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -828,7 +829,7 @@ def start_do_trading():
 
                         #data_df = data_df.iloc[0:-2]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 7, 4, 13, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 7, 14, 9, 0, 0)]
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
 
@@ -968,6 +969,10 @@ def start_do_trading():
 
                         if last_time is not None:
                             delta = datetime.now() - last_time
+
+                            print("last_time = " + str(last_time))
+                            print("now = " + str(datetime.now()))
+
                             if delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0:
                                 print("Received up-to-date data for currency pair " + currency)
 
