@@ -212,7 +212,7 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = True
+is_crypto = False
 
 correct_precision = not is_crypto
 
@@ -2289,7 +2289,7 @@ class CurrencyTrader(threading.Thread):
 
                                 message_title = "Long position of " + self.currency + " hits stop profit"
 
-                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
+                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price)) + "\n"
                                 message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
 
                                 print("message_title = " + message_title)
@@ -3083,7 +3083,7 @@ class CurrencyTrader(threading.Thread):
 
                                 message_title = "Short position of " + self.currency + " hits stop profit"
 
-                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price - unit_range)) + "\n"
+                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price)) + "\n"
                                 message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
 
                                 print("message_title = " + message_title)
