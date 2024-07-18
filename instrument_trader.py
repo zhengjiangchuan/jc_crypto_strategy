@@ -2289,6 +2289,8 @@ class CurrencyTrader(threading.Thread):
 
                                 message_title = "Long position of " + self.currency + " hits stop profit"
 
+
+
                                 message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price)) + "\n"
                                 message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
 
