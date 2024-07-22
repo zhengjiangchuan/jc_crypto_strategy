@@ -386,7 +386,8 @@ def start_do_trading():
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
-    currencies_to_run = [] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
+    currencies_to_run = []
+    #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
 
 
@@ -578,7 +579,7 @@ def start_do_trading():
     ##################
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_removeSpecial_prod"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_prod"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_prod_r"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_specialStronger_prod"
 
@@ -1095,7 +1096,12 @@ def start_do_trading():
             chart_files = os.listdir(currency_chart_folder)
             for chart_file in chart_files:
                 if 'pnl' not in chart_file:
+
+                    #print(os.path.join(currency_chart_folder, chart_file))
+                    #print(des_bar_folder)
+
                     shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
+
                     #print("des_bar_folder:")
                     #print(des_bar_folder)
 

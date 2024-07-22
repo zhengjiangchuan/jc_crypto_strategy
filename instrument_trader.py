@@ -227,7 +227,7 @@ unit_loss = 1000 if is_crypto else 500 #This is HKD
 usdhkd = 7.85
 leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
-tp_tolerance = 0.05  #0.05
+tp_tolerance = 0.05  #0.05, 0.20
 
 use_smart_close_position_logic = False
 
@@ -1943,6 +1943,8 @@ class CurrencyTrader(threading.Thread):
         smart_close_long_cond = "guppy_all_strong_aligned_long"
         smart_close_short_cond = "guppy_all_strong_aligned_short"
 
+        #smart_close_long_cond = 'guppy_half1_strong_aligned_long'
+        #smart_close_short_cond = 'guppy_half1_strong_aligned_short'
 
         ##############################
         if use_dynamic_TP or always_use_new_close_logic:
@@ -2220,6 +2222,8 @@ class CurrencyTrader(threading.Thread):
                         long_stop_profit_loss_time = cur_data['time']
                         long_stop_profit_loss_id = cur_data['id']
 
+                        #print("long_stop_profit_loss_time = " + str(long_stop_profit_loss_time))
+
                         #####################################
                         if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
                             current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
@@ -2326,10 +2330,17 @@ class CurrencyTrader(threading.Thread):
                             actual_tp_number = tp_number #Guoji
 
                         new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
+
+                        # print("GroupFun")
+                        # print("current_used_stop_loss = " + str(current_used_stop_loss))
+                        # print("new_actual_used_stop_loss = " + str(new_actual_used_stop_loss))
+
                         if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
                             actual_used_stop_loss = new_actual_used_stop_loss
                             is_actual_used_stop_loss_changed = True
                         #################
+                        #print("actual_used_stop_loss = " + str(actual_used_stop_loss))
+
 
 
 
