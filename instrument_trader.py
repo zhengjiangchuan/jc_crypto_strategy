@@ -229,7 +229,7 @@ leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
 tp_tolerance = 0.05  #0.05, 0.20
 
-use_smart_close_position_logic = False
+use_smart_close_position_logic = True
 
 readjust_position_when_new_signal = False
 
@@ -1940,11 +1940,11 @@ class CurrencyTrader(threading.Thread):
         # )
         #################################################
 
-        smart_close_long_cond = "guppy_all_strong_aligned_long"
-        smart_close_short_cond = "guppy_all_strong_aligned_short"
+        #smart_close_long_cond = "guppy_all_strong_aligned_long"
+        #smart_close_short_cond = "guppy_all_strong_aligned_short"
 
-        #smart_close_long_cond = 'guppy_half1_strong_aligned_long'
-        #smart_close_short_cond = 'guppy_half1_strong_aligned_short'
+        smart_close_long_cond = 'guppy_half1_strong_aligned_long'
+        smart_close_short_cond = 'guppy_half1_strong_aligned_short'
 
         ##############################
         if use_dynamic_TP or always_use_new_close_logic:
@@ -2176,7 +2176,7 @@ class CurrencyTrader(threading.Thread):
 
                         long_actual_stop_profit_price = cur_data['close']
 
-                        if long_actual_stop_profit_price < entry_price:
+                        if long_actual_stop_profit_price < entry_price - (1e-6):
                             long_stop_profit_loss = -1
                         else:
                             long_stop_profit_loss = 1
@@ -2214,7 +2214,7 @@ class CurrencyTrader(threading.Thread):
                         last_message_type = 0
 
                         long_actual_stop_profit_price = current_used_stop_loss  #New
-                        if long_actual_stop_profit_price < entry_price:
+                        if long_actual_stop_profit_price < entry_price - (1e-6):
                             long_stop_profit_loss = -1
                         else:
                             long_stop_profit_loss = 1
@@ -2230,7 +2230,7 @@ class CurrencyTrader(threading.Thread):
 
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n' #New
 
-                            if long_actual_stop_profit_price < entry_price and tp_number == 0:  #Guoji
+                            if long_actual_stop_profit_price < entry_price - (1e-6) and tp_number == 0:  #Guoji
 
                                 if use_dynamic_TP:
                                     message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
@@ -2974,7 +2974,7 @@ class CurrencyTrader(threading.Thread):
 
                         short_actual_stop_profit_price = cur_data['close']
 
-                        if short_actual_stop_profit_price > entry_price:
+                        if short_actual_stop_profit_price > entry_price + (1e-6):
                             short_stop_profit_loss = -1
                         else:
                             short_stop_profit_loss = 1
@@ -3017,7 +3017,7 @@ class CurrencyTrader(threading.Thread):
                         last_message_type = 0
 
                         short_actual_stop_profit_price = current_used_stop_loss  #New
-                        if short_actual_stop_profit_price > entry_price:
+                        if short_actual_stop_profit_price > entry_price + (1e-6):
                             short_stop_profit_loss = -1
                         else:
                             short_stop_profit_loss = 1
@@ -3032,7 +3032,7 @@ class CurrencyTrader(threading.Thread):
 
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n'  #New
 
-                            if short_actual_stop_profit_price > entry_price and tp_number == 0:  #Guoji
+                            if short_actual_stop_profit_price > entry_price + (1e-6) and tp_number == 0:  #Guoji
 
                                 if use_dynamic_TP:
                                     message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
