@@ -229,7 +229,7 @@ leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
 tp_tolerance = 0.05  #0.05, 0.20
 
-use_smart_close_position_logic = True
+use_smart_close_position_logic = False
 
 readjust_position_when_new_signal = False
 
