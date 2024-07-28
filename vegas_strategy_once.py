@@ -495,7 +495,7 @@ def start_do_trading():
     #     print("Copy from " + file_path + " to " + out_folder)
     #     shutil.copy2(file_path, out_folder)
     #     shutil.copy2(file_path2, out_folder)
-    #
+    # 
     # sys.exit(0)
 
     # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
