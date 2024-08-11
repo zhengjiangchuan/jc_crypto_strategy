@@ -608,9 +608,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['bar_up_phase_duration'] = self.data_df['num'] - self.data_df['critical_bar_up_num']
 
 
-        ########### New Code Guppy##########
-
-
+        ########### New Code for Guppy strongly aligned duration calculation ##########
 
         self.data_df['guppy_all_strong_aligned'] = self.data_df['guppy_all_strong_aligned_long'] | self.data_df['guppy_all_strong_aligned_short']
         self.data_df['prev_guppy_all_strong_aligned'] = self.data_df['guppy_all_strong_aligned'].shift(1).fillna(0)
