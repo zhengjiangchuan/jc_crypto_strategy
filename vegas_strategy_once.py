@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -327,9 +327,9 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -386,6 +386,7 @@ def start_do_trading():
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
+    #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
     currencies_to_run = []
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
@@ -495,7 +496,7 @@ def start_do_trading():
     #     print("Copy from " + file_path + " to " + out_folder)
     #     shutil.copy2(file_path, out_folder)
     #     shutil.copy2(file_path2, out_folder)
-    # 
+    #
     # sys.exit(0)
 
     # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
@@ -583,7 +584,13 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_SmartClose"
+
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_noGuppyFilter_SmartClose"
+
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
+
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_rerun"
+
 
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_specialStronger_prod"
@@ -835,7 +842,7 @@ def start_do_trading():
 
                         #data_df = data_df.iloc[0:-2]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 7, 24, 22, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 8, 3, 3, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
