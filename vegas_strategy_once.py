@@ -327,9 +327,9 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -387,7 +387,7 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
-    currencies_to_run = []
+    currencies_to_run = ['GBPUSD']
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
 
@@ -589,7 +589,7 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_rerun"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
 
 
@@ -967,10 +967,10 @@ def start_do_trading():
                     # print(data_df.iloc[-20:])
 
 
-                    # if data_source == 2:
-                    #     print("preprocess data")
-                    #     data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
-                    #     print("preprocess finished")
+                    if data_source == 2:
+                        print("preprocess data")
+                        data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                        print("preprocess finished")
                         # print("preprocessed data:")
                         # print(data_df.iloc[1500:1510])
 
