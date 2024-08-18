@@ -222,7 +222,7 @@ crypto_stop_loss_coefficient = 2
 
 printed_figure_num = 1
 
-unit_loss = 1000 if is_crypto else 500 #This is HKD
+unit_loss = 1000 if is_crypto else 250 #This is HKD
 usdhkd = 7.85
 leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
