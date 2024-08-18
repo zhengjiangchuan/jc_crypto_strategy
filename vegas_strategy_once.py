@@ -325,9 +325,9 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    data_source = 2
+    #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -589,7 +589,7 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_rerun"
 
 
 
@@ -842,7 +842,7 @@ def start_do_trading():
 
                         #data_df = data_df.iloc[0:-2]
 
-                        data_df = data_df[data_df['time'] <= datetime(2024, 8, 16, 23, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 8, 16, 23, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]

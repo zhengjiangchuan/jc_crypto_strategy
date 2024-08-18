@@ -60,7 +60,7 @@ bar_high_percentile = 0.1
 vegas_bar_percentile = 0.2
 
 
-data_source = 2
+data_source = 1
 
 #initial_bar_number = 5000 #3555  50
 initial_bar_number = 50 if data_source == 1 else 1000
@@ -221,7 +221,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
