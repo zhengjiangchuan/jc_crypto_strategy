@@ -967,10 +967,10 @@ def start_do_trading():
                     # print(data_df.iloc[-20:])
 
 
-                    if data_source == 2:
-                        print("preprocess data")
-                        data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
-                        print("preprocess finished")
+                    # if data_source == 2:
+                    #     print("preprocess data")
+                    #     data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                    #     print("preprocess finished")
                         # print("preprocessed data:")
                         # print(data_df.iloc[1500:1510])
 
