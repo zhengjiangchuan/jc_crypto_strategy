@@ -550,7 +550,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_smartClose" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy" #_relaxFastSlow
 
 
     #4
