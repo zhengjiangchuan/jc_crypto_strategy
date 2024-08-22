@@ -179,6 +179,8 @@ max_hour_open_position = 18 #18
 hours_close_position_quick = [16]
 hours_close_position = [0] #23
 
+strict_smart_close_logic = False
+
 
 only_second_entry = False
 use_second_entry = False
@@ -1283,7 +1285,7 @@ class CurrencyTrader(threading.Thread):
 
         key_columns = ['time',  'bar_cross_guppy_num', 'bar_cross_guppy_duration', 'critical_price_id', 'bar_cross_guppy_total_duration',
                            'critical_price', 'bar_cross_guppy_label', 'lower_vegas', 'upper_vegas', 'guppy_min', 'guppy_max', 'high', 'low']
-        look_backward_group_num = 9 #3 should be odd number
+        look_backward_group_num = 11 #3 should be odd number  9
         for key_column in key_columns:
             for backward_i in range(1, look_backward_group_num + 1):
                 if backward_i == 1:
@@ -2439,7 +2441,8 @@ class CurrencyTrader(threading.Thread):
                                     print("guppy_all_strong_aligned_long becomes false")
                                     print("")
 
-                                if cur_data['high'] > current_stop_loss + unit_range:
+
+                                if (cur_data['high'] > current_stop_loss + unit_range) or (strict_smart_close_logic and cur_data['close'] > current_stop_loss):
                                     current_used_stop_loss = current_stop_loss
                                     actual_tp_number = tp_number
 
@@ -3230,7 +3233,7 @@ class CurrencyTrader(threading.Thread):
                                     print("guppy_all_strong_aligned_short becomes false")
                                     print("")
 
-                                if cur_data['low'] < current_stop_loss - unit_range:
+                                if cur_data['low'] < current_stop_loss - unit_range or (strict_smart_close_logic and cur_data['close'] < current_stop_loss):
                                     current_used_stop_loss = current_stop_loss
                                     actual_tp_number = tp_number
 
