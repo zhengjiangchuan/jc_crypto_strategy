@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -305,9 +305,9 @@ def start_do_trading():
 
     data_source = 1 if not is_crypto else 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -550,7 +550,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong" #_relaxFastSlow
 
 
     #4

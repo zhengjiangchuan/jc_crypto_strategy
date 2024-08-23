@@ -25,10 +25,10 @@ start_date = datetime(2023, 4, 1)  # 4.1
 
 filter_hasty_trades = False
 
-is_crypto = True
+is_crypto = False
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_vegasStrategy"
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_vegasStrategy_prod_bothWrong_rerun"
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
 
@@ -144,11 +144,15 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                os.path.join(forex_dir,
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
-    trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv"),
-                   os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")]
+    # trade_files = [os.path.join(forex_dir,
+    #                             "all_pnl_chart_ratio1removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv"),
+    #                os.path.join(forex_dir,
+    #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify\\all_trades.csv")]
 
+    trade_files = [os.path.join(forex_dir,
+                                "all_pnl_chart_ratio1vegasStrategy_prod_bothWrong\\all_trades.csv"),
+                   os.path.join(forex_dir,
+                                "all_pnl_chart_ratio10vegasStrategy_prod_bothWrong\\all_trades.csv")]
 
     output_file = None
 
@@ -730,7 +734,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,4,16)]
+end_dates = [datetime(2024,8,26)]  #datetime(2024,4,16)
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
