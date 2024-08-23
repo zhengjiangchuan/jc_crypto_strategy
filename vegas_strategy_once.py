@@ -589,8 +589,10 @@ def start_do_trading():
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod"
 
+    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod"
+
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_SmartClose_moreGroups_prod"
 
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_specialStronger_prod"

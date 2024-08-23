@@ -1459,9 +1459,9 @@ class CurrencyTrader(threading.Thread):
 
         #self.data_df['vegas_long_cond9'] = True #self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
 
-        #self.data_df['vegas_long_cond9'] = ~self.data_df['guppy_all_strong_aligned_short']
+        self.data_df['vegas_long_cond9'] = ~self.data_df['guppy_all_strong_aligned_short']
 
-        self.data_df['vegas_long_cond9'] = ~(self.data_df['guppy_all_strong_aligned_short'] & (self.data_df['guppy_aligned_duration'] >= 24))
+        #self.data_df['vegas_long_cond9'] = ~(self.data_df['guppy_all_strong_aligned_short'] & (self.data_df['guppy_aligned_duration'] >= 24))
 
 
         #self.data_df['vegas_long_cond9'] = ~(self.data_df['guppy_all_strong_aligned_short'] & (self.data_df['guppy_max'] < self.data_df['lower_vegas']))
@@ -1529,9 +1529,9 @@ class CurrencyTrader(threading.Thread):
 
         #self.data_df['vegas_short_cond9'] = True #self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
 
-        #self.data_df['vegas_short_cond9'] = ~self.data_df['guppy_all_strong_aligned_long']
+        self.data_df['vegas_short_cond9'] = ~self.data_df['guppy_all_strong_aligned_long']
 
-        self.data_df['vegas_short_cond9'] = ~(self.data_df['guppy_all_strong_aligned_long'] & (self.data_df['guppy_aligned_duration'] >= 24))
+        #self.data_df['vegas_short_cond9'] = ~(self.data_df['guppy_all_strong_aligned_long'] & (self.data_df['guppy_aligned_duration'] >= 24))
 
 
 
