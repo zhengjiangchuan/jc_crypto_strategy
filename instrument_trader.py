@@ -176,6 +176,7 @@ max_hour_open_position = 18 #18
 hours_close_position_quick = [16]
 hours_close_position = [0] #23
 
+print_email_message_to_file = True
 
 only_second_entry = False
 use_second_entry = False
@@ -220,7 +221,7 @@ correct_precision = not is_crypto
 
 crypto_stop_loss_coefficient = 2
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 unit_loss = 1000 if is_crypto else 250 #This is HKD
 usdhkd = 7.85
@@ -247,7 +248,7 @@ if is_crypto and use_0threshold:
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, is_notify):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -264,6 +265,10 @@ class CurrencyTrader(threading.Thread):
         self.trade_file = trade_file
         self.performance_file = performance_file
         self.usdfx = usdfx
+
+        self.email_message_fd = open(email_message_file, 'w')
+        self.email_message_caches = []
+
         self.is_notify = is_notify
 
         self.long_df = None
@@ -1522,8 +1527,8 @@ class CurrencyTrader(threading.Thread):
                 TP1 = long_target_profit_price
 
                 ##########################
-                if self.is_notify and long_start_id == self.data_df.shape[0] - 1:
-                    current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
+                if self.is_notify and (long_start_id == self.data_df.shape[0] - 1 or print_email_message_to_file):
+                    current_time = str(self.data_df.iloc[long_start_id]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Long " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
 
@@ -1553,7 +1558,11 @@ class CurrencyTrader(threading.Thread):
                     print("message_title = " + message_title)
                     print("message:")
                     print(message)
-                    sendEmail(message_title, message)
+
+                    if not print_email_message_to_file:
+                        sendEmail(message_title, message)
+                    else:
+                        self.cache_email_messages(message_title, message, current_time)
 
 
 
@@ -1602,9 +1611,9 @@ class CurrencyTrader(threading.Thread):
 
                         actual_tp_number = round((long_actual_stop_profit_price - entry_price)/unit_range, 4)
 
-                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
 
                             message_title = "Long position of " + self.currency + " logically gets closed due to new long signal fire"
 
@@ -1620,8 +1629,11 @@ class CurrencyTrader(threading.Thread):
                             print("message_title = " + message_title)
                             print("message:")
                             print(message)
-                            sendEmail(message_title, message)
 
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message)
+                            else:
+                                self.cache_email_messages(message_title, message, current_time)
 
                         break
 
@@ -1642,8 +1654,8 @@ class CurrencyTrader(threading.Thread):
                         long_stop_profit_loss_id = cur_data['id']
 
                         #####################################
-                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
+                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n' #New
 
@@ -1661,7 +1673,11 @@ class CurrencyTrader(threading.Thread):
                                 print("message_title = " + message_title)
                                 print("message:")
                                 print(message)
-                                sendEmail(message_title, message)
+
+                                if not print_email_message_to_file:
+                                    sendEmail(message_title, message)
+                                else:
+                                    self.cache_email_messages(message_title, message, current_time)
 
                             else:
                                 message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(actual_tp_number - 1) + " \n"  #Guoji
@@ -1681,7 +1697,11 @@ class CurrencyTrader(threading.Thread):
                                 print("message_title = " + message_title)
                                 print("message:")
                                 print(message)
-                                sendEmail(message_title, message)
+
+                                if not print_email_message_to_file:
+                                    sendEmail(message_title, message)
+                                else:
+                                    self.cache_email_messages(message_title, message, current_time)
 
                         #####################################
 
@@ -1701,9 +1721,9 @@ class CurrencyTrader(threading.Thread):
                             long_stop_profit_loss = 1
                             actual_tp_number = tp_number
 
-                            if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
+                            if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
-                                current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                                current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
 
                                 message_title = "Long position of " + self.currency + " hits stop profit"
 
@@ -1713,8 +1733,11 @@ class CurrencyTrader(threading.Thread):
                                 print("message_title = " + message_title)
                                 print("message:")
                                 print(message)
-                                sendEmail(message_title, message)
 
+                                if not print_email_message_to_file:
+                                    sendEmail(message_title, message)
+                                else:
+                                    self.cache_email_messages(message_title, message, current_time)
 
                             last_position = 0
                             break
@@ -1755,9 +1778,9 @@ class CurrencyTrader(threading.Thread):
                             long_target_profit_price = self.round_price(long_target_profit_price)
 
                         #####################################
-                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
 
@@ -1776,7 +1799,13 @@ class CurrencyTrader(threading.Thread):
                             print("message_title = " + message_title)
                             print("message:")
                             print(message)
-                            sendEmail(message_title, message)
+
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message)
+                            else:
+                                self.cache_email_messages(message_title, message, current_time)
+
+
                         ########################################
                     elif use_smart_close_position_logic:  #New
 
@@ -1855,9 +1884,9 @@ class CurrencyTrader(threading.Thread):
                             is_actual_used_stop_loss_changed = True
                         #################
 
-                        if self.is_notify and long_start_id + j == self.data_df.shape[0] - 1 and is_actual_used_stop_loss_changed:
+                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file) and is_actual_used_stop_loss_changed:
 
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
 
                             if cur_data[smart_close_long_cond]:
 
@@ -1873,8 +1902,11 @@ class CurrencyTrader(threading.Thread):
                             print("message_title = " + message_title)
                             print("message:")
                             print(message)
-                            sendEmail(message_title, message)
 
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message)
+                            else:
+                                self.cache_email_messages(message_title, message, current_time)
 
                     if (not readjust_position_when_new_signal) and temp_ii + 1 < len(long_start_ids) and long_start_ids[temp_ii + 1] == long_start_id + j:
 
@@ -2234,8 +2266,8 @@ class CurrencyTrader(threading.Thread):
                 TP1 = short_target_profit_price
 
                 ##########################
-                if self.is_notify and short_start_id == self.data_df.shape[0] - 1:
-                    current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours = 1))
+                if self.is_notify and (short_start_id == self.data_df.shape[0] - 1 or print_email_message_to_file):
+                    current_time = str(self.data_df.iloc[short_start_id]['time'] + timedelta(hours = 1))
 
                     message = "At " + current_time + ", Short " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
 
@@ -2264,7 +2296,11 @@ class CurrencyTrader(threading.Thread):
                     print("message_title = " + message_title)
                     print("message:")
                     print(message)
-                    sendEmail(message_title, message)
+
+                    if not print_email_message_to_file:
+                        sendEmail(message_title, message)
+                    else:
+                        self.cache_email_messages(message_title, message, current_time)
 
 
 
@@ -2322,9 +2358,9 @@ class CurrencyTrader(threading.Thread):
 
                         actual_tp_number = round(-(short_actual_stop_profit_price - entry_price)/unit_range, 4)
 
-                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
 
                             message_title = "Short position of " + self.currency + " logically gets closed due to new short signal fire"
 
@@ -2340,7 +2376,11 @@ class CurrencyTrader(threading.Thread):
                             print("message_title = " + message_title)
                             print("message:")
                             print(message)
-                            sendEmail(message_title, message)
+
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message)
+                            else:
+                                self.cache_email_messages(message_title, message, current_time)
 
 
                         break
@@ -2363,8 +2403,8 @@ class CurrencyTrader(threading.Thread):
 
 
                         #####################################
-                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
+                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n'  #New
 
@@ -2382,7 +2422,12 @@ class CurrencyTrader(threading.Thread):
                                 print("message_title = " + message_title)
                                 print("message:")
                                 print(message)
-                                sendEmail(message_title, message)
+
+                                if not print_email_message_to_file:
+                                    sendEmail(message_title, message)
+                                else:
+                                    self.cache_email_messages(message_title, message, current_time)
+
 
                             else:
                                 message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(actual_tp_number - 1) + " \n"   #Guoji
@@ -2402,7 +2447,11 @@ class CurrencyTrader(threading.Thread):
                                 print("message_title = " + message_title)
                                 print("message:")
                                 print(message)
-                                sendEmail(message_title, message)
+
+                                if not print_email_message_to_file:
+                                    sendEmail(message_title, message)
+                                else:
+                                    self.cache_email_messages(message_title, message, current_time)
 
                         #####################################
 
@@ -2423,9 +2472,9 @@ class CurrencyTrader(threading.Thread):
                             short_stop_profit_loss = 1
                             actual_tp_number = tp_number
 
-                            if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
+                            if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
-                                current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                                current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
 
                                 message_title = "Short position of " + self.currency + " hits stop profit"
 
@@ -2435,8 +2484,11 @@ class CurrencyTrader(threading.Thread):
                                 print("message_title = " + message_title)
                                 print("message:")
                                 print(message)
-                                sendEmail(message_title, message)
 
+                                if not print_email_message_to_file:
+                                    sendEmail(message_title, message)
+                                else:
+                                    self.cache_email_messages(message_title, message, current_time)
 
                             last_position = 0
                             break
@@ -2474,9 +2526,9 @@ class CurrencyTrader(threading.Thread):
                             short_target_profit_price = self.round_price(short_target_profit_price)
 
                         #####################################
-                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1:
+                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
 
                             message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
 
@@ -2496,7 +2548,12 @@ class CurrencyTrader(threading.Thread):
                             print("message_title = " + message_title)
                             print("message:")
                             print(message)
-                            sendEmail(message_title, message)
+
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message)
+                            else:
+                                self.cache_email_messages(message_title, message, current_time)
+
                         ########################################
                     elif use_smart_close_position_logic:  #New
 
@@ -2573,9 +2630,9 @@ class CurrencyTrader(threading.Thread):
                             is_actual_used_stop_loss_changed = True
                         #################
 
-                        if self.is_notify and short_start_id + j == self.data_df.shape[0] - 1 and is_actual_used_stop_loss_changed:
+                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file) and is_actual_used_stop_loss_changed:
 
-                            current_time = str(self.data_df.iloc[-1]['time'] + timedelta(hours=1))
+                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
 
                             if cur_data[smart_close_short_cond]:
 
@@ -2593,9 +2650,11 @@ class CurrencyTrader(threading.Thread):
                             print("message_title = " + message_title)
                             print("message:")
                             print(message)
-                            sendEmail(message_title, message)
 
-
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message)
+                            else:
+                                self.cache_email_messages(message_title, message, current_time)
 
                     if (not readjust_position_when_new_signal) and temp_ii + 1 < len(short_start_ids) and short_start_ids[temp_ii + 1] == short_start_id + j:
                         is_effective[temp_ii + 1] = 0
@@ -2960,11 +3019,34 @@ class CurrencyTrader(threading.Thread):
         self.write_long_df = write_long_df
         self.write_short_df = write_short_df
 
+    def cache_email_messages(self, title, content, time):
+
+        self.email_message_caches += [[title, content, time]]
 
     def post_processing(self):
 
         print("")
         print("Post processing currency pair " + str(self.currency))
+
+        if print_email_message_to_file:
+
+            email_messages_df = pd.DataFrame(data=self.email_message_caches, columns=['title', 'content', 'time'])
+            email_messages_df = email_messages_df.sort_values(by=['time'])
+
+            print("")
+            print("email_messages_df:")
+            print(email_messages_df)
+
+            for i in range(email_messages_df.shape[0]):
+                email_data_entry = email_messages_df.iloc[i]
+                print(str(i + 1) + ":", file=self.email_message_fd)
+                print(email_data_entry['title'], file=self.email_message_fd)
+                print(email_data_entry['content'], file=self.email_message_fd)
+                # self.email_message_fd.flush()
+                print("", file=self.email_message_fd)
+                print("", file=self.email_message_fd)
+
+            self.email_message_fd.close()
 
         write_df = pd.concat([self.write_long_df, self.write_short_df])
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)

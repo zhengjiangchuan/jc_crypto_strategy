@@ -305,9 +305,9 @@ def start_do_trading():
 
     data_source = 1 if not is_crypto else 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -362,7 +362,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = []
+    currencies_to_run = ['CHFJPY']
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -519,6 +519,8 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
+    email_message_files = []
+
     selected_currencies = [] #currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
 
@@ -550,7 +552,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_email" #_relaxFastSlow
 
 
     #4
@@ -595,6 +597,7 @@ def start_do_trading():
         trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
         performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
         #print("Fuck performance_file " + performance_file)
+        email_message_file = os.path.join(currency_folder, currency + "_emails.txt")
 
         currency_folders += [currency_folder]
         data_folders += [data_folder]
@@ -604,6 +607,8 @@ def start_do_trading():
         data_files += [data_file]
         trade_files += [trade_file]
         performance_files += [performance_file]
+
+        email_message_files += [email_message_file]
 
     currency_traders = []
 
@@ -713,8 +718,8 @@ def start_do_trading():
 
 
 
-    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx in list(
-            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx)):
+    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file in list(
+            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx, email_message_files)):
 
         currency = currency_pair.currency
         lot_size = currency_pair.lot_size
@@ -723,7 +728,7 @@ def start_do_trading():
 
         #print("Here performance_file = " + performance_file)
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, currency in currencies_to_notify)
+                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, currency in currencies_to_notify)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
