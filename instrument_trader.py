@@ -225,12 +225,12 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
 
-unit_loss = 1000 if is_crypto else 250 #This is HKD
+unit_loss = 1000 if is_crypto else 200 #This is HKD
 usdhkd = 7.85
 leverage = 10 if is_crypto else 100 #100 for forex, 10 for crypto
 
@@ -3738,9 +3738,9 @@ class CurrencyTrader(threading.Thread):
             email_messages_df = pd.DataFrame(data = self.email_message_caches, columns = ['title', 'content', 'time'])
             email_messages_df = email_messages_df.sort_values(by = ['time'])
 
-            print("")
-            print("email_messages_df:")
-            print(email_messages_df)
+            # print("")
+            # print("email_messages_df:")
+            # print(email_messages_df)
 
             for i in range(email_messages_df.shape[0]):
 

@@ -52,7 +52,7 @@ def wait_for_trigger():
         time.sleep(1)
         now = datetime.now()
 
-    sendEmail("Trading program still alive", "")
+    #sendEmail("Trading program still alive", "")
 
     return
 
