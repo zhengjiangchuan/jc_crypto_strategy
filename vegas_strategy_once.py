@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -387,7 +387,7 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
-    currencies_to_run = []
+    currencies_to_run = ['CHFJPY']
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
 
@@ -558,6 +558,8 @@ def start_do_trading():
     trade_files = []
     performance_files = []
 
+    email_message_files = []
+
     selected_currencies = [] #currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
 
@@ -590,7 +592,7 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod_email"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_SmartClose_moreGroups_prod"
 
@@ -651,6 +653,9 @@ def start_do_trading():
         data_file = os.path.join(currency_data_folder, currency + ".csv")
         trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
         performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+
+        email_message_file = os.path.join(currency_folder, currency + "_emails.txt")
+
         #print("Fuck performance_file " + performance_file)
 
         currency_folders += [currency_folder]
@@ -661,6 +666,8 @@ def start_do_trading():
         data_files += [data_file]
         trade_files += [trade_file]
         performance_files += [performance_file]
+
+        email_message_files += [email_message_file]
 
     currency_traders = []
 
@@ -774,8 +781,8 @@ def start_do_trading():
 
 
 
-    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx in list(
-            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx)):
+    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file in list(
+            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx, email_message_files)):
 
         currency = currency_pair.currency
         lot_size = currency_pair.lot_size
@@ -784,7 +791,7 @@ def start_do_trading():
 
         #print("Here performance_file = " + performance_file)
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, currency in currencies_to_notify)
+                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, currency in currencies_to_notify)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
