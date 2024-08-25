@@ -362,7 +362,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = ['CHFJPY']
+    currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -552,8 +552,8 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_email" #_relaxFastSlow
-
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rerun" #_relaxFastSlow
+        #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_all"
 
     #4
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_removeMustReject1_rejectLongTrend_simple" #_relaxFastSlow
