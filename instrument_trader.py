@@ -181,7 +181,7 @@ hours_close_position = [0] #23
 
 strict_smart_close_logic = False
 
-print_email_message_to_file = True
+print_email_message_to_file = False
 
 
 only_second_entry = False
