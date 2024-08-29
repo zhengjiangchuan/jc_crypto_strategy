@@ -329,7 +329,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -592,7 +592,7 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod_run"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_SmartClose_moreGroups_prod"
 
