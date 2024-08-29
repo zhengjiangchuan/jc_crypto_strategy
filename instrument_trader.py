@@ -178,7 +178,7 @@ hours_close_position = [0] #23
 
 guppy_min_max_cond = False
 
-print_email_message_to_file = False
+print_email_message_to_file = True
 
 only_second_entry = False
 use_second_entry = False
@@ -1095,7 +1095,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
         self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['lower_vegas']) & (self.data_df['ma_close35'] > self.data_df['lower_vegas']) #EURAUD Stuff
         self.data_df['vegas_long_cond8'] = self.data_df['can_long']
-        self.data_df['vegas_long_cond9'] = ~self.data_df['special_reject_long_cond']
+        self.data_df['vegas_long_cond9'] = True #~self.data_df['special_reject_long_cond']
 
         self.data_df['vegas_long_cond10'] = (self.data_df['macd'] > self.data_df['prev_macd']) | (self.data_df['msignal'] > self.data_df['prev_msignal'])
 
@@ -1138,7 +1138,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
         self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['upper_vegas']) & (self.data_df['ma_close35'] < self.data_df['upper_vegas']) #EURAUD Stuff
         self.data_df['vegas_short_cond8'] = self.data_df['can_short']
-        self.data_df['vegas_short_cond9'] = ~self.data_df['special_reject_short_cond']
+        self.data_df['vegas_short_cond9'] = True #~self.data_df['special_reject_short_cond']
 
         self.data_df['vegas_short_cond10'] = (self.data_df['macd'] < self.data_df['prev_macd']) | (self.data_df['msignal'] < self.data_df['prev_msignal'])
 
@@ -3056,9 +3056,9 @@ class CurrencyTrader(threading.Thread):
             email_messages_df = pd.DataFrame(data=self.email_message_caches, columns=['title', 'content', 'time'])
             email_messages_df = email_messages_df.sort_values(by=['time'])
 
-            print("")
-            print("email_messages_df:")
-            print(email_messages_df)
+            # print("")
+            # print("email_messages_df:")
+            # print(email_messages_df)
 
             for i in range(email_messages_df.shape[0]):
                 email_data_entry = email_messages_df.iloc[i]

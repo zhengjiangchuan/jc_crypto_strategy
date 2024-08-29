@@ -362,7 +362,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = []
+    currencies_to_run = ['EURAUD']
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -552,7 +552,9 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_run2" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_rmCond9_run_single" #_relaxFastSlow
+
+
         #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_all"
 
     #4
@@ -792,7 +794,7 @@ def start_do_trading():
 
                         #data_df = data_df.iloc[:-1]
 
-                        data_df = data_df[data_df['time'] <= datetime(2024, 8, 26, 19, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 8, 26, 19, 0, 0)]
 
                         # critical_time = datetime(2023, 10, 3, 7, 0, 0)
                         # prev_data_df = prev_data_df[prev_data_df['time'] < critical_time]
