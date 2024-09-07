@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -307,7 +307,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -362,7 +362,7 @@ def start_do_trading():
     #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-    currencies_to_run = ['EURAUD']
+    currencies_to_run = []
     raw_currencies = currency_df['currency'].tolist()
 
     # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
@@ -552,7 +552,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_rmCond9_run_single" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_rmCond9" #_relaxFastSlow
 
 
         #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_all"
@@ -794,7 +794,7 @@ def start_do_trading():
 
                         #data_df = data_df.iloc[:-1]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 8, 26, 19, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 8, 29, 20, 0, 0)]
 
                         # critical_time = datetime(2023, 10, 3, 7, 0, 0)
                         # prev_data_df = prev_data_df[prev_data_df['time'] < critical_time]

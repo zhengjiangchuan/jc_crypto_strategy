@@ -178,7 +178,7 @@ hours_close_position = [0] #23
 
 guppy_min_max_cond = False
 
-print_email_message_to_file = True
+print_email_message_to_file = False
 
 only_second_entry = False
 use_second_entry = False
@@ -677,16 +677,21 @@ class CurrencyTrader(threading.Thread):
 
         # New Change
         self.data_df['final_long_filter2'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate < -vegas_threshold) & (self.data_df['vegas_phase_duration'] >= 96)
-        self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['guppy_all_strong_aligned_long'])  #0825
+        self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['guppy_all_strong_aligned_long'])  #0825  #0831 remove whole
 
-        self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
-                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_above_vegas'] & self.data_df['guppy_all_strong_aligned_long']
+        #self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
+        #                                     (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_above_vegas'] & self.data_df['guppy_all_strong_aligned_long']
+
+        #0831
+        #self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] &\
+        #                                     (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_strong_aligned_long']
+
 
 
 
         #self.data_df['long_filter_exempt'] = self.data_df['guppy_all_strong_aligned_long']
 
-        self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
+        #self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
 
         self.data_df['final_long_filter'] = self.data_df['final_long_filter1'] | self.data_df['final_long_filter2']
 
@@ -731,6 +736,7 @@ class CurrencyTrader(threading.Thread):
         else:
             self.data_df['final_long_condition1'] = self.data_df['final_long_condition']
 
+
         # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
         #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
         #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
@@ -741,7 +747,7 @@ class CurrencyTrader(threading.Thread):
                                                 (self.data_df['middle'] > self.data_df['upper_vegas']) &\
                                                 (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                 (self.data_df['vegas_phase_duration'] > 24) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
-
+        #0831 guppy_lines_down_num
 
         # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
         #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
@@ -841,14 +847,19 @@ class CurrencyTrader(threading.Thread):
 
         # New Change
         self.data_df['final_short_filter2'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate > vegas_threshold) & (self.data_df['vegas_phase_duration'] >= 96)
-        self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['guppy_all_strong_aligned_short'])  #0825
+        self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['guppy_all_strong_aligned_short'])  #0825  #0831 remove whole
 
-        self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
-                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_below_vegas'] & self.data_df['guppy_all_strong_aligned_short']
+        #self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
+        #                                     (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_below_vegas'] & self.data_df['guppy_all_strong_aligned_short']
+
+        #0831
+        #self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] &\
+        #                                     (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_strong_aligned_short']
+
 
         #self.data_df['short_filter_exempt'] = self.data_df['guppy_all_strong_aligned_short'] #0823
 
-        self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
+        #self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
 
         self.data_df['final_short_filter'] = self.data_df['final_short_filter1'] | self.data_df['final_short_filter2']
 
@@ -903,7 +914,7 @@ class CurrencyTrader(threading.Thread):
                                                  (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                                  (self.data_df['vegas_phase_duration'] > 24) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
 
-
+        #0831 self.data_df['guppy_lines_up_num'] < 3  (~self.data_df['guppy_half1_strong_aligned_long'])
 
 
 
