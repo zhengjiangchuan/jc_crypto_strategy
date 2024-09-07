@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -329,7 +329,7 @@ def start_do_trading():
 
     is_real_time_trading = True
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -592,7 +592,7 @@ def start_do_trading():
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod_run"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroups_prod"
 
     #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_SmartClose_moreGroups_prod"
 
