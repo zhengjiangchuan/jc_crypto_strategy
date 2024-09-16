@@ -183,6 +183,8 @@ strict_smart_close_logic = False
 
 print_email_message_to_file = False
 
+special_cond10 = True
+
 
 only_second_entry = False
 use_second_entry = False
@@ -1482,6 +1484,18 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
                                             (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
 
+        if special_cond10:
+            for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
+                self.data_df['vegas_long_cond0' + str(li)] = self.data_df['vegas_long_cond10'] | \
+                    ((self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_' + str(li*2) + 'critical_price_id'] < self.data_df['vegas_phase_duration']) &\
+                    reduce(lambda left, right : left & right, [self.data_df['long_prevGroup_' + str(2*jj-1) + 'critical_price'] < self.data_df['long_prevGroup_' + str(2*jj-1) + 'lower_vegas'] for jj in range(1, li+1)]))
+
+
+            # for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
+            #     self.data_df['vegas_long_conds' + str(li)] = self.data_df['vegas_long_cond10'] | \
+            #         reduce(lambda left, right : left & right, [self.data_df['long_prevGroup_' + str(2*jj-1) + 'critical_price'] < self.data_df['long_prevGroup_' + str(2*jj-1) + 'lower_vegas'] for jj in range(1, li+1)])
+
+
         #Stronger
         #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
         #                                    (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
@@ -1551,6 +1565,22 @@ class CurrencyTrader(threading.Thread):
         #Weaker
         self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
                                                (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
+
+
+        if special_cond10:
+            for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
+                self.data_df['vegas_short_cond0' + str(li)] = self.data_df['vegas_short_cond10'] | \
+                    ((self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_' + str(li*2) + 'critical_price_id'] < self.data_df['vegas_phase_duration']) &\
+                    reduce(lambda left, right : left & right, [self.data_df['short_prevGroup_' + str(2*jj-1) + 'critical_price'] > self.data_df['short_prevGroup_' + str(2*jj-1) + 'upper_vegas'] for jj in range(1, li+1)]))
+
+
+
+            # for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
+            #     self.data_df['vegas_short_conds' + str(li)] = self.data_df['vegas_short_cond10'] | \
+            #         reduce(lambda left, right : left & right, [self.data_df['short_prevGroup_' + str(2*jj-1) + 'critical_price'] > self.data_df['short_prevGroup_' + str(2*jj-1) + 'upper_vegas'] for jj in range(1, li+1)])
+
+
+
 
         #Stronger
         #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
@@ -1663,13 +1693,26 @@ class CurrencyTrader(threading.Thread):
 
         for li in range(look_back_start_group, (look_backward_group_num-1)//2+1): #Conservative
             self.data_df['vegas_long_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij)] for ij in range(0, 4)])
-            self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond10'] & self.data_df['vegas_long_cond11']
-            self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij) + str(li)] for ij in range(4, 9)]))
+
+            if not special_cond10:
+                self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond10'] & self.data_df['vegas_long_cond11']
+                self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij) + str(li)] for ij in list(range(4, 9))]))
+            else:
+                self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond11']
+                self.data_df['vegas_long_fire' + str(li)] =\
+                    self.data_df['vegas_long_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij) + str(li)] for ij in ([0] + list(range(4, 9)))]))
+
+
 
         for li in range(look_back_start_group, (look_backward_group_num-1)//2+1): #Conservative
             self.data_df['vegas_short_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij)] for ij in range(0, 4)])
-            self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond10'] & self.data_df['vegas_short_cond11']
-            self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij) + str(li)] for ij in range(4, 9)]))
+
+            if not special_cond10:
+                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond10'] & self.data_df['vegas_short_cond11']
+                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij) + str(li)] for ij in list(range(4, 9))]))
+            else:
+                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond11']
+                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij) + str(li)] for ij in ([0] + list(range(4, 9)))]))
 
 
         # Conservative
