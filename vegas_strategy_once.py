@@ -552,7 +552,7 @@ def start_do_trading():
     if use_0threshold:
         chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_Simplify_0threshold" #_relaxFastSlow
     else:
-        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_rmCond9_rmReject4" #_relaxFastSlow
+        chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_rmCond9_rmReject4_fairlyStrongReject2" #_relaxFastSlow
         #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "vegasStrategy_prod_bothWrong_relaxIfGuppyStrong_rmGuppyMiMaxCond_rmCond9" #_relaxFastSlow
 
 
@@ -966,6 +966,13 @@ def start_do_trading():
         print("Final Performance Result:")
         perf_df.reset_index(inplace = True)
         perf_df = perf_df.drop(columns = ['index'])
+
+        total_trade_num = perf_df['Trade Num'].sum()
+        total_win_num = perf_df['Win Num'].sum()
+        win_rate = total_win_num / total_trade_num
+
+        print("total_trade_num = " + str(total_trade_num) + ' total_win_num = ' + str(total_win_num) + ' win_rate = ' + str(round(win_rate,2)))
+
         print(perf_df)
 
         print("")
