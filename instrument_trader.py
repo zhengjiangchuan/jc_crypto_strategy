@@ -62,7 +62,7 @@ vegas_bar_percentile = 0.2
 
 data_source = 1
 
-#initial_bar_number = 5000 #3555  50
+#initial_bar_number = 1000 #3555  50
 initial_bar_number = 50 if data_source == 1 else 1000
 
 distance_to_vegas_threshold = 0.20

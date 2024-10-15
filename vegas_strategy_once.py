@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -85,6 +85,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
     # Initialize client - apikey parameter is requiered
     td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
 
+    print("initial_bar_number = " + str(initial_bar_number))
     # Construct the necessary time series
     ts = td.time_series(
         symbol=currency[:-3] + '/' + currency[-3:],
@@ -109,7 +110,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
     # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     #
     print("here printing")
-    print(data_df.iloc[-10:])
+    print(data_df)
 
     return data_df
 
@@ -855,7 +856,7 @@ def start_do_trading():
                         #data_df = data_df.iloc[0:-2]
 
                         #BBCF
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 8, 21, 15, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 10, 11, 21, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
