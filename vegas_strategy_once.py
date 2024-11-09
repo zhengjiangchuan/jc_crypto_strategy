@@ -328,7 +328,7 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
     is_weekend = True
 
@@ -500,7 +500,7 @@ def start_do_trading():
     #
     # sys.exit(0)
 
-    # print("root_folder: ") Never run this, keep alearted, running this will make your data lost
+    # print("root_folder: ") #Never run this, keep alearted, running this will make your data lost
     # print(root_folder)
     # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
@@ -849,7 +849,7 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
                         if use_short_data_for_prod:
-                            data_df = data_df[data_df['time'] >= datetime(2024, 3, 1, 0, 0, 0)]
+                            data_df = data_df[data_df['time'] >= datetime(2023, 11, 1, 0, 0, 0)]
                             data_df.reset_index(inplace=True)
                             data_df = data_df.drop(columns=['index'])
 
