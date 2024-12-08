@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -110,7 +110,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
     # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     #
     print("here printing")
-    print(data_df)
+    print(data_df.iloc[-20:])
 
     return data_df
 
@@ -326,9 +326,9 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    #data_source = 2
+    data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
     is_weekend = True
 
@@ -344,7 +344,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod"  #2
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -849,14 +849,14 @@ def start_do_trading():
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
                         if use_short_data_for_prod:
-                            data_df = data_df[data_df['time'] >= datetime(2023, 11, 1, 0, 0, 0)]
+                            data_df = data_df[data_df['time'] >= datetime(2023, 11, 30, 2, 0, 0)]
                             data_df.reset_index(inplace=True)
                             data_df = data_df.drop(columns=['index'])
 
                         #data_df = data_df.iloc[0:-2]
 
                         #BBCF
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 10, 11, 21, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 12, 5, 20, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
@@ -981,10 +981,10 @@ def start_do_trading():
                     # print(data_df.iloc[-20:])
 
 
-                    # if data_source == 2:
-                    #     print("preprocess data")
-                    #     data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
-                    #     print("preprocess finished")
+                    if data_source == 2:
+                        print("preprocess data")
+                        data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
+                        print("preprocess finished")
                         # print("preprocessed data:")
                         # print(data_df.iloc[1500:1510])
 

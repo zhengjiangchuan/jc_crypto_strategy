@@ -60,10 +60,10 @@ bar_high_percentile = 0.1
 vegas_bar_percentile = 0.2
 
 
-data_source = 1
+data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 1000
+initial_bar_number = 50 if data_source == 1 else 500
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05

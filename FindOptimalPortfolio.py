@@ -28,7 +28,7 @@ filter_hasty_trades = False
 is_crypto = False
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_JC_1027"
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_JC_1117"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -592,8 +592,10 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         font_size = 25
 
+        currency_name = "Until " + currency if accumulated_mode else currency
+
         sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes[0])
-        axes[0].set_title("All Cum Pnl Curve", fontsize=font_size)
+        axes[0].set_title(currency_name + " All Cum Pnl Curve", fontsize=font_size)
         axes[0].set_xlabel(axes[0].get_xlabel(), size=font_size)
         #axes[0].set_xticklabels(axes[0].get_xticks(), size=font_size)
         axes[0].set_ylabel(axes[0].get_ylabel(), size=font_size)
@@ -670,7 +672,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         # print("Number of trades per day = " + str(trades_per_day))
 
-        currency_name = "Until " + currency if accumulated_mode else currency
+
 
         summary_data += [[currency_name, round(last_cum_pnl, 2), round(max_draw_down, 2), start_draw_down, end_draw_down,
                           round(adj_ret, 2), ("%.2f" % (return_rate * 100)) + "%", ("%.2f" % (drawdown_rate * 100)) + "%",
@@ -732,7 +734,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,10, 30)]
+end_dates = [datetime(2024,11, 30)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
