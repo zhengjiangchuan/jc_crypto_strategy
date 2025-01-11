@@ -326,11 +326,11 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    data_source = 2
+    #data_source = 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -344,7 +344,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod"  #2
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -856,7 +856,7 @@ def start_do_trading():
                         #data_df = data_df.iloc[0:-2]
 
                         #BBCF
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 12, 5, 20, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2024, 12, 19, 18, 0, 0)]
 
 
                         #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
