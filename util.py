@@ -1,7 +1,7 @@
 
 is_production = False
 
-use_dynamic_TP = False
+use_dynamic_TP = True
 
 def warn(*args, **kwargs):
     pass

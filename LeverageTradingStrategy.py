@@ -56,20 +56,28 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
     return data_df
 
-instrument = "ADAUSD"
+instrument = "ADUSD"
 
 run_execution = False
 
 advanced_strategy = True
 
+is_short = False
+
+side = -1 if is_short else 1
+
 out_folder = "C:\\Users\\admin\\CryptoTrading\\LeverageTrading"
-initial_decision_file = os.path.join(out_folder, instrument + "_initial_decision3.csv")
-strategy_file = os.path.join(out_folder, instrument + "_strategy3.csv")
-execution_file = os.path.join(out_folder, instrument + "_execution3.csv")
+
+initial_decision_file = os.path.join(out_folder, instrument + "_initial_decision" + ("_short" if side == -1 else "") + ".csv")
+strategy_file = os.path.join(out_folder, instrument + "_strategy" + ("_short" if side == -1 else "") + ".csv")
+execution_file = os.path.join(out_folder, instrument + "_execution" + ("_short" if side == -1 else "") + ".csv")
 
 total_round = 5
 
-max_drawdown = 0.05 #0.05
+
+
+#max_drawdown = 0.05 #0.05
+max_drawdown = 0.05
 
 #These two are constants, which never change for any instrument
 #This is the key: In the second wave of a long trend, halve the profit rates, this will potentially increase the total profit rates
@@ -104,7 +112,12 @@ if run_execution:
 
 else:
     #entry_price = 3.255
-    entry_price = 1
+    #entry_price = 36.8
+
+    entry_price = 0.876
+    #entry_price = 0.3117
+
+    #entry_price = 1
     #entry_price = 0.396
     #entry_price = 290
 
@@ -128,6 +141,8 @@ df['principal'] = each_principal
 dfs = []
 
 extra_principal = entry_total_principal
+
+#extra_entry_amount = round(extra_principal * leverages[0] / entry_price, 3)
 extra_entry_amount = int(extra_principal * leverages[0] / entry_price)
 
 
@@ -145,8 +160,8 @@ for theRound in range(total_round):
     df['entry_amount'] = df['entry_amount'].astype(int)
     #df['entry_amount'] = df['entry_amount'].apply(lambda x: round(x, 3))
 
-    df['take_profit_price'] = df['entry_price'] * (1 + df['take_profit_pct'])
-    df['take_loss_price'] = df['entry_price'] * (1 - df['take_loss_pct'])
+    df['take_profit_price'] = df['entry_price'] * (1 + side * df['take_profit_pct'])
+    df['take_loss_price'] = df['entry_price'] * (1 - side * df['take_loss_pct'])
 
     df['move_stop_loss'] = move_stop_losses
     df['price_trigger_move_sl'] = np.where(
