@@ -56,7 +56,7 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
     return data_df
 
-instrument = "ADUSD"
+instrument = "ADAUSD"
 
 run_execution = False
 
@@ -114,7 +114,7 @@ else:
     #entry_price = 3.255
     #entry_price = 36.8
 
-    entry_price = 0.876
+    entry_price = 0.705
     #entry_price = 0.3117
 
     #entry_price = 1
