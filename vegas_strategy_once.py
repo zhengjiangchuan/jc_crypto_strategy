@@ -56,7 +56,7 @@ currency_to_run = options.currency_pair
 
 app_id = "168180645499516"
 
-use_dynamic_TP = True
+use_dynamic_TP = False
 
 use_short_data_for_prod = False #This should always be FALSE on my own machine!!!
 
@@ -326,11 +326,11 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    #data_source = 2
+    data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -344,7 +344,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod"  #2
 
         #root_folder = "C:\\JCForex_prod2"
 

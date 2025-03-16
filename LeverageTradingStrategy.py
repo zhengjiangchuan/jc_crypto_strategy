@@ -13,7 +13,10 @@ pd.set_option('display.max_columns', 1000)
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_colwidth', 1000)
 
+import psycopg2
+import pg8000
 
+pg8000.connect()
 
 import warnings
 
@@ -62,7 +65,7 @@ run_execution = False
 
 advanced_strategy = True
 
-is_short = False
+is_short = True
 
 side = -1 if is_short else 1
 
@@ -114,7 +117,7 @@ else:
     #entry_price = 3.255
     #entry_price = 36.8
 
-    entry_price = 0.705
+    entry_price = 0.6560
     #entry_price = 0.3117
 
     #entry_price = 1
