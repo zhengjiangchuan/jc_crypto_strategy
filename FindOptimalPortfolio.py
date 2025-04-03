@@ -28,7 +28,7 @@ filter_hasty_trades = False
 is_crypto = False
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_JC_1117"
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_JC_0323"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -734,7 +734,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2023,4,1)]
-end_dates = [datetime(2024,11, 30)]
+end_dates = [datetime(2025,4, 30)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []

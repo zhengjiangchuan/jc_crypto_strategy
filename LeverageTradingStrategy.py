@@ -13,10 +13,10 @@ pd.set_option('display.max_columns', 1000)
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_colwidth', 1000)
 
-import psycopg2
-import pg8000
+#import psycopg2
+#import pg8000
 
-pg8000.connect()
+#pg8000.connect()
 
 import warnings
 
@@ -65,35 +65,46 @@ run_execution = False
 
 advanced_strategy = True
 
-is_short = True
+is_short = False
 
 side = -1 if is_short else 1
 
 out_folder = "C:\\Users\\admin\\CryptoTrading\\LeverageTrading"
 
-initial_decision_file = os.path.join(out_folder, instrument + "_initial_decision" + ("_short" if side == -1 else "") + ".csv")
-strategy_file = os.path.join(out_folder, instrument + "_strategy" + ("_short" if side == -1 else "") + ".csv")
-execution_file = os.path.join(out_folder, instrument + "_execution" + ("_short" if side == -1 else "") + ".csv")
+initial_decision_file = os.path.join(out_folder, instrument + "_initial_decision" + ("_short" if side == -1 else "") + "23.csv")
+strategy_file = os.path.join(out_folder, instrument + "_strategy" + ("_short" if side == -1 else "") + "23.csv")
+execution_file = os.path.join(out_folder, instrument + "_execution" + ("_short" if side == -1 else "") + "23.csv")
 
 total_round = 5
 
 
+minimum_maxdrawdown = 0.025 # (so the maximum leverage is 20, which is the maximum leverage that Coinbase provides)
+
 
 #max_drawdown = 0.05 #0.05
-max_drawdown = 0.05
+actual_max_drawdown = 0.05  #0.0125  0.05
+
+max_drawdown = max(actual_max_drawdown, minimum_maxdrawdown)
+
+fraction = actual_max_drawdown / max_drawdown
+
 
 #These two are constants, which never change for any instrument
 #This is the key: In the second wave of a long trend, halve the profit rates, this will potentially increase the total profit rates
 profit_rates = np.array([1.0, 0.5, 1.0, 0.5]) #Stop profit when making this percentage of profit vs actual notional (margin)
+
+profit_rates = profit_rates * fraction
 
 #move_stop_losses = np.array([0, 0, 0, 0])
 move_stop_losses = np.array([1, 0, 1, 0])
 
 #profit_rates = np.array([0.5, 0.25, 0.5, 0.25])
 
-loss_rates = [0.5] * len(profit_rates)  #Always stop loss when losing half of the actual notional (margin)
+loss_rates = np.array([0.5] * len(profit_rates))  #Always stop loss when losing half of the actual notional (margin)
 
-entry_total_principal = 100
+loss_rates = loss_rates * fraction
+
+entry_total_principal = 50
 
 
 #ADAUSD
@@ -117,7 +128,7 @@ else:
     #entry_price = 3.255
     #entry_price = 36.8
 
-    entry_price = 0.6560
+    entry_price = 0.653
     #entry_price = 0.3117
 
     #entry_price = 1
@@ -145,8 +156,10 @@ dfs = []
 
 extra_principal = entry_total_principal
 
-#extra_entry_amount = round(extra_principal * leverages[0] / entry_price, 3)
-extra_entry_amount = int(extra_principal * leverages[0] / entry_price)
+if entry_price > 10:
+    extra_entry_amount = round(extra_principal * leverages[0] / entry_price, 5)
+else:
+    extra_entry_amount = int(extra_principal * leverages[0] / entry_price)
 
 
 for theRound in range(total_round):
@@ -160,8 +173,12 @@ for theRound in range(total_round):
 
     df['entry_notional'] = df['principal'] * df['leverage']
     df['entry_amount'] = df['entry_notional'] / entry_price
-    df['entry_amount'] = df['entry_amount'].astype(int)
-    #df['entry_amount'] = df['entry_amount'].apply(lambda x: round(x, 3))
+
+    if entry_price > 10:
+        df['entry_amount'] = df['entry_amount'].apply(lambda x: round(x, 5))
+    else:
+        df['entry_amount'] = df['entry_amount'].astype(int)
+
 
     df['take_profit_price'] = df['entry_price'] * (1 + side * df['take_profit_pct'])
     df['take_loss_price'] = df['entry_price'] * (1 - side * df['take_loss_pct'])
