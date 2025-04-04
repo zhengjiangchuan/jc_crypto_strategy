@@ -167,6 +167,7 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 fire_signal = False
+report_performance = False
 
 
 quick_close_position_for_intraday_strategy = False #Default is false   close all position if partial close signal fired for intraday strategy
@@ -306,6 +307,9 @@ class CurrencyTrader(threading.Thread):
         self.profit_loss_ratio = -1
 
         self.full_summary_df = None
+
+        self.macd_group_summary_df = None
+        self.critical_value_data_df = None
 
         self.log_msg("Initializing...")
 
@@ -1090,284 +1094,7 @@ class CurrencyTrader(threading.Thread):
         ###########################################################
 
 
-        ############### Reversal Strategy ###########################
-        #self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_middle'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max']) & self.data_df['is_positive']
-        #self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_middle'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min']) & self.data_df['is_negative']
 
-        #self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_min_price'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max']) & self.data_df['is_positive']
-        #self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_max_price'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min']) & self.data_df['is_negative']
-
-        self.data_df['bar_cross_up_max_guppy'] = (self.data_df['prev_min_price'] <= self.data_df['prev_guppy_max']) & (self.data_df['middle'] > self.data_df['guppy_max'])
-        self.data_df['bar_cross_down_min_guppy'] = (self.data_df['prev_max_price'] >= self.data_df['prev_guppy_min']) & (self.data_df['middle'] < self.data_df['guppy_min'])
-
-
-        duration_threshold = 5  # 10, 5(USDJPY)
-
-        self.data_df['bar_cross_guppy_label'] = np.where(
-            self.data_df['bar_cross_up_max_guppy'], 0,
-            np.where(
-                self.data_df['bar_cross_down_min_guppy'], 1, np.nan
-            )
-        )
-
-        self.data_df['bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].fillna(method='ffill').fillna(-1)
-        self.data_df['prev_bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].shift(1)
-
-        self.data_df['bar_cross_guppy_label_line'] = self.data_df['bar_cross_guppy_label'].diff()
-
-
-
-
-
-
-
-
-        self.data_df['bar_cross_guppy_num'] = np.where(
-            self.data_df['bar_cross_guppy_label'] != self.data_df['prev_bar_cross_guppy_label'],
-            self.data_df['num'],
-            np.nan
-        )
-
-        self.data_df['bar_cross_guppy_num'] = self.data_df['bar_cross_guppy_num'].fillna(method='ffill').fillna(0)
-        self.data_df['bar_cross_guppy_duration'] = self.data_df['num'] - self.data_df['bar_cross_guppy_num']
-
-
-        self.data_df['max_price_max'] = self.data_df['max_price']
-        self.data_df['high_max'] = self.data_df['high']
-        self.data_df['low_min'] = self.data_df['low']
-        self.data_df['min_price_min'] = self.data_df['min_price']
-
-        self.data_df['max_price_max_idx'] = self.data_df['max_price']
-        self.data_df['high_max_idx'] = self.data_df['high']
-        self.data_df['low_min_idx'] = self.data_df['low']
-        self.data_df['min_price_min_idx'] = self.data_df['min_price']
-
-
-
-        group_summary_df = self.data_df[['time','max_price_max', 'high_max',   'low_min',  'min_price_min',
-                                         'max_price_max_idx',  'high_max_idx',   'low_min_idx',  'min_price_min_idx',
-
-                                         'bar_cross_guppy_label', 'bar_cross_guppy_num', 'bar_cross_guppy_duration']].groupby(['bar_cross_guppy_num']).agg(
-            {'time' : 'first',
-             'max_price_max' : 'max',
-             'high_max' : 'max',
-             'low_min' : 'min',
-             'min_price_min' : 'min',
-             'max_price_max_idx' : 'idxmax',
-             'high_max_idx' : 'idxmax',
-             'low_min_idx' : 'idxmin',
-             'min_price_min_idx' : 'idxmin',
-             'bar_cross_guppy_label' : 'first',
-             'bar_cross_guppy_duration' : 'last'
-             }
-        )
-
-        group_summary_df.reset_index(inplace = True)
-
-        short_highest_price = 'max_price' #max_price, high
-        long_lowest_price = 'min_price'  #min_price, low
-
-        # print("group_summary_df before:")
-        # print(group_summary_df.iloc[0:10])
-        group_summary_df.at[group_summary_df.index[0], 'bar_cross_guppy_label'] = 1 if group_summary_df.iloc[1]['bar_cross_guppy_label'] == 0 else 0
-
-        # print("group_summary_df after:")
-        # print(group_summary_df.iloc[0:10])
-
-        #sys.exit(0)
-
-
-
-
-        group_summary_df['critical_price_id'] = np.where(
-            group_summary_df['bar_cross_guppy_label'] == 0,
-            group_summary_df[short_highest_price + '_max_idx'],
-            np.where(
-                group_summary_df['bar_cross_guppy_label'] == 1,
-                group_summary_df[long_lowest_price + '_min_idx'],
-                0
-            )
-        )
-
-        group_summary_df['critical_price'] = np.where(
-            group_summary_df['bar_cross_guppy_label'] == 0,
-            group_summary_df[short_highest_price + '_max'],
-            np.where(
-                group_summary_df['bar_cross_guppy_label'] == 1,
-                group_summary_df[long_lowest_price + '_min'],
-                0
-            )
-        )
-
-
-
-        group_summary_df['bar_cross_guppy_num'] = group_summary_df['bar_cross_guppy_num'].astype(int)
-        group_summary_df['bar_cross_guppy_label'] = group_summary_df['bar_cross_guppy_label'].astype(int)
-
-        group_summary_df['group_index'] = list(range(group_summary_df.shape[0]))
-
-
-        critical_price_data_df = self.data_df.iloc[group_summary_df['critical_price_id']] #####################
-
-        critical_price_data_df.reset_index(inplace = True)
-
-        critical_price_data_df['group_index'] = list(range(critical_price_data_df.shape[0]))
-
-        critical_price_data_df['critical_price'] = group_summary_df['critical_price']
-
-        critical_price_data_df['bar_cross_guppy_label'] = group_summary_df['bar_cross_guppy_label']
-
-
-
-
-        group_data_dfs = []
-        bar_cross_guppy_nums = group_summary_df['bar_cross_guppy_num'].tolist()
-        bar_cross_guppy_labels = group_summary_df['bar_cross_guppy_label'].tolist()
-
-
-        for idi in range(0, len(bar_cross_guppy_nums)):
-            start_idxx = bar_cross_guppy_nums[idi]
-            end_idxx = bar_cross_guppy_nums[idi+1] if idi < len(bar_cross_guppy_nums) - 1 else self.data_df.shape[0]
-
-            bar_cross_guppy_label = bar_cross_guppy_labels[idi]
-
-            if bar_cross_guppy_label == 0:
-                group_df = self.data_df.iloc[start_idxx:end_idxx][['time', short_highest_price]]
-                group_df['critical_price'] = group_df[short_highest_price].cummax()
-                group_df['critical_price_id'] = group_df[short_highest_price].expanding().apply(lambda x: x.idxmax()).astype(int)
-                group_df = group_df.drop(columns = ['time', short_highest_price])
-                group_df['group_index'] = idi
-            elif bar_cross_guppy_label == 1:
-                group_df = self.data_df.iloc[start_idxx:end_idxx][['time', long_lowest_price]]
-                group_df['critical_price'] = group_df[long_lowest_price].cummin()
-                group_df['critical_price_id'] = group_df[long_lowest_price].expanding().apply(lambda x: x.idxmin()).astype(int)
-                group_df = group_df.drop(columns = ['time', long_lowest_price])
-                group_df['group_index'] = idi
-            else:
-                raise Exception("idi = " + str(idi) + " bar_cross_guppy_num = " + str(start_idxx) + " bar_cross_guppy_label = " + str(bar_cross_guppy_label))
-
-            group_data_dfs += [group_df]
-
-        group_data_df_all = pd.concat(group_data_dfs)
-
-        if len(group_data_df_all) != self.data_df.shape[0]:
-            raise Exception("group_data_df_all length = " + str(len(group_data_df_all)) + " while data_df length = "  + str(self.data_df.shape[0]))
-
-        self.data_df = pd.concat([self.data_df, group_data_df_all], axis = 1)
-
-
-        aux_data_df = self.data_df[['lower_vegas', 'upper_vegas', 'guppy_min', 'guppy_max', 'bar_cross_guppy_duration', 'high', 'low']]
-        attach_df = aux_data_df.iloc[self.data_df['critical_price_id']]
-        attach_df.reset_index(inplace = True)
-        attach_df = attach_df.drop(columns = ['index'])
-        rename_dict = {}
-        for column in aux_data_df.columns:
-            rename_dict[column] = 'critical_' + column
-        attach_df = attach_df.rename(columns = rename_dict)
-        self.data_df = pd.concat([self.data_df, attach_df], axis = 1)
-
-
-
-
-
-
-        critical_price_data_df = critical_price_data_df.rename(columns = {'index' : 'critical_price_id'})
-        critical_price_data_df['bar_cross_guppy_total_duration'] = group_summary_df['bar_cross_guppy_duration']
-
-        #Now bar_cross_guppy_num + bar_cross_guppy_duration = critical_price_id in critical_price_data_df
-
-        key_columns = ['time',  'bar_cross_guppy_num', 'bar_cross_guppy_duration', 'critical_price_id', 'bar_cross_guppy_total_duration',
-                           'critical_price', 'bar_cross_guppy_label', 'lower_vegas', 'upper_vegas', 'guppy_min', 'guppy_max', 'high', 'low']
-        look_backward_group_num = 11 #3 should be odd number  9
-        for key_column in key_columns:
-            for backward_i in range(1, look_backward_group_num + 1):
-                if backward_i == 1:
-                    critical_price_data_df['prevGroup_' + str(backward_i) + key_column] = critical_price_data_df[key_column].shift(1).fillna(0)
-                else:
-                    critical_price_data_df['prevGroup_' + str(backward_i) + key_column] = critical_price_data_df['prevGroup_' + str(backward_i-1) + key_column].shift(1).fillna(0)
-
-        simple_critical_price_data_df = critical_price_data_df[['group_index'] + [column for column in critical_price_data_df.columns if 'prevGroup' in column]]
-
-
-        self.data_df = pd.merge(self.data_df, simple_critical_price_data_df, on = ['group_index'], how = 'left')
-
-
-
-
-
-
-
-
-
-
-
-        need_look_backward_cols = ["prevGroup_1critical_price", "prevGroup_1critical_price_id",
-                                   'prevGroup_1bar_cross_guppy_duration', 'prevGroup_1bar_cross_guppy_num',
-                                   'prevGroup_1high', 'prevGroup_1low']
-        for li in range(2, look_backward_group_num + 1):
-            need_look_backward_cols += ['prevGroup_' + str(li) + 'critical_price', 'prevGroup_' + str(li) + 'critical_price_id',
-                                           'prevGroup_' + str(li) + 'high', 'prevGroup_' + str(li) + 'low',
-                                           'prevGroup_' + str(li) + 'lower_vegas', 'prevGroup_' + str(li) + 'upper_vegas',
-                                           'prevGroup_' + str(li) + 'bar_cross_guppy_total_duration', 'prevGroup_' + str(li) + 'bar_cross_guppy_num'
-                                           ]
-
-        no_need_look_backward_cols = ['critical_price', 'critical_price_id', 'critical_bar_cross_guppy_duration', 'bar_cross_guppy_num',
-                                      'critical_high', 'critical_low']
-        for li in range(1, look_backward_group_num):
-            no_need_look_backward_cols += ['prevGroup_' + str(li) + 'critical_price', 'prevGroup_' + str(li) + 'critical_price_id',
-                                           'prevGroup_' + str(li) + 'high', 'prevGroup_' + str(li) + 'low',
-                                           'prevGroup_' + str(li) + 'lower_vegas', 'prevGroup_' + str(li) + 'upper_vegas',
-                                           'prevGroup_' + str(li) + 'bar_cross_guppy_total_duration', 'prevGroup_' + str(li) + 'bar_cross_guppy_num'
-                                           ]
-
-
-
-
-
-        self.data_df['long_need_look_backward'] = self.data_df['bar_cross_guppy_label'] == 0
-
-        target_long_cols = ['long_critical_price', 'long_critical_price_id', 'long_critical_bar_cross_guppy_duration', 'long_bar_cross_guppy_num',
-                            'long_critical_high', 'long_critical_low']
-        for li in range(1, look_backward_group_num):
-            target_long_cols += ['long_prevGroup_' + str(li) + 'critical_price', 'long_prevGroup_' + str(li) + 'critical_price_id',
-                                 'long_prevGroup_' + str(li) + 'high', 'long_prevGroup_' + str(li) + 'low',
-                                           'long_prevGroup_' + str(li) + 'lower_vegas', 'long_prevGroup_' + str(li) + 'upper_vegas',
-                                           'long_prevGroup_' + str(li) + 'bar_cross_guppy_total_duration', 'long_prevGroup_' + str(li) + 'bar_cross_guppy_num'
-                                           ]
-
-
-
-        for ti in range(len(target_long_cols)):
-            self.data_df[target_long_cols[ti]] = np.where(
-                self.data_df['long_need_look_backward'],
-                self.data_df[need_look_backward_cols[ti]],
-                self.data_df[no_need_look_backward_cols[ti]]
-            )
-
-        self.data_df['short_need_look_backward'] = self.data_df['bar_cross_guppy_label'] == 1
-
-        target_short_cols = ['short_critical_price', 'short_critical_price_id', 'short_critical_bar_cross_guppy_duration', 'short_bar_cross_guppy_num',
-                             'short_critical_high', 'short_critical_low']
-        for li in range(1, look_backward_group_num):
-            target_short_cols += ['short_prevGroup_' + str(li) + 'critical_price', 'short_prevGroup_' + str(li) + 'critical_price_id',
-                                  'short_prevGroup_' + str(li) + 'high', 'short_prevGroup_' + str(li) + 'low',
-                                           'short_prevGroup_' + str(li) + 'lower_vegas', 'short_prevGroup_' + str(li) + 'upper_vegas',
-                                           'short_prevGroup_' + str(li) + 'bar_cross_guppy_total_duration', 'short_prevGroup_' + str(li) + 'bar_cross_guppy_num'
-                                           ]
-
-
-
-        for ti in range(len(target_short_cols)):
-            self.data_df[target_short_cols[ti]] = np.where(
-                self.data_df['short_need_look_backward'],
-                self.data_df[need_look_backward_cols[ti]],
-                self.data_df[no_need_look_backward_cols[ti]]
-            )
-
-
-
-
-        tolerance_bps = 0
 
         ######## keybox #########
         self.data_df['macd_cross_up'] = (self.data_df['prev_macd'] < self.data_df['prev_msignal']) & (
@@ -1383,7 +1110,7 @@ class CurrencyTrader(threading.Thread):
         )
 
         self.data_df['macd_cross_label'] = self.data_df['macd_cross_label'].fillna(method='ffill').fillna(-1)
-        self.data_df['prev_macd_cross_label'] = self.data_df['macd_cross_label'].diff()
+        self.data_df['prev_macd_cross_label'] = self.data_df['macd_cross_label'].shift(1)
 
         self.data_df['macd_cross_label_line'] = self.data_df['macd_cross_label'].diff()
 
@@ -1607,2142 +1334,217 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_macd_long_cond0'] = self.data_df['long_critical_value'] < 0
         self.data_df['short_macd_long_cond1'] = self.data_df['long_critical_value'] > self.data_df['long_prevGroup_2critical_value']
         self.data_df['short_macd_long_cond2'] = self.data_df['long_critical_min_price'] < self.data_df['long_prevGroup_2min_price']
-        self.data_df['short_macd_long_cond3'] = (self.data_df['macd_gradient'] > 0) & (self.data_df['macd'] > self.data_df['msignal']) & (self.data_df['prev_macd'] < self.data_df['prev_msignal'])
+        self.data_df['short_macd_long_cond3'] = (self.data_df['macd_gradient'] > 0) &\
+                                                (self.data_df['macd'] > self.data_df['msignal']) & (self.data_df['prev_macd'] < self.data_df['prev_msignal'])
 
         self.data_df['short_macd_short_cond0'] = self.data_df['short_critical_value'] > 0
         self.data_df['short_macd_short_cond1'] = self.data_df['short_critical_value'] < self.data_df['short_prevGroup_2critical_value']
         self.data_df['short_macd_short_cond2'] = self.data_df['short_critical_max_price'] > self.data_df['short_prevGroup_2max_price']
-        self.data_df['short_macd_short_cond3'] = (self.data_df['macd_gradient'] < 0) & (self.data_df['macd'] < self.data_df['msignal']) & (self.data_df['prev_macd'] > self.data_df['prev_msignal'])
+        self.data_df['short_macd_short_cond3'] = (self.data_df['macd_gradient'] < 0) &\
+                                                 (self.data_df['macd'] < self.data_df['msignal']) & (self.data_df['prev_macd'] > self.data_df['prev_msignal'])
 
 
-        self.data_df['long_macd_long_cond'] = (self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] > 0) &\
+        self.data_df['long_macd_long_enter'] = (self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] > 0) &\
                                               (self.data_df['macd2'] < 0)
-        self.data_df['long_macd_short_cond'] = (self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] < 0) &\
+        self.data_df['long_macd_short_enter'] = (self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] < 0) &\
                                               (self.data_df['macd2'] > 0)
 
-        self.data_df['short_macd_long_cond'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_long_cond' + str(i)] for i in range(4)])
-        self.data_df['short_macd_short_cond'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_short_cond' + str(i)] for i in range(4)])
+        self.data_df['short_macd_long_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_long_cond' + str(i)] for i in range(4)])
+        self.data_df['short_macd_short_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_short_cond' + str(i)] for i in range(4)])
 
 
-        #########################
+        self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter'] | self.data_df['long_macd_long_enter']
+        self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter'] | self.data_df['long_macd_short_enter']
 
 
+        self.data_df['short_macd_long_exit'] = (self.data_df['macd_gradient'] < 0) & (self.data_df['macd'] < self.data_df['msignal'])
+        self.data_df['short_macd_short_exit'] = (self.data_df['macd_gradient'] > 0) & (self.data_df['macd'] > self.data_df['msignal'])
 
+        self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
+        self.data_df['long_macd_short_exit'] = self.data_df['macd2_gradient'] > 0
 
 
+        result_columns = ['instrument', 'side', 'entry_id', 'entry_time', 'entry_price', 'exit_id', 'exit_time', 'exit_price', 'is_win']
+        result_data = []
 
-        self.data_df['vegas_long_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
-        self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
-        self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
-        #self.data_df['vegas_long_cond3'] = True #self.data_df['close'] < self.data_df['lower_vegas']
+        print("")
+        print("Calculating Long positions.............")
+        print("")
 
-        self.data_df['vegas_long_cond3'] = self.data_df['open'] < self.data_df['upper_vegas'] #relaxReqBelowVegas
+        long_start_ids = which(self.data_df['macd_long_enter'])
 
-        #self.data_df['vegas_long_cond3'] = self.data_df['close'] >= self.data_df['lower_vegas']
+        is_effective = [1] * len(long_start_ids)
 
-        #*self.lot_size * self.exchange_rate
-        for li in range(look_back_start_group, (look_backward_group_num-1)//2+1):  #Conservative
-            self.data_df['vegas_long_cond4' + str(li)] = self.data_df['long_critical_price'] > self.data_df['long_prevGroup_' + str(li*2) + 'critical_price'] - tolerance_bps/(self.lot_size * self.exchange_rate) + (1e-6)
-            self.data_df['vegas_long_cond5' + str(li)] = self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_' + str(li*2) + 'critical_price_id'] >= 48 #48, 10
-            self.data_df['vegas_long_cond6' + str(li)] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_' + str(li*2) + 'critical_price'] + self.data_df['long_prevGroup_' + str(li*2) + 'lower_vegas'])/2.0
-            #self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_1critical_price'])/2.0
-            self.data_df['vegas_long_cond7' + str(li)] = True #self.data_df['long_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
-            self.data_df['vegas_long_cond8' + str(li)] = self.data_df['long_bar_cross_guppy_num'] - self.data_df['long_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] >= 10
+        for i in range(len(long_start_ids)):
 
-            #self.data_df['vegas_long_cond8' + str(li)] = self.data_df['vegas_long_cond8' + str(li)] & (self.data_df['long_bar_cross_guppy_num'] - self.data_df['long_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
+            if is_effective[i] == 0:
+                self.data_df.at[long_start_ids[i], 'macd_long_enter'] = False
+                continue
 
+            temp_i = i
+            long_start_id = long_start_ids[i]
+            long_fire_data = self.data_df.iloc[long_start_id]
 
+            instrument = long_fire_data['currency']
+            entry_time = long_fire_data['time']
+            entry_price = long_fire_data['close']
+            entry_id = long_fire_data['id']
 
-        #self.data_df['vegas_long_cond9'] = True #self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
+            is_short_macd_fire = not long_fire_data['long_macd_long_enter']
 
-       # self.data_df['vegas_long_cond9'] = ~self.data_df['guppy_all_strong_aligned_short']
+            j = 1
 
-        self.data_df['vegas_long_cond9'] = ~(self.data_df['guppy_all_strong_aligned_short'] & (self.data_df['guppy_aligned_duration'] >= 24))
+            long_macd_indicate_long = False
+            exit_id = -1
+            exit_time = None
+            exit_price = -1
+            is_win = False
+            while long_start_id + j < self.data_df.shape[0]:
 
+                cur_data = self.data_df.iloc[long_start_id + j]
 
-        #self.data_df['vegas_long_cond9'] = ~(self.data_df['guppy_all_strong_aligned_short'] & (self.data_df['guppy_max'] < self.data_df['lower_vegas']))
+                if long_macd_indicate_long or (not is_short_macd_fire):
+                    is_exit = cur_data['long_macd_long_exit'] or cur_data['macd_short_enter']
+                else:
+                    is_exit = cur_data['short_macd_long_exit'] or cur_data['macd_short_enter']
 
+                if is_exit:
 
-        #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4))
-
-        # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                       self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
-
-        #Weaker
-        self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-                                            (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4))
-
-        if special_cond10:
-            for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
-                self.data_df['vegas_long_cond0' + str(li)] = self.data_df['vegas_long_cond10'] | \
-                    ((self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_' + str(li*2) + 'critical_price_id'] < self.data_df['vegas_phase_duration']) &\
-                    reduce(lambda left, right : left & right, [self.data_df['long_prevGroup_' + str(2*jj-1) + 'critical_price'] < self.data_df['long_prevGroup_' + str(2*jj-1) + 'lower_vegas'] for jj in range(1, li+1)]))
-
-
-            # for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
-            #     self.data_df['vegas_long_conds' + str(li)] = self.data_df['vegas_long_cond10'] | \
-            #         reduce(lambda left, right : left & right, [self.data_df['long_prevGroup_' + str(2*jj-1) + 'critical_price'] < self.data_df['long_prevGroup_' + str(2*jj-1) + 'lower_vegas'] for jj in range(1, li+1)])
-
-
-        #Stronger
-        #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                    (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
-
-
-        #self.data_df['vegas_long_cond10'] = True
-
-
-        self.data_df['vegas_long_cond11'] = True #self.data_df['bar_down_phase_duration'] >= 24*5
-
-        #self.data_df['vegas_long_cond11'] = ~((self.data_df['middle'] < self.data_df['lower_vegas']) & (self.data_df['bar_down_phase_duration'] >= 240))
-
-
-        if is_crypto:
-            self.data_df['vegas_long_cond10'] = True
-
-        #Weaker Stronger
-        # self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                       (self.data_df['fast_vegas_down'] | self.data_df['slow_vegas_down']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 48))
-
-
-
-
-        #self.data_df['vegas_long_cond10'] = ~((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & self.data_df['fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['vegas_phase_duration'] > 24))
-
-
-
-
-        self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
-        self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
-        self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
-        #self.data_df['vegas_short_cond3'] = True #self.data_df['close'] > self.data_df['upper_vegas']
-
-        self.data_df['vegas_short_cond3'] = self.data_df['open'] > self.data_df['lower_vegas'] #relaxReqBelowVegas
-
-        #self.data_df['vegas_short_cond3'] = self.data_df['close'] <= self.data_df['upper_vegas']
-
-        # print("short_critical_price = " + str(self.data_df.iloc[6268]['short_critical_price']))
-        # print("short_prevGroup_6critical_price = " + str(self.data_df.iloc[6268]['short_prevGroup_6critical_price']))
-
-        for li in range(look_back_start_group, (look_backward_group_num-1)//2+1):  #Conservative
-            self.data_df['vegas_short_cond4' + str(li)] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + tolerance_bps/(self.lot_size * self.exchange_rate) - (1e-6)
-            self.data_df['vegas_short_cond5' + str(li)] = self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_' + str(li*2) + 'critical_price_id'] >= 48 #48, 10
-            self.data_df['vegas_short_cond6' + str(li)] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_' + str(li*2) + 'critical_price'] + self.data_df['short_prevGroup_' + str(li*2) + 'upper_vegas'])/2.0
-            #self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_1critical_price'])/2.0
-            self.data_df['vegas_short_cond7' + str(li)] = True #self.data_df['short_prevGroup_' + str(li*2) + 'bar_cross_guppy_total_duration'] >= 24
-            self.data_df['vegas_short_cond8' + str(li)] = self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] >= 10
-
-            #self.data_df['vegas_short_cond8' + str(li)] = self.data_df['vegas_short_cond8' + str(li)] & (self.data_df['short_bar_cross_guppy_num'] - self.data_df['short_prevGroup_' + str(li*2-1) + 'bar_cross_guppy_num'] <= 24*5)
-
-
-        #self.data_df['vegas_short_cond9'] = True #self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
-
-        #self.data_df['vegas_short_cond9'] = ~self.data_df['guppy_all_strong_aligned_long']
-
-        self.data_df['vegas_short_cond9'] = ~(self.data_df['guppy_all_strong_aligned_long'] & (self.data_df['guppy_aligned_duration'] >= 24))
-
-
-
-        #self.data_df['vegas_short_cond9'] = ~(self.data_df['guppy_all_strong_aligned_long'] & (self.data_df['guppy_min'] > self.data_df['upper_vegas']))
-
-        #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4))
-
-        #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                       self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
-
-        #Weaker
-        self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-                                               (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4))
-
-
-        if special_cond10:
-            for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
-                self.data_df['vegas_short_cond0' + str(li)] = self.data_df['vegas_short_cond10'] | \
-                    ((self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_' + str(li*2) + 'critical_price_id'] < self.data_df['vegas_phase_duration']) &\
-                    reduce(lambda left, right : left & right, [self.data_df['short_prevGroup_' + str(2*jj-1) + 'critical_price'] > self.data_df['short_prevGroup_' + str(2*jj-1) + 'upper_vegas'] for jj in range(1, li+1)]))
-
-
-
-            # for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1):
-            #     self.data_df['vegas_short_conds' + str(li)] = self.data_df['vegas_short_cond10'] | \
-            #         reduce(lambda left, right : left & right, [self.data_df['short_prevGroup_' + str(2*jj-1) + 'critical_price'] > self.data_df['short_prevGroup_' + str(2*jj-1) + 'upper_vegas'] for jj in range(1, li+1)])
-
-
-
-
-        #Stronger
-        #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                       (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 24))
-
-
-        #self.data_df['vegas_short_cond10'] = True
-
-        self.data_df['vegas_short_cond11'] = True #self.data_df['bar_up_phase_duration'] >= 24 * 5
-
-        #self.data_df['vegas_short_cond11'] = ~((self.data_df['middle'] > self.data_df['upper_vegas']) & (self.data_df['bar_up_phase_duration'] >= 240))
-
-        if is_crypto:
-            self.data_df['vegas_short_cond10'] = True
-
-        #Weaker Stronger
-        # self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                        (self.data_df['fast_vegas_up'] | self.data_df['slow_vegas_up']) & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['prev_vegas_phase_entire_duration'] > 48))
-
-
-
-
-        #self.data_df['vegas_short_cond10'] = ~((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & self.data_df['fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 24*4) & (self.data_df['vegas_phase_duration'] > 24))
-
-
-
-
-
-
-        #print("open columns:")
-        #print([col for col in self.data_df.columns if 'open' in col])
-
-
-
-        #############################################################
-
-
-        # self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
-        # self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
-        # self.data_df['vegas_long_cond3'] = self.data_df['close'] > self.data_df['upper_vegas'] #self.data_df['m12_above_upper_vegas'] #m12_above_upper_vegas
-        # self.data_df['vegas_long_cond4'] = self.data_df['recent_min_low_price_to_upper_vegas'] * self.lot_size * self.exchange_rate <= vegas_condition_threshold #1 #New Change
-        # self.data_df['vegas_long_cond5'] = self.data_df['recent_max_middle_price_to_lower_vegas'] * self.lot_size * self.exchange_rate <= 0# exceed_vegas_threshold
-        # self.data_df['vegas_long_cond6'] = self.data_df['recent_min_m12_to_lower_vegas'] > 0
-        # self.data_df['vegas_long_cond7'] = (self.data_df['ma_close30'] > self.data_df['lower_vegas']) & (self.data_df['ma_close35'] > self.data_df['lower_vegas']) #EURAUD Stuff
-        # self.data_df['vegas_long_cond8'] = self.data_df['can_long']
-        # self.data_df['vegas_long_cond9'] = ~self.data_df['special_reject_long_cond']
-        #
-        # self.data_df['vegas_long_cond10'] = (self.data_df['macd'] > self.data_df['prev_macd']) | (self.data_df['msignal'] > self.data_df['prev_msignal'])
-        #
-        # #self.data_df['vegas_long_cond11'] = (self.data_df['close'] - self.data_df['upper_vegas']) < 5 * self.data_df['vegas_distance']
-        #
-        # #_notExceedGuppy3
-        # self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) | (self.data_df['fast_vegas'] > self.data_df['slow_vegas'])
-
-
-
-        #self.data_df['vegas_long_cond12'] = self.data_df['open'] < self.data_df['guppy_max']
-
-        # _notExceedGuppy3Strong
-        # self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) |\
-        #                                     ((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['middle_price'] < self.data_df['guppy_max']))
-
-
-        #_notExceedGuppy4
-        # self.data_df['vegas_long_cond11'] = (self.data_df['close'] < self.data_df['guppy_max']) |\
-        #                                     ((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_gradient'] > 0) & (self.data_df['slow_vegas_gradient'] > 0))
-
-
-        self.data_df['macd_long_signal'] = (self.data_df['prev_macd'] < 0) & (self.data_df['macd'] > 0)
-        self.data_df['macd_long_signal2'] = (self.data_df['prev_macd'] < self.data_df['prev_msignal']) & (self.data_df['macd'] > self.data_df['msignal']) &\
-                                            (self.data_df['macd'] < 0) & (self.data_df['prev_macd'] < 0)
-
-
-
-
-        self.data_df['macd_short_signal'] = (self.data_df['prev_macd'] > 0) & (self.data_df['macd'] < 0)
-        self.data_df['macd_short_signal2'] = (self.data_df['prev_macd'] > self.data_df['prev_msignal']) & (self.data_df['macd'] < self.data_df['msignal']) &\
-                                            (self.data_df['macd'] > 0) & (self.data_df['prev_macd'] > 0)
-
-
-
-
-        # self.data_df['vegas_long_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(i)] for i in range(0, 9)])  #10
-        # self.data_df['vegas_short_fire'] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(i)] for i in range(0, 9)])  #10
-
-        for li in range(look_back_start_group, (look_backward_group_num-1)//2+1): #Conservative
-            self.data_df['vegas_long_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij)] for ij in range(0, 4)])
-
-            if not special_cond10:
-                self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond10'] & self.data_df['vegas_long_cond11']
-                self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij) + str(li)] for ij in list(range(4, 9))]))
-            else:
-                self.data_df['vegas_long_fire' + str(li)] = self.data_df['vegas_long_fire' + str(li)] & self.data_df['vegas_long_cond9'] & self.data_df['vegas_long_cond11']
-                self.data_df['vegas_long_fire' + str(li)] =\
-                    self.data_df['vegas_long_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_long_cond' + str(ij) + str(li)] for ij in ([0] + list(range(4, 9)))]))
-
-
-
-        for li in range(look_back_start_group, (look_backward_group_num-1)//2+1): #Conservative
-            self.data_df['vegas_short_fire' + str(li)] = reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij)] for ij in range(0, 4)])
-
-            if not special_cond10:
-                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond10'] & self.data_df['vegas_short_cond11']
-                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij) + str(li)] for ij in list(range(4, 9))]))
-            else:
-                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & self.data_df['vegas_short_cond9'] & self.data_df['vegas_short_cond11']
-                self.data_df['vegas_short_fire' + str(li)] = self.data_df['vegas_short_fire' + str(li)] & (reduce(lambda left, right: left & right, [self.data_df['vegas_short_cond' + str(ij) + str(li)] for ij in ([0] + list(range(4, 9)))]))
-
-
-        # Conservative
-        self.data_df['vegas_long_fire'] = reduce(lambda left, right: left | right, [self.data_df['vegas_long_fire' + str(li)] for li in range(look_back_start_group, (look_backward_group_num-1)//2+1)])
-        self.data_df['vegas_short_fire'] = reduce(lambda left, right: left | right, [self.data_df['vegas_short_fire' + str(li)] for li in range(look_back_start_group, (look_backward_group_num-1)//2+1)])
-        #
-
-
-        #Keybox
-        if not fire_signal:
-            self.data_df['vegas_long_fire'] = False
-            self.data_df['vegas_short_fire'] = False
-
-
-
-
-        # print("Check data_df:")
-        #
-        # print(self.data_df.iloc[0:30][['time'] + ['vegas_long_cond' + str(i) for i in range(1,8)] + ['vegas_short_cond' + str(i) for i in range(1, 8)] + ['vegas_long_fire', 'vegas_short_fire']])
-        #
-        # temp_df1 = self.data_df[self.data_df['vegas_long_fire'].isnull()]
-        # temp_df2 = self.data_df[self.data_df['vegas_short_fire'].isnull()]
-        #
-        # temp_df3 = self.data_df[self.data_df['vegas_long_fire']]
-        # temp_df4 = self.data_df[self.data_df['vegas_short_fire']]
-        #
-        # print("long problem = " + str(temp_df1.shape[0]) + " short problem = " + str(temp_df2.shape[0]))
-        # print("long fire num = " + str(temp_df3.shape[0]) + " short fire num = " + str(temp_df4.shape[0]))
-
-
-        #sys.exit(0)
-
-
-        ######################################
-
-        self.data_df['id'] = list(range(self.data_df.shape[0]))
-
-        self.data_df['long_dummy'] = np.where(
-            self.data_df['vegas_long_fire'],
-            self.data_df['id'],
-            np.nan)
-
-        self.data_df['long_dummy'] = self.data_df['long_dummy'].fillna(method = 'ffill').fillna(0)
-        self.data_df['long_lasting'] = self.data_df['id'] - self.data_df['long_dummy']
-        self.data_df['previous_long_lasting'] = self.data_df['long_lasting'].shift(1)
-
-        self.data_df['final_vegas_long_fire'] = (self.data_df['vegas_long_fire']) & (self.data_df['previous_long_lasting'] > signal_minimum_lasting_bars)
-
-        # print("Buggy framework:")
-        # print(self.data_df.iloc[6900:6905][['time', 'vegas_long_fire', 'final_vegas_long_fire', 'previous_long_lasting']])
-
-        #self.data_df['final_vegas_long_fire'] = self.data_df['final_vegas_long_fire'].shift(1).fillna(method='bfill')
-
-        ###################
-
-        if not use_dynamic_TP and (not always_use_new_close_logic):
-            while True:
-                self.data_df['long_stop_loss_price'] = np.where(
-                    self.data_df['final_vegas_long_fire'],
-                    self.data_df['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
-                    np.nan)
-
-                self.data_df['long_stop_range'] = np.where(
-                    self.data_df['final_vegas_long_fire'],
-                    self.data_df['close'] - self.data_df['long_stop_loss_price'],
-                    np.nan
-                )
-
-                self.data_df['long_stop_profit_price'] = np.where(
-                    self.data_df['final_vegas_long_fire'],
-                    self.data_df['close'] + self.profit_loss_ratio * self.data_df['long_stop_range'],
-                    np.nan
-                )
-
-                self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].fillna(method='ffill').fillna(0)
-                self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].fillna(method='ffill').fillna(0)
-
-                self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].shift(1).fillna(0)
-                self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].shift(1).fillna(0)
-
-                self.data_df['long_stop_loss'] = np.where(
-                    # self.data_df['final_vegas_long_fire'],
-                    # 0,
-                    # np.where(
-                        (self.data_df['long_stop_loss_price'] > 0) & (self.data_df['low'] <= self.data_df['long_stop_loss_price']),
-                        -1,
-                        np.nan
-                    #)
-                )
-
-                self.data_df['long_stop_profit'] = np.where(
-                    # self.data_df['final_vegas_long_fire'],
-                    # 0,
-                    # np.where(
-                        (self.data_df['long_stop_profit_price'] > 0) & (self.data_df['high'] >= self.data_df['long_stop_profit_price']),
-                        1,
-                        np.nan
-                    #)
-                )
-
-                self.data_df['long_stop_profit_loss'] = np.where(
-                    self.data_df['long_stop_profit'].notnull(),
-                    self.data_df['long_stop_profit'],
-                    np.where(
-                        self.data_df['long_stop_loss'].notnull(),
-                        self.data_df['long_stop_loss'],
-                        np.nan
-                    )
-                )
-
-                ############
-                self.data_df['long_stop_profit_loss'] = np.where(
-                    self.data_df['final_vegas_long_fire'] & (self.data_df['long_stop_profit_loss'].isnull()),
-                    0,
-                    self.data_df['long_stop_profit_loss']
-                )
-                ############
-
-                self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].fillna(method='bfill').fillna(0)
-
-                self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].shift(-1)
-
-                temp_long_df = self.data_df[self.data_df['final_vegas_long_fire']][['id', 'time', 'final_vegas_long_fire', 'long_stop_profit_loss']]
-                temp_long_df['prev_long_stop_profit_loss'] = temp_long_df['long_stop_profit_loss'].shift(1).fillna(1)
-                temp_long_df['next_id'] = temp_long_df['id'].shift(-1).fillna(-1).astype(int)
-
-                # print("temp_long_df:")
-                # print(temp_long_df)
-
-                not_finished_long_df = temp_long_df[(temp_long_df['long_stop_profit_loss'] == 0) & (temp_long_df['prev_long_stop_profit_loss'] != 0) & (temp_long_df['next_id'] != -1)]
-
-                # print("not_finished_long_df:")
-                # print(not_finished_long_df)
-
-                if not_finished_long_df.shape[0] == 0:
+                    exit_id = cur_data['id']
+                    exit_time = cur_data['time']
+                    exit_price = cur_data['close']
+                    is_win = exit_price > entry_price
                     break
-                else:
-                    ids_erase = not_finished_long_df['next_id'].tolist()
 
-                    # print("ids_erase:")
-                    # print(ids_erase)
 
-                    for erase_id in ids_erase:
-                        if erase_id != -1:
-                            #print("erase_id = " + str(erase_id))
-                            #self.data_df.iloc[-1]['final_vegas_long_fire'] = True
-                            self.data_df.at[erase_id, 'final_vegas_long_fire'] = False
 
+                if is_short_macd_fire and (not long_macd_indicate_long):
+                    long_macd_indicate_long = (cur_data['macd2'] > cur_data['msignal2']) and (cur_data['macd2_gradient'] > 0)
 
-                # print("")
-                # print("df after erase:")
-                # print(self.data_df.iloc[-50:][['id','time','open','high','low','close','vegas_long_fire', 'final_vegas_long_fire']])
+                if temp_i + 1 < len(long_start_ids) and long_start_ids[temp_i + 1] == long_start_id + j:
 
+                    is_effective[temp_i + 1] = 0
+                    temp_i += 1
 
-        #self.data_df['vegas_long_fire_rt'] = self.data_df['final_vegas_long_fire'].shift(-1).fillna(method='ffill')
+                j += 1
 
+            result_data += [instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]
 
-        ##################
 
+        long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
+        write_long_df = long_df.copy()
+        write_long_df['win'] = np.where(
+            write_long_df['exit_price'] == -1,
+            -1,
+            np.where(write_long_df['is_win'], 1, 0)
+        )
+        write_long_df = write_long_df.drop(columns = ['is_win'])
 
-        # temp_df = self.data_df[self.data_df['final_vegas_long_fire'].isnull()]
-        # print("long fire null has " + str(temp_df.shape[0]))
-        #sys.exit(0)
 
-        self.data_df['short_dummy'] = np.where(
-            self.data_df['vegas_short_fire'],
-            self.data_df['id'],
-            np.nan)
+        long_df = long_df[long_df['exit_price'] > 0]
 
-        self.data_df['short_dummy'] = self.data_df['short_dummy'].fillna(method = 'ffill').fillna(0)
-        self.data_df['short_lasting'] = self.data_df['id'] - self.data_df['short_dummy']
-        self.data_df['previous_short_lasting'] = self.data_df['short_lasting'].shift(1)
+        long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price'])/long_df['entry_price']*100.0
+        long_df['pnl'] = long_df['pnl'].apply(lambda x: round(x, 0))
 
-        self.data_df['final_vegas_short_fire'] = (self.data_df['vegas_short_fire']) & (self.data_df['previous_short_lasting'] > signal_minimum_lasting_bars)
+        long_df['entry_id'] = long_df['entry_id'].astype(int)
+        long_df['exit_id'] = long_df['exit_id'].astype(int)
 
-        #self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method='bfill')
-
-        ###################
-
-        if not use_dynamic_TP and (not always_use_new_close_logic):
-            while True:
-
-                self.data_df['short_stop_loss_price'] = np.where(
-                    self.data_df['final_vegas_short_fire'],
-                    self.data_df['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate),
-                    np.nan)
-
-                self.data_df['short_stop_range'] = np.where(
-                    self.data_df['final_vegas_short_fire'],
-                    self.data_df['short_stop_loss_price'] - self.data_df['close'],
-                    np.nan
-                )
-
-                self.data_df['short_stop_profit_price'] = np.where(
-                    self.data_df['final_vegas_short_fire'],
-                    self.data_df['close'] - self.profit_loss_ratio * self.data_df['short_stop_range'],
-                    np.nan
-                )
-
-
-                self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].fillna(method='ffill').fillna(0)
-                self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].fillna(method='ffill').fillna(0)
-
-                self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].shift(1).fillna(0)
-                self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].shift(1).fillna(0)
-
-                self.data_df['short_stop_loss'] = np.where(
-                    # self.data_df['final_vegas_short_fire'],
-                    # 0,
-                    # np.where(
-                        (self.data_df['short_stop_loss_price'] > 0) & (
-                                    self.data_df['high'] >= self.data_df['short_stop_loss_price']),
-                        -1,
-                        np.nan
-                    #)
-                )
-
-                self.data_df['short_stop_profit'] = np.where(
-                    # self.data_df['final_vegas_short_fire'],
-                    # 0,
-                    # np.where(
-                        (self.data_df['short_stop_profit_price'] > 0) & (
-                                    self.data_df['low'] <= self.data_df['short_stop_profit_price']),
-                        1,
-                        np.nan
-                    #)
-                )
-
-                self.data_df['short_stop_profit_loss'] = np.where(
-                    self.data_df['short_stop_profit'].notnull(),
-                    self.data_df['short_stop_profit'],
-                    np.where(
-                        self.data_df['short_stop_loss'].notnull(),
-                        self.data_df['short_stop_loss'],
-                        np.nan
-                    )
-                )
-
-                ############
-                self.data_df['short_stop_profit_loss'] = np.where(
-                    self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss'].isnull()),
-                    0,
-                    self.data_df['short_stop_profit_loss']
-                )
-                ############
-
-                self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].fillna(method='bfill').fillna(0)
-
-                self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].shift(-1)
-
-                temp_short_df = self.data_df[self.data_df['final_vegas_short_fire']][['id', 'time', 'final_vegas_short_fire', 'short_stop_profit_loss']]
-                temp_short_df['prev_short_stop_profit_loss'] = temp_short_df['short_stop_profit_loss'].shift(1).fillna(1)
-                temp_short_df['next_id'] = temp_short_df['id'].shift(-1).fillna(-1).astype(int)
-
-                # print("temp_short_df:")
-                # print(temp_short_df)
-
-                not_finished_short_df = temp_short_df[(temp_short_df['short_stop_profit_loss'] == 0) & (temp_short_df['prev_short_stop_profit_loss'] != 0) & (temp_short_df['next_id'] != -1)]
-
-                # print("not_finished_short_df:")
-                # print(not_finished_short_df)
-
-                if not_finished_short_df.shape[0] == 0:
-                    break
-                else:
-                    ids_erase = not_finished_short_df['next_id'].tolist()
-
-                    # print("ids_erase:")
-                    # print(ids_erase)
-
-                    for erase_id in ids_erase:
-                        if erase_id != -1:
-                            #print("erase_id = " + str(erase_id))
-                            # self.data_df.iloc[-1]['final_vegas_long_fire'] = True
-                            self.data_df.at[erase_id, 'final_vegas_short_fire'] = False
-
-
-
-        smart_close_long_cond = 'guppy_half1_strong_aligned_long'
-        smart_close_short_cond = 'guppy_half1_strong_aligned_short'
-
-        ##############################
-        if use_dynamic_TP or always_use_new_close_logic:
-
-            result_columns = ['currency', 'time', 'id', 'close', 'long_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
-                              'long_stop_profit_price', 'actual_tp_num', 'tp_num',
-                              'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount',
-                              'reach_tp1_time', 'morning_price'] #Gavin
-
-
-
-            result_data = []
-
-            raw_long_start_ids = which(self.data_df['vegas_long_fire'])
-
-            long_start_ids = which(self.data_df['final_vegas_long_fire'])
-
-            # print("raw_long_start_ids:")
-            # print(raw_long_start_ids)
-            #
-            # print("long_start_ids:")
-            # print(long_start_ids)
-
-            print("")
-            print("Calculating Long positions.............")
-            print("")
-
-            is_effective = [1] * len(long_start_ids)
-
-            last_position = 0
-            for ii in range(0, len(long_start_ids)):
-
-                #print("")
-                # print("Process long ii = " + str(ii))
-
-                if is_effective[ii] == 0:
-                    #print("Set final_vegas_long_fire at " + str(ii) + " to False")
-                    self.data_df.at[long_start_ids[ii], 'final_vegas_long_fire'] = False
-                    continue
-
-                reach_tp1_time = None  # Gavin
-
-                entry_com_discount = 0.0
-                exit_com_discount = 0.0
-
-
-                temp_ii = ii
-
-                long_start_id = long_start_ids[ii]
-
-                #print("ii time = " + str(self.data_df.iloc[long_start_id]['time']))
-
-                long_fire_data = self.data_df.iloc[long_start_id]
-
-                entry_price = long_fire_data['close']
-
-                #print("Entry time = " + str(long_fire_data['time']))
-
-                if not is_crypto and correct_precision:
-                    entry_price = self.round_price(entry_price)
-
-                if use_conditional_stop_loss and (long_fire_data['open'] > long_fire_data['upper_vegas']):
-
-                    long_stop_loss_price = long_fire_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-
-                else:
-                    for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1): #Conservative
-                        if long_fire_data['vegas_long_fire' + str(li)]:
-                            break
-
-                    #print("use prevGroup " + str(li) + " to calculate short stop price")
-
-                    if is_crypto:
-
-                        if long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'] > 0:
-                            long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0
-                        else:
-                            long_stop_loss_price = long_fire_data['long_critical_price']
-
-                        #long_stop_loss_price = long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price']
-
-                    else:
-                        long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_2critical_price'])/2.0,
-                                               long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                                               )
-
-                    assert(long_stop_loss_price < long_fire_data['close'])
-
-                    if not is_crypto and correct_precision:
-                        long_stop_loss_price = self.round_price(long_stop_loss_price)
-
-
-
-
-
-                unit_range = long_fire_data['close'] - long_stop_loss_price
-
-
-                position = unit_loss / (unit_range * self.lot_size * self.usdfx * usdhkd)
-                position = round(position/2.0, 4)
-                margin = unit_loss * entry_price / (unit_range * leverage)
-                margin = round(margin/2.0, 2)
-
-                position_delta = 0
-                if last_position > 0:
-                    position_delta = position - last_position
-                    abs_position_delta = abs(position_delta)
-                    entry_com_discount = (position -abs_position_delta)/position
-
-
-                last_position = position
-
-                long_target_profit_price = long_fire_data['close'] + unit_range
-
-                if not is_crypto and correct_precision:
-                    long_target_profit_price = self.round_price(long_target_profit_price)
-
-                TP1 = long_target_profit_price
-
-                ##########################
-                if self.is_notify and (long_start_id == self.data_df.shape[0] - 1 or print_email_message_to_file):
-                    current_time = str(self.data_df.iloc[long_start_id]['time'] + timedelta(hours = 1))
-
-                    message = "At " + current_time + ", Long " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
-
-                    if position_delta != 0:
-
-                        if position_delta > 0:
-                            if tp_number >= 1: #The first position is already gone
-                                message += "Open a new " + str(round(position, 2)) + " lots, and for the existing position, add " + str(round(position_delta, 2)) + " lots\n"
-                            else:
-                                message += "For each of the existing positions, add " + str(round(position_delta, 2)) + " lots\n"
-                        else:
-                            if tp_number >= 1: #The first position is already gone
-                                message += "Open a new " + str(round(position, 2)) + " lots, and for the existing position, close " + str(round(-position_delta, 2)) + " lots\n"
-                            else:
-                                message += "For each of the existing positions, close " + str(round(-position_delta, 2)) + " lots\n"
-
-
-
-
-                    message += "Place stop loss at price " + str(self.round_price(long_stop_loss_price - unit_range * tp_tolerance)) \
-                               + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
-                    message += "Place stop profit at price " + str(self.round_price(long_target_profit_price)) + " for only one of the two positions \n"
-                    message += "This position incurs a margin of " + str(margin*2) + " HK dollars\n"
-
-                    message_title = "Long " + self.currency + " " + str(round(position*2, 2)) + " lot"
-
-                    print("message_title = " + message_title)
-                    print("message:")
-                    print(message)
-
-                    if not print_email_message_to_file:
-                        sendEmail(message_title, message)
-                    else:
-                        self.cache_email_messages(message_title, message, current_time)
-
-
-
-                ##########################
-
-
-                long_actual_stop_profit_price = 0
-
-                current_stop_loss = long_stop_loss_price
-                actual_stop_loss = current_stop_loss - unit_range * tp_tolerance
-
-                current_used_stop_loss = current_stop_loss
-                actual_used_stop_loss = actual_stop_loss #New
-
-                tp_number = 0
-                actual_tp_number = 0 #Guoji
-
-                long_stop_profit_loss = 0
-                long_stop_profit_loss_time = self.data_df.iloc[-1]['time']
-                long_stop_profit_loss_id = self.data_df.iloc[-1]['id']
-
-                j = 1
-
-                last_message_type = 0
-
-                morning_price = 0
-
-                while long_start_id + j < self.data_df.shape[0]:
-
-                    is_actual_used_stop_loss_changed = False #New
-
-                    cur_data = self.data_df.iloc[long_start_id + j]
-
-                    last_data = self.data_df.iloc[long_start_id + j - 1]  #Hu Comment
-
-                    if long_fire_data['time'].hour <= 5 and cur_data['time'].hour == 6:
-                        morning_price = cur_data['close']
-
-                    if readjust_position_when_new_signal and ii + 1 < len(long_start_ids) and long_start_ids[ii + 1] == long_start_id + j:
-
-                        exit_com_discount = 1.0
-                        long_stop_profit_loss_time = cur_data['time']
-                        long_stop_profit_loss_id = cur_data['id']
-
-                        long_actual_stop_profit_price = cur_data['close']
-
-                        if long_actual_stop_profit_price < entry_price - (1e-6):
-                            long_stop_profit_loss = -1
-                        else:
-                            long_stop_profit_loss = 1
-
-                        actual_tp_number = round((long_actual_stop_profit_price - entry_price)/unit_range, 4)
-
-                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-
-                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
-
-                            message_title = "Long position of " + self.currency + " logically gets closed due to new long signal fire"
-
-                            message = "At " + current_time + ", a new long signal is fired\n"
-
-                            if tp_number >= 1:
-                                message += "Logically (Not Physically) close the second " +  str(round(position, 2)) + "-lot position\n"
-                                message += "It generates a pnl of " + str(actual_tp_number * unit_loss / 2.0) + " HK dollars"
-                            else:
-                                message += "Logically (Not Physically) close the two " +  str(round(position, 2)) + "-lots position\n"
-                                message += "It generates a pnl of " + str(actual_tp_number * unit_loss) + " HK dollars"
-
-                            print("message_title = " + message_title)
-                            print("message:")
-                            print(message)
-
-                            if not print_email_message_to_file:
-                                sendEmail(message_title, message)
-                            else:
-                                self.cache_email_messages(message_title, message, current_time)
-
-
-                        break
-
-
-
-
-                    if cur_data['low'] < actual_used_stop_loss + (1e-6): #New
-
-                        last_message_type = 0
-
-                        long_actual_stop_profit_price = current_used_stop_loss  #New
-                        if long_actual_stop_profit_price < entry_price - (1e-6):
-                            long_stop_profit_loss = -1
-                        else:
-                            long_stop_profit_loss = 1
-
-                        long_stop_profit_loss_time = cur_data['time']
-                        long_stop_profit_loss_id = cur_data['id']
-
-                        #print("long_stop_profit_loss_time = " + str(long_stop_profit_loss_time))
-
-                        #####################################
-                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
-
-                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n' #New
-
-                            if long_actual_stop_profit_price < entry_price - (1e-6) and tp_number == 0:  #Guoji
-
-                                if use_dynamic_TP:
-                                    message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
-                                    message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance)) + " HK dollars"
-                                else:
-                                    message += "One " + str(round(position, 2)) + "-lot positions get closed \n"
-                                    message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance) / 2.0) + " HK dollars"
-
-                                message_title = "Long position of " + self.currency + " hits stop loss"
-
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
-
-                                if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
-                                else:
-                                    self.cache_email_messages(message_title, message, current_time)
-
-                            else:
-                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(actual_tp_number - 1) + " \n"  #Guoji
-
-                                if not use_smart_close_position_logic:
-                                    if actual_tp_number > 1:  #Guoji
-                                        message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0, 2)) + " HK dollars"  #Guoji
-                                    else:
-                                        assert(actual_tp_number == 1)
-                                        message += "It yields zero pnl (only spread cost)"
-                                else:
-                                    message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0,2)) + " HK dollars"  #Guoji
-
-
-                                message_title = "Long position of " + self.currency + " hits MOVED stop loss"
-
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
-
-                                if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
-                                else:
-                                    self.cache_email_messages(message_title, message, current_time)
-
-                        #####################################
-
-                        last_position = 0
-                        break
-
-                    elif cur_data['high'] > long_target_profit_price - (1e-6):
-
-                        last_message_type = 0
-
-                        tp_number += 1
-
-                        if reach_tp1_time is None:
-                            reach_tp1_time = cur_data['time']  #Gavin
-
-                        if not use_dynamic_TP:
-                            long_stop_profit_loss_time = cur_data['time']
-                            long_stop_profit_loss_id = cur_data['id']
-                            long_actual_stop_profit_price = long_target_profit_price
-                            long_stop_profit_loss = 1
-                            actual_tp_number = tp_number
-
-                            if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-
-                                current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
-
-                                message_title = "Long position of " + self.currency + " hits stop profit"
-
-
-
-                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price)) + "\n"
-                                message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
-
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
-
-                                if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
-                                else:
-                                    self.cache_email_messages(message_title, message, current_time)
-
-
-                            last_position = 0
-                            break
-
-
-                        current_stop_loss += unit_range
-                        if not is_crypto and correct_precision:
-                            current_stop_loss = self.round_price(current_stop_loss)
-                        #actual_stop_loss = current_stop_loss - unit_range * tp_tolerance  #New
-
-                        ############### New
-                        if use_smart_close_position_logic and cur_data[smart_close_long_cond]:
-                            current_used_stop_loss = current_stop_loss - unit_range
-                            actual_tp_number = tp_number - 1  #Guoji
-
-                            print("")
-                            print("Special: time = " + str(cur_data['time']))
-                            print("high price reach long_target_profit_price " + str(self.round_price(long_target_profit_price)))
-                            print("Due to guppy_all_strong_aligned_long, current_stop_loss=" + str(self.round_price(current_stop_loss)) + ", current_used_stop_loss=" + str(self.round_price(current_used_stop_loss)))
-                            print("tp_nmber=" + str(tp_number) + ", actual_tp_number=" + str(actual_tp_number))
-                            print("")
-
-                        else:
-                            current_used_stop_loss = current_stop_loss
-                            actual_tp_number = tp_number #Guoji
-
-                        new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
-
-                        # print("GroupFun")
-                        # print("current_used_stop_loss = " + str(current_used_stop_loss))
-                        # print("new_actual_used_stop_loss = " + str(new_actual_used_stop_loss))
-
-                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
-                            actual_used_stop_loss = new_actual_used_stop_loss
-                            is_actual_used_stop_loss_changed = True
-                        #################
-                        #print("actual_used_stop_loss = " + str(actual_used_stop_loss))
-
-
-
-
-                        long_target_profit_price += unit_range
-                        if not is_crypto and correct_precision:
-                            long_target_profit_price = self.round_price(long_target_profit_price)
-
-                        #####################################
-                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-
-                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
-
-                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(long_target_profit_price - unit_range)) + "\n"
-
-                            if is_actual_used_stop_loss_changed:
-                                message += "Move stop loss up by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
-                            else:
-                                message += "Due to Guppy lines strongly aligned long, no need to move current stop loss price " + str(self.round_price(actual_used_stop_loss)) + " forward\n"
-
-                            message += "The next profit level is price " + str(self.round_price(self.round_price(long_target_profit_price)))
-
-                            if tp_number == 1:
-                                message += " The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
-
-                            message_title = "Long position of " + self.currency + " reaches next profit level"
-
-                            print("message_title = " + message_title)
-                            print("message:")
-                            print(message)
-
-                            if not print_email_message_to_file:
-                                sendEmail(message_title, message)
-                            else:
-                                self.cache_email_messages(message_title, message, current_time)
-                        ########################################
-                    elif use_smart_close_position_logic:  #New
-
-                        ###############New
-                        if cur_data[smart_close_long_cond]:
-
-
-                            current_used_stop_loss = current_stop_loss - unit_range
-                            actual_tp_number = tp_number - 1  #Guoji
-
-                            if last_message_type != 1:  #Comment
-                                print("Special: time = " + str(cur_data['time']))
-                                print("guppy_all_strong_aligned_long becomes true")
-                                print("Set current_used_stop_loss to " + str(self.round_price(current_used_stop_loss)) + ", while current_stop_loss = " + str(self.round_price(current_stop_loss)))
-                                print("actual_tp_number=" + str(actual_tp_number) + ", while tp_number=" + str(tp_number))
-                                print("")
-
-
-                            if current_used_stop_loss - long_stop_loss_price < -(1e-5): #Guoji
-                                current_used_stop_loss = current_stop_loss
-                                actual_tp_number = tp_number #Guoji
-
-                                if last_message_type != 1:  #Comment
-                                    print("However, because current_used_stop_loss set lower than stop loss, revert it back to " + str(self.round_price(current_used_stop_loss)))
-                                    print("Revert actual_tp_number back to " + str(actual_tp_number))
-                                    print("")
-
-                            last_message_type = 1
-
-                        else:
-
-                            if current_used_stop_loss - current_stop_loss < -(1e-5):
-
-                                if last_message_type != 2 and last_message_type != 3:  #Comment
-                                    print("Special: time = " + str(cur_data['time']))
-                                    print("current_stop_loss=" + str(self.round_price(current_stop_loss)) + ", current_used_stop_loss=" + str(self.round_price(current_used_stop_loss)))
-                                    print("tp_number=" + str(tp_number) + ", actual_tp_number=" + str(actual_tp_number)) ########################
-                                    print("guppy_all_strong_aligned_long becomes false")
-                                    print("")
-
-
-                                if (cur_data['high'] > current_stop_loss + unit_range) or (strict_smart_close_logic and cur_data['close'] > current_stop_loss):
-                                    current_used_stop_loss = current_stop_loss
-                                    actual_tp_number = tp_number
-
-                                    if last_message_type != 2:  #Comment
-
-                                        if last_message_type in [2, 3]:
-                                            print("Special: time = " + str(cur_data['time']))
-
-                                        print("Becuase high price breaks up reached profit level " + str(tp_number) + ": " + str(self.round_price(current_stop_loss + unit_range)))
-                                        print("Adjust current_used_stop_loss forward to " + str(self.round_price(current_used_stop_loss)))
-                                        print("Adjust actual_tp_number forward to " + str(actual_tp_number))
-                                        print("")
-                                        last_message_type = 2
-
-                                else:
-                                    if last_message_type != 3:  # Comment
-
-                                        if last_message_type in [2, 3]:
-                                            print("Special: time = " + str(cur_data['time']))
-
-                                        print("But because high price does not break up reached profit level " + str(tp_number) + ": " + str(self.round_price(current_stop_loss + unit_range)))
-                                        print("Not adjust current_used_stop_loss and actual_tp_number forward")
-                                        print("")
-                                        last_message_type = 3
-
-
-                            else:
-                                current_used_stop_loss = current_stop_loss
-                                actual_tp_number = tp_number #Guoji
-                                last_message_type = 0
-
-                        new_actual_used_stop_loss = current_used_stop_loss - unit_range * tp_tolerance
-                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
-                            actual_used_stop_loss = new_actual_used_stop_loss
-                            is_actual_used_stop_loss_changed = True
-                        #################
-
-                        if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file) and is_actual_used_stop_loss_changed:
-
-                            current_time = str(self.data_df.iloc[long_start_id + j]['time'] + timedelta(hours=1))
-
-                            if cur_data[smart_close_long_cond]:
-
-                                message = "At " + current_time + ", Guppy lines strongly aligned long, hence move stop loss back to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
-                                message_title = "Long position of " + self.currency + " adjusts stop loss back"
-
-                            else:
-
-                                message = "At " + current_time +  ", Guppy lines NOT strongly aligned long, and price breaks up profit level " + str(tp_number) + ": "+ str(self.round_price(current_stop_loss + unit_range)) + " hence move stop loss forward to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
-                                message_title = "Long position of " + self.currency + " adjusts stop loss forward"
-
-
-                            print("message_title = " + message_title)
-                            print("message:")
-                            print(message)
-
-                            if not print_email_message_to_file:
-                                sendEmail(message_title, message)
-                            else:
-                                self.cache_email_messages(message_title, message, current_time)
-
-
-                    if (not readjust_position_when_new_signal) and temp_ii + 1 < len(long_start_ids) and long_start_ids[temp_ii + 1] == long_start_id + j:
-
-                        # print("next ii = " + str(ii + 1))
-                        # print("next long start id = " + str(long_start_ids[ii+1]))
-                        # print("current id = " + str(long_start_id + j))
-                        # print("current time = " + str(self.data_df.iloc[long_start_id + j]['time']))
-
-                        #print("temp_ii = " + str(temp_ii))
-                        #print("j=" + str(j))
-                        is_effective[temp_ii + 1] = 0
-                        temp_ii += 1
-
-                        #print("temp_ii then = " + str(temp_ii))
-
-                    j += 1
-
-
-                #Guoji
-                result_data += [[long_fire_data['currency'], long_fire_data['time'], long_fire_data['id'], entry_price, long_stop_loss_price - unit_range * tp_tolerance, self.round_price(TP1),
-                             unit_range, position, margin, long_actual_stop_profit_price, actual_tp_number, tp_number, long_stop_profit_loss, long_stop_profit_loss_id, long_stop_profit_loss_time,
-                                 entry_com_discount, exit_com_discount, reach_tp1_time, morning_price]] #Gavin
-
-            long_df = pd.DataFrame(data = result_data, columns = result_columns)
-
-
-
-        else:
-
-            ##############################
-
-            self.data_df['long_stop_loss_price'] = np.where(
-                self.data_df['final_vegas_long_fire'],
-                self.data_df['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate),
-                np.nan)
-
-            self.data_df['long_stop_range'] = np.where(
-                self.data_df['final_vegas_long_fire'],
-                self.data_df['close'] - self.data_df['long_stop_loss_price'],
-                np.nan
-            )
-
-            self.data_df['long_stop_loss_price'] = np.where(
-                self.data_df['final_vegas_long_fire'],
-                self.data_df['long_stop_loss_price'] - self.data_df['long_stop_range'] * tp_tolerance,
-                np.nan)
-
-
-            self.data_df['long_stop_profit_price'] = np.where(
-                self.data_df['final_vegas_long_fire'],
-                self.data_df['close'] + self.profit_loss_ratio * self.data_df['long_stop_range'],
-                np.nan
-            )
-
-            self.data_df['long_stop_half_profit_price'] = np.where(
-                self.data_df['final_vegas_long_fire'],
-                self.data_df['close'] + 0.5* self.profit_loss_ratio * self.data_df['long_stop_range'],
-                np.nan
-            )
-
-
-            self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].fillna(method = 'ffill').fillna(0)
-            self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].fillna(method='ffill').fillna(0)
-            self.data_df['long_stop_half_profit_price'] = self.data_df['long_stop_half_profit_price'].fillna(method='ffill').fillna(0)
-
-            ####################
-            self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].shift(1).fillna(0)
-            self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].shift(1).fillna(0)
-            self.data_df['long_stop_half_profit_price'] = self.data_df['long_stop_half_profit_price'].shift(1).fillna(0)
-
-
-            self.data_df['long_stop_loss'] = np.where(
-                # self.data_df['final_vegas_long_fire'],
-                # 0,
-                # np.where(
-                    (self.data_df['long_stop_loss_price'] > 0) & (self.data_df['low'] <= self.data_df['long_stop_loss_price']),
-                    -1,
-                    np.nan
-                #)
-            )
-
-            self.data_df['long_stop_loss_id'] = np.where(
-                # self.data_df['final_vegas_long_fire'],
-                # self.data_df['id'],
-                # np.where(
-                    self.data_df['long_stop_loss'] == -1,
-                    self.data_df['id'],
-                    np.nan
-                #)
-            )
-
-            self.data_df['long_stop_loss_time'] = np.where(
-                # self.data_df['final_vegas_long_fire'],
-                # self.data_df['time'],
-                # np.where(
-                    self.data_df['long_stop_loss'] == -1,
-                    self.data_df['time'],
-                    pd.NaT
-                #)
-            )
-            self.data_df['long_stop_loss_time'] = pd.to_datetime(self.data_df['long_stop_loss_time'])
-
-
-
-
-            self.data_df['long_stop_profit'] = np.where(
-                # self.data_df['final_vegas_long_fire'],
-                # 0,
-                # np.where(
-                    (self.data_df['long_stop_profit_price'] > 0) & (self.data_df['high'] >= self.data_df['long_stop_profit_price']),
-                    1,
-                    np.nan
-                #)
-            )
-
-            self.data_df['long_stop_profit_id'] = np.where(
-                # self.data_df['final_vegas_long_fire'],
-                # self.data_df['id'],
-                # np.where(
-                    self.data_df['long_stop_profit'] == 1,
-                    self.data_df['id'],
-                    np.nan
-                #)
-            )
-
-            self.data_df['long_stop_profit_time'] = np.where(
-                # self.data_df['final_vegas_long_fire'],
-                # self.data_df['time'],
-                # np.where(
-                    self.data_df['long_stop_profit'] == 1,
-                    self.data_df['time'],
-                    pd.NaT
-                #)
-            )
-            self.data_df['long_stop_profit_time'] = pd.to_datetime(self.data_df['long_stop_profit_time'])
-
-            # print("Checking time:")
-            # temp_df = self.data_df[self.data_df['long_stop_profit_time'].notnull()]
-            # print("long_stop_profit_time not null: " + str(temp_df.shape[0]))
-            # print(temp_df[['time', 'long_stop_profit_time']])
-            # print(self.data_df.iloc[0:100][['time', 'long_stop_loss_time', 'long_stop_profit_time']])
-
-
-            self.data_df['long_stop_profit_loss'] = np.where(
-                self.data_df['long_stop_profit'].notnull(),
-                self.data_df['long_stop_profit'],
-                np.where(
-                    self.data_df['long_stop_loss'].notnull(),
-                    self.data_df['long_stop_loss'],
-                    np.nan
-                )
-            )
-
-            #################
-            self.data_df['long_stop_profit_loss'] = np.where(
-                    self.data_df['final_vegas_long_fire'] & (self.data_df['long_stop_profit_loss'].isnull()),
-                    0,
-                    self.data_df['long_stop_profit_loss']
-            )
-            #################
-
-            self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].fillna(method='bfill').fillna(0)
-
-            self.data_df['long_stop_profit_loss_id'] = np.where(
-                self.data_df['long_stop_profit_id'].notnull(),
-                self.data_df['long_stop_profit_id'],
-                np.where(
-                    self.data_df['long_stop_loss_id'].notnull(),
-                    self.data_df['long_stop_loss_id'],
-                    np.nan
-                )
-            )
-
-            #################
-            self.data_df['long_stop_profit_loss_id'] = np.where(
-                    self.data_df['final_vegas_long_fire'] & (self.data_df['long_stop_profit_loss_id'].isnull()),
-                    self.data_df['id'],
-                    self.data_df['long_stop_profit_loss_id']
-            )
-            #################
-
-            self.data_df['long_stop_profit_loss_id'] = self.data_df['long_stop_profit_loss_id'].fillna(method = 'bfill').fillna(0)
-
-
-            self.data_df['long_stop_profit_loss_time'] = np.where(
-                self.data_df['long_stop_profit_time'].notnull(),
-                self.data_df['long_stop_profit_time'],
-                np.where(
-                    self.data_df['long_stop_loss_time'].notnull(),
-                    self.data_df['long_stop_loss_time'],
-                    pd.NaT
-                )
-            )
-
-            #################
-            self.data_df['long_stop_profit_loss_time'] = np.where(
-                    self.data_df['final_vegas_long_fire'] & (self.data_df['long_stop_profit_loss_time'].isnull()),
-                    self.data_df['time'],
-                    self.data_df['long_stop_profit_loss_time']
-            )
-            #################
-
-            self.data_df['long_stop_profit_loss_time'] = pd.to_datetime(self.data_df['long_stop_profit_loss_time'])
-
-            self.data_df['long_stop_profit_loss_time'] = self.data_df['long_stop_profit_loss_time'].fillna(method = 'bfill').fillna(0)
-
-
-
-            self.data_df['long_stop_profit_loss'] = self.data_df['long_stop_profit_loss'].shift(-1)
-            self.data_df['long_stop_profit_loss_id'] = self.data_df['long_stop_profit_loss_id'].shift(-1)
-            self.data_df['long_stop_profit_loss_time'] = self.data_df['long_stop_profit_loss_time'].shift(-1)
-
-            ###########
-            self.data_df['long_stop_profit_price'] = self.data_df['long_stop_profit_price'].shift(-1)
-            self.data_df['long_stop_half_profit_price'] = self.data_df['long_stop_half_profit_price'].shift(-1)
-            self.data_df['long_stop_loss_price'] = self.data_df['long_stop_loss_price'].shift(-1)
-            ###########
-
-            long_df = self.data_df[self.data_df['final_vegas_long_fire']][['currency', 'time', 'id', 'close', 'long_stop_range', 'long_stop_loss_price', 'long_stop_profit_price', 'long_stop_half_profit_price',
-                                                                           'long_stop_profit_loss', 'long_stop_profit_loss_id', 'long_stop_profit_loss_time']]
-
-            long_df['position'] = unit_loss / (long_df['long_stop_range'] * self.lot_size * self.usdfx * usdhkd)
-            long_df['position'] = long_df['position'] / 2.0
-            long_df['position'] = long_df['position'].apply(lambda x: round(x, 4))
-            long_df['margin'] = unit_loss * long_df['close'] / (long_df['long_stop_range'] * leverage)
-            long_df['margin'] = long_df['margin'] / 2.0
-            long_df['margin'] = long_df['margin'].apply(lambda x: round(x, 2))
-
-
-            # print("long_df:")
-            # print(long_df)
-
-        long_df_copy = long_df.copy()
-        long_df = long_df[(long_df['long_stop_profit_loss'] == 1) | (long_df['long_stop_profit_loss'] == -1)]
-
-        long_df['long_stop_profit_loss_id'] = long_df['long_stop_profit_loss_id'].astype(int)
+        long_win_num = long_df[long_df['is_win']].shape[0]
+        long_lose_num = long_df[~long_df['is_win']].shape[0]
 
         self.long_df = long_df
 
-        long_win_num = long_df[long_df['long_stop_profit_loss'] == 1].shape[0]
-        long_lose_num = long_df[long_df['long_stop_profit_loss'] == -1].shape[0]
-
-        long_df['side'] = 'long'
-        long_df_copy['side'] = 'long'
-
-
-        write_long_df = long_df_copy[['currency', 'side', 'time', 'close',
-                                 'long_stop_profit_loss_time', 'long_stop_profit_loss', 'long_stop_loss_price', 'long_stop_profit_price', 'reach_tp1_time', 'morning_price'] +
-                                (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
-
-
-        write_long_df = write_long_df.rename(columns = {
-            'time' : 'entry_time',
-            'close' : 'entry_price',
-            'long_stop_profit_loss_time' : 'exit_time',
-            'long_stop_profit_loss' : 'is_win'
-        })
-
-        write_long_df['is_win'] = np.where(write_long_df['is_win'] == 1, 1,
-                                            np.where(write_long_df['is_win'] == -1, 0, -1))
-        write_long_df['exit_price'] = np.where(write_long_df['is_win'] == 1, write_long_df['long_stop_profit_price'], write_long_df['long_stop_loss_price'])
-
-        write_long_df = write_long_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time', 'morning_price'] +\
-                                      (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
-
-        write_long_df['exit_price'] = write_long_df['exit_price'].apply(lambda x: self.round_price(x))
-
-        ############## Short stop calculation ################
-
-        ############## Real time stuff ##############
-        # self.data_df['short_stop_loss_price_rt'] = np.where(
-        #     self.data_df['vegas_short_fire'],
-        #     self.data_df['upper_vegas'] +  stop_loss_threshold/(self.lot_size * self.exchange_rate),
-        #     np.nan
-        # )
-        #
-        # self.data_df['short_stop_range_rt'] = np.where(
-        #     self.data_df['vegas_short_fire'],
-        #     self.data_df['short_stop_loss_price_rt'] - self.data_df['close'],
-        #     np.nan
-        # )
-        #
-        # self.data_df['short_stop_profit_price_rt'] = np.where(
-        #     self.data_df['vegas_short_fire'],
-        #     self.data_df['close'] - profit_loss_ratio * self.data_df['short_stop_range_rt'],
-        #     np.nan
-        # )
-        #################################################
 
 
 
-        if use_dynamic_TP or always_use_new_close_logic:
-            result_columns =  ['currency', 'time', 'id', 'close', 'short_stop_loss_price', 'TP1', 'unit_range', 'position', 'margin',
-                              'short_stop_profit_price', 'actual_tp_num', 'tp_num', 'short_stop_profit_loss', 'short_stop_profit_loss_id',
-                               'short_stop_profit_loss_time', 'entry_com_discount', 'exit_com_discount', 'reach_tp1_time', 'morning_price'] #Gavin
+        ##########################################################
 
+        result_data = []
+        print("")
+        print("Calculating Short positions.............")
+        print("")
 
+        short_start_ids = which(self.data_df['macd_short_enter'])
 
-            result_data = []
+        is_effective = [1] * len(short_start_ids)
 
-            short_start_ids = which(self.data_df['final_vegas_short_fire'])
+        for i in range(len(short_start_ids)):
 
-            print("")
-            print("Calculating Short positions.............")
-            print("")
+            if is_effective[i] == 0:
+                self.data_df.at[short_start_ids[i], 'macd_short_enter'] = False
+                continue
 
-            is_effective = [1] * len(short_start_ids)
+            temp_i = i
+            short_start_id = short_start_ids[i]
+            short_fire_data = self.data_df.iloc[short_start_id]
 
-            last_position = 0
-            for ii in range(0, len(short_start_ids)):
+            instrument = short_fire_data['currency']
+            entry_time = short_fire_data['time']
+            entry_price = short_fire_data['close']
+            entry_id = short_fire_data['id']
 
-                #print("process short ii = " + str(ii))
+            is_short_macd_fire = not short_fire_data['long_macd_short_enter']
 
-                if is_effective[ii] == 0:
-                    self.data_df.at[short_start_ids[ii], 'final_vegas_short_fire'] = False
-                    continue
+            j = 1
 
-                reach_tp1_time = None  # Gavin
+            long_macd_indicate_short = False
+            exit_id = -1
+            exit_time = None
+            exit_price = -1
+            is_win = False
+            while short_start_id + j < self.data_df.shape[0]:
 
-                entry_com_discount = 0.0
-                exit_com_discount = 0.0
+                cur_data = self.data_df.iloc[short_start_id + j]
 
-                temp_ii = ii
-
-                short_start_id = short_start_ids[ii]
-
-                short_fire_data = self.data_df.iloc[short_start_id]
-
-                entry_price = short_fire_data['close']
-
-                if not is_crypto and correct_precision:
-                    entry_price = self.round_price(entry_price)
-
-                if use_conditional_stop_loss and (short_fire_data['open'] < short_fire_data['lower_vegas']):
-
-                    short_stop_loss_price = short_fire_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-
+                if long_macd_indicate_short or (not is_short_macd_fire):
+                    is_exit = cur_data['long_macd_short_exit'] or cur_data['macd_long_enter']
                 else:
-                    for li in range(look_back_start_group, (look_backward_group_num - 1) // 2 + 1): #Conservative
-                        if short_fire_data['vegas_short_fire' + str(li)]:
-                            break
+                    is_exit = cur_data['short_macd_short_exit'] or cur_data['macd_long_enter']
 
-                    #print("use prevGroup " + str(li) + " to calculate short stop price")
+                if is_exit:
+                    exit_id = cur_data['id']
+                    exit_time = cur_data['time']
+                    exit_price = cur_data['close']
+                    is_win = exit_price < entry_price
+                    break
 
-                    if is_crypto:
+                if is_short_macd_fire and (not long_macd_indicate_short):
+                    long_macd_indicate_short = (cur_data['macd2'] < cur_data['msignal2']) and (cur_data['macd2_gradient'] < 0)
 
-                        if short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'] > 0:
-                            short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0
-                        else:
-                            short_stop_loss_price = short_fire_data['short_critical_price']
+                if temp_i + 1 < len(short_start_ids) and short_start_ids[temp_i + 1] == short_start_id + j:
+                    is_effective[temp_i + 1] = 0
+                    temp_i += 1
 
-                        #short_stop_loss_price = short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price']
+                j += 1
 
-                    else:
-                        short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_2critical_price'])/2.0,
-                                               short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                                               )
+            result_data += [instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price,
+                            is_win]
 
-                    assert(short_stop_loss_price > short_fire_data['close'])
+        short_df = pd.DataFrame(data=result_data, columns=result_columns)
 
-                    if not is_crypto and correct_precision:
-                        short_stop_loss_price = self.round_price(short_stop_loss_price)
+        write_short_df = short_df.copy()
+        write_short_df['win'] = np.where(
+            write_short_df['exit_price'] == -1,
+            -1,
+            np.where(write_short_df['is_win'], 1, 0)
+        )
+        write_short_df = write_short_df.drop(columns=['is_win'])
 
-                    # print("short_critical_price = " + str(short_fire_data['short_critical_price']))
-                    # print("stop_loss = " + str(long_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)))
-                    # print("")
+        short_df = short_df[short_df['exit_price'] > 0]
 
-                    # short_stop_loss_price = max((short_fire_data['short_critical_high'] + short_fire_data['short_prevGroup_2high'])/2.0,
-                    #                            short_fire_data['short_critical_high'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                    #                            )
 
+        short_df['pnl'] = -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * 100.0
+        short_df['pnl'] = short_df['pnl'].apply(lambda x: round(x, 0))
 
+        short_df['entry_id'] = short_df['entry_id'].astype(int)
+        short_df['exit_id'] = short_df['exit_id'].astype(int)
 
-                    # short_stop_loss_price = max((short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0,
-                    #                            short_fire_data['short_critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                    #                            )
-
-                    # short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-
-                    #short_stop_loss_price = (short_fire_data['short_critical_price'] + short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price'])/2.0
-
-                    # print("short_start_id = " + str(short_start_id))
-                    # print("entry_price = " + str(entry_price))
-                    # print("entry_time = " + str(short_fire_data['time']))
-                    # print("short_critical_price = " + str(short_fire_data['short_critical_price']))
-                    # print("li = " + str(li))
-                    # print("prev odd group critical price = " + str(short_fire_data['short_prevGroup_' + str(li*2) + 'critical_price']))
-                    # print("prev even group critical price = " + str(short_fire_data['short_prevGroup_' + str(li*2-1) + 'critical_price']))
-                    #
-                    #
-                    # print("short_stop_loss_price = " + str(short_stop_loss_price))
-                    #
-                    # if (entry_price > short_stop_loss_price):
-                    #     print("Something is wrong here ###############################################")
-                    #
-                    # print("")
-
-
-
-                unit_range = short_stop_loss_price - short_fire_data['close']
-
-                position = unit_loss / (unit_range * self.lot_size * self.usdfx * usdhkd)
-                position = round(position/2.0, 4)
-                margin = unit_loss * entry_price / (unit_range * leverage)
-                margin = round(margin/2.0, 2)
-
-                position_delta = 0
-                if last_position > 0:
-                    position_delta = position - last_position
-                    abs_position_delta = abs(position_delta)
-                    entry_com_discount = (position -abs_position_delta)/position
-
-
-                last_position = position
-
-
-                short_target_profit_price = short_fire_data['close'] - unit_range
-
-                if not is_crypto and correct_precision:
-                    short_target_profit_price = self.round_price(short_target_profit_price)
-
-                TP1 = short_target_profit_price
-
-                ##########################
-                if self.is_notify and (short_start_id == self.data_df.shape[0] - 1 or print_email_message_to_file):
-                    current_time = str(self.data_df.iloc[short_start_id]['time'] + timedelta(hours = 1))
-
-                    message = "At " + current_time + ", Short " + self.currency + " with two " + str(round(position, 2)) + " lots at entry price " + str(self.round_price(entry_price)) + "\n"
-
-                    if position_delta != 0:
-
-                        if position_delta > 0:
-                            if tp_number >= 1: #The first position is already gone
-                                message += "Open a new " + str(round(position, 2)) + " lots, and for the existing position, add " + str(round(position_delta, 2)) + " lots\n"
-                            else:
-                                message += "For each of the existing positions, add " + str(round(position_delta, 2)) + " lots\n"
-                        else:
-                            if tp_number >= 1: #The first position is already gone
-                                message += "Open a new " + str(round(position, 2)) + " lots, and for the existing position, close " + str(round(-position_delta, 2)) + " lots\n"
-                            else:
-                                message += "For each of the existing positions, close " + str(round(-position_delta, 2)) + " lots\n"
-
-
-
-                    message += "Place stop loss at price " + str(self.round_price(short_stop_loss_price + unit_range * tp_tolerance)) \
-                               + " (" + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips away) \n"
-                    message += "Place stop profit at price " + str(self.round_price(short_target_profit_price)) + " for only one of the two positions \n"
-                    message += "This position incurs a margin of " + str(margin*2) + " HK dollars\n"
-
-                    message_title = "Short " + self.currency + " " + str(round(position*2, 2)) + " lot"
-
-                    print("message_title = " + message_title)
-                    print("message:")
-                    print(message)
-
-                    if not print_email_message_to_file:
-                        sendEmail(message_title, message)
-                    else:
-                        self.cache_email_messages(message_title, message, current_time)
-
-
-
-                ##########################
-
-
-                short_actual_stop_profit_price = 0
-
-                current_stop_loss = short_stop_loss_price
-                actual_stop_loss = current_stop_loss + unit_range * tp_tolerance
-
-                current_used_stop_loss = current_stop_loss
-                actual_used_stop_loss = actual_stop_loss  # New
-
-                tp_number = 0
-                actual_tp_number = 0 #Guoji
-
-
-                short_stop_profit_loss = 0
-                short_stop_profit_loss_time = self.data_df.iloc[-1]['time']
-                short_stop_profit_loss_id = self.data_df.iloc[-1]['id']
-
-                j = 1
-
-                #print("unit_range = " + str(unit_range))
-
-                #print("current_stop_loss = " + str(current_stop_loss))
-                last_message_type = 0
-
-                morning_price = 0
-
-                while short_start_id + j < self.data_df.shape[0]:
-
-                    is_actual_used_stop_loss_changed = False #New
-
-                    cur_data = self.data_df.iloc[short_start_id + j]
-
-                    last_data = self.data_df.iloc[short_start_id + j - 1]  #Hu Comment
-
-                    if short_fire_data['time'].hour <= 5 and cur_data['time'].hour == 6:
-                        morning_price = cur_data['close']
-
-                    if readjust_position_when_new_signal and ii + 1 < len(short_start_ids) and short_start_ids[ii + 1] == short_start_id + j:
-
-                        exit_com_discount = 1.0
-                        short_stop_profit_loss_time = cur_data['time']
-                        short_stop_profit_loss_id = cur_data['id']
-
-                        short_actual_stop_profit_price = cur_data['close']
-
-                        if short_actual_stop_profit_price > entry_price + (1e-6):
-                            short_stop_profit_loss = -1
-                        else:
-                            short_stop_profit_loss = 1
-
-                        print("entry_price = " + str(entry_price))
-                        print("short_actual_stop_profit_price = " + str(short_actual_stop_profit_price))
-
-                        print(-(short_actual_stop_profit_price - entry_price)/unit_range)
-
-                        actual_tp_number = round(-(short_actual_stop_profit_price - entry_price)/unit_range, 4)
-
-                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-
-                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
-
-                            message_title = "Short position of " + self.currency + " logically gets closed due to new short signal fire"
-
-                            message = "At " + current_time + ", a new short signal is fired\n"
-
-                            if tp_number >= 1:
-                                message += "Logically (Not Physically) close the second " +  str(round(position, 2)) + "-lot position\n"
-                                message += "It generates a pnl of " + str(actual_tp_number * unit_loss / 2.0) + " HK dollars"
-                            else:
-                                message += "Logically (Not Physically) close the two " +  str(round(position, 2)) + "-lots position\n"
-                                message += "It generates a pnl of " + str(actual_tp_number * unit_loss) + " HK dollars"
-
-                            print("message_title = " + message_title)
-                            print("message:")
-                            print(message)
-
-                            if not print_email_message_to_file:
-                                sendEmail(message_title, message)
-                            else:
-                                self.cache_email_messages(message_title, message, current_time)
-
-
-                        break
-
-
-
-
-                    if cur_data['high'] > actual_used_stop_loss - (1e-6):  #New
-
-                        last_message_type = 0
-
-                        short_actual_stop_profit_price = current_used_stop_loss  #New
-                        if short_actual_stop_profit_price > entry_price + (1e-6):
-                            short_stop_profit_loss = -1
-                        else:
-                            short_stop_profit_loss = 1
-
-                        short_stop_profit_loss_time = cur_data['time']
-                        short_stop_profit_loss_id = cur_data['id']
-
-
-                        #####################################
-                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
-
-                            message = "At " + current_time + ", the price of " + self.currency + " hits stop loss " + str(self.round_price(actual_used_stop_loss)) + '\n'  #New
-
-                            if short_actual_stop_profit_price > entry_price + (1e-6) and tp_number == 0:  #Guoji
-
-                                if use_dynamic_TP:
-                                    message += "Two " + str(round(position, 2)) + "-lot positions get closed \n"
-                                    message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance)) + " HK dollars"
-                                else:
-                                    message += "One " + str(round(position, 2)) + "-lot positions get closed \n"
-                                    message += "It yields a loss of " + str(unit_loss * (1 + tp_tolerance) / 2.0) + " HK dollars"
-
-                                message_title = "Short position of " + self.currency + " hits stop loss"
-
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
-
-                                if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
-                                else:
-                                    self.cache_email_messages(message_title, message, current_time)
-
-                            else:
-                                message += "The second " + str(round(position, 2)) + "-lot position gets closed at TP" + str(actual_tp_number - 1) + " \n"   #Guoji
-
-                                if not use_smart_close_position_logic:
-                                    if actual_tp_number > 1:  #Guoji
-                                        message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0, 2)) + " HK dollars"  #Guoji
-                                    else:
-                                        assert(actual_tp_number == 1)
-                                        message += "It yields zero pnl (only spread cost)"
-                                else:
-                                    message += "It yields a profit of " + str(round((actual_tp_number - 1 - tp_tolerance) * unit_loss / 2.0, 2)) + " HK dollars"  #Guoji
-
-
-                                message_title = "Short position of " + self.currency + " hits MOVED stop loss"
-
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
-
-                                if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
-                                else:
-                                    self.cache_email_messages(message_title, message, current_time)
-
-                        #####################################
-
-
-                        last_position = 0
-                        break
-
-                    elif cur_data['low'] < short_target_profit_price + (1e-6):
-
-                        last_message_type = 0
-
-                        tp_number += 1
-
-                        if reach_tp1_time is None:
-                            reach_tp1_time = cur_data['time']  # Gavin
-
-                        if not use_dynamic_TP:
-                            short_stop_profit_loss_time = cur_data['time']
-                            short_stop_profit_loss_id = cur_data['id']
-                            short_actual_stop_profit_price = short_target_profit_price
-                            short_stop_profit_loss = 1
-                            actual_tp_number = tp_number
-
-                            if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-
-                                current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
-
-                                message_title = "Short position of " + self.currency + " hits stop profit"
-
-                                message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price)) + "\n"
-                                message += "It yeilds a profit of " + str(round(tp_number * unit_loss / 2.0)) + " HK dollars"
-
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
-
-                                if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
-                                else:
-                                    self.cache_email_messages(message_title, message, current_time)
-
-
-                            last_position = 0
-                            break
-
-                        current_stop_loss -= unit_range
-                        if not is_crypto and correct_precision:
-                            current_stop_loss = self.round_price(current_stop_loss)
-                        #actual_stop_loss = current_stop_loss + unit_range * tp_tolerance  #New
-
-                        ############### New
-                        if use_smart_close_position_logic and cur_data[smart_close_short_cond]:
-                            current_used_stop_loss = current_stop_loss + unit_range
-                            actual_tp_number = tp_number - 1  #Guoji
-
-                            print("")
-                            print("Special: time = " + str(cur_data['time']))
-                            print("low price reach short_target_profit_price " + str(self.round_price(short_target_profit_price)))
-                            print("Due to guppy_all_strong_aligned_short, current_stop_loss=" + str(self.round_price(current_stop_loss)) + ", current_used_stop_loss=" + str(self.round_price(current_used_stop_loss)))
-                            print("tp_nmber=" + str(tp_number) + ", actual_tp_number=" + str(actual_tp_number))
-                            print("")
-
-                        else:
-                            current_used_stop_loss = current_stop_loss
-                            actual_tp_number = tp_number  #Guoji
-
-                        new_actual_used_stop_loss = current_used_stop_loss + unit_range * tp_tolerance
-                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
-                            actual_used_stop_loss = new_actual_used_stop_loss
-                            is_actual_used_stop_loss_changed = True
-                        #################
-
-
-                        short_target_profit_price -= unit_range
-                        if not is_crypto and correct_precision:
-                            short_target_profit_price = self.round_price(short_target_profit_price)
-
-                        #####################################
-                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
-
-                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
-
-                            message = "At " + current_time + ", the price of " + self.currency + " reaches next profit level " + " TP" + str(tp_number) + " " + str(self.round_price(short_target_profit_price + unit_range)) + "\n"
-
-                            if is_actual_used_stop_loss_changed:
-                                message += "Move stop loss down by " + str(int(self.round_price(unit_range) * self.lot_size * self.exchange_rate)/10.0) + " pips, to price " + str(self.round_price(actual_used_stop_loss)) + "\n"  #New
-                            else:
-                                message += "Due to Guppy lines strongly aligned short, no need to move current stop loss price " + str(self.round_price(actual_used_stop_loss)) + " forward\n"
-
-
-                            message += "The next profit level is price " + str(self.round_price(short_target_profit_price))
-
-                            if tp_number == 1:
-                                message += " The first " + str(round(position, 2)) + "-lot position gets closed, yeilding a profit of " + str(unit_loss/2.0) + " HK dollars"
-
-                            message_title = "Short position of " + self.currency + " reaches next profit level"
-
-                            print("message_title = " + message_title)
-                            print("message:")
-                            print(message)
-
-                            if not print_email_message_to_file:
-                                sendEmail(message_title, message)
-                            else:
-                                self.cache_email_messages(message_title, message, current_time)
-                        ########################################
-                    elif use_smart_close_position_logic:  #New
-
-                        ###############New
-                        if cur_data[smart_close_short_cond]:
-                            current_used_stop_loss = current_stop_loss + unit_range
-                            actual_tp_number = tp_number - 1  #Guoji
-
-                            if last_message_type != 1:  #Comment
-                                print("Special: time = " + str(cur_data['time']))
-                                print("guppy_all_strong_aligned_short becomes true")
-                                print("Set current_used_stop_loss to " + str(self.round_price(current_used_stop_loss)) + ", while current_stop_loss = " + str(self.round_price(current_stop_loss)))
-                                print("actual_tp_number=" + str(actual_tp_number) + ", while tp_number=" + str(tp_number))
-                                print("")
-
-
-                            if current_used_stop_loss - short_stop_loss_price > 1e-5:  #Guoji
-                                current_used_stop_loss = current_stop_loss
-                                actual_tp_number = tp_number  #Guoji
-
-                                if last_message_type != 1:  #Comment
-                                    print("However, because current_used_stop_loss set higher than stop loss, revert it back to " + str(self.round_price(current_used_stop_loss)))
-                                    print("Revert actual_tp_number back to " + str(actual_tp_number))
-                                    print("")
-
-                            last_message_type = 1
-
-                        else:
-
-                            if current_used_stop_loss - current_stop_loss > 1e-5:
-
-                                if last_message_type != 2 and last_message_type != 3:  #Comment
-                                    print("Special: time = " + str(cur_data['time']))
-                                    print("current_stop_loss=" + str(current_stop_loss) + ", current_used_stop_loss=" + str(self.round_price(current_used_stop_loss)))
-                                    print("tp_number=" + str(tp_number) + ", actual_tp_number=" + str(actual_tp_number)) ########################
-                                    print("guppy_all_strong_aligned_short becomes false")
-                                    print("")
-
-                                if cur_data['low'] < current_stop_loss - unit_range or (strict_smart_close_logic and cur_data['close'] < current_stop_loss):
-                                    current_used_stop_loss = current_stop_loss
-                                    actual_tp_number = tp_number
-
-                                    if last_message_type != 2:  #Comment
-
-                                        if last_message_type in [2, 3]:
-                                            print("Special: time = " + str(cur_data['time']))
-
-                                        print("Becuase low price breaks down reached profit level " + str(tp_number) + ": " + str(self.round_price(current_stop_loss - unit_range)))
-                                        print("Adjust current_used_stop_loss forward to " + str(self.round_price(current_used_stop_loss)))
-                                        print("Adjust actual_tp_number forward to " + str(actual_tp_number))
-                                        print("")
-                                        last_message_type = 2
-
-                                else:
-                                    if last_message_type != 3:  # Comment
-
-                                        if last_message_type in [2, 3]:
-                                            print("Special: time = " + str(cur_data['time']))
-
-                                        print("But because low price does not break down reached profit level " + str(tp_number) + ": " + str(self.round_price(current_stop_loss - unit_range)))
-                                        print("Not adjust current_used_stop_loss and actual_tp_number forward")
-                                        print("")
-                                        last_message_type = 3
-
-
-                            else:
-                                current_used_stop_loss = current_stop_loss
-                                actual_tp_number = tp_number  #Guoji
-                                last_message_type = 0
-
-                        new_actual_used_stop_loss = current_used_stop_loss + unit_range * tp_tolerance
-                        if abs(new_actual_used_stop_loss - actual_used_stop_loss) > 1e-5:
-                            actual_used_stop_loss = new_actual_used_stop_loss
-                            is_actual_used_stop_loss_changed = True
-                        #################
-
-                        if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file) and is_actual_used_stop_loss_changed:
-
-                            current_time = str(self.data_df.iloc[short_start_id + j]['time'] + timedelta(hours=1))
-
-                            if cur_data[smart_close_short_cond]:
-
-                                #Tested
-                                message = "At " + current_time + ", Guppy lines strongly aligned short, hence move stop loss back to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
-                                message_title = "Short position of " + self.currency + " adjusts stop loss back"
-
-                            else:
-
-                                #Tested
-                                message = "At " + current_time +  ", Guppy lines NOT strongly aligned short, and price breaks down profit level " + str(tp_number) + ": "+ str(self.round_price(current_stop_loss - unit_range)) + " hence move stop loss forward to price " + str(self.round_price(actual_used_stop_loss)) + "\n"
-                                message_title = "Short position of " + self.currency + " adjusts stop loss forward"
-
-
-                            print("message_title = " + message_title)
-                            print("message:")
-                            print(message)
-
-                            if not print_email_message_to_file:
-                                sendEmail(message_title, message)
-                            else:
-                                self.cache_email_messages(message_title, message, current_time)
-
-
-
-                    if (not readjust_position_when_new_signal) and temp_ii + 1 < len(short_start_ids) and short_start_ids[temp_ii + 1] == short_start_id + j:
-                        is_effective[temp_ii + 1] = 0
-                        temp_ii += 1
-
-                    j += 1
-
-                #Guoji
-                result_data += [[short_fire_data['currency'], short_fire_data['time'], short_fire_data['id'], entry_price, short_stop_loss_price + unit_range * tp_tolerance, self.round_price(TP1),
-                                 unit_range, position, margin, short_actual_stop_profit_price, actual_tp_number, tp_number, short_stop_profit_loss, short_stop_profit_loss_id, short_stop_profit_loss_time,
-                                 entry_com_discount, exit_com_discount, reach_tp1_time, morning_price]] #Gavin
-
-            short_df = pd.DataFrame(data = result_data, columns = result_columns)
-
-        else:
-
-
-            self.data_df['short_stop_loss_price'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                self.data_df['upper_vegas'] + stop_loss_threshold/(self.lot_size * self.exchange_rate),
-                np.nan)
-
-            self.data_df['short_stop_range'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                self.data_df['short_stop_loss_price'] - self.data_df['close'],
-                np.nan
-            )
-
-            self.data_df['short_stop_loss_price'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                self.data_df['short_stop_loss_price'] + self.data_df['short_stop_range'] * tp_tolerance,
-                np.nan)
-
-            self.data_df['short_stop_profit_price'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                self.data_df['close'] - self.profit_loss_ratio * self.data_df['short_stop_range'],
-                np.nan
-            )
-
-            self.data_df['short_stop_half_profit_price'] = np.where(
-                self.data_df['final_vegas_short_fire'],
-                self.data_df['close'] - 0.5 * self.profit_loss_ratio * self.data_df['short_stop_range'],
-                np.nan
-            )
-
-            self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].fillna(method = 'ffill').fillna(0)
-            self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].fillna(method='ffill').fillna(0)
-            self.data_df['short_stop_half_profit_price'] = self.data_df['short_stop_half_profit_price'].fillna(method='ffill').fillna(0)
-
-            ####################
-            self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].shift(1).fillna(0)
-            self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].shift(1).fillna(0)
-            self.data_df['short_stop_half_profit_price'] = self.data_df['short_stop_half_profit_price'].shift(1).fillna(0)
-
-            self.data_df['short_stop_loss'] = np.where(
-                # self.data_df['final_vegas_short_fire'],
-                # 0,
-                # np.where(
-                    (self.data_df['short_stop_loss_price'] > 0) & (self.data_df['high'] >= self.data_df['short_stop_loss_price']),
-                    -1,
-                    np.nan
-                #)
-            )
-
-            self.data_df['short_stop_loss_id'] = np.where(
-                # self.data_df['final_vegas_short_fire'],
-                # self.data_df['id'],
-                # np.where(
-                    self.data_df['short_stop_loss'] == -1,
-                    self.data_df['id'],
-                    np.nan
-                #)
-            )
-
-            self.data_df['short_stop_loss_time'] = np.where(
-                # self.data_df['final_vegas_short_fire'],
-                # self.data_df['time'],
-                # np.where(
-                    self.data_df['short_stop_loss'] == -1,
-                    self.data_df['time'],
-                    pd.NaT
-                #)
-            )
-            self.data_df['short_stop_loss_time'] = pd.to_datetime(self.data_df['short_stop_loss_time'])
-
-
-            self.data_df['short_stop_profit'] = np.where(
-                # self.data_df['final_vegas_short_fire'],
-                # 0,
-                # np.where(
-                    (self.data_df['short_stop_profit_price'] > 0) & (self.data_df['low'] <= self.data_df['short_stop_profit_price']),
-                    1,
-                    np.nan
-                #)
-            )
-
-            self.data_df['short_stop_profit_id'] = np.where(
-                # self.data_df['final_vegas_short_fire'],
-                # self.data_df['id'],
-                # np.where(
-                    self.data_df['short_stop_profit'] == 1,
-                    self.data_df['id'],
-                    np.nan
-                #)
-            )
-
-            self.data_df['short_stop_profit_time'] = np.where(
-                # self.data_df['final_vegas_short_fire'],
-                # self.data_df['time'],
-                # np.where(
-                    self.data_df['short_stop_profit'] == 1,
-                    self.data_df['time'],
-                    pd.NaT
-                #)
-            )
-            self.data_df['short_stop_profit_time'] = pd.to_datetime(self.data_df['short_stop_profit_time'])
-
-
-
-
-            self.data_df['short_stop_profit_loss'] = np.where(
-                self.data_df['short_stop_profit'].notnull(),
-                self.data_df['short_stop_profit'],
-                np.where(
-                    self.data_df['short_stop_loss'].notnull(),
-                    self.data_df['short_stop_loss'],
-                    np.nan
-                )
-            )
-
-            #################
-            self.data_df['short_stop_profit_loss'] = np.where(
-                self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss'].isnull()),
-                0,
-                self.data_df['short_stop_profit_loss']
-            )
-            #################
-
-
-            self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].fillna(method='bfill').fillna(0)
-
-            self.data_df['short_stop_profit_loss_id'] = np.where(
-                self.data_df['short_stop_profit_id'].notnull(),
-                self.data_df['short_stop_profit_id'],
-                np.where(
-                    self.data_df['short_stop_loss_id'].notnull(),
-                    self.data_df['short_stop_loss_id'],
-                    np.nan
-                )
-            )
-
-            #################
-            self.data_df['short_stop_profit_loss_id'] = np.where(
-                    self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss_id'].isnull()),
-                    self.data_df['id'],
-                    self.data_df['short_stop_profit_loss_id']
-            )
-            #################
-
-            self.data_df['short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].fillna(method = 'bfill').fillna(0)
-
-
-            self.data_df['short_stop_profit_loss_time'] = np.where(
-                self.data_df['short_stop_profit_time'].notnull(),
-                self.data_df['short_stop_profit_time'],
-                np.where(
-                    self.data_df['short_stop_loss_time'].notnull(),
-                    self.data_df['short_stop_loss_time'],
-                    pd.NaT
-                )
-            )
-
-            #################
-            self.data_df['short_stop_profit_loss_time'] = np.where(
-                    self.data_df['final_vegas_short_fire'] & (self.data_df['short_stop_profit_loss_time'].isnull()),
-                    self.data_df['time'],
-                    self.data_df['short_stop_profit_loss_time']
-            )
-            #################
-
-
-            self.data_df['short_stop_profit_loss_time'] = pd.to_datetime(self.data_df['short_stop_profit_loss_time'])
-
-            self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].fillna(method = 'bfill').fillna(0)
-
-
-
-            self.data_df['short_stop_profit_loss'] = self.data_df['short_stop_profit_loss'].shift(-1)
-            self.data_df['short_stop_profit_loss_id'] = self.data_df['short_stop_profit_loss_id'].shift(-1)
-            self.data_df['short_stop_profit_loss_time'] = self.data_df['short_stop_profit_loss_time'].shift(-1)
-
-            ###########
-            self.data_df['short_stop_profit_price'] = self.data_df['short_stop_profit_price'].shift(-1)
-            self.data_df['short_stop_half_profit_price'] = self.data_df['short_stop_half_profit_price'].shift(-1)
-            self.data_df['short_stop_loss_price'] = self.data_df['short_stop_loss_price'].shift(-1)
-            ###########
-
-
-            short_df = self.data_df[self.data_df['final_vegas_short_fire']][['currency', 'time', 'id', 'close', 'short_stop_range', 'short_stop_loss_price', 'short_stop_profit_price', 'short_stop_half_profit_price',
-                                                                           'short_stop_profit_loss', 'short_stop_profit_loss_id', 'short_stop_profit_loss_time']]
-
-
-            short_df['position'] = unit_loss / (short_df['short_stop_range'] * self.lot_size * self.usdfx * usdhkd)
-            short_df['position'] = short_df['position'] / 2.0
-            short_df['position'] = short_df['position'].apply(lambda x: round(x, 4))
-            short_df['margin'] = unit_loss * short_df['close'] / (short_df['short_stop_range'] * leverage)
-            short_df['margin'] = short_df['margin'] / 2.0
-            short_df['margin'] = short_df['margin'].apply(lambda x: round(x, 2))
-
-
-        short_df_copy = short_df.copy()
-        short_df = short_df[(short_df['short_stop_profit_loss'] == 1) | (short_df['short_stop_profit_loss'] == -1)]
-
-        short_df['short_stop_profit_loss_id'] = short_df['short_stop_profit_loss_id'].astype(int)
+        short_win_num = short_df[short_df['is_win']].shape[0]
+        short_lose_num = short_df[~short_df['is_win']].shape[0]
 
         self.short_df = short_df
 
-        short_win_num = short_df[short_df['short_stop_profit_loss'] == 1].shape[0]
-        short_lose_num = short_df[short_df['short_stop_profit_loss'] == -1].shape[0]
-
-        short_df['side'] = 'short'
-        short_df_copy['side'] = 'short'
-
-        write_short_df = short_df_copy[['currency', 'side', 'time', 'close',
-                                 'short_stop_profit_loss_time', 'short_stop_profit_loss', 'short_stop_loss_price', 'short_stop_profit_price', 'reach_tp1_time', 'morning_price'] +
-                                (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin','entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
-
-
-        write_short_df = write_short_df.rename(columns = {
-            'time' : 'entry_time',
-            'close' : 'entry_price',
-            'short_stop_profit_loss_time' : 'exit_time',
-            'short_stop_profit_loss' : 'is_win'
-        })
-
-        write_short_df['is_win'] = np.where(write_short_df['is_win'] == 1, 1,
-                                            np.where(write_short_df['is_win'] == -1, 0, -1))
-
-        write_short_df['exit_price'] = np.where(write_short_df['is_win'] == 1, write_short_df['short_stop_profit_price'], write_short_df['short_stop_loss_price'])
-
-        write_short_df = write_short_df[['currency', 'side','entry_time','entry_price','exit_time','exit_price','is_win', 'reach_tp1_time', 'morning_price'] +\
-                                        (['TP1', 'actual_tp_num', 'tp_num', 'position', 'margin', 'entry_com_discount', 'exit_com_discount'] if use_dynamic_TP or always_use_new_close_logic else ['position', 'margin'])]
-
-        write_short_df['exit_price'] = write_short_df['exit_price'].apply(lambda x: self.round_price(x))
 
         win_num = long_win_num + short_win_num
         lose_num = long_lose_num + short_lose_num
@@ -3752,118 +1554,36 @@ class CurrencyTrader(threading.Thread):
         total_short_num = short_win_num + short_lose_num
 
         win_pct = 0 if total_num == 0 else win_num / total_num
-        long_win_pct = 0 if total_long_num == 0 else long_win_num/total_long_num
-        short_win_pct = 0 if total_short_num == 0 else short_win_num/total_short_num
-        profit_on_average = win_pct * self.profit_loss_ratio - (1 - win_pct) if total_num > 0 else 0
-        can_make_money = profit_on_average >= 0.1
-        summary_df = pd.DataFrame({'Currency' : [self.currency], 'Trade Num' : [total_num], 'Win Num' : [win_num], 'Win Pct' : [ round(win_pct*100.0)/100.0],
-                                   'PL Ratio' : [round(self.profit_loss_ratio*100.0)/100.0], 'Unit Profit' : [round(profit_on_average*100.0)/100.0], 'Profitable' : [can_make_money],
-                                   'Long Trade Num' : [total_long_num], 'Long Win Num' : [long_win_num], 'Long Win Pct' : [ round(long_win_pct*100.0)/100.0],
-                                   'Short Trade Num' : [total_short_num], 'Short Win Num' : [short_win_num], 'Short Win Pct' : [ round(short_win_pct*100.0)/100.0],
+        long_win_pct = 0 if total_long_num == 0 else long_win_num / total_long_num
+        short_win_pct = 0 if total_short_num == 0 else short_win_num / total_short_num
+
+        summary_df = pd.DataFrame({'Currency': [self.currency], 'Trade Num': [total_num], 'Win Num': [win_num],
+                                   'Win Pct': [round(win_pct * 100.0) / 100.0],
+                                   'Long Trade Num': [total_long_num], 'Long Win Num': [long_win_num],
+                                   'Long Win Pct': [round(long_win_pct * 100.0) / 100.0],
+                                   'Short Trade Num': [total_short_num], 'Short Win Num': [short_win_num],
+                                   'Short Win Pct': [round(short_win_pct * 100.0) / 100.0],
                                    })
-
-
-
-        if is_send_email and not use_dynamic_TP and not always_use_new_close_logic:
-
-            # test_data_df = self.data_df[self.data_df['time'] <= datetime(2023, 4, 6, 8, 0, 0)]
-            #
-            # print("test_data_df:")
-            # print(test_data_df.iloc[-5:][['time', 'vegas_long_fire', 'vegas_short_fire', 'final_vegas_long_fire', 'final_vegas_short_fire']])
-
-            last_data = self.data_df.iloc[-1]
-            if last_data['final_vegas_long_fire']:
-                side = 'Long'
-                entry_price = last_data['close']
-                stop_loss = last_data['lower_vegas'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                long_stop_range = entry_price - stop_loss
-                stop_profit = entry_price + long_stop_range
-                unit_range = entry_price - stop_loss
-
-                stop_loss = stop_loss - long_stop_range * tp_tolerance
-
-                entry_time = str(last_data['time'] + timedelta(hours = 1))
-
-            elif last_data['final_vegas_short_fire']:
-                side = 'Short'
-                entry_price = last_data['close']
-                stop_loss = last_data['upper_vegas'] + stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                short_stop_range = stop_loss - entry_price
-                stop_profit = entry_price - short_stop_range
-                unit_range = stop_loss - entry_price
-
-                stop_loss = stop_loss + short_stop_range * tp_tolerance
-
-
-                entry_time = str(last_data['time'] + timedelta(hours = 1))
-
-            # if last_data['final_vegas_long_fire']:
-            #     print("long here*********")
-            #     unit_range = entry_price - stop_loss
-            # elif last_data['final_vegas_short_fire']:
-            #     print("short here********")
-            #     unit_range = stop_loss - entry_price
-
-
-            if last_data['final_vegas_long_fire'] or last_data['final_vegas_short_fire']:
-
-                #decimal_place = int(math.log(self.lot_size) / math.log(10))
-                #stop_loss = round(stop_loss * self.lot_size)/float(self.lot_size)
-                #stop_profit = round(stop_profit * self.lot_size) / float(self.lot_size)
-
-                stop_loss = self.round_price(stop_loss)
-                stop_profit = self.round_price(stop_profit)
-
-                position = unit_loss / (unit_range * self.lot_size * self.usdfx * usdhkd)
-                position = round(position/2.0, 4)
-
-                margin = unit_loss * entry_price / (unit_range * leverage)
-                margin = round(margin/2.0, 2)
-
-
-                message_title = side + " " + self.currency + " " + str(round(position, 2)) + " lot"
-                trading_message = "At " + entry_time + ", " + side + " " + self.currency + " " + str(round(position, 2)) + " lot " + " at price " + str(entry_price) + ", with SL=" + str(stop_loss) + " and TP=" + str(stop_profit) + "\n"
-                trading_message += "This position incurs a margin of " + str(margin) + " HK dollars\n"
-
-                sendEmail(message_title, trading_message)
-
-
-            message_title = None
-            trading_message = None
-
-
-            if last_data['time'] == write_long_df.iloc[-1]['exit_time']:
-                if write_long_df.iloc[-1]['is_win'] == 1:
-                    message_title = "Long position of " + self.currency + " hits target profit"
-                    trading_message = "At " + str(last_data['time']) + ", Long position of " + self.currency + " hit target profit " + str(write_long_df.iloc[-1]['exit_price'])
-                elif write_long_df.iloc[-1]['is_win'] == 0:
-                    message_title = "Long position of " + self.currency + " hits stop loss"
-                    trading_message = "At " + str(last_data['time']) + ", Long position of " + self.currency + " hit stop loss " + str(write_long_df.iloc[-1]['exit_price'])
-            elif last_data['time'] == write_short_df.iloc[-1]['exit_time']:
-                if write_short_df.iloc[-1]['is_win'] == 1:
-                    message_title = "Short position of " + self.currency + " hits target profit"
-                    trading_message = "At " + str(last_data['time']) + ", Short position of " + self.currency + " hit target profit " + str(write_short_df.iloc[-1]['exit_price'])
-                elif write_short_df.iloc[-1]['is_win'] == 0:
-                    message_title = "Short position of " + self.currency + " hits stop loss"
-                    trading_message = "At " + str(last_data['time']) + ", Short position of " + self.currency + " hit stop loss " + str(write_short_df.iloc[-1]['exit_price'])
-
-            if trading_message is not None:
-                sendEmail(message_title, trading_message)
-
-
-
 
         self.full_summary_df = summary_df
 
-
-
-        print("Performance Summary")
-        print(self.full_summary_df)
+        if report_performance:
+            print("Performance Summary")
+            print(self.full_summary_df)
 
         self.write_long_df = write_long_df
         self.write_short_df = write_short_df
-        self.group_summary_df = group_summary_df
-        self.critical_price_data_df = critical_price_data_df
+        self.macd_group_summary_df = macd_group_summary_df
+        self.critical_value_data_df = critical_value_data_df
+
+
+
+
+
+
+        #########################
+
+
 
 
     def cache_email_messages(self, title, content, time):
@@ -3881,9 +1601,6 @@ class CurrencyTrader(threading.Thread):
             email_messages_df = pd.DataFrame(data = self.email_message_caches, columns = ['title', 'content', 'time'])
             email_messages_df = email_messages_df.sort_values(by = ['time'])
 
-            # print("")
-            # print("email_messages_df:")
-            # print(email_messages_df)
 
             for i in range(email_messages_df.shape[0]):
 
@@ -3901,9 +1618,6 @@ class CurrencyTrader(threading.Thread):
 
 
         write_df = pd.concat([self.write_long_df, self.write_short_df])
-        write_df['reach_tp1_time'] = np.where(write_df['reach_tp1_time'].notnull(),
-                                              write_df['reach_tp1_time'],
-                                              write_df['exit_time'])
 
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
@@ -3911,69 +1625,25 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df.iloc[-1:][['currency','time', 'open', 'high', 'low', 'close']].to_csv(self.data_file[:-len('.csv')] + '_lastRow.csv', index = False)
 
-        self.group_summary_df.to_csv(self.data_file[:-len('.csv')] + '_group_summary.csv', index = False)
-        self.critical_price_data_df.to_csv(self.data_file[:-len('.csv')] + '_critial_prices.csv', index = False)
+        self.macd_group_summary_df.to_csv(self.data_file[:-len('.csv')] + '_macd_group_summary.csv', index = False)
+        self.critical_value_data_df.to_csv(self.data_file[:-len('.csv')] + '_critial_value.csv', index = False)
 
 
         write_df['id'] = list(range(write_df.shape[0]))
 
-
-        #Chen
-        if use_dynamic_TP or always_use_new_close_logic:
-
-            if use_dynamic_TP:
-                if readjust_position_when_new_signal:
-
-                    write_df['pnl'] = np.where(
-                        write_df['exit_com_discount'] == 1,
-                        write_df['actual_tp_num'],
-                        np.where(write_df['is_win'] == 1, write_df['actual_tp_num'] - 1 - tp_tolerance, -1 - tp_tolerance)
-                    )
-
-                else:
-                    write_df['pnl'] = np.where(write_df['is_win'] == 1, write_df['actual_tp_num']-1-tp_tolerance, -1-tp_tolerance)
-            else:
-                if readjust_position_when_new_signal:
-
-                    write_df['pnl'] = np.where(
-                        write_df['exit_com_discount'] == 1,
-                        write_df['actual_tp_num'],
-                        np.where(write_df['is_win'] == 1, write_df['actual_tp_num'], -1 - tp_tolerance)
-                    )
-
-                else:
-                    write_df['pnl'] = np.where(write_df['is_win'] == 1, write_df['actual_tp_num'], -1-tp_tolerance)
-
-        else:
-            write_df['pnl'] = np.where(write_df['is_win'] == 1, self.profit_loss_ratio, -1-tp_tolerance)
-
-        write_df['pnl'] = write_df['pnl'] * unit_loss / 2.0
-
-        write_df['pnl'] = np.where(write_df['is_win'] == -1, 0, write_df['pnl'])
-
         write_df['cum_pnl'] = write_df['pnl'].cumsum()
 
 
-        if use_dynamic_TP:
-            write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, 1+tp_tolerance-write_df['actual_tp_num'])
-        else:
-            write_df['reverse_pnl'] = np.where(write_df['is_win'] == 0, 1, -self.profit_loss_ratio)
+        if report_performance:
+            print("trade_file: " + str(self.trade_file))
+            write_df.to_csv(self.trade_file, index = False)
 
-        write_df['reverse_pnl'] = write_df['reverse_pnl'] * unit_loss / 2.0
-
-
-        write_df['cum_reverse_pnl'] = write_df['reverse_pnl'].cumsum()
+            print("performance_file: " + str(self.performance_file))
+            self.full_summary_df.to_csv(self.performance_file, index = False)
 
 
-        print("trade_file: " + str(self.trade_file))
-        write_df.to_csv(self.trade_file, index = False)
-
-        print("performance_file: " + str(self.performance_file))
-        self.full_summary_df.to_csv(self.performance_file, index = False)
-
-
-        if not is_production:
-            plot_pnl_figure(write_df, self.chart_folder, self.currency)
+            if not is_production:
+                plot_pnl_figure(write_df, self.chart_folder, self.currency)
 
 
 
@@ -3995,7 +1665,18 @@ class CurrencyTrader(threading.Thread):
                                    print_prefix=print_prefix,
                                    is_plot_aux = True,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
-                                   use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num, plot_day_line = plot_day_line, plot_cross_point = plot_cross_point)
+                                   use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num, plot_day_line = plot_day_line, plot_cross_point = plot_cross_point,
+                                   plot_long = True, plot_short = False)
+
+            plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
+                                   num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
+                                   is_plot_candle_buy_sell_points=True,
+                                   print_prefix=print_prefix,
+                                   is_plot_aux=True,
+                                   bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
+                                   use_dynamic_TP=use_dynamic_TP, figure_num=printed_figure_num,
+                                   plot_day_line=plot_day_line, plot_cross_point=plot_cross_point,
+                                   plot_long=False, plot_short=True)
 
 
         print("Finish")
