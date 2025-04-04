@@ -105,10 +105,16 @@ def calc_bolling_bands(df, attr, window):
 def calc_macd(df, attr):
 
     values = df[attr].values
+
     macd, macdsignal, macdhist = talib.MACD(values, fastperiod = 12, slowperiod = 26, signalperiod = 9)
+
+    macd2, macdsignal2, macdhist2 = talib.MACD(values, fastperiod=60, slowperiod=130, signalperiod=9)
 
     df['macd'] = macd
     df['msignal'] = macdsignal
+
+    df['macd2'] = macd2
+    df['msignal2'] = macdsignal2
 
     #df['macd_period_high' + str(window)] = df['macd'].rolling(window, min_periods = window).max()
     #df['macd_period_low' + str(window)] = df['macd'].rolling(window, min_periods = window).min()
@@ -404,15 +410,16 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         fig = plt.figure(figsize = (30, 15))
 
         if is_plot_aux:
-            axes_list = fig.subplots(nrows = 2, ncols = 1, gridspec_kw={'height_ratios': [2, 1]})
+            axes_list = fig.subplots(nrows = 3, ncols = 1, gridspec_kw={'height_ratios': [2, 1, 1]})
             axes = axes_list[0]
             aux_axes = axes_list[1]
+            aux_axes2 = axes_list[2]
         else:
             axes = fig.subplots(nrows = 1, ncols = 1)
 
         candle_df = sub_data[['artificial_time', 'open', 'high', 'low', 'close', 'time']
                              + ['ma_' + 'close' + str(window) for window in windows] + ([] if is_production else ['upper_band_close', 'lower_band_close',
-                                                                                                                  'middle_band_close', 'macd', 'msignal'])]
+                                                                                                                  'middle_band_close', 'macd', 'msignal', 'macd2', 'msignal2'])]
         candle_df['artificial_time'] = candle_df['artificial_time'].apply(lambda x: mdates.date2num(x))
         int_time_series = candle_df['artificial_time'].values
         candle_matrix = candle_df.values
@@ -770,7 +777,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         axes.xaxis.set_major_locator(dates.MinuteLocator(interval = 10))
         axes.yaxis.set_major_locator(plticker.MultipleLocator(tick_interval))
 
-        plt.setp(axes.get_xticklabels(), rotation = 45)
+        plt.setp(axes.get_xticklabels(), rotation = 30)
         axes.set_xlabel('time', size = 20)
         axes.set_ylabel('price', size = 20)
         axes.tick_params(labeltop = False, labelright = True)
@@ -807,7 +814,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         def format_date(x, pos=None):
             thisind = np.clip(int(x + 0.5), 0, time_number - 1)
-            my_time = trade_times[thisind].strftime('%y%m%d-%H')
+            #my_time = trade_times[thisind].strftime('%y%m%d-%H')
+
+            my_time = trade_times[thisind].strftime('%H')
 
             # if x == 10:
             #     print("x = " + str(x))
@@ -829,14 +838,20 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
             sub_df = pd.concat([sub_df1, sub_df2])
 
+            ############
+            sub_df3 = candle_df[['time_id', 'macd2']]
+            sub_df4 = candle_df[['time_id', 'msignal2']]
+
+            sub_df3 = sub_df3.rename(columns={"macd2": "macd_indicator"})
+            sub_df4 = sub_df4.rename(columns={"msignal2": "macd_indicator"})
+
+            sub_df3['signal'] = 'macd2'
+            sub_df4['signal'] = 'msignal2'
+
+            sub_df_slow = pd.concat([sub_df3, sub_df4])
+
             sns.lineplot(x = 'time_id', y = 'macd_indicator', hue = 'signal', data = sub_df, ax = aux_axes)
-            # candle_df.plot(x="time_id", y="macd_period_high" + str(high_low_window2), ax=aux_axes, linewidth=1, color='darkorange', legend = False)
-            # candle_df.plot(x="time_id", y="macd_period_low" + str(high_low_window2), ax=aux_axes, linewidth=1, color='darkorange', legend = False)
-            # candle_df.plot(x="time_id", y="macd_period_high" + str(high_low_window), ax=aux_axes, linewidth=1, color='darkgreen', legend = False)
-            # candle_df.plot(x="time_id", y="macd_period_low" + str(high_low_window), ax=aux_axes, linewidth=1, color='darkgreen', legend = False)
-
-
-            plt.setp(aux_axes.get_xticklabels(), rotation=45)
+            #plt.setp(aux_axes.get_xticklabels(), rotation=45)
             for day_point in d_data['start'].values[1:]:
                 aux_axes.axvline(time_id_array[day_point], ls = '--', color = 'black', linewidth = 1)
 
@@ -847,28 +862,33 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                 for macd_short_point in macd_short_signal_idx:
                     aux_axes.axvline(time_id_array[macd_short_point], ls='-', color='red', linewidth=1.3)
 
-
-
-            # for buy_reverse_point in buy_real_points_reverse:
-            #     aux_axes.axvline(time_id_array[buy_reverse_point], ls='--', color='blue', linewidth=1)
-            #
-            # for sell_reverse_point in sell_real_points_reverse:
-            #     aux_axes.axvline(time_id_array[sell_reverse_point], ls='--', color='red', linewidth=1)
-
             aux_axes.set_xlabel('time', size = 10)
             aux_axes.set_ylabel('macd', size = 10)
-
+            aux_axes.tick_params(axis='x', labelsize=10)
             aux_axes.xaxis.set_major_locator(ticker.MultipleLocator(10))
             aux_axes.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-
             aux_axes.axhline(0, ls = '--', color = 'blue', linewidth = 1)
+
+            ####################
+            sns.lineplot(x='time_id', y='macd_indicator', hue='signal', data=sub_df_slow, ax=aux_axes2)
+            #plt.setp(aux_axes2.get_xticklabels(), rotation=45)
+            for day_point in d_data['start'].values[1:]:
+                aux_axes2.axvline(time_id_array[day_point], ls='--', color='black', linewidth=1)
+
+            aux_axes2.set_xlabel('time', size=10)
+            aux_axes2.set_ylabel('macd2', size=10)
+            aux_axes2.tick_params(axis='x', labelsize=10)
+            aux_axes2.xaxis.set_major_locator(ticker.MultipleLocator(10))
+            aux_axes2.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            aux_axes2.axhline(0, ls='--', color='blue', linewidth=1)
+
 
         fig_file_name = raw_symbol + '_' + interval + file_name_suffix + '.png'
         fig_file_path = os.path.join(bar_fig_folder, fig_file_name)
         #print(print_prefix + " Save figure " + fig_file_name)
 
-        plt.xticks(fontsize = 20)
-        plt.yticks(fontsize = 20)
+        #plt.xticks(fontsize = 20)
+        #plt.yticks(fontsize = 20)
 
         try:
             fig.savefig(fig_file_path)

@@ -166,6 +166,8 @@ is_apply_innovative_filter_to_exclude = False
 
 possition_factor = 0.1
 
+fire_signal = False
+
 
 quick_close_position_for_intraday_strategy = False #Default is false   close all position if partial close signal fired for intraday strategy
 
@@ -221,7 +223,7 @@ is_use_two_trend_following = False
 
 #use_dynamic_TP = True
 
-is_crypto = False
+is_crypto = True
 
 correct_precision = not is_crypto
 
@@ -230,7 +232,7 @@ use_conditional_stop_loss = False
 printed_figure_num = 2
 
 plot_day_line = True
-plot_cross_point = True
+plot_cross_point = False
 
 unit_loss = 1000 if is_crypto else 200 #This is HKD
 usdhkd = 7.85
@@ -385,6 +387,13 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['prev_macd'] = self.data_df['macd'].shift(1)
         self.data_df['prev_msignal'] = self.data_df['msignal'].shift(1)
+
+        self.data_df['prev_macd2'] = self.data_df['macd2'].shift(1)
+        self.data_df['prev_msignal2'] = self.data_df['msignal2'].shift(1)
+
+        self.data_df['macd_gradient'] = self.data_df['macd'].diff()
+        self.data_df['macd2_gradient'] = self.data_df['macd2'].diff()
+
         ############################
 
 
@@ -1104,8 +1113,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].fillna(method='ffill').fillna(-1)
         self.data_df['prev_bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].shift(1)
 
-
         self.data_df['bar_cross_guppy_label_line'] = self.data_df['bar_cross_guppy_label'].diff()
+
+
+
+
 
 
 
@@ -1117,37 +1129,7 @@ class CurrencyTrader(threading.Thread):
         )
 
         self.data_df['bar_cross_guppy_num'] = self.data_df['bar_cross_guppy_num'].fillna(method='ffill').fillna(0)
-
-        #################
-        # temp_group_summary_df = self.data_df[['bar_cross_guppy_num', 'num']].groupby(['bar_cross_guppy_num']).agg({'num' : 'count'})
-        # temp_group_summary_df.reset_index(inplace = True)
-        # temp_group_summary_df = temp_group_summary_df.rename(columns = {'num' : 'bar_cross_guppy_num_count'})
-        #
-        # self.data_df = pd.merge(self.data_df, temp_group_summary_df, on = ['bar_cross_guppy_num'], how = 'left')
-        #
-        # self.data_df['bar_cross_guppy_label'] = np.where(
-        #     self.data_df['bar_cross_guppy_num_count'] < duration_threshold,
-        #     np.nan,
-        #     self.data_df['bar_cross_guppy_label']
-        # )
-        #
-        # self.data_df['bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].fillna(method='ffill').fillna(-1)
-        # self.data_df['prev_bar_cross_guppy_label'] = self.data_df['bar_cross_guppy_label'].shift(1)
-        #
-        #
-        # self.data_df['bar_cross_guppy_num'] = np.where(
-        #     self.data_df['bar_cross_guppy_label'] != self.data_df['prev_bar_cross_guppy_label'],
-        #     self.data_df['num'],
-        #     np.nan
-        # )
-        #
-        # self.data_df['bar_cross_guppy_num'] = self.data_df['bar_cross_guppy_num'].fillna(method='ffill').fillna(0)
-        #####################
-
-
         self.data_df['bar_cross_guppy_duration'] = self.data_df['num'] - self.data_df['bar_cross_guppy_num']
-
-
 
 
         self.data_df['max_price_max'] = self.data_df['max_price']
@@ -1159,6 +1141,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['high_max_idx'] = self.data_df['high']
         self.data_df['low_min_idx'] = self.data_df['low']
         self.data_df['min_price_min_idx'] = self.data_df['min_price']
+
 
 
         group_summary_df = self.data_df[['time','max_price_max', 'high_max',   'low_min',  'min_price_min',
@@ -1193,6 +1176,9 @@ class CurrencyTrader(threading.Thread):
 
         #sys.exit(0)
 
+
+
+
         group_summary_df['critical_price_id'] = np.where(
             group_summary_df['bar_cross_guppy_label'] == 0,
             group_summary_df[short_highest_price + '_max_idx'],
@@ -1214,6 +1200,7 @@ class CurrencyTrader(threading.Thread):
         )
 
 
+
         group_summary_df['bar_cross_guppy_num'] = group_summary_df['bar_cross_guppy_num'].astype(int)
         group_summary_df['bar_cross_guppy_label'] = group_summary_df['bar_cross_guppy_label'].astype(int)
 
@@ -1232,16 +1219,11 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        group_data_dfs = []
 
+        group_data_dfs = []
         bar_cross_guppy_nums = group_summary_df['bar_cross_guppy_num'].tolist()
         bar_cross_guppy_labels = group_summary_df['bar_cross_guppy_label'].tolist()
 
-
-
-        # bar_cross_guppy_nums += [self.data_df.shape[0]]
-        # last_label = 1 if bar_cross_guppy_labels[-1] == 0 else 0
-        # bar_cross_guppy_labels += [last_label]
 
         for idi in range(0, len(bar_cross_guppy_nums)):
             start_idxx = bar_cross_guppy_nums[idi]
@@ -1286,6 +1268,9 @@ class CurrencyTrader(threading.Thread):
 
 
 
+
+
+
         critical_price_data_df = critical_price_data_df.rename(columns = {'index' : 'critical_price_id'})
         critical_price_data_df['bar_cross_guppy_total_duration'] = group_summary_df['bar_cross_guppy_duration']
 
@@ -1303,25 +1288,15 @@ class CurrencyTrader(threading.Thread):
 
         simple_critical_price_data_df = critical_price_data_df[['group_index'] + [column for column in critical_price_data_df.columns if 'prevGroup' in column]]
 
-        #print("simple_critical_price_data_df columns:")
-        #print(simple_critical_price_data_df.columns)
 
         self.data_df = pd.merge(self.data_df, simple_critical_price_data_df, on = ['group_index'], how = 'left')
 
 
 
-        # need_look_backward_cols = ["prevGroup_1critical_price", "prevGroup_1critical_price_id", 'prevGroup_1bar_cross_guppy_duration',
-        #                            'prevGroup_2critical_price', 'prevGroup_2critical_price_id',
-        #                            'prevGroup_3critical_price', 'prevGroup_3critical_price_id',
-        #                            'prevGroup_3lower_vegas', 'prevGroup_3upper_vegas','prevGroup_2bar_cross_guppy_total_duration',
-        #                            'prevGroup_3bar_cross_guppy_total_duration']
-        #
-        #
-        # no_need_look_backward_cols = ['critical_price', 'critical_price_id',  'critical_bar_cross_guppy_duration',
-        #                               'prevGroup_1critical_price', 'prevGroup_1critical_price_id',
-        #                               'prevGroup_2critical_price', 'prevGroup_2critical_price_id',
-        #                               'prevGroup_2lower_vegas', 'prevGroup_2upper_vegas', 'prevGroup_1bar_cross_guppy_total_duration',
-        #                               'prevGroup_2bar_cross_guppy_total_duration']
+
+
+
+
 
 
 
@@ -1350,10 +1325,6 @@ class CurrencyTrader(threading.Thread):
 
 
         self.data_df['long_need_look_backward'] = self.data_df['bar_cross_guppy_label'] == 0
-        # target_long_cols = ['long_critical_price', 'long_critical_price_id', 'long_critical_bar_cross_guppy_duration',
-        #                     'long_prevGroup_1critical_price', 'long_prevGroup_1critical_price_id',
-        #                     'long_prevGroup_2critical_price',  'long_prevGroup_2critical_price_id',
-        #                     'long_prevGroup_2lower_vegas', 'long_prevGroup_2upper_vegas', 'long_prevGroup_1bar_cross_guppy_total_duration', 'long_prevGroup_2bar_cross_guppy_total_duration']
 
         target_long_cols = ['long_critical_price', 'long_critical_price_id', 'long_critical_bar_cross_guppy_duration', 'long_bar_cross_guppy_num',
                             'long_critical_high', 'long_critical_low']
@@ -1374,10 +1345,6 @@ class CurrencyTrader(threading.Thread):
             )
 
         self.data_df['short_need_look_backward'] = self.data_df['bar_cross_guppy_label'] == 1
-        # target_short_cols = ['short_critical_price', 'short_critical_price_id', 'short_critical_bar_cross_guppy_duration',
-        #                      'short_prevGroup_1critical_price', 'short_prevGroup_1critical_price_id',
-        #                      'short_prevGroup_2critical_price', 'short_prevGroup_2critical_price_id',
-        #                     'short_prevGroup_2lower_vegas', 'short_prevGroup_2upper_vegas', 'short_prevGroup_1bar_cross_guppy_total_duration', 'short_prevGroup_2bar_cross_guppy_total_duration']
 
         target_short_cols = ['short_critical_price', 'short_critical_price_id', 'short_critical_bar_cross_guppy_duration', 'short_bar_cross_guppy_num',
                              'short_critical_high', 'short_critical_low']
@@ -1399,48 +1366,269 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        #print("Debug here ########################:")
-        #print(self.data_df.iloc[5845:5880][['time', 'group_index', 'bar_cross_guppy_label', 'bar_cross_guppy_num', 'bar_cross_guppy_duration']])
-
-
-
-
-        # self.data_df['vegas_long_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
-        # self.data_df['vegas_long_cond1'] = self.data_df['is_positive']
-        # self.data_df['vegas_long_cond2'] = (self.data_df['close'] > self.data_df['ma_close12']) & ((self.data_df['open'] < self.data_df['ma_close12']) | (self.data_df['prev_open'] < self.data_df['prev_ma_close12']))
-        # self.data_df['vegas_long_cond3'] = self.data_df['close'] < self.data_df['lower_vegas']
-        # self.data_df['vegas_long_cond4'] = self.data_df['long_critical_price'] > self.data_df['long_prevGroup_2critical_price']
-        # self.data_df['vegas_long_cond5'] = self.data_df['long_critical_price_id'] - self.data_df['long_prevGroup_2critical_price_id'] >= 48 #48, 10
-        #
-        # self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_2lower_vegas'])/2.0
-        # #self.data_df['vegas_long_cond6'] = self.data_df['long_critical_price'] < (self.data_df['long_prevGroup_2critical_price'] + self.data_df['long_prevGroup_1critical_price'])/2.0
-        #
-        #
-        # self.data_df['vegas_long_cond7'] = self.data_df['long_prevGroup_2bar_cross_guppy_total_duration'] >= 24
-        #
-        # self.data_df['vegas_long_cond8'] = self.data_df['long_prevGroup_1bar_cross_guppy_total_duration'] >= 10
-        # self.data_df['vegas_long_cond9'] = self.data_df['long_critical_bar_cross_guppy_duration'] >= duration_threshold
-        #
-        #
-        # self.data_df['vegas_short_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
-        # self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
-        # self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
-        # self.data_df['vegas_short_cond3'] = self.data_df['close'] > self.data_df['upper_vegas']
-        # self.data_df['vegas_short_cond4'] = self.data_df['short_critical_price'] < self.data_df['short_prevGroup_2critical_price']
-        # self.data_df['vegas_short_cond5'] = self.data_df['short_critical_price_id'] - self.data_df['short_prevGroup_2critical_price_id'] >= 48 #48, 10
-        #
-        # self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_2upper_vegas'])/2.0
-        # #self.data_df['vegas_short_cond6'] = self.data_df['short_critical_price'] > (self.data_df['short_prevGroup_2critical_price'] + self.data_df['short_prevGroup_1critical_price'])/2.0
-        #
-        #
-        # self.data_df['vegas_short_cond7'] = self.data_df['short_prevGroup_2bar_cross_guppy_total_duration'] >= 24
-        #
-        # self.data_df['vegas_short_cond8'] = self.data_df['short_prevGroup_1bar_cross_guppy_total_duration'] >= 10
-        # self.data_df['vegas_short_cond9'] = self.data_df['short_critical_bar_cross_guppy_duration'] >= duration_threshold
-
-
 
         tolerance_bps = 0
+
+        ######## keybox #########
+        self.data_df['macd_cross_up'] = (self.data_df['prev_macd'] < self.data_df['prev_msignal']) & (
+                self.data_df['macd'] > self.data_df['msignal'])
+        self.data_df['macd_cross_down'] = (self.data_df['prev_macd'] > self.data_df['prev_msignal']) & (
+                self.data_df['macd'] < self.data_df['msignal'])
+
+        self.data_df['macd_cross_label'] = np.where(
+            self.data_df['macd_cross_up'], 0,
+            np.where(
+                self.data_df['macd_cross_down'], 1, np.nan
+            )
+        )
+
+        self.data_df['macd_cross_label'] = self.data_df['macd_cross_label'].fillna(method='ffill').fillna(-1)
+        self.data_df['prev_macd_cross_label'] = self.data_df['macd_cross_label'].diff()
+
+        self.data_df['macd_cross_label_line'] = self.data_df['macd_cross_label'].diff()
+
+        self.data_df['macd_cross_num'] = np.where(
+            self.data_df['macd_cross_label'] != self.data_df['prev_macd_cross_label'],
+            self.data_df['num'],
+            np.nan
+        )
+
+        self.data_df['macd_cross_num'] = self.data_df['macd_cross_num'].fillna(method='ffill').fillna(0)
+        self.data_df['macd_cross_duration'] = self.data_df['num'] - self.data_df['macd_cross_num']
+
+        self.data_df['macd_max'] = self.data_df['macd']
+        self.data_df['macd_min'] = self.data_df['macd']
+
+        self.data_df['macd_max_idx'] = self.data_df['macd']
+        self.data_df['macd_min_idx'] = self.data_df['macd']
+
+        macd_group_summary_df = self.data_df[['time', 'macd_max', 'macd_min', 'macd_max_idx', 'macd_min_idx',
+                                              'macd_cross_label', 'macd_cross_num', 'macd_cross_duration']].groupby(
+            ['macd_cross_num']).agg(
+            {
+                'time': 'first',
+                'macd_max': 'max',
+                'macd_min': 'min',
+                'macd_max_idx': 'idxmax',
+                'macd_min_idx': 'idxmin',
+                'macd_cross_label': 'first',
+                'macd_cross_duration': 'last'
+            }
+        )
+
+        macd_group_summary_df.reset_index(inplace=True)
+
+        macd_group_summary_df['critical_value_id'] = np.where(
+            macd_group_summary_df['macd_cross_label'] == 0,
+            macd_group_summary_df['macd_max_idx'],
+            np.where(
+                macd_group_summary_df['macd_cross_label'] == 1,
+                macd_group_summary_df['macd_min_idx'],
+                0
+            )
+        )
+
+        macd_group_summary_df['critical_value'] = np.where(
+            macd_group_summary_df['macd_cross_label'] == 0,
+            macd_group_summary_df['macd_max'],
+            np.where(
+                macd_group_summary_df['macd_cross_label'] == 1,
+                macd_group_summary_df['macd_min'],
+                0
+            )
+        )
+
+        macd_group_summary_df['macd_cross_num'] = macd_group_summary_df['macd_cross_num'].astype(int)
+        macd_group_summary_df['macd_cross_label'] = macd_group_summary_df['macd_cross_label'].astype(int)
+
+        macd_group_summary_df['group_index'] = list(range(macd_group_summary_df.shape[0]))
+
+        critical_value_data_df = self.data_df.iloc[macd_group_summary_df['critical_value_id']]
+
+        critical_value_data_df.reset_index(inplace=True)
+
+        critical_value_data_df['group_index'] = list(range(critical_value_data_df.shape[0]))
+
+        critical_value_data_df['critical_value'] = macd_group_summary_df['critical_value']
+
+        critical_value_data_df['macd_cross_label'] = macd_group_summary_df['macd_cross_label']
+
+        macd_group_data_dfs = []
+        macd_cross_nums = macd_group_summary_df['macd_cross_num'].tolist()
+        macd_cross_labels = group_summary_df['macd_cross_label'].tolist()
+
+        for idi in range(0, len(macd_cross_nums)):
+            start_idxx = macd_cross_nums[idi]
+            end_idxx = macd_cross_nums[idi + 1] if idi < len(macd_cross_nums) - 1 else self.data_df.shape[0]
+
+            macd_cross_label = macd_cross_labels[idi]
+
+            if macd_cross_label == 0:
+                group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
+                group_df['critical_value'] = group_df['macd'].cummax()
+                group_df['critical_value_id'] = group_df['macd'].expanding().apply(lambda x: x.idxmax()).astype(int)
+                group_df = group_df.drop(columns=['time', 'macd'])
+                group_df['group_index'] = idi
+            elif macd_cross_label == 1:
+                group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
+                group_df['critical_value'] = group_df['macd'].cummin()
+                group_df['critical_value_id'] = group_df['macd'].expanding().apply(lambda x: x.idxmin()).astype(int)
+                group_df = group_df.drop(columns=['time', 'macd'])
+                group_df['group_index'] = idi
+
+            macd_group_data_dfs += [group_df]
+
+        macd_group_data_df_all = pd.concat(macd_group_data_dfs)
+
+        if len(macd_group_data_df_all) != self.data_df.shape[0]:
+            raise Exception(
+                "macd_group_data_df_all length = " + str(
+                    len(macd_group_data_df_all)) + " while data_df length = " + str(
+                    self.data_df.shape[0]))
+
+        self.data_df = pd.concat([self.data_df, macd_group_data_df_all], axis=1)
+
+        aux_macd_data_df = self.data_df[
+            ['lower_vegas', 'upper_vegas', 'guppy_min', 'guppy_max', 'macd_cross_duration', 'high', 'low', 'max_price',
+             'min_price']]
+        attach_df = aux_macd_data_df.iloc[self.data_df['critical_value_id']]
+        attach_df.reset_index(inplace=True)
+        attach_df = attach_df.drop(columns=['index'])
+        rename_dict = {}
+        for column in aux_macd_data_df.columns:
+            rename_dict[column] = 'critical_' + column
+        attach_df = attach_df.rename(columns=rename_dict)
+        self.data_df = pd.concat([self.data_df, attach_df], axis=1)
+
+        critical_value_data_df = critical_value_data_df.rename(columns={'index': 'critical_value_id'})
+        critical_value_data_df['macd_cross_total_duration'] = group_summary_df['macd_cross_duration']
+
+        key_columns = ['time', 'macd_cross_num', 'macd_cross_duration', 'critical_value_id',
+                       'macd_cross_total_duration',
+                       'critical_value', 'macd_cross_label', 'lower_vegas', 'upper_vegas', 'guppy_min',
+                       'guppy_max', 'high', 'low', 'max_price', 'min_price']
+        look_backward_group_num = 11  # 3 should be odd number  9
+        for key_column in key_columns:
+            for backward_i in range(1, look_backward_group_num + 1):
+                if backward_i == 1:
+                    critical_value_data_df['prevGroup_' + str(backward_i) + key_column] = critical_value_data_df[
+                        key_column].shift(1).fillna(0)
+                else:
+                    critical_value_data_df['prevGroup_' + str(backward_i) + key_column] = critical_value_data_df[
+                        'prevGroup_' + str(backward_i - 1) + key_column].shift(1).fillna(0)
+
+        simple_critical_value_data_df = critical_value_data_df[
+            ['group_index'] + [column for column in critical_value_data_df.columns if 'prevGroup' in column]]
+
+        self.data_df = pd.merge(self.data_df, simple_critical_value_data_df, on=['group_index'], how='left')
+
+        need_look_backward_cols = ["prevGroup_1critical_value", "prevGroup_1critical_value_id",
+                                   'prevGroup_1macd_cross_duration', 'prevGroup_1macd_cross_num',
+                                   'prevGroup_1high', 'prevGroup_1low', 'prevGroup_1max_price', 'prevGroup_1min_price',
+                                   'prevGroup_1upper_vegas', 'prevGroup_1lower_vegas']
+        for li in range(2, look_backward_group_num + 1):
+            need_look_backward_cols += ['prevGroup_' + str(li) + 'critical_value',
+                                        'prevGroup_' + str(li) + 'critical_value_id',
+                                        'prevGroup_' + str(li) + 'high', 'prevGroup_' + str(li) + 'low',
+                                        'prevGroup_' + str(li) + 'max_price', 'prevGroup_' + str(li) + 'min_price',
+                                        'prevGroup_' + str(li) + 'lower_vegas', 'prevGroup_' + str(li) + 'upper_vegas',
+                                        'prevGroup_' + str(li) + 'macd_cross_total_duration',
+                                        'prevGroup_' + str(li) + 'macd_cross_num'
+                                        ]
+
+        no_need_look_backward_cols = ['critical_value', 'critical_value_id', 'critical_macd_cross_duration',
+                                      'macd_cross_num',
+                                      'critical_high', 'critical_low', 'critical_max_price', 'critical_min_price',
+                                      'critical_upper_vegas', 'critical_lower_vegas']
+        for li in range(1, look_backward_group_num):
+            no_need_look_backward_cols += ['prevGroup_' + str(li) + 'critical_value',
+                                           'prevGroup_' + str(li) + 'critical_value_id',
+                                           'prevGroup_' + str(li) + 'high', 'prevGroup_' + str(li) + 'low',
+                                           'prevGroup_' + str(li) + 'max_price', 'prevGroup_' + str(li) + 'min_price',
+                                           'prevGroup_' + str(li) + 'lower_vegas',
+                                           'prevGroup_' + str(li) + 'upper_vegas',
+                                           'prevGroup_' + str(li) + 'macd_cross_total_duration',
+                                           'prevGroup_' + str(li) + 'macd_cross_num'
+                                           ]
+
+        self.data_df['long_macd_need_look_backward'] = self.data_df['macd_cross_label'] == 0
+
+        target_long_cols = ['long_critical_value', 'long_critical_value_id', 'long_critical_macd_cross_duration',
+                            'long_macd_cross_num',
+                            'long_critical_high', 'long_critical_low', 'long_critical_max_price',
+                            'long_critial_min_price',
+                            'long_critical_upper_vegas', 'long_critical_lower_vegas']
+        for li in range(1, look_backward_group_num):
+            target_long_cols += ['long_prevGroup_' + str(li) + 'critical_value',
+                                 'long_prevGroup_' + str(li) + 'critical_value_id',
+                                 'long_prevGroup_' + str(li) + 'high', 'long_prevGroup_' + str(li) + 'low',
+                                 'long_prevGroup_' + str(li) + 'max_price', 'long_prevGroup_' + str(li) + 'min_price',
+                                 'long_prevGroup_' + str(li) + 'lower_vegas',
+                                 'long_prevGroup_' + str(li) + 'upper_vegas',
+                                 'long_prevGroup_' + str(li) + 'macd_cross_total_duration',
+                                 'long_prevGroup_' + str(li) + 'macd_cross_num'
+                                 ]
+
+        for ti in range(len(target_long_cols)):
+            self.data_df[target_long_cols[ti]] = np.where(
+                self.data_df['long_macd_need_look_backward'],
+                self.data_df[need_look_backward_cols[ti]],
+                self.data_df[no_need_look_backward_cols[ti]]
+            )
+
+        self.data_df['short_macd_need_look_backward'] = self.data_df['macd_cross_label'] == 1
+
+        target_short_cols = ['short_critical_value', 'short_critical_value_id', 'short_critical_macd_cross_duration',
+                             'short_macd_cross_num',
+                             'short_critical_high', 'short_critical_low', 'short_critical_max_price',
+                             'short_critial_min_price',
+                             'short_critical_upper_vegas', 'short_critical_lower_vegas']
+        for li in range(1, look_backward_group_num):
+            target_short_cols += ['short_prevGroup_' + str(li) + 'critical_value',
+                                  'short_prevGroup_' + str(li) + 'critical_value_id',
+                                  'short_prevGroup_' + str(li) + 'high', 'short_prevGroup_' + str(li) + 'low',
+                                  'short_prevGroup_' + str(li) + 'max_price',
+                                  'short_prevGroup_' + str(li) + 'min_price',
+                                  'short_prevGroup_' + str(li) + 'lower_vegas',
+                                  'short_prevGroup_' + str(li) + 'upper_vegas',
+                                  'short_prevGroup_' + str(li) + 'macd_cross_total_duration',
+                                  'short_prevGroup_' + str(li) + 'macd_cross_num'
+                                  ]
+
+        for ti in range(len(target_short_cols)):
+            self.data_df[target_short_cols[ti]] = np.where(
+                self.data_df['short_macd_need_look_backward'],
+                self.data_df[need_look_backward_cols[ti]],
+                self.data_df[no_need_look_backward_cols[ti]]
+            )
+
+
+
+        self.data_df['short_macd_long_cond0'] = self.data_df['long_critical_value'] < 0
+        self.data_df['short_macd_long_cond1'] = self.data_df['long_critical_value'] > self.data_df['long_prevGroup_2critical_value']
+        self.data_df['short_macd_long_cond2'] = self.data_df['long_critical_min_price'] < self.data_df['long_prevGroup_2min_price']
+        self.data_df['short_macd_long_cond3'] = (self.data_df['macd_gradient'] > 0) & (self.data_df['macd'] > self.data_df['msignal']) & (self.data_df['prev_macd'] < self.data_df['prev_msignal'])
+
+        self.data_df['short_macd_short_cond0'] = self.data_df['short_critical_value'] > 0
+        self.data_df['short_macd_short_cond1'] = self.data_df['short_critical_value'] < self.data_df['short_prevGroup_2critical_value']
+        self.data_df['short_macd_short_cond2'] = self.data_df['short_critical_max_price'] > self.data_df['short_prevGroup_2max_price']
+        self.data_df['short_macd_short_cond3'] = (self.data_df['macd_gradient'] < 0) & (self.data_df['macd'] < self.data_df['msignal']) & (self.data_df['prev_macd'] > self.data_df['prev_msignal'])
+
+
+        self.data_df['long_macd_long_cond'] = (self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] > 0) &\
+                                              (self.data_df['macd2'] < 0)
+        self.data_df['long_macd_short_cond'] = (self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] < 0) &\
+                                              (self.data_df['macd2'] > 0)
+
+        self.data_df['short_macd_long_cond'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_long_cond' + str(i)] for i in range(4)])
+        self.data_df['short_macd_short_cond'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_short_cond' + str(i)] for i in range(4)])
+
+
+        #########################
+
+
+
+
 
 
         self.data_df['vegas_long_cond0'] = self.data_df['bar_cross_guppy_label'] != -1
@@ -1654,31 +1842,6 @@ class CurrencyTrader(threading.Thread):
                                             (self.data_df['macd'] < 0) & (self.data_df['prev_macd'] < 0)
 
 
-        # self.data_df['vegas_short_cond1'] = self.data_df['is_negative']
-        # self.data_df['vegas_short_cond2'] = (self.data_df['close'] < self.data_df['ma_close12']) & ((self.data_df['open'] > self.data_df['ma_close12']) | (self.data_df['prev_open'] > self.data_df['prev_ma_close12']))
-        # self.data_df['vegas_short_cond3'] = self.data_df['close'] < self.data_df['lower_vegas'] #self.data_df['m12_below_lower_vegas'] #m12_below_lower_vegas
-        # self.data_df['vegas_short_cond4'] = self.data_df['recent_min_high_price_to_lower_vegas'] * self.lot_size * self.exchange_rate <= vegas_condition_threshold #1 #New Change
-        # self.data_df['vegas_short_cond5'] = self.data_df['recent_max_middle_price_to_upper_vegas'] * self.lot_size * self.exchange_rate <= 0 # exceed_vegas_threshold
-        # self.data_df['vegas_short_cond6'] = self.data_df['recent_min_m12_to_upper_vegas'] > 0
-        # self.data_df['vegas_short_cond7'] = (self.data_df['ma_close30'] < self.data_df['upper_vegas']) & (self.data_df['ma_close35'] < self.data_df['upper_vegas']) #EURAUD Stuff
-        # self.data_df['vegas_short_cond8'] = self.data_df['can_short']
-        # self.data_df['vegas_short_cond9'] = ~self.data_df['special_reject_short_cond']
-        #
-        # self.data_df['vegas_short_cond10'] = (self.data_df['macd'] < self.data_df['prev_macd']) | (self.data_df['msignal'] < self.data_df['prev_msignal'])
-        #
-        # #self.data_df['vegas_short_cond11'] = (self.data_df['lower_vegas'] - self.data_df['close']) < 5 * self.data_df['vegas_distance']
-        #
-        # self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) | (self.data_df['fast_vegas'] < self.data_df['slow_vegas'])
-        #
-        # #self.data_df['vegas_short_cond12'] = self.data_df['open'] > self.data_df['guppy_min']
-        #
-        # # _notExceedGuppy3Strong
-        # # self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) |\
-        # #                                     ((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['middle_price'] > self.data_df['guppy_min']))
-        #
-        #
-        # # self.data_df['vegas_short_cond11'] = (self.data_df['close'] > self.data_df['guppy_min']) |\
-        # #                                     ((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_gradient'] < 0) & (self.data_df['slow_vegas_gradient'] < 0))
 
 
         self.data_df['macd_short_signal'] = (self.data_df['prev_macd'] > 0) & (self.data_df['macd'] < 0)
@@ -1720,6 +1883,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['vegas_short_fire'] = reduce(lambda left, right: left | right, [self.data_df['vegas_short_fire' + str(li)] for li in range(look_back_start_group, (look_backward_group_num-1)//2+1)])
         #
 
+
+        #Keybox
+        if not fire_signal:
+            self.data_df['vegas_long_fire'] = False
+            self.data_df['vegas_short_fire'] = False
 
 
 
@@ -1985,42 +2153,7 @@ class CurrencyTrader(threading.Thread):
                             # self.data_df.iloc[-1]['final_vegas_long_fire'] = True
                             self.data_df.at[erase_id, 'final_vegas_short_fire'] = False
 
-                # print("")
-                # print("df after erase:")
-                # print(self.data_df.iloc[-50:][
-                #           ['id', 'time', 'open', 'high', 'low', 'close', 'vegas_short_fire', 'final_vegas_short_fire']])
 
-        #sys.exit(0)
-        #self.data_df['vegas_short_fire_rt'] = self.data_df['final_vegas_short_fire'].shift(-1).fillna(method='ffill')
-        #self.data_df['final_vegas_short_fire'] = self.data_df['final_vegas_short_fire'].shift(1).fillna(method='bfill')
-
-        ##################
-
-
-        ############# Long stop calculation #######################
-
-        ############## Real time stuff ##############
-        # self.data_df['long_stop_loss_price_rt'] = np.where(
-        #     self.data_df['vegas_long_fire'],
-        #     self.data_df['lower_vegas'] -  stop_loss_threshold/(self.lot_size * self.exchange_rate),
-        #     np.nan
-        # )
-        #
-        # self.data_df['long_stop_range_rt'] = np.where(
-        #     self.data_df['vegas_long_fire'],
-        #     self.data_df['close'] - self.data_df['long_stop_loss_price_rt'],
-        #     np.nan
-        # )
-        #
-        # self.data_df['long_stop_profit_price_rt'] = np.where(
-        #     self.data_df['vegas_long_fire'],
-        #     self.data_df['close'] + profit_loss_ratio * self.data_df['long_stop_range_rt'],
-        #     np.nan
-        # )
-        #################################################
-
-        #smart_close_long_cond = "guppy_all_strong_aligned_long"
-        #smart_close_short_cond = "guppy_all_strong_aligned_short"
 
         smart_close_long_cond = 'guppy_half1_strong_aligned_long'
         smart_close_short_cond = 'guppy_half1_strong_aligned_short'
@@ -2115,40 +2248,7 @@ class CurrencyTrader(threading.Thread):
                     if not is_crypto and correct_precision:
                         long_stop_loss_price = self.round_price(long_stop_loss_price)
 
-                    # print("long_critical_price = " + str(long_fire_data['long_critical_price']))
-                    # print("stop_loss = " + str(long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)))
-                    # print("")
 
-                    # long_stop_loss_price = min((long_fire_data['long_critical_low'] + long_fire_data['long_prevGroup_2low'])/2.0,
-                    #                            long_fire_data['long_critical_low'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                    #                            )
-
-
-
-                    # long_stop_loss_price = min((long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0,
-                    #                            long_fire_data['long_critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-                    #                            )
-
-
-
-                    #long_stop_loss_price = long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'] - stop_loss_threshold / (self.lot_size * self.exchange_rate)
-
-                    #long_stop_loss_price = (long_fire_data['long_critical_price'] + long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price'])/2.0
-
-
-                    # print("long_start_id = " + str(long_start_id))
-                    # print("entry_price = " + str(entry_price))
-                    # print("li = " + str(li))
-                    # print("prev odd group critical price = " + str(long_fire_data['long_prevGroup_' + str(li*2) + 'critical_price']))
-                    # print("prev even group critical price = " + str(long_fire_data['long_prevGroup_' + str(li*2-1) + 'critical_price']))
-                    #
-                    #
-                    # print("long_stop_loss_price = " + str(long_stop_loss_price))
-                    #
-                    # if (entry_price < long_stop_loss_price):
-                    #     print("Something is wrong here ###############################################")
-                    #
-                    # print("")
 
 
 

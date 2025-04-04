@@ -107,7 +107,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     data_df = data_df[['time', 'currency', 'open', 'high', 'low', 'close']]
 
-    # print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     #
     print("here printing")
     print(data_df.iloc[-20:])
@@ -326,11 +326,11 @@ def start_do_trading():
 
     data_source = 2 if is_crypto else 1
 
-    data_source = 2
+    #data_source = 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -344,7 +344,7 @@ def start_do_trading():
 
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod"  #2
+        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
 
         #root_folder = "C:\\JCForex_prod2"
 
@@ -388,7 +388,10 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
 
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
-    currencies_to_run = []
+    #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
+
+    currencies_to_run = ['ADAUSD']
+
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
 
@@ -564,60 +567,9 @@ def start_do_trading():
     selected_currencies = [] #currencies_to_notify #['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
 
 
-    #selected_currencies = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
 
-    #chart_folder_name = "chart_ratio1Adjust_USDCAD2_newStuff_April_EURJPY2_noConsecutive_0512_correct2_filter"
+    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Crypto"
 
-
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "RemoveFucking2_variant10_new_filter_prod_all_1115_removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_reje" #_relaxFastSlow
-
-
-
-    #1
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow" #_relaxFastSlow
-
-    #2
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_noReqBelowVegas"
-
-    ##################
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_removeSpecial_prod"
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_prod_SmartC"
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy"
-
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_noGuppyFilter_SmartClose"
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_single"
-
-
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroup_specialCond10_2_prod"
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroup_prod"
-
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_SmartClose_moreGroups_prod"
-
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_filterGuppy_specialStronger_prod"
-
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_relaxReqBelowVegas_rounding_500_old_prod"
-
-    ###################
-
-
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "ReversalStrategy_3_currencies2_duration1_ambiguous_prod_vegasFilterWeaker_noDurationThreshold_rmCond7_ReqAboveVegas_all"
-
-
-
-    #3
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple" #_relaxFastSlow
-
-    #4
-    #chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_removeMustReject1_rejectLongTrend_simple" #_relaxFastSlow
 
 
 
@@ -825,16 +777,6 @@ def start_do_trading():
                     data_file = os.path.join(data_folder, currency + ".csv")
                     print("data_file:")
                     print(data_file)
-                    # else:
-                    #     data_file = os.path.join(data_folder, currency + "100.csv") #Temporary
-                    #data_file = currency_trader.data_file  #Permanent
-
-                    # #Temp
-                    # if os.path.exists(data_file):
-                    #     os.remove(data_file)
-                    #     print("Remove data_file " + data_file)
-                    #
-                    # continue
 
                     data_df = None
 
@@ -859,44 +801,7 @@ def start_do_trading():
                         #data_df = data_df[data_df['time'] <= datetime(2024, 12, 19, 18, 0, 0)]
 
 
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 6, 14, 17, 0, 0)]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 5, 20, 10, 0, 0)]
-
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 3, 23, 4, 0, 0)]
-
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 3, 29, 1, 0, 0)]
-
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 3, 15, 1, 0, 0)]
-
-
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 24, 18, 0, 0)]
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 10, 17, 9, 0, 0)]
-
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 9, 5, 15, 0, 0)]
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 22, 10, 0, 0)]
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 2, 16, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 5, 22, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 28, 8, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 6, 14, 19, 0, 0)]
-
-
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 5, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 7, 21, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 7, 10, 12, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 5, 12, 20, 0, 0)]
-                        #data_df = data_df[data_df['time'] <= datetime(2023, 8, 11, 20, 0, 0)]
-
-                        #data_df = data_df.iloc[0:-50]
-
-                        # print("data_df:")
-                        # print(data_df.tail(10))
 
                         last_time = data_df.iloc[-1]['time']
                         print("last_time = " + str(last_time))
