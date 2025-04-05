@@ -21,14 +21,14 @@ warnings.filterwarnings("ignore")
 
 # Portfolio Construction
 
-start_date = datetime(2023, 4, 1)  # 4.1
+start_date = datetime(2024, 9, 1)  # 4.1
 
 filter_hasty_trades = False
 
-is_crypto = False
+is_crypto = True
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_reversalStrategy_JC_0323"
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_3gradients_positive_0405"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -75,14 +75,17 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
     currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv")) if not is_crypto else pd.read_csv(os.path.join(forex_dir, "crypto.csv"))
 
-    currency_list = currency_df['currency'].tolist()
+    currency_list = currency_df['instrument'].tolist()
+
+    currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD', 'XRPUSD']
+
     #currency_list = currency_list[0:2]
 
     print("")
     print("Calculate performance for each currency............." + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
     summary_df = calculate_currency_performance(end_date, currency_list, sorted=False, accumulated_mode=False, start_date = start_date)
 
-    sorted_currency_list = summary_df.iloc[:-1]['currency'].tolist()
+    sorted_currency_list = summary_df.iloc[:-1]['instrument'].tolist()
 
     currencies_with_no_data = [currency for currency in currency_list if currency != "All" and currency not in sorted_currency_list]
 
@@ -98,7 +101,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
     max_pnl_id = summary_df['last_cum_pnl'].argmax()
 
-    optimal_currency_list = summary_df.iloc[:(max_pnl_id+1)]['currency'].tolist()
+    optimal_currency_list = summary_df.iloc[:(max_pnl_id+1)]['instrument'].tolist()
 
     optimal_currency_list = [currency[len('Until '):] for currency in optimal_currency_list]
 
@@ -110,11 +113,11 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
 def calculate_currency_performance(end_date, currency_list, sorted, accumulated_mode, start_date = datetime(2023, 4, 1)):
 
-    init_deposit = 8000 if not is_crypto else 80000  # 25000
+    init_deposit = 8000 if not is_crypto else 100  # 25000
 
     commission_rate = 28.17 * 2 if not is_crypto else 0
 
-    consider_cost = True
+    consider_cost = False
 
     use_fewer_trades = False
 
@@ -136,7 +139,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         os.makedirs(final_output_folder)
 
     summary_data = []
-    summary_columns = ['currency', 'last_cum_pnl', 'max_drawdown', 'max_drawdown_startid', 'max_drawdown_endid',
+    summary_columns = ['instrument', 'last_cum_pnl', 'max_drawdown', 'max_drawdown_startid', 'max_drawdown_endid',
                        'adj_return', 'return_rate', 'drawdown_rate', 'trading_days', 'trade_num', 'trades_per_day']
 
     # This is even better settings for all currencies, and also even better for larger set of selected currencies (with GBPJPY EURCHF added)
@@ -147,9 +150,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
     trade_files = [os.path.join(forex_dir,
-                                "all_pnl_chart_ratio1ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroup_specialCond10_2_prod\\all_trades.csv"),
-                   os.path.join(forex_dir,
-                                "all_pnl_chart_ratio10ReversalStrategy_advancedGuppyFilter_SmartClose_moreGroup_specialCond10_2_prod\\all_trades.csv")]
+                                "all_pnl_chart_3gradients_positive\\all_trades.csv")]
 
 
     output_file = None
@@ -187,13 +188,13 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
             trade_df = raw_trade_df.copy()
 
-            trade_df = trade_df[trade_df['is_win'] != -1]
+            trade_df = trade_df[trade_df['win'] != -1]
 
             if selected_currencies is not None:
-                trade_df = trade_df[trade_df['currency'].isin(selected_currencies)]
+                trade_df = trade_df[trade_df['instrument'].isin(selected_currencies)]
 
             if removed_currencies is not None:
-                trade_df = trade_df[~trade_df['currency'].isin(removed_currencies)]
+                trade_df = trade_df[~trade_df['instrument'].isin(removed_currencies)]
 
             # print("trade df length = " + str(trade_df.shape[0]))
 
@@ -220,9 +221,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
                 trade_df_small['sid'] = list(range(trade_df_small.shape[0]))
                 trade_df_large['lid'] = list(range(trade_df_large.shape[0]))
 
-                merged_df = pd.merge(trade_df_large[['lid', 'currency', 'side', 'entry_time']],
-                                     trade_df_small[['sid', 'currency', 'side', 'entry_time']],
-                                     on=['currency', 'side', 'entry_time'], how='left'
+                merged_df = pd.merge(trade_df_large[['lid', 'instrument', 'side', 'entry_time']],
+                                     trade_df_small[['sid', 'instrument', 'side', 'entry_time']],
+                                     on=['instrument', 'side', 'entry_time'], how='left'
                                      )
 
                 trade_df_small = trade_df_small[trade_df_small['sid'].isin(merged_df['sid'])]
@@ -250,7 +251,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         #print("trade_df length = " + str(trade_df.shape[0]))
 
-        trade_df = trade_df.sort_values(by=['exit_time', 'currency'])
+        trade_df = trade_df.sort_values(by=['exit_time', 'instrument'])
 
         # trade_df = trade_df.iloc[99:] #######################//Extract from max draw down start time ***************************************************
 
@@ -263,21 +264,21 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         ############ Filter trade logic here ################
         #print("here trade df length = " + str(trade_df.shape[0]))
 
-        entry_df = trade_df[['currency', 'side', 'position', 'id', 'entry_time']]
-        entry_df = entry_df.rename(columns={
-            'entry_time': 'time'
-        })
-        entry_df['is_entry'] = True
-
-        exit_df = trade_df[['currency', 'side', 'position', 'id', 'exit_time']]
-        exit_df = exit_df.rename(columns={
-            'exit_time': 'time'
-        })
-        exit_df['is_entry'] = False
-
-        temp_df = pd.concat([entry_df, exit_df])
-
-        temp_df = temp_df.sort_values(by=['time'])
+        # entry_df = trade_df[['instrument', 'side', 'position', 'id', 'entry_time']]
+        # entry_df = entry_df.rename(columns={
+        #     'entry_time': 'time'
+        # })
+        # entry_df['is_entry'] = True
+        #
+        # exit_df = trade_df[['instrument', 'side', 'position', 'id', 'exit_time']]
+        # exit_df = exit_df.rename(columns={
+        #     'exit_time': 'time'
+        # })
+        # exit_df['is_entry'] = False
+        #
+        # temp_df = pd.concat([entry_df, exit_df])
+        #
+        # temp_df = temp_df.sort_values(by=['time'])
 
 
 
@@ -294,7 +295,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
                 data = temp_df.iloc[i]
 
-                currency = data['currency']
+                currency = data['instrument']
                 side = data['side']
                 trade_id = data['id']
 
@@ -368,13 +369,13 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
             ########### Re-calculate temp_df #########
             trade_df['id'] = list(range(trade_df.shape[0]))  # Paste
 
-            entry_df = trade_df[['currency', 'side', 'position', 'id', 'entry_time']]
+            entry_df = trade_df[['instrument', 'side', 'position', 'id', 'entry_time']]
             entry_df = entry_df.rename(columns={
                 'entry_time': 'time'
             })
             entry_df['is_entry'] = True
 
-            exit_df = trade_df[['currency', 'side', 'position', 'id', 'exit_time']]
+            exit_df = trade_df[['instrument', 'side', 'position', 'id', 'exit_time']]
             exit_df = exit_df.rename(columns={
                 'exit_time': 'time'
             })
@@ -400,44 +401,44 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         trade_df.reset_index(inplace=True)
         trade_df = trade_df.drop(columns=['index'])
 
-        for price_col in ['entry_price', 'exit_price']:
-            trade_df[price_col] = np.where(
-                trade_df['currency'].apply(lambda x: 'JPY' in x),
-                trade_df[price_col].apply(lambda x: str(round(x * 1000.0) / 1000.0)),
-                trade_df[price_col].apply(lambda x: str(round(x * 100000.0) / 100000.0))
-            )
+        # for price_col in ['entry_price', 'exit_price']:
+        #     trade_df[price_col] = np.where(
+        #         trade_df['instrument'].apply(lambda x: 'JPY' in x),
+        #         trade_df[price_col].apply(lambda x: str(round(x * 1000.0) / 1000.0)),
+        #         trade_df[price_col].apply(lambda x: str(round(x * 100000.0) / 100000.0))
+        #     )
 
         trade_df['return_rate'] = trade_df['cum_pnl'] / init_deposit
-        trade_df['return_rate'] = trade_df['return_rate'].apply(lambda x: str(int(round(x * 100, 0))) + "%")
+        trade_df['return_rate'] = trade_df['return_rate'].apply(lambda x: str(round(x * 100, 4)) + "%")
 
-        if 'entry_com_discount' in trade_df.columns:
-
-            trade_df['adj_pnl'] = trade_df['pnl'] - (
-                        commission_rate * trade_df['position'] - commission_rate * trade_df['position'] * (
-                            trade_df['entry_com_discount'] + trade_df['exit_com_discount']) / 2.0)
-
-        else:
-
-            trade_df['adj_pnl'] = trade_df['pnl'] - commission_rate * trade_df['position']
-
-        trade_df['adj_cum_pnl'] = trade_df['adj_pnl'].cumsum()
+        # if 'entry_com_discount' in trade_df.columns:
+        #
+        #     trade_df['adj_pnl'] = trade_df['pnl'] - (
+        #                 commission_rate * trade_df['position'] - commission_rate * trade_df['position'] * (
+        #                     trade_df['entry_com_discount'] + trade_df['exit_com_discount']) / 2.0)
+        #
+        # else:
+        #
+        #     trade_df['adj_pnl'] = trade_df['pnl'] - commission_rate * trade_df['position']
+        #
+        # trade_df['adj_cum_pnl'] = trade_df['adj_pnl'].cumsum()
 
         # print("Fuck Bug")
         # display(trade_df.head(20))
 
-        trade_df['adj_return_rate'] = trade_df['adj_cum_pnl'] / init_deposit
-        trade_df['adj_return_rate'] = trade_df['adj_return_rate'].apply(lambda x: str(int(round(x * 100, 0))) + "%")
-
-        if consider_cost:
-            trade_df['unadj_pnl'] = trade_df['pnl']
-            trade_df['unadj_cum_pnl'] = trade_df['cum_pnl']
-            trade_df['unadj_return_rate'] = trade_df['return_rate']
-
-            trade_df['pnl'] = trade_df['adj_pnl']
-            trade_df['cum_pnl'] = trade_df['adj_cum_pnl']
-            trade_df['return_rate'] = trade_df['adj_return_rate']
-
-            trade_df = trade_df.drop(columns=['adj_pnl', 'adj_cum_pnl', 'adj_return_rate'])
+        # trade_df['adj_return_rate'] = trade_df['adj_cum_pnl'] / init_deposit
+        # trade_df['adj_return_rate'] = trade_df['adj_return_rate'].apply(lambda x: str(int(round(x * 100, 0))) + "%")
+        #
+        # if consider_cost:
+        #     trade_df['unadj_pnl'] = trade_df['pnl']
+        #     trade_df['unadj_cum_pnl'] = trade_df['cum_pnl']
+        #     trade_df['unadj_return_rate'] = trade_df['return_rate']
+        #
+        #     trade_df['pnl'] = trade_df['adj_pnl']
+        #     trade_df['cum_pnl'] = trade_df['adj_cum_pnl']
+        #     trade_df['return_rate'] = trade_df['adj_return_rate']
+        #
+        #     trade_df = trade_df.drop(columns=['adj_pnl', 'adj_cum_pnl', 'adj_return_rate'])
 
         # print("Display here*******************************************************************************")
         # display(trade_df.iloc[:20])
@@ -445,7 +446,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         # trade_df_copy = trade_df_copy.sort_values(by = ['entry_time'])
 
-        trade_df_copy = trade_df_copy.sort_values(by=['exit_time', 'currency'])
+        trade_df_copy = trade_df_copy.sort_values(by=['exit_time', 'instrument'])
         trade_df_copy['id'] = list(range(trade_df_copy.shape[0]))
         # display(trade_df_copy[trade_df_copy['tp_num'].isnull()])
 
@@ -467,97 +468,97 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 
-        cum_margin = 0
-        cum_pnl = 0
-
-        cum_margins = []
-        cum_pnls = []
-
-        delta_margins = []
-        delta_pnls = []
-
-        for i in range(temp_df.shape[0]):
-
-            delta_margin = 0
-            delta_pnl = 0
-
-            data = temp_df.iloc[i]
-            if data['is_entry']:
-                delta_margin = trade_df.iloc[data['id']]['margin']
-                cum_margin += delta_margin
-            else:
-                delta_pnl = trade_df.iloc[data['id']]['pnl']
-                cum_pnl += delta_pnl
-
-                delta_margin = -trade_df.iloc[data['id']]['margin']
-                cum_margin += delta_margin
-
-            delta_margins += [delta_margin]
-            delta_pnls += [delta_pnl]
-
-            cum_margins += [cum_margin]
-            cum_pnls += [cum_pnl]
-
-        temp_df['delta_margin'] = delta_margins
-        temp_df['cum_margin'] = cum_margins
-
-        temp_df['cum_margin'] = temp_df['cum_margin'].apply(lambda x: round(x, 2))
-
-        temp_df['delta_pnl'] = delta_pnls
-        temp_df['cum_pnl'] = cum_pnls
-
-        temp_df['equity'] = temp_df['cum_pnl'] + init_deposit
-
-        temp_df['margin_level'] = temp_df['equity'] / temp_df['cum_margin']
-
-        temp_df['margin_level'] = np.where(
-            temp_df['cum_margin'] == 0,
-            np.inf,
-            temp_df['margin_level']
-        )
-
-        temp_df['index'] = list(range(temp_df.shape[0]))
-
-        temp_df['add_currency'] = np.where(
-            temp_df['is_entry'], 1, -1
-        )
-        temp_df['total_num_currency'] = temp_df['add_currency'].cumsum()
-
-        # print("Here Here temp_df length = " + str(temp_df.shape[0]))
+        # cum_margin = 0
+        # cum_pnl = 0
         #
-        # print("temp_df:")
-        # print(temp_df)
-
-        min_margin_level = temp_df['margin_level'].min()
-        min_margin_level_id = temp_df['margin_level'].argmin()
-
-        max_margin_level = temp_df[temp_df['cum_margin'] > 0]['margin_level'].max()
-        max_margin_level_id = temp_df[temp_df['cum_margin'] > 0]['margin_level'].argmax()
-
-        max_margin_level_id = temp_df[temp_df['cum_margin'] > 0].iloc[max_margin_level_id]['index']
-
-        #     print("min_margin_level = " + str(min_margin_level))
-        #     print('min_margin_level_id = ' + str(min_margin_level_id))
-
-        #     print("max_margin_level = " + str(max_margin_level))
-        #     print('max_margin_level_id = ' + str(max_margin_level_id))
-
-        #     print("Temp df ***************************************************:")
-        # display(temp_df.iloc[:20])
-        # display(temp_df)
-
-        #temp_df.to_csv(temp_output_file, index=False)
-
-        ########################################
-
-        if 'tp_num' in trade_df.columns:
-            trade_num = trade_df[trade_df['tp_num'].isnull()].shape[0]
-            # print("trade number = " + str(trade_num))
+        # cum_margins = []
+        # cum_pnls = []
+        #
+        # delta_margins = []
+        # delta_pnls = []
+        #
+        # for i in range(temp_df.shape[0]):
+        #
+        #     delta_margin = 0
+        #     delta_pnl = 0
+        #
+        #     data = temp_df.iloc[i]
+        #     if data['is_entry']:
+        #         delta_margin = trade_df.iloc[data['id']]['margin']
+        #         cum_margin += delta_margin
+        #     else:
+        #         delta_pnl = trade_df.iloc[data['id']]['pnl']
+        #         cum_pnl += delta_pnl
+        #
+        #         delta_margin = -trade_df.iloc[data['id']]['margin']
+        #         cum_margin += delta_margin
+        #
+        #     delta_margins += [delta_margin]
+        #     delta_pnls += [delta_pnl]
+        #
+        #     cum_margins += [cum_margin]
+        #     cum_pnls += [cum_pnl]
+        #
+        # temp_df['delta_margin'] = delta_margins
+        # temp_df['cum_margin'] = cum_margins
+        #
+        # temp_df['cum_margin'] = temp_df['cum_margin'].apply(lambda x: round(x, 2))
+        #
+        # temp_df['delta_pnl'] = delta_pnls
+        # temp_df['cum_pnl'] = cum_pnls
+        #
+        # temp_df['equity'] = temp_df['cum_pnl'] + init_deposit
+        #
+        # temp_df['margin_level'] = temp_df['equity'] / temp_df['cum_margin']
+        #
+        # temp_df['margin_level'] = np.where(
+        #     temp_df['cum_margin'] == 0,
+        #     np.inf,
+        #     temp_df['margin_level']
+        # )
+        #
+        # temp_df['index'] = list(range(temp_df.shape[0]))
+        #
+        # temp_df['add_currency'] = np.where(
+        #     temp_df['is_entry'], 1, -1
+        # )
+        # temp_df['total_num_currency'] = temp_df['add_currency'].cumsum()
+        #
+        # # print("Here Here temp_df length = " + str(temp_df.shape[0]))
+        # #
+        # # print("temp_df:")
+        # # print(temp_df)
+        #
+        # min_margin_level = temp_df['margin_level'].min()
+        # min_margin_level_id = temp_df['margin_level'].argmin()
+        #
+        # max_margin_level = temp_df[temp_df['cum_margin'] > 0]['margin_level'].max()
+        # max_margin_level_id = temp_df[temp_df['cum_margin'] > 0]['margin_level'].argmax()
+        #
+        # max_margin_level_id = temp_df[temp_df['cum_margin'] > 0].iloc[max_margin_level_id]['index']
+        #
+        # #     print("min_margin_level = " + str(min_margin_level))
+        # #     print('min_margin_level_id = ' + str(min_margin_level_id))
+        #
+        # #     print("max_margin_level = " + str(max_margin_level))
+        # #     print('max_margin_level_id = ' + str(max_margin_level_id))
+        #
+        # #     print("Temp df ***************************************************:")
+        # # display(temp_df.iloc[:20])
+        # # display(temp_df)
+        #
+        # #temp_df.to_csv(temp_output_file, index=False)
+        #
+        # ########################################
+        #
+        # if 'tp_num' in trade_df.columns:
+        #     trade_num = trade_df[trade_df['tp_num'].isnull()].shape[0]
+        #     # print("trade number = " + str(trade_num))
 
         # print("all trade number = " + str(trade_df.shape[0]))
 
         # trade_df.to_csv(output_file, index = False)
-        # display(trade_df.sort_values(by = ['entry_time', 'currency']))
+        # display(trade_df.sort_values(by = ['entry_time', 'instrument']))
 
         max_draw_down, start_draw_down, end_draw_down = calc_max_drawdown(trade_df['cum_pnl'])
         last_cum_pnl = trade_df.iloc[-1]['cum_pnl']
@@ -579,35 +580,38 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         ##################
         dummy_trade_df = trade_df.iloc[0:1].copy()
 
-        for col in ['is_win', 'pnl', 'cum_pnl']:
+        for col in ['win', 'pnl', 'cum_pnl']:
             dummy_trade_df.at[0, col] = 0
 
         trade_df = pd.concat([dummy_trade_df, trade_df])
         trade_df['id'] = list(range(trade_df.shape[0]))
 
-        # print("Plot pnl figure")
-        fig = plt.figure(figsize=(20, 30))  # 10,5
+        # print("trade_df:")
+        # print(trade_df.iloc[0:20])
 
-        axes = fig.subplots(nrows=3, ncols=1)
+        # print("Plot pnl figure")
+        fig = plt.figure(figsize=(40, 20))  # 10,5
+
+        axes = fig.subplots(nrows=1, ncols=1)
 
         font_size = 25
 
         currency_name = "Until " + currency if accumulated_mode else currency
 
-        sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes[0])
-        axes[0].set_title(currency_name + " All Cum Pnl Curve", fontsize=font_size)
-        axes[0].set_xlabel(axes[0].get_xlabel(), size=font_size)
+        sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes)
+        axes.set_title(currency_name + " All Cum Pnl Curve", fontsize=font_size)
+        axes.set_xlabel(axes.get_xlabel(), size=font_size)
         #axes[0].set_xticklabels(axes[0].get_xticks(), size=font_size)
-        axes[0].set_ylabel(axes[0].get_ylabel(), size=font_size)
+        axes.set_ylabel(axes.get_ylabel(), size=font_size)
         #axes[0].set_yticklabels(axes[0].get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
         #axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
         #axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
-        axes[0].axhline(0, ls='--', color='green', linewidth=1)
+        axes.axhline(0, ls='--', color='green', linewidth=1)
 
-        axes[0].axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
-        axes[0].axvline(end_draw_down + 1, ls='--', color='red', linewidth=1)
-        plt.setp(axes[0].get_xticklabels(), rotation=45)
+        axes.axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
+        axes.axvline(end_draw_down + 1, ls='--', color='red', linewidth=1)
+        plt.setp(axes.get_xticklabels(), rotation=45)
 
         # print("cutoff_trade_num = " + str(cutoff_trade_num))
         # if cutoff_end_date is not None:
@@ -621,31 +625,31 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         #     plt.setp(axes[1].get_xticklabels(), rotation = 45)
 
-        sns.lineplot(x='index', y='cum_margin', markers='o', color='blue', data=temp_df, ax=axes[1])
-        axes[1].set_title("Cum Margin", fontsize=font_size)
-        axes[1].set_xlabel(axes[1].get_xlabel(), size=font_size)
-        #axes[1].set_xticklabels(axes[1].get_xticks(), size=font_size)
-        axes[1].set_ylabel(axes[1].get_ylabel(), size=font_size)
-        #axes[1].set_yticklabels(axes[1].get_yticks(), size=font_size)
-        # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        #axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
-        axes[1].axhline(0, ls='--', color='green', linewidth=1)
-
-        plt.setp(axes[1].get_xticklabels(), rotation=45)
-
-        sns.lineplot(x='index', y='margin_level', markers='o', color='blue', data=temp_df, ax=axes[2])
-        axes[2].set_title("Margin Level", fontsize=font_size)
-        axes[2].set_xlabel(axes[2].get_xlabel(), size=font_size)
-        #axes[2].set_xticklabels(axes[2].get_xticks(), size=font_size)
-        axes[2].set_ylabel(axes[2].get_ylabel(), size=font_size)
-        #axes[2].set_yticklabels(axes[2].get_yticks(), size=font_size)
-        # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
-        #axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
-        axes[2].axhline(0, ls='--', color='green', linewidth=1)
-
-        plt.setp(axes[2].get_xticklabels(), rotation=45)
-
-        plt.subplots_adjust(hspace=0.5)
+        # sns.lineplot(x='index', y='cum_margin', markers='o', color='blue', data=temp_df, ax=axes[1])
+        # axes[1].set_title("Cum Margin", fontsize=font_size)
+        # axes[1].set_xlabel(axes[1].get_xlabel(), size=font_size)
+        # #axes[1].set_xticklabels(axes[1].get_xticks(), size=font_size)
+        # axes[1].set_ylabel(axes[1].get_ylabel(), size=font_size)
+        # #axes[1].set_yticklabels(axes[1].get_yticks(), size=font_size)
+        # # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
+        # #axes[1].xaxis.set_major_locator(ticker.MultipleLocator(40))
+        # axes[1].axhline(0, ls='--', color='green', linewidth=1)
+        #
+        # plt.setp(axes[1].get_xticklabels(), rotation=45)
+        #
+        # sns.lineplot(x='index', y='margin_level', markers='o', color='blue', data=temp_df, ax=axes[2])
+        # axes[2].set_title("Margin Level", fontsize=font_size)
+        # axes[2].set_xlabel(axes[2].get_xlabel(), size=font_size)
+        # #axes[2].set_xticklabels(axes[2].get_xticks(), size=font_size)
+        # axes[2].set_ylabel(axes[2].get_ylabel(), size=font_size)
+        # #axes[2].set_yticklabels(axes[2].get_yticks(), size=font_size)
+        # # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
+        # #axes[2].xaxis.set_major_locator(ticker.MultipleLocator(40))
+        # axes[2].axhline(0, ls='--', color='green', linewidth=1)
+        #
+        # plt.setp(axes[2].get_xticklabels(), rotation=45)
+        #
+        # plt.subplots_adjust(hspace=0.5)
 
         # print("cutoff_trade_num = " + str(cutoff_trade_num))
         # if cutoff_end_date is not None:
@@ -733,7 +737,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 
-start_dates = [datetime(2023,4,1)]
+start_dates = [datetime(2024,9,1)]
 end_dates = [datetime(2025,4, 30)]
 
 columns = ['by_date', 'optimal_currency_list']

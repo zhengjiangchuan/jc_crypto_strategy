@@ -266,7 +266,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
                            bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
-                           use_dynamic_TP = False, figure_num = -1, plot_day_line = True, plot_cross_point = False, plot_long = True, plot_short = False):
+                           use_dynamic_TP = False, figure_num = -1, plot_day_line = True, plot_cross_point = False, plot_long = True, plot_short = False, remove_plots = False):
 
     print("In plot_candle_bar_charts:")
     print("tick_interval = " + str(tick_interval))
@@ -275,10 +275,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         figure_files = os.listdir(bar_fig_folder)
 
-        for fig_file in figure_files:
-            fig_path = os.path.join(bar_fig_folder, fig_file)
-            if os.path.exists(fig_path) and 'pnl' not in fig_path:
-                os.remove(fig_path)
+        if remove_plots:
+            for fig_file in figure_files:
+                fig_path = os.path.join(bar_fig_folder, fig_file)
+                if os.path.exists(fig_path) and 'pnl' not in fig_path:
+                    os.remove(fig_path)
 
 
     windows = [12, 30, 35, 40, 45, 50, 60, 144, 169]
@@ -392,8 +393,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         # macd_long_signal_idx = which(sub_data['macd_long_signal'])
         # macd_short_signal_idx = which(sub_data['macd_short_signal'])
         #
-        # cross_guppy_up_idx = which(sub_data['bar_cross_guppy_label_line'] == -1)
-        # cross_guppy_down_idx = which(sub_data['bar_cross_guppy_label_line'] == 1)
+        cross_macd_up_idx = which(sub_data['macd_cross_label_line'] == -1)
+        cross_macd_down_idx = which(sub_data['macd_cross_label_line'] == 1)
 
 
 
@@ -426,8 +427,11 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         raw_long_points = sub_data[sub_data['macd_long_enter']]['entry_id'].tolist()
         not_finished_long_points = [p for p in raw_long_points if p not in long_win_points and p not in long_lose_points]
 
-        long_hit_profit = long_sub_data[long_sub_data['is_win']]['entry_id', 'exit_id', 'entry_price', 'exit_price']
-        long_hit_loss = long_sub_data[~long_sub_data['is_win']]['entry_id', 'exit_id', 'entry_price', 'exit_price']
+        # print("long_sub_data:")
+        # print(long_sub_data)
+
+        long_hit_profit = long_sub_data[long_sub_data['is_win']][['entry_id', 'exit_id', 'entry_price', 'exit_price']]
+        long_hit_loss = long_sub_data[~long_sub_data['is_win']][['entry_id', 'exit_id', 'entry_price', 'exit_price']]
 
         # if use_dynamic_TP:
         #
@@ -461,8 +465,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         raw_short_points = sub_data[sub_data['macd_short_enter']]['entry_id'].tolist()
         not_finished_short_points = [p for p in raw_short_points if p not in short_win_points and p not in short_lose_points]
 
-        short_hit_profit = short_sub_data[short_sub_data['is_win']]['entry_id', 'exit_id', 'entry_price', 'exit_price']
-        short_hit_loss = short_sub_data[~short_sub_data['is_win']]['entry_id', 'exit_id', 'entry_price', 'exit_price']
+        short_hit_profit = short_sub_data[short_sub_data['is_win']][['entry_id', 'exit_id', 'entry_price', 'exit_price']]
+        short_hit_loss = short_sub_data[~short_sub_data['is_win']][['entry_id', 'exit_id', 'entry_price', 'exit_price']]
 
         # if use_dynamic_TP:
         #
@@ -601,13 +605,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             for day_point in d_data['start'].values[1:]:
                 axes.axvline(int_time_series[day_point], ls = '--', color = 'black', linewidth = 1)
 
-        # if plot_cross_point:
-        #     for cross_point in cross_guppy_up_idx:
-        #         axes.axvline(int_time_series[cross_point], ls = '-', color = 'blue', linewidth = 1)
-        #
-        #     for cross_point in cross_guppy_down_idx:
-        #         axes.axvline(int_time_series[cross_point], ls = '-', color = 'red', linewidth = 1)
-        #
+
+
         # if plot_macd_signal:
         #     for macd_long_point in macd_long_signal_idx:
         #         axes.axvline(int_time_series[macd_long_point], ls = '-', color = 'blue', linewidth = 1.3)
@@ -670,6 +669,13 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             for day_point in d_data['start'].values[1:]:
                 aux_axes.axvline(time_id_array[day_point], ls = '--', color = 'black', linewidth = 1)
 
+            if plot_cross_point:
+                for cross_point in cross_macd_up_idx:
+                    aux_axes.axvline(time_id_array[cross_point], ls='-', color='blue', linewidth=1)
+
+                for cross_point in cross_macd_down_idx:
+                    aux_axes.axvline(time_id_array[cross_point], ls='-', color='red', linewidth=1)
+
             # if plot_macd_signal:
             #     for macd_long_point in macd_long_signal_idx:
             #         aux_axes.axvline(time_id_array[macd_long_point], ls='-', color='blue', linewidth=1.3)
@@ -698,7 +704,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             aux_axes2.axhline(0, ls='--', color='blue', linewidth=1)
 
 
-        fig_file_name = raw_symbol + '_' + interval + file_name_suffix + '.png'
+        fig_file_name = raw_symbol + '_' + interval + file_name_suffix + ('_long' if plot_long else '_short') + '.png'
         fig_file_path = os.path.join(bar_fig_folder, fig_file_name)
         #print(print_prefix + " Save figure " + fig_file_name)
 
@@ -764,7 +770,7 @@ def plot_pnl_figure(trade_df, out_folder, currency):
         #
         # print(trade_df[['id','cum_pnl']])
 
-        sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes[0])
+        sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes)
         axes.set_title(currency + " Cum Pnl Curve")
         #axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
         axes.axhline(0, ls='--', color='blue', linewidth=1)

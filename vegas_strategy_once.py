@@ -328,9 +328,9 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -390,7 +390,8 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
-    currencies_to_run = ['ADAUSD']
+    currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD']
+    #currencies_to_run = ['XRPUSD']
 
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['currency'].tolist()
@@ -1011,7 +1012,7 @@ def start_do_trading():
         print("Copying bar charts and pnl charts...")
         #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
 
-        trade_df = trade_df.drop(columns=['id', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
+        trade_df = trade_df.drop(columns=['id', 'cum_pnl'])
         trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
 
         for currency in currency_list:

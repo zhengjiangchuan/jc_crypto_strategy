@@ -167,7 +167,7 @@ is_apply_innovative_filter_to_exclude = False
 possition_factor = 0.1
 
 fire_signal = False
-report_performance = False
+report_performance = True
 
 
 quick_close_position_for_intraday_strategy = False #Default is false   close all position if partial close signal fired for intraday strategy
@@ -184,7 +184,7 @@ hours_close_position = [0] #23
 
 strict_smart_close_logic = False
 
-print_email_message_to_file = True
+print_email_message_to_file = False
 
 special_cond10 = True
 
@@ -230,10 +230,10 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 2
+printed_figure_num = -1
 
 plot_day_line = True
-plot_cross_point = False
+plot_cross_point = True
 
 unit_loss = 1000 if is_crypto else 200 #This is HKD
 usdhkd = 7.85
@@ -397,6 +397,13 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['macd_gradient'] = self.data_df['macd'].diff()
         self.data_df['macd2_gradient'] = self.data_df['macd2'].diff()
+
+        self.data_df['prev_macd_gradient'] = self.data_df['macd_gradient'].shift(1)
+        self.data_df['prev_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1)
+
+        self.data_df['prev2_macd_gradient'] = self.data_df['prev_macd_gradient'].shift(1)
+        self.data_df['prev2_macd2_gradient'] = self.data_df['prev_macd2_gradient'].shift(1)
+
 
         ############################
 
@@ -1145,6 +1152,8 @@ class CurrencyTrader(threading.Thread):
 
         macd_group_summary_df.reset_index(inplace=True)
 
+        macd_group_summary_df.at[macd_group_summary_df.index[0], 'macd_cross_label'] = 1 if macd_group_summary_df.iloc[1]['macd_cross_label'] == 0 else 0
+
         macd_group_summary_df['critical_value_id'] = np.where(
             macd_group_summary_df['macd_cross_label'] == 0,
             macd_group_summary_df['macd_max_idx'],
@@ -1182,7 +1191,7 @@ class CurrencyTrader(threading.Thread):
 
         macd_group_data_dfs = []
         macd_cross_nums = macd_group_summary_df['macd_cross_num'].tolist()
-        macd_cross_labels = group_summary_df['macd_cross_label'].tolist()
+        macd_cross_labels = macd_group_summary_df['macd_cross_label'].tolist()
 
         for idi in range(0, len(macd_cross_nums)):
             start_idxx = macd_cross_nums[idi]
@@ -1190,22 +1199,54 @@ class CurrencyTrader(threading.Thread):
 
             macd_cross_label = macd_cross_labels[idi]
 
+            #print("macd_cross_label = " + str(macd_cross_label))
+
+            group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
+
             if macd_cross_label == 0:
-                group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
-                group_df['critical_value'] = group_df['macd'].cummax()
-                group_df['critical_value_id'] = group_df['macd'].expanding().apply(lambda x: x.idxmax()).astype(int)
-                group_df = group_df.drop(columns=['time', 'macd'])
+                # print("start_idxx = " + str(start_idxx) + " end_idxx = " + str(end_idxx))
+                # print("group_df:")
+                # print(group_df)
+                # print("")
+
+                if group_df[group_df['macd'].isnull()].shape[0] > 0:
+                    group_df['critical_value'] = np.nan
+                    group_df['critical_value_id'] = 0
+                    group_df = group_df.drop(columns=['time', 'macd'])
+                else:
+                    group_df['critical_value'] = group_df['macd'].cummax()
+                    group_df['critical_value_id'] = group_df['macd'].expanding().apply(lambda x: x.idxmax()).astype(int)
+                    group_df = group_df.drop(columns=['time', 'macd'])
                 group_df['group_index'] = idi
+
             elif macd_cross_label == 1:
-                group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
-                group_df['critical_value'] = group_df['macd'].cummin()
-                group_df['critical_value_id'] = group_df['macd'].expanding().apply(lambda x: x.idxmin()).astype(int)
-                group_df = group_df.drop(columns=['time', 'macd'])
+
+                if group_df[group_df['macd'].isnull()].shape[0] > 0:
+                    group_df['critical_value'] = np.nan
+                    group_df['critical_value_id'] = 0
+                    group_df = group_df.drop(columns=['time', 'macd'])
+                else:
+                    group_df['critical_value'] = group_df['macd'].cummin()
+                    group_df['critical_value_id'] = group_df['macd'].expanding().apply(lambda x: x.idxmin()).astype(int)
+                    group_df = group_df.drop(columns=['time', 'macd'])
+
                 group_df['group_index'] = idi
+            # else:
+            #     group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
+            #     group_df['critical_value'] = np.nan
+            #     group_df['critical_value_id'] = np.nan
+            #     group_df['group_index'] = idi
 
             macd_group_data_dfs += [group_df]
 
         macd_group_data_df_all = pd.concat(macd_group_data_dfs)
+
+        # print("macd_group_data_df_all:")
+        # print(macd_group_data_df_all.iloc[0:60])
+        #
+        # print("macd_group_data_df_all length = " + str(macd_group_data_df_all.shape[0]))
+        # print("data_df length = " + str(self.data_df.shape[0]))
+        # print(len(macd_group_data_df_all))
 
         if len(macd_group_data_df_all) != self.data_df.shape[0]:
             raise Exception(
@@ -1213,11 +1254,19 @@ class CurrencyTrader(threading.Thread):
                     len(macd_group_data_df_all)) + " while data_df length = " + str(
                     self.data_df.shape[0]))
 
+        #print("First")
+        #print(self.data_df.iloc[0:100][['time', 'macd', 'msignal']])
+
         self.data_df = pd.concat([self.data_df, macd_group_data_df_all], axis=1)
 
         aux_macd_data_df = self.data_df[
             ['lower_vegas', 'upper_vegas', 'guppy_min', 'guppy_max', 'macd_cross_duration', 'high', 'low', 'max_price',
              'min_price']]
+
+        #print(self.data_df.iloc[0:100][['time', 'macd', 'msignal', 'critical_value_id', 'critical_value']])
+        #sys.exit(0)
+
+
         attach_df = aux_macd_data_df.iloc[self.data_df['critical_value_id']]
         attach_df.reset_index(inplace=True)
         attach_df = attach_df.drop(columns=['index'])
@@ -1228,7 +1277,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df = pd.concat([self.data_df, attach_df], axis=1)
 
         critical_value_data_df = critical_value_data_df.rename(columns={'index': 'critical_value_id'})
-        critical_value_data_df['macd_cross_total_duration'] = group_summary_df['macd_cross_duration']
+        critical_value_data_df['macd_cross_total_duration'] = macd_group_summary_df['macd_cross_duration']
 
         key_columns = ['time', 'macd_cross_num', 'macd_cross_duration', 'critical_value_id',
                        'macd_cross_total_duration',
@@ -1283,7 +1332,7 @@ class CurrencyTrader(threading.Thread):
         target_long_cols = ['long_critical_value', 'long_critical_value_id', 'long_critical_macd_cross_duration',
                             'long_macd_cross_num',
                             'long_critical_high', 'long_critical_low', 'long_critical_max_price',
-                            'long_critial_min_price',
+                            'long_critical_min_price',
                             'long_critical_upper_vegas', 'long_critical_lower_vegas']
         for li in range(1, look_backward_group_num):
             target_long_cols += ['long_prevGroup_' + str(li) + 'critical_value',
@@ -1297,18 +1346,22 @@ class CurrencyTrader(threading.Thread):
                                  ]
 
         for ti in range(len(target_long_cols)):
+            #print("Add column " + target_long_cols[ti])
             self.data_df[target_long_cols[ti]] = np.where(
                 self.data_df['long_macd_need_look_backward'],
                 self.data_df[need_look_backward_cols[ti]],
                 self.data_df[no_need_look_backward_cols[ti]]
             )
+            #print("Column " + target_long_cols[ti] + " in data_df? " + str(target_long_cols[ti] in self.data_df.columns))
+
+
 
         self.data_df['short_macd_need_look_backward'] = self.data_df['macd_cross_label'] == 1
 
         target_short_cols = ['short_critical_value', 'short_critical_value_id', 'short_critical_macd_cross_duration',
                              'short_macd_cross_num',
                              'short_critical_high', 'short_critical_low', 'short_critical_max_price',
-                             'short_critial_min_price',
+                             'short_critical_min_price',
                              'short_critical_upper_vegas', 'short_critical_lower_vegas']
         for li in range(1, look_backward_group_num):
             target_short_cols += ['short_prevGroup_' + str(li) + 'critical_value',
@@ -1329,7 +1382,7 @@ class CurrencyTrader(threading.Thread):
                 self.data_df[no_need_look_backward_cols[ti]]
             )
 
-
+        self.data_df['id'] = list(range(self.data_df.shape[0]))
 
         self.data_df['short_macd_long_cond0'] = self.data_df['long_critical_value'] < 0
         self.data_df['short_macd_long_cond1'] = self.data_df['long_critical_value'] > self.data_df['long_prevGroup_2critical_value']
@@ -1344,24 +1397,49 @@ class CurrencyTrader(threading.Thread):
                                                  (self.data_df['macd'] < self.data_df['msignal']) & (self.data_df['prev_macd'] > self.data_df['prev_msignal'])
 
 
-        self.data_df['long_macd_long_enter'] = (self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] > 0) &\
-                                              (self.data_df['macd2'] < 0)
-        self.data_df['long_macd_short_enter'] = (self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] < 0) &\
-                                              (self.data_df['macd2'] > 0)
+        # self.data_df['long_macd_long_enter'] = (self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] > 0) &\
+        #                                       (self.data_df['macd2'] < 0)
+        # self.data_df['long_macd_short_enter'] = (self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2_gradient'] < 0) &\
+        #                                       (self.data_df['macd2'] > 0)
+
+        #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) &\
+        #                                      (self.data_df['macd2'] < 0)
+        #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) &\
+        #                                      (self.data_df['macd2'] > 0)
+
+        #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0)
+        #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0)
+
+        #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0)
+        #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0)
+
+        #Signal  3gradients_positive
+        self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
+        self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
+
+
 
         self.data_df['short_macd_long_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_long_cond' + str(i)] for i in range(4)])
         self.data_df['short_macd_short_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_short_cond' + str(i)] for i in range(4)])
 
+        self.data_df['macd_long_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
+        self.data_df['macd_shoprt_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
 
-        self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter'] | self.data_df['long_macd_long_enter']
-        self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter'] | self.data_df['long_macd_short_enter']
+        self.data_df['macd_long_enter'] = self.data_df['long_macd_long_enter'] #| self.data_df['long_macd_long_enter']
+        self.data_df['macd_short_enter'] = self.data_df['long_macd_short_enter'] #| self.data_df['long_macd_short_enter']
+
+        #self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter'] | self.data_df['long_macd_long_enter']
+        #self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter'] | self.data_df['long_macd_short_enter']
 
 
         self.data_df['short_macd_long_exit'] = (self.data_df['macd_gradient'] < 0) & (self.data_df['macd'] < self.data_df['msignal'])
         self.data_df['short_macd_short_exit'] = (self.data_df['macd_gradient'] > 0) & (self.data_df['macd'] > self.data_df['msignal'])
 
-        self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
-        self.data_df['long_macd_short_exit'] = self.data_df['macd2_gradient'] > 0
+        #self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
+        #self.data_df['long_macd_short_exit'] = self.data_df['macd2_gradient'] > 0
+
+        self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
+        self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
 
 
         result_columns = ['instrument', 'side', 'entry_id', 'entry_time', 'entry_price', 'exit_id', 'exit_time', 'exit_price', 'is_win']
@@ -1428,10 +1506,13 @@ class CurrencyTrader(threading.Thread):
 
                 j += 1
 
-            result_data += [instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]
+            result_data += [[instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]]
 
 
         long_df = pd.DataFrame(data = result_data, columns = result_columns)
+
+        long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * 100.0
+        long_df['pnl'] = long_df['pnl'].apply(lambda x: round(x, 2))
 
         write_long_df = long_df.copy()
         write_long_df['win'] = np.where(
@@ -1444,8 +1525,7 @@ class CurrencyTrader(threading.Thread):
 
         long_df = long_df[long_df['exit_price'] > 0]
 
-        long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price'])/long_df['entry_price']*100.0
-        long_df['pnl'] = long_df['pnl'].apply(lambda x: round(x, 0))
+
 
         long_df['entry_id'] = long_df['entry_id'].astype(int)
         long_df['exit_id'] = long_df['exit_id'].astype(int)
@@ -1518,10 +1598,13 @@ class CurrencyTrader(threading.Thread):
 
                 j += 1
 
-            result_data += [instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price,
-                            is_win]
+            result_data += [[instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price,
+                            is_win]]
 
         short_df = pd.DataFrame(data=result_data, columns=result_columns)
+
+        short_df['pnl'] = -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * 100.0
+        short_df['pnl'] = short_df['pnl'].apply(lambda x: round(x, 2))
 
         write_short_df = short_df.copy()
         write_short_df['win'] = np.where(
@@ -1534,8 +1617,7 @@ class CurrencyTrader(threading.Thread):
         short_df = short_df[short_df['exit_price'] > 0]
 
 
-        short_df['pnl'] = -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * 100.0
-        short_df['pnl'] = short_df['pnl'].apply(lambda x: round(x, 0))
+
 
         short_df['entry_id'] = short_df['entry_id'].astype(int)
         short_df['exit_id'] = short_df['exit_id'].astype(int)
@@ -1621,6 +1703,12 @@ class CurrencyTrader(threading.Thread):
 
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
 
+        write_df['pnl'] = np.where(
+            write_df['exit_price'] > 0,
+            write_df['pnl'],
+            0
+        )
+
         self.data_df.to_csv(self.data_file, index = False)
 
         self.data_df.iloc[-1:][['currency','time', 'open', 'high', 'low', 'close']].to_csv(self.data_file[:-len('.csv')] + '_lastRow.csv', index = False)
@@ -1632,6 +1720,11 @@ class CurrencyTrader(threading.Thread):
         write_df['id'] = list(range(write_df.shape[0]))
 
         write_df['cum_pnl'] = write_df['pnl'].cumsum()
+
+        write_df['entry_price'] = write_df['entry_price'].apply(lambda x: round(x, 5))
+        write_df['exit_price'] = write_df['exit_price'].apply(lambda x: round(x, 5))
+        write_df['cum_pnl'] = write_df['cum_pnl'].apply(lambda x: round(x, 2))
+
 
 
         if report_performance:
@@ -1666,7 +1759,7 @@ class CurrencyTrader(threading.Thread):
                                    is_plot_aux = True,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num, plot_day_line = plot_day_line, plot_cross_point = plot_cross_point,
-                                   plot_long = True, plot_short = False)
+                                   plot_long = True, plot_short = False, remove_plots = True)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
@@ -1676,7 +1769,7 @@ class CurrencyTrader(threading.Thread):
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP=use_dynamic_TP, figure_num=printed_figure_num,
                                    plot_day_line=plot_day_line, plot_cross_point=plot_cross_point,
-                                   plot_long=False, plot_short=True)
+                                   plot_long=False, plot_short=True, remove_plots = False)
 
 
         print("Finish")
