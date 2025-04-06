@@ -30,6 +30,8 @@ is_crypto = True
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
 root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_3gradients_positive_0405"
 
+#root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
+
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
 
@@ -151,6 +153,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     trade_files = [os.path.join(forex_dir,
                                 "all_pnl_chart_3gradients_positive\\all_trades.csv")]
+
+    #trade_files = [os.path.join(forex_dir,
+    #                            "all_pnl_short_macd_strategy_3gradients_close\\all_trades.csv")]
 
 
     output_file = None

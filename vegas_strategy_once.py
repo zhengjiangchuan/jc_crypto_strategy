@@ -394,7 +394,7 @@ def start_do_trading():
     #currencies_to_run = ['XRPUSD']
 
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
-    raw_currencies = currency_df['currency'].tolist()
+    raw_currencies = currency_df['instrument'].tolist()
 
 
 
@@ -455,10 +455,10 @@ def start_do_trading():
 
     #if currency_to_run != 'all':
     if len(currencies_to_run) > 0:
-        currency_df = currency_df[currency_df['currency'].isin(currencies_to_run)]
+        currency_df = currency_df[currency_df['instrument'].isin(currencies_to_run)]
 
 
-    currency_list = currency_df['currency'].tolist()
+    currency_list = currency_df['instrument'].tolist()
 
     pre_run_currency_list = [currency for currency in good_currencies if currency in currency_list]
 
@@ -477,8 +477,8 @@ def start_do_trading():
     print("final currency_list:")
     print(currency_list)
 
-    sorted_currency_df = pd.DataFrame({'currency' : currency_list, 'cid' : list(range(len(currency_list)))})
-    currency_df = pd.merge(currency_df, sorted_currency_df, on = ['currency'], how='inner')
+    sorted_currency_df = pd.DataFrame({'instrument' : currency_list, 'cid' : list(range(len(currency_list)))})
+    currency_df = pd.merge(currency_df, sorted_currency_df, on = ['instrument'], how='inner')
     currency_df = currency_df.sort_values(by = ['cid'])
     currency_df = currency_df.drop(columns = ['cid'])
 
@@ -543,7 +543,7 @@ def start_do_trading():
     currency_pairs = []
     for i in range(currency_df.shape[0]):
         row = currency_df.iloc[i]
-        currency_pairs += [CurrencyPair(row['currency'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'])]
+        currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'])]
 
     print("currencies:")
     print([currencyPair.currency for currencyPair in currency_pairs])
@@ -569,7 +569,13 @@ def start_do_trading():
 
 
 
-    chart_folder_name = "chart_ratio" + str(profit_loss_ratio) + "Crypto"
+    #chart_folder_name = "short_macd_strategy_3gradients_close"
+
+    #chart_folder_name = "3gradients_entry_1gradient_exit"
+
+    #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
+
+    chart_folder_name = "3gradients_entry_3gradients_exit_retest"
 
 
 

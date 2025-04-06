@@ -230,7 +230,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -403,6 +403,17 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['prev2_macd_gradient'] = self.data_df['prev_macd_gradient'].shift(1)
         self.data_df['prev2_macd2_gradient'] = self.data_df['prev_macd2_gradient'].shift(1)
+
+
+        for lb in range(1, 7):
+
+            self.data_df['prev' + str(lb) + '_macd_gradient'] = self.data_df['macd_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd_gradient']
+            self.data_df['prev' + str(lb) + '_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd2_gradient']
+
+
+
+        # self.data_df['prev2_macd_gradient'] = self.data_df['prev_macd_gradient'].shift(1)
+        # self.data_df['prev2_macd2_gradient'] = self.data_df['prev_macd2_gradient'].shift(1)
 
 
         ############################
@@ -1413,7 +1424,14 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0)
         #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0)
 
-        #Signal  3gradients_positive
+        #Singapore  3gradients_positive
+        macd_enter_gradient_num = 3
+        # self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
+        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num)])
+        # self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
+        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num)])
+
+
         self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
         self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
 
@@ -1425,8 +1443,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['macd_long_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
         self.data_df['macd_shoprt_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
 
-        self.data_df['macd_long_enter'] = self.data_df['long_macd_long_enter'] #| self.data_df['long_macd_long_enter']
-        self.data_df['macd_short_enter'] = self.data_df['long_macd_short_enter'] #| self.data_df['long_macd_short_enter']
+        self.data_df['macd_long_enter'] = self.data_df['long_macd_long_enter']
+        self.data_df['macd_short_enter'] = self.data_df['long_macd_short_enter']
+
+        # self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter']
+        # self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter']
 
         #self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter'] | self.data_df['long_macd_long_enter']
         #self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter'] | self.data_df['long_macd_short_enter']
@@ -1435,11 +1456,22 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_macd_long_exit'] = (self.data_df['macd_gradient'] < 0) & (self.data_df['macd'] < self.data_df['msignal'])
         self.data_df['short_macd_short_exit'] = (self.data_df['macd_gradient'] > 0) & (self.data_df['macd'] > self.data_df['msignal'])
 
+
+
+
         #self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
         #self.data_df['long_macd_short_exit'] = self.data_df['macd2_gradient'] > 0
 
         self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
         self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
+
+        macd_exit_gradient_num = 3
+        # self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
+        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
+        # self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
+        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_exit_gradient_num)])
+
+
 
 
         result_columns = ['instrument', 'side', 'entry_id', 'entry_time', 'entry_price', 'exit_id', 'exit_time', 'exit_price', 'is_win']
@@ -1483,8 +1515,10 @@ class CurrencyTrader(threading.Thread):
 
                 if long_macd_indicate_long or (not is_short_macd_fire):
                     is_exit = cur_data['long_macd_long_exit'] or cur_data['macd_short_enter']
+                    #is_exit = cur_data['long_macd_long_exit'] or cur_data['short_macd_short_enter']
                 else:
                     is_exit = cur_data['short_macd_long_exit'] or cur_data['macd_short_enter']
+                    #is_exit = cur_data['short_macd_long_exit'] or cur_data['short_macd_short_enter']
 
                 if is_exit:
 
@@ -1579,8 +1613,10 @@ class CurrencyTrader(threading.Thread):
 
                 if long_macd_indicate_short or (not is_short_macd_fire):
                     is_exit = cur_data['long_macd_short_exit'] or cur_data['macd_long_enter']
+                    #is_exit = cur_data['long_macd_short_exit'] or cur_data['short_macd_long_enter']
                 else:
                     is_exit = cur_data['short_macd_short_exit'] or cur_data['macd_long_enter']
+                    #is_exit = cur_data['short_macd_short_exit'] or cur_data['short_macd_long_enter']
 
                 if is_exit:
                     exit_id = cur_data['id']
@@ -1639,7 +1675,12 @@ class CurrencyTrader(threading.Thread):
         long_win_pct = 0 if total_long_num == 0 else long_win_num / total_long_num
         short_win_pct = 0 if total_short_num == 0 else short_win_num / total_short_num
 
-        summary_df = pd.DataFrame({'Currency': [self.currency], 'Trade Num': [total_num], 'Win Num': [win_num],
+        day_num = len(pd.Series(self.data_df['date'].unique()).dt.to_pydatetime())
+
+        trade_num_per_day = round(total_num/day_num,1)
+
+        summary_df = pd.DataFrame({'Currency': [self.currency], 'Trade Num': [total_num], 'Day Num': [day_num], 'Trade Per Day': [trade_num_per_day],
+                                   'Win Num': [win_num],
                                    'Win Pct': [round(win_pct * 100.0) / 100.0],
                                    'Long Trade Num': [total_long_num], 'Long Win Num': [long_win_num],
                                    'Long Win Pct': [round(long_win_pct * 100.0) / 100.0],
