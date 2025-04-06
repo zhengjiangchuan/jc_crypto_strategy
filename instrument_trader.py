@@ -398,17 +398,18 @@ class CurrencyTrader(threading.Thread):
         self.data_df['macd_gradient'] = self.data_df['macd'].diff()
         self.data_df['macd2_gradient'] = self.data_df['macd2'].diff()
 
-        self.data_df['prev_macd_gradient'] = self.data_df['macd_gradient'].shift(1)
-        self.data_df['prev_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1)
-
-        self.data_df['prev2_macd_gradient'] = self.data_df['prev_macd_gradient'].shift(1)
-        self.data_df['prev2_macd2_gradient'] = self.data_df['prev_macd2_gradient'].shift(1)
+        # self.data_df['prev_macd_gradient'] = self.data_df['macd_gradient'].shift(1)
+        # self.data_df['prev_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1)
 
 
         for lb in range(1, 7):
 
-            self.data_df['prev' + str(lb) + '_macd_gradient'] = self.data_df['macd_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd_gradient']
-            self.data_df['prev' + str(lb) + '_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd2_gradient']
+            self.data_df['prev' + str(lb) + '_macd_gradient'] = self.data_df['macd_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd_gradient'].shift(1)
+            self.data_df['prev' + str(lb) + '_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd2_gradient'].shift(1)
+
+
+        #self.data_df['prev2_macd_gradient'] = self.data_df['prev1_macd_gradient'].shift(1)
+        #self.data_df['prev2_macd2_gradient'] = self.data_df['prev1_macd2_gradient'].shift(1)
 
 
 
@@ -1425,15 +1426,15 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0)
 
         #Singapore  3gradients_positive
-        macd_enter_gradient_num = 3
-        # self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
-        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num)])
-        # self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
-        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num)])
+        macd_enter_gradient_num = 4
+        self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num)])
+        self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num)])
 
 
-        self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
-        self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
+        #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
+        #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
 
 
 
@@ -1458,18 +1459,19 @@ class CurrencyTrader(threading.Thread):
 
 
 
+        macd_exit_gradient_num = 4
+        self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
+        self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_exit_gradient_num)])
+
 
         #self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
         #self.data_df['long_macd_short_exit'] = self.data_df['macd2_gradient'] > 0
 
-        self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
-        self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
+        #self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
+        #self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
 
-        macd_exit_gradient_num = 3
-        # self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
-        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
-        # self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
-        #                                                                 [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_exit_gradient_num)])
 
 
 

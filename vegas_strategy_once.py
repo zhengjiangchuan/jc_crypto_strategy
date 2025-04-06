@@ -575,7 +575,7 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    chart_folder_name = "3gradients_entry_3gradients_exit_retest"
+    chart_folder_name = "4gradients_entry_4gradients_exit"
 
 
 
