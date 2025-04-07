@@ -575,7 +575,9 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    chart_folder_name = "4gradients_entry_4gradients_exit"
+    #chart_folder_name = "4gradients_entry_4gradients_exit"
+
+    chart_folder_name = "4gradients_entry_4gradients_or_cross_exit"
 
 
 
@@ -614,10 +616,16 @@ def start_do_trading():
             fd.close()
 
         data_file = os.path.join(currency_data_folder, currency + ".csv")
-        trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
-        performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+        #trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
 
-        email_message_file = os.path.join(currency_folder, currency + "_emails.txt")
+        trade_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_all_trades.csv")
+        #performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+
+        performance_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_performance.csv")
+
+        #email_message_file = os.path.join(currency_folder, currency + "_emails.txt")
+
+        email_message_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_emails.txt")
 
         #print("Fuck performance_file " + performance_file)
 

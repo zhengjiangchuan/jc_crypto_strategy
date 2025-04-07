@@ -1432,6 +1432,14 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num)])
 
+        #Added one
+        # self.data_df['long_macd_long_enter'] = self.data_df['long_macd_long_enter'] |\
+        #                                        ((self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2'] >= self.data_df['msignal2']))
+        # self.data_df['long_macd_short_enter'] = self.data_df['long_macd_short_enter'] |\
+        #                                        ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
+
+
+
 
         #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
         #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
@@ -1442,7 +1450,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_macd_short_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_short_cond' + str(i)] for i in range(4)])
 
         self.data_df['macd_long_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
-        self.data_df['macd_shoprt_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
+        self.data_df['macd_short_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
 
         self.data_df['macd_long_enter'] = self.data_df['long_macd_long_enter']
         self.data_df['macd_short_enter'] = self.data_df['long_macd_short_enter']
@@ -1464,6 +1472,13 @@ class CurrencyTrader(threading.Thread):
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
         self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_exit_gradient_num)])
+
+
+        # self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] |\
+        #                                        ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
+        # self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] |\
+        #                                        ((self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2'] >= self.data_df['msignal2']))
+
 
 
         #self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
