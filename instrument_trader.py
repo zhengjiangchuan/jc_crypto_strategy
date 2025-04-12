@@ -253,6 +253,59 @@ vegas_threshold = 1 if relax_vegas else 0
 
 vegas_condition_threshold = 10 if relax_vegas else 1
 
+initial_entry_value = 100.0
+
+do_smart_execution = True
+
+if do_smart_execution:
+
+    class StrategyExecution:
+
+        def __init__(self, side, leverage, take_profit_pct, take_loss_pct, strategy_id, execution_id, strategy_entry_time, strategy_entry_price,
+                      execution_entry_time, execution_entry_price, strategy_entry_value, execution_entry_value):
+
+            self.active = True
+            self.side = side #1 means long  -1 means short
+            self.leverage = leverage
+            self.take_profit_pct = take_profit_pct
+            self.take_loss_pct = take_loss_pct
+            self.strategy_id = strategy_id
+            self.execution_id = execution_id
+            self.strategy_entry_time = strategy_entry_time
+            self.strategy_entry_price = strategy_entry_price
+            self.execution_entry_time = execution_entry_time
+            self.execution_entry_price = execution_entry_price
+            self.strategy_entry_value = strategy_entry_value
+            self.execution_entry_value = execution_entry_value
+
+            self.execution_exit_time = None
+            self.execution_exit_price = -1
+            self.execution_exit_value = -1
+
+            #self.profit_rate = self.take_profit_pct * self.leverage
+            #self.loss_rate = self.take_loss_pct * self.leverage
+            self.pnl_rate = 0
+            self.pnl = 0
+
+            self.take_profit_price = self.execution_entry_price * (1 + self.side * self.take_profit_pct)
+            self.take_loss_price = self.execution_entry_price * (1 - self.side * self.take_loss_pct)
+
+
+        def exit_execution(self, execution_exit_time, execution_exit_price, is_strategy_exit):
+
+            return_rate = self.side * (execution_exit_price - self.execution_entry_price)/self.execution_entry_price
+
+            self.pnl_rate = return_rate * self.leverage
+            self.pnl = self.execution_entry_value * self.pnl_rate
+
+            self.execution_exit_value = self.execution_entry_value + self.pnl
+            self.execution_exit_time = execution_exit_time
+
+            self.active = (not is_strategy_exit) and self.pnl > 0
+
+
+
+
 
 
 class CurrencyTrader(threading.Thread):
@@ -310,6 +363,26 @@ class CurrencyTrader(threading.Thread):
 
         self.macd_group_summary_df = None
         self.critical_value_data_df = None
+
+        if do_smart_execution:
+            #self.entry_total_principal = 100
+            self.minimum_maxdrawdown = 0.025
+            self.actual_maxdrawdown = 0.05 #This needs to be read from config file
+            self.max_drawdown = max(self.actual_maxdrawdown, self.minimum_maxdrawdown)
+            self.fraction = self.actual_maxdrawdown / self.max_drawdown
+            self.profit_rates = np.array([1.0, 0.5, 1.0, 0.5]) * self.fraction
+            self.loss_rates = np.array([0.5] * len(self.profit_rates))  # Always stop loss when losing half of the actual notional (margin)
+            self.loss_rates = self.loss_rates * self.fraction
+
+            self.optimal_leverage = int(1.0 / (self.max_drawdown * 2))
+            self.half_optimal_leverage = int(self.optimal_leverage / 2)
+            self.leverage = np.array([self.optimal_leverage, self.optimal_leverage, self.half_optimal_leverage, self.half_optimal_leverage])
+
+            self.take_profit_pct = self.profit_rates / self.leverage
+            self.take_loss_pct = self.loss_rates / self.leverage
+
+            self.each_strategy_entry_value = initial_entry_value / len(self.leverage)
+
 
         self.log_msg("Initializing...")
 
@@ -1492,8 +1565,18 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        result_columns = ['instrument', 'side', 'entry_id', 'entry_time', 'entry_price', 'exit_id', 'exit_time', 'exit_price', 'is_win']
-        result_data = []
+        if do_smart_execution:
+            result_columns = ['long_trade_id', 'short_trade_id', 'instrument', 'side', 'entry_id', 'entry_time', 'entry_price', 'exit_id', 'exit_time', 'exit_price', 'is_win']
+            result_data = []
+
+            strategy_record_columns = ['long_trade_id', 'strategy_id','entry_time', 'entry_price', 'entry_value', 'exit_time', 'exit_price', 'exit_value', 'pnl']
+            strategy_execution_record_columns = ['long_trade_id', 'strategy_id', 'leverage', 'take_profit_pct', 'take_profit_price', 'take_loss_pct', 'take_loss_prict',
+                                                 'entry_time', 'entry_price', 'entry_value', 'exit_time', 'exit_price', 'exit_value', 'pnl']
+
+            strategy_records = []
+            strategy_execution_records = []
+
+
 
         print("")
         print("Calculating Long positions.............")
@@ -1503,6 +1586,7 @@ class CurrencyTrader(threading.Thread):
 
         is_effective = [1] * len(long_start_ids)
 
+        long_trade_id = 0
         for i in range(len(long_start_ids)):
 
             if is_effective[i] == 0:
@@ -1518,6 +1602,8 @@ class CurrencyTrader(threading.Thread):
             entry_price = long_fire_data['close']
             entry_id = long_fire_data['id']
 
+            long_trade_id += 1
+
             is_short_macd_fire = not long_fire_data['long_macd_long_enter']
 
             j = 1
@@ -1527,9 +1613,44 @@ class CurrencyTrader(threading.Thread):
             exit_time = None
             exit_price = -1
             is_win = False
+
+            if do_smart_execution:
+                strategy_executions = []
+                for k in range(len(self.leverage)):
+                    strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
+                                                           strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                           strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value)
+                    strategy_executions += [strategy_execution]
+
+                strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
+                                                           strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                           strategy_entry_value = initial_entry_value, execution_entry_value = initial_entry_value)
+
+                strategy_executions += [strategy_execution]
+
+
             while long_start_id + j < self.data_df.shape[0]:
 
                 cur_data = self.data_df.iloc[long_start_id + j]
+
+                for k in range(len(strategy_executions)):
+
+                    strategy_execution = strategy_executions[k]
+
+                    if not strategy_execution.active:
+                        continue
+
+                    if cur_data['high'] >= strategy_execution.take_profit_price:
+
+                        strategy_execution.exit_execution(cur_data['time'], strategy_execution.take_profit_price, False)
+
+                        strategy_execution_records += [[]]
+
+
+
+
 
                 if long_macd_indicate_long or (not is_short_macd_fire):
                     is_exit = cur_data['long_macd_long_exit'] or cur_data['macd_short_enter']
@@ -1558,12 +1679,13 @@ class CurrencyTrader(threading.Thread):
 
                 j += 1
 
-            result_data += [[instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]]
+
+            result_data += [[long_trade_id, 0, instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]]
 
 
         long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
-        long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * 100.0
+        long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * initial_entry_value
         long_df['pnl'] = long_df['pnl'].apply(lambda x: round(x, 2))
 
         write_long_df = long_df.copy()
@@ -1601,6 +1723,7 @@ class CurrencyTrader(threading.Thread):
 
         is_effective = [1] * len(short_start_ids)
 
+        short_trade_id = 0
         for i in range(len(short_start_ids)):
 
             if is_effective[i] == 0:
@@ -1615,6 +1738,8 @@ class CurrencyTrader(threading.Thread):
             entry_time = short_fire_data['time']
             entry_price = short_fire_data['close']
             entry_id = short_fire_data['id']
+
+            short_trade_id += 1
 
             is_short_macd_fire = not short_fire_data['long_macd_short_enter']
 
@@ -1652,7 +1777,8 @@ class CurrencyTrader(threading.Thread):
 
                 j += 1
 
-            result_data += [[instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price,
+
+            result_data += [[0, short_trade_id, instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price,
                             is_win]]
 
         short_df = pd.DataFrame(data=result_data, columns=result_columns)
@@ -1756,11 +1882,14 @@ class CurrencyTrader(threading.Thread):
             self.email_message_fd.close()
 
 
-
-
         write_df = pd.concat([self.write_long_df, self.write_short_df])
 
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
+
+        write_df['trade_id'] = np.array(list(range(write_df.shape[0]))) + 1
+        write_df['trade_id'] = write_df['trade_id'].astype(int)
+
+        write_df = write_df[['trade_id'] + [col for col in write_df.columns if col not in ['trade_id']]]
 
         write_df['pnl'] = np.where(
             write_df['exit_price'] > 0,
@@ -1776,7 +1905,7 @@ class CurrencyTrader(threading.Thread):
         self.critical_value_data_df.to_csv(self.data_file[:-len('.csv')] + '_critial_value.csv', index = False)
 
 
-        write_df['id'] = list(range(write_df.shape[0]))
+        #write_df['id'] = list(range(write_df.shape[0]))
 
         write_df['cum_pnl'] = write_df['pnl'].cumsum()
 

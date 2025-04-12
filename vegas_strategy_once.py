@@ -328,9 +328,9 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
 
-    is_weekend = False
+    is_weekend = True
 
     is_do_portfolio_trading = False
 
@@ -390,8 +390,8 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
-    currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    #currencies_to_run = ['SOLUSD']
+    #currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
+    currencies_to_run = ['DOGEUSD']
 
     #currencies_to_run = []
 
@@ -579,7 +579,7 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    chart_folder_name = "4gradients_entry_4gradients_exit"
+    chart_folder_name = "4gradients_entry_4gradients_exit_test"
 
     #chart_folder_name = "3gradients_entry_3gradients_exit"
 
@@ -1036,7 +1036,7 @@ def start_do_trading():
         print("Copying bar charts and pnl charts...")
         #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
 
-        trade_df = trade_df.drop(columns=['id', 'cum_pnl'])
+        trade_df = trade_df.drop(columns=['trade_id', 'long_trade_id', 'short_trade_id', 'cum_pnl'])
         trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
 
         for currency in currency_list:
