@@ -230,7 +230,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = 3
 
 plot_day_line = True
 plot_cross_point = True
@@ -1438,8 +1438,8 @@ class CurrencyTrader(threading.Thread):
         # self.data_df['long_macd_short_enter'] = self.data_df['long_macd_short_enter'] |\
         #                                        ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
 
-
-
+        # self.data_df['long_macd_long_enter'] = ((self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2'] >= self.data_df['msignal2']))
+        # self.data_df['long_macd_short_enter'] = ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
 
         #self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & (self.data_df['prev_macd2_gradient'] > 0) & (self.data_df['prev2_macd2_gradient'] > 0)
         #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0) & (self.data_df['prev2_macd2_gradient'] < 0)
@@ -1479,7 +1479,8 @@ class CurrencyTrader(threading.Thread):
         # self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] |\
         #                                        ((self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2'] >= self.data_df['msignal2']))
 
-
+        #self.data_df['long_macd_long_exit'] = ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
+        #self.data_df['long_macd_short_exit'] = ((self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2'] >= self.data_df['msignal2']))
 
         #self.data_df['long_macd_long_exit'] = self.data_df['macd2_gradient'] < 0
         #self.data_df['long_macd_short_exit'] = self.data_df['macd2_gradient'] > 0

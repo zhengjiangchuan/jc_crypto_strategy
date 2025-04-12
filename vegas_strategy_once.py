@@ -328,9 +328,9 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
 
-    is_weekend = True
+    is_weekend = False
 
     is_do_portfolio_trading = False
 
@@ -364,7 +364,7 @@ def start_do_trading():
         communicate_files += [communicate_file]
     communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
-    currency_file = os.path.join(root_folder, "currency.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -390,7 +390,11 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
-    currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD']
+    currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
+    #currencies_to_run = ['SOLUSD']
+
+    #currencies_to_run = []
+
     #currencies_to_run = ['XRPUSD']
 
     #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
@@ -575,9 +579,13 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    #chart_folder_name = "4gradients_entry_4gradients_exit"
+    chart_folder_name = "4gradients_entry_4gradients_exit"
 
-    chart_folder_name = "4gradients_entry_4gradients_or_cross_exit"
+    #chart_folder_name = "3gradients_entry_3gradients_exit"
+
+    #chart_folder_name = "cross_entry_cross_exit"
+
+    #chart_folder_name = "4gradients_entry_4gradients_or_cross_exit"
 
 
 
@@ -830,7 +838,7 @@ def start_do_trading():
                         if is_real_time_trading:
 
                             if data_source == 1:
-                                incremental_data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
                             else:
                                 incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
 
@@ -871,7 +879,7 @@ def start_do_trading():
                         print("Currency file does not exit, query initial data from web")
 
                         if data_source == 1:
-                            temp_data_df = get_bar_data(currency, bar_number=2, is_convert_to_time=False)
+                            temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
                         else:
                             temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
 
@@ -889,7 +897,7 @@ def start_do_trading():
                         print("start_timestamp = " + str(start_timestamp))
 
                         if data_source == 1:
-                            data_df = get_bar_data(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
                         else:
                             data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
 
@@ -959,10 +967,12 @@ def start_do_trading():
         perf_dfs = []
         trade_dfs = []
         for currency in currency_list:
-            perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+            #perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+            perf_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_performance.csv")
             perf_dfs += [pd.read_csv(perf_file)]
 
-            trade_file = os.path.join(root_folder, currency, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
+            #trade_file = os.path.join(root_folder, currency, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
+            trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades.csv")
             trade_df = pd.read_csv(trade_file)
             trade_dfs += [trade_df]
 
