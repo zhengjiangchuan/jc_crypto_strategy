@@ -70,11 +70,12 @@ if use_dynamic_TP:
 
 class CurrencyPair:
 
-    def __init__(self, currency, lot_size, exchange_rate, coefficient):
+    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
         self.coefficient = coefficient
+        self.actual_maxdrawdown = actual_maxdrawdown
 
 
 def convert_to_time(timestamp):
@@ -547,7 +548,8 @@ def start_do_trading():
     currency_pairs = []
     for i in range(currency_df.shape[0]):
         row = currency_df.iloc[i]
-        currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'])]
+        currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
+                                        row['actual_maxdrawdown'])]
 
     print("currencies:")
     print([currencyPair.currency for currencyPair in currency_pairs])
@@ -767,10 +769,12 @@ def start_do_trading():
         lot_size = currency_pair.lot_size
         exchange_rate = currency_pair.exchange_rate
         coefficient = currency_pair.coefficient
+        actual_maxdrawdown = currency_pair.actual_maxdrawdown
 
         #print("Here performance_file = " + performance_file)
-        currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, data_folder,
-                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, currency in currencies_to_notify)
+        currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, data_folder,
+                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx,
+                                         email_message_file, currency in currencies_to_notify)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]

@@ -311,7 +311,7 @@ if do_smart_execution:
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -336,6 +336,12 @@ class CurrencyTrader(threading.Thread):
 
         self.long_df = None
         self.short_df = None
+
+        self.long_strategy_df = None
+        self.short_strategy_df = None
+
+        self.long_strategy_execution_df = None
+        self.short_strategy_execution_df = None
 
         # self.use_relaxed_vegas_support = True
         # self.is_require_m12_strictly_above_vegas = False
@@ -368,7 +374,7 @@ class CurrencyTrader(threading.Thread):
         if do_smart_execution:
             #self.entry_total_principal = 100
             self.minimum_maxdrawdown = 0.025
-            self.actual_maxdrawdown = 0.05 #This needs to be read from config file
+            self.actual_maxdrawdown = actual_maxdrawdown #This needs to be read from config file
             self.max_drawdown = max(self.actual_maxdrawdown, self.minimum_maxdrawdown)
             self.fraction = self.actual_maxdrawdown / self.max_drawdown
             self.profit_rates = np.array([1.0, 0.5, 1.0, 0.5]) * self.fraction
@@ -1574,12 +1580,15 @@ class CurrencyTrader(threading.Thread):
 
             result_data = []
 
-            strategy_record_columns = ['long_trade_id', 'strategy_id','entry_time', 'entry_price', 'entry_value', 'exit_time', 'exit_price', 'exit_value', 'pnl']
-            strategy_execution_record_columns = ['long_trade_id', 'strategy_id', 'execution_id', 'leverage', 'take_profit_pct', 'take_profit_price', 'take_loss_pct', 'take_loss_price',
+            strategy_record_columns = ['side', 'long_trade_id', 'strategy_id', 'leverage', 'entry_time', 'entry_price', 'entry_value', 'exit_time', 'exit_price', 'exit_value', 'pnl']
+            strategy_execution_record_columns = ['side', 'long_trade_id', 'strategy_id', 'execution_id', 'leverage', 'take_profit_pct', 'take_profit_price', 'take_loss_pct', 'take_loss_price',
                                                  'entry_time', 'entry_price', 'entry_value', 'exit_time', 'exit_price', 'exit_value', 'pnl']
 
-            strategy_records = []
-            strategy_execution_records = []
+            long_strategy_records = []
+            long_strategy_execution_records = []
+
+            short_strategy_records = []
+            short_strategy_execution_records = []
 
 
 
@@ -1659,7 +1668,7 @@ class CurrencyTrader(threading.Thread):
                             execution.exit_execution(cur_data['time'], execution.take_profit_price if hit_stop_profit else execution.take_loss_price,
                                                      False)
 
-                            strategy_execution_records += [[long_trade_id, k+1, execution.execution_id, execution.leverage,
+                            long_strategy_execution_records += [['long', long_trade_id, k+1, execution.execution_id, execution.leverage,
                                                             execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
                                                             execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
                                                             execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
@@ -1698,7 +1707,7 @@ class CurrencyTrader(threading.Thread):
                                 continue
 
                             execution.exit_execution(exit_time, exit_price, True)
-                            strategy_execution_records += [[long_trade_id, k+1, execution.execution_id, execution.leverage,
+                            long_strategy_execution_records += [['long', long_trade_id, k+1, execution.execution_id, execution.leverage,
                                                             execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
                                                             execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
                                                             execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
@@ -1711,7 +1720,7 @@ class CurrencyTrader(threading.Thread):
                             execution = strategy_executions[k]
                             strategy_pnl = execution.execution_exit_value - execution.strategy_entry_value
                             total_strategy_pnl += strategy_pnl
-                            strategy_records += [[long_trade_id, k+1, execution.strategy_entry_time, execution.strategy_entry_price,
+                            long_strategy_records += [['long', long_trade_id, k+1, execution.leverage, execution.strategy_entry_time, execution.strategy_entry_price,
                                                   execution.strategy_entry_value, execution.execution_exit_time, execution.execution_exit_price,
                                                   execution.execution_exit_value, strategy_pnl]]
 
@@ -1735,6 +1744,10 @@ class CurrencyTrader(threading.Thread):
             result_data += [[long_trade_id, 0, instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]
                             + ([total_strategy_pnl] if do_smart_execution else [])]
 
+
+        if do_smart_execution:
+            self.long_strategy_df = pd.DataFrame(data = long_strategy_records, columns = strategy_record_columns)
+            self.long_strategy_execution_df = pd.DataFrame(data = long_strategy_execution_records, columns = strategy_execution_record_columns)
 
         long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
@@ -1806,9 +1819,67 @@ class CurrencyTrader(threading.Thread):
             exit_time = None
             exit_price = -1
             is_win = False
+
+            if do_smart_execution:
+                strategy_executions = []
+                for k in range(len(self.leverage)):
+                    strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
+                                                           strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                           strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value)
+                    strategy_executions += [strategy_execution]
+
+                #This is the extra one
+                strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
+                                                           strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                           strategy_entry_value = initial_entry_value, execution_entry_value = initial_entry_value)
+
+                strategy_executions += [strategy_execution]
+
+
+                total_strategy_pnl = 0
+
+
+
             while short_start_id + j < self.data_df.shape[0]:
 
                 cur_data = self.data_df.iloc[short_start_id + j]
+
+                if do_smart_execution:
+                    for k in range(len(strategy_executions)):
+
+                        execution = strategy_executions[k]
+
+                        if not execution.active:
+                            continue
+
+                        hit_stop_profit = cur_data['low'] <= execution.take_profit_price
+                        hit_stop_loss = (cur_data['high'] >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
+
+                        if hit_stop_profit or hit_stop_loss:
+
+                            execution.exit_execution(cur_data['time'], execution.take_profit_price if hit_stop_profit else execution.take_loss_price,
+                                                     False)
+
+                            short_strategy_execution_records += [['short', short_trade_id, k+1, execution.execution_id, execution.leverage,
+                                                            execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                                                            execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                                                            execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                                                            execution.pnl]]
+
+                            if hit_stop_profit and k < len(strategy_executions) - 1:
+                                next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
+                                                               take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
+                                                               strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
+                                                               execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
+                                                               strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                               )
+
+                                strategy_executions[k] = next_execution
+
+
+
 
                 if long_macd_indicate_short or (not is_short_macd_fire):
                     is_exit = cur_data['long_macd_short_exit'] or cur_data['macd_long_enter']
@@ -1822,6 +1893,32 @@ class CurrencyTrader(threading.Thread):
                     exit_time = cur_data['time']
                     exit_price = cur_data['close']
                     is_win = exit_price < entry_price
+
+                    if do_smart_execution:
+                        for k in range(len(strategy_executions)):
+                            execution = strategy_executions[k]
+                            if not execution.active:
+                                continue
+
+                            execution.exit_execution(exit_time, exit_price, True)
+                            short_strategy_execution_records += [['short', short_trade_id, k+1, execution.execution_id, execution.leverage,
+                                                            execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                                                            execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                                                            execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                                                            execution.pnl]]
+
+
+                        #Prepare strategy_record for 5 strategies
+                        for k in range(len(strategy_executions)):
+
+                            execution = strategy_executions[k]
+                            strategy_pnl = execution.execution_exit_value - execution.strategy_entry_value
+                            total_strategy_pnl += strategy_pnl
+                            short_strategy_records += [['short', short_trade_id, k+1, execution.leverage, execution.strategy_entry_time, execution.strategy_entry_price,
+                                                  execution.strategy_entry_value, execution.execution_exit_time, execution.execution_exit_price,
+                                                  execution.execution_exit_value, strategy_pnl]]
+
+
                     break
 
                 if is_short_macd_fire and (not long_macd_indicate_short):
@@ -1836,6 +1933,11 @@ class CurrencyTrader(threading.Thread):
 
             result_data += [[0, short_trade_id, instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price,
                             is_win]]
+
+        if do_smart_execution:
+            self.short_strategy_df = pd.DataFrame(data = short_strategy_records, columns = strategy_record_columns)
+            self.short_strategy_execution_df = pd.DataFrame(data = short_strategy_execution_records, columns = strategy_execution_record_columns)
+
 
         short_df = pd.DataFrame(data=result_data, columns=result_columns)
 
@@ -1938,6 +2040,14 @@ class CurrencyTrader(threading.Thread):
             self.email_message_fd.close()
 
 
+        if do_smart_execution:
+
+            strategy_df = pd.concat([self.long_strategy_df, self.short_strategy_df])
+            strategy_execution_df = pd.concat([self.long_strategy_execution_df, self.short_strategy_execution_df])
+
+            strategy_df = strategy_df.sort_values(by = ['entry_time', 'exit_time'], ascending = True)
+            strategy_execution_df = strategy_execution_df.sort_values(by = ['entry_time', 'exit_time'], ascending = True)
+
         write_df = pd.concat([self.write_long_df, self.write_short_df])
 
         write_df = write_df.sort_values(by = ['entry_time'], ascending = True)
@@ -1977,6 +2087,10 @@ class CurrencyTrader(threading.Thread):
 
             print("performance_file: " + str(self.performance_file))
             self.full_summary_df.to_csv(self.performance_file, index = False)
+
+            if do_smart_execution:
+                strategy_df.to_csv(self.trade_df[:-len('all_trades.csv')] + 'strategies.csv', index = False)
+                strategy_execution_df.to_csv(self.trade_df[:-len('all_trades.csv')] + 'strategy_execution.csv', index = False)
 
 
             if not is_production:
