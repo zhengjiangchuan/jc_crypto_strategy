@@ -392,7 +392,7 @@ def start_do_trading():
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
     #currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    currencies_to_run = ['DOGEUSD']
+    currencies_to_run = ['ADAUSD']
 
     #currencies_to_run = []
 
@@ -581,7 +581,7 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    chart_folder_name = "4gradients_entry_4gradients_exit_test"
+    chart_folder_name = "4gradients_entry_4gradients_exit_execution_correct"
 
     #chart_folder_name = "3gradients_entry_3gradients_exit"
 
