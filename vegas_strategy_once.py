@@ -581,12 +581,11 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    chart_folder_name = "4gradients_entry_4gradients_exit_execution_correct"
+    chart_folder_name = "8gradients_entry_8gradients_exit_execution_really_finalOne4"
 
     #chart_folder_name = "3gradients_entry_3gradients_exit"
 
     #chart_folder_name = "cross_entry_cross_exit"
-
     #chart_folder_name = "4gradients_entry_4gradients_or_cross_exit"
 
 

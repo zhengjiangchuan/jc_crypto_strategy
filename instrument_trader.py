@@ -290,6 +290,9 @@ if do_smart_execution:
             self.take_profit_price = self.execution_entry_price * (1 + self.side * self.take_profit_pct)
             self.take_loss_price = self.execution_entry_price * (1 - self.side * self.take_loss_pct)
 
+            self.double_take_loss_price = self.execution_exit_price * (1 - self.side * 2 * self.take_loss_pct)
+            self.tripple_take_loss_price = self.execution_exit_price * (1 - self.side * 3 * self.take_loss_pct)
+
 
         def exit_execution(self, execution_exit_time, execution_exit_price, is_signal_exit, is_extra_execution):
 
@@ -383,8 +386,8 @@ class CurrencyTrader(threading.Thread):
             self.loss_rates = np.array([0.5] * len(self.profit_rates))  # Always stop loss when losing half of the actual notional (margin)
             self.loss_rates = self.loss_rates * self.fraction
 
-            self.optimal_leverage = int(1.0 / (self.max_drawdown * 2))
-            self.half_optimal_leverage = int(self.optimal_leverage / 2)
+            self.optimal_leverage = round(1.0 / (self.max_drawdown * 2), 1)
+            self.half_optimal_leverage = round(self.optimal_leverage / 2, 1)
             self.leverage = np.array([self.optimal_leverage, self.optimal_leverage, self.half_optimal_leverage, self.half_optimal_leverage])
 
             self.take_profit_pct = self.profit_rates / self.leverage
@@ -484,7 +487,7 @@ class CurrencyTrader(threading.Thread):
         # self.data_df['prev_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1)
 
 
-        for lb in range(1, 7):
+        for lb in range(1, 10):
 
             self.data_df['prev' + str(lb) + '_macd_gradient'] = self.data_df['macd_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd_gradient'].shift(1)
             self.data_df['prev' + str(lb) + '_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1) if lb == 1 else self.data_df['prev' + str(lb-1) + '_macd2_gradient'].shift(1)
@@ -1508,7 +1511,7 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0)
 
         #Singapore  3gradients_positive
-        macd_enter_gradient_num = 4
+        macd_enter_gradient_num = 8
         self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num)])
         self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
@@ -1549,7 +1552,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        macd_exit_gradient_num = 4
+        macd_exit_gradient_num = 8
         self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
         self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
@@ -1659,12 +1662,38 @@ class CurrencyTrader(threading.Thread):
                         if not execution.active:
                             continue
 
-                        hit_stop_profit = cur_data['high'] >= execution.take_profit_price
-                        hit_stop_loss = (cur_data['low'] <= execution.take_loss_price) and (execution.take_loss_price > execution.strategy_entry_price)
 
-                        if hit_stop_profit or hit_stop_loss:
+                        while True:
 
-                            execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price if hit_stop_profit else execution.take_loss_price,
+                            ###############
+
+                            if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price > cur_data['open'] + (1e-5):
+                                loss_ref_price = cur_data['close']
+                            else:
+                                loss_ref_price = cur_data['low']
+
+                            hit_stop_loss = (loss_ref_price <= execution.take_loss_price) and (execution.take_loss_price > execution.strategy_entry_price)
+
+                            if hit_stop_loss:
+
+                                execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                                                         is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
+
+                                long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
+                                                                execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                                                                execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                                                                execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                                                                execution.pnl]]
+
+                                break
+
+                            ###############
+
+                            hit_stop_profit = cur_data['high'] >= execution.take_profit_price
+                            if not hit_stop_profit:
+                                break
+
+                            execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price,
                                                      is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
 
                             long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
@@ -1673,15 +1702,39 @@ class CurrencyTrader(threading.Thread):
                                                             execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                             execution.pnl]]
 
-                            if hit_stop_profit and k < len(strategy_executions) - 1:
+                            if k < len(strategy_executions) - 1:
                                 next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
                                                                take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
                                                                execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
                                                                strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
                                                                )
-
                                 strategy_executions[k] = next_execution
+                                execution = strategy_executions[k]
+                                #hit_stop_profit = cur_data['high'] >= execution.take_profit_price
+                            else:
+                                break
+                                
+
+
+                        # if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price > cur_data['open']:
+                        #     loss_ref_price = cur_data['close']
+                        # else:
+                        #     loss_ref_price = cur_data['low']
+                        #
+                        #
+                        # hit_stop_loss = (loss_ref_price <= execution.take_loss_price) and (execution.take_loss_price > execution.strategy_entry_price)
+                        #
+                        # if hit_stop_loss:
+                        #
+                        #     execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                        #                              is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
+                        #
+                        #     long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
+                        #                                     execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                        #                                     execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                        #                                     execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                        #                                     execution.pnl]]
 
 
 
@@ -1854,12 +1907,51 @@ class CurrencyTrader(threading.Thread):
                         if not execution.active:
                             continue
 
-                        hit_stop_profit = cur_data['low'] <= execution.take_profit_price
-                        hit_stop_loss = (cur_data['high'] >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
 
-                        if hit_stop_profit or hit_stop_loss:
 
-                            execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price if hit_stop_profit else execution.take_loss_price,
+                        while True:
+
+                            if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price < cur_data['open'] - (1e-5):
+                                loss_ref_price = cur_data['close']
+                            else:
+                                loss_ref_price = cur_data['high']
+
+
+                            hit_stop_loss = (loss_ref_price >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
+
+                            if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
+                                print("short_trade_id = " + str(short_trade_id))
+                                print("strategy_id = " + str(execution.strategy_id))
+                                print("execution_id = " + str(execution.execution_id))
+
+                                print("cur time = " + str(cur_data['time']))
+                                print("execution_entry_time = " + str(execution.execution_entry_time))
+                                print("execution_entry_price = " + str(execution.execution_entry_price))
+                                print("open = " + str(cur_data['open']))
+                                print("loss_ref_price = " + str(loss_ref_price))
+                                print("take_loss_price = " + str(execution.take_loss_price))
+                                print("strategy_entry_price = " + str(execution.strategy_entry_price))
+                                print("hit_stop_loss = " + str(hit_stop_loss))
+                                #sys.exit(0)
+
+                            if hit_stop_loss:
+
+                                execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                                                         is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
+
+                                short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
+                                                                execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                                                                execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                                                                execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                                                                execution.pnl]]
+
+                                break
+
+                            hit_stop_profit = cur_data['low'] <= execution.take_profit_price
+                            if not hit_stop_profit:
+                                break
+
+                            execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price,
                                                      is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
 
                             short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
@@ -1868,15 +1960,40 @@ class CurrencyTrader(threading.Thread):
                                                             execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                             execution.pnl]]
 
-                            if hit_stop_profit and k < len(strategy_executions) - 1:
+                            if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
+                                print("Last record so far:")
+                                print(short_strategy_execution_records[-1])
+
+
+                            if k < len(strategy_executions) - 1:
                                 next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
                                                                take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
                                                                execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
                                                                strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
                                                                )
-
                                 strategy_executions[k] = next_execution
+                                execution = strategy_executions[k]
+                                #hit_stop_profit = cur_data['low'] <= execution.take_profit_price
+                            else:
+                                break
+
+
+
+                        # hit_stop_loss = (cur_data['high'] >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
+                        #
+                        # if hit_stop_loss:
+                        #
+                        #     execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                        #                              is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
+                        #
+                        #     short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
+                        #                                     execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                        #                                     execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                        #                                     execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                        #                                     execution.pnl]]
+
+
 
 
 
