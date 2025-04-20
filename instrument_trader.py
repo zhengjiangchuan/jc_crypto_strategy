@@ -230,7 +230,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 3
+printed_figure_num = 2
 
 plot_day_line = True
 plot_cross_point = True
@@ -254,8 +254,9 @@ vegas_threshold = 1 if relax_vegas else 0
 vegas_condition_threshold = 10 if relax_vegas else 1
 
 initial_entry_value = 100.0
+default_leverage = 10
 
-do_smart_execution = True
+do_smart_execution = False
 
 if do_smart_execution:
 
@@ -316,7 +317,7 @@ if do_smart_execution:
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -376,8 +377,13 @@ class CurrencyTrader(threading.Thread):
         self.macd_group_summary_df = None
         self.critical_value_data_df = None
 
+        self.optimal_gradient_num = optimal_gradient_num
+
         if do_smart_execution:
             #self.entry_total_principal = 100
+
+
+
             self.minimum_maxdrawdown = 0.025
             self.actual_maxdrawdown = actual_maxdrawdown #This needs to be read from config file
             self.max_drawdown = max(self.actual_maxdrawdown, self.minimum_maxdrawdown)
@@ -1511,7 +1517,7 @@ class CurrencyTrader(threading.Thread):
         #self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & (self.data_df['prev_macd2_gradient'] < 0)
 
         #Singapore  3gradients_positive
-        macd_enter_gradient_num = 8
+        macd_enter_gradient_num = self.optimal_gradient_num
         self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num)])
         self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
@@ -1552,7 +1558,7 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        macd_exit_gradient_num = 8
+        macd_exit_gradient_num = self.optimal_gradient_num
         self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
         self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
@@ -1805,7 +1811,7 @@ class CurrencyTrader(threading.Thread):
         long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
         if not do_smart_execution:
-            long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * initial_entry_value
+            long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * initial_entry_value * default_leverage
 
 
         long_df['pnl'] = long_df['pnl'].apply(lambda x: round(x, 2))
@@ -1960,9 +1966,9 @@ class CurrencyTrader(threading.Thread):
                                                             execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                             execution.pnl]]
 
-                            if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
-                                print("Last record so far:")
-                                print(short_strategy_execution_records[-1])
+                            # if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
+                            #     print("Last record so far:")
+                            #     print(short_strategy_execution_records[-1])
 
 
                             if k < len(strategy_executions) - 1:
@@ -2061,7 +2067,7 @@ class CurrencyTrader(threading.Thread):
         short_df = pd.DataFrame(data=result_data, columns=result_columns)
 
         if not do_smart_execution:
-            short_df['pnl'] = -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * 100.0
+            short_df['pnl'] = -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * initial_entry_value  * default_leverage
 
         short_df['pnl'] = short_df['pnl'].apply(lambda x: round(x, 2))
 
@@ -2184,8 +2190,8 @@ class CurrencyTrader(threading.Thread):
             0
         )
 
-        print("write_df:")
-        print(write_df.iloc[0:10])
+        # print("write_df:")
+        # print(write_df.iloc[0:10])
 
         self.data_df.to_csv(self.data_file, index = False)
 
@@ -2218,8 +2224,31 @@ class CurrencyTrader(threading.Thread):
                 strategy_execution_df[col] = strategy_execution_df[col].apply(lambda x: round(x, 2))
 
 
+        total_return_rate = write_df.iloc[-1]['cum_pnl']/initial_entry_value
+        max_draw_down, start_draw_down, end_draw_down = self.calc_max_drawdown(write_df['cum_pnl'])
+        max_draw_down = max_draw_down/initial_entry_value
+        jc_sharpe_ratio = total_return_rate / max_draw_down
+
 
         if report_performance:
+
+            #self.full_summary_df['Return Rate'] =  str(round(total_return_rate * 100, 0)) + '%'
+            #self.full_summary_df['Max Drawdown'] = str(round(max_draw_down * 100, 0)) + '%'
+            self.full_summary_df['Return Rate'] = total_return_rate
+            self.full_summary_df['Max Drawdown'] = max_draw_down
+            self.full_summary_df['JC Sharpe'] = jc_sharpe_ratio
+            self.full_summary_df['Critical Ratio'] = (self.full_summary_df['Return Rate'] + self.full_summary_df['Max Drawdown'] - 1)/self.full_summary_df['Max Drawdown']
+
+            for i in range(1, 6):
+                self.full_summary_df['P' + str(i) + 'Asset'] = np.power(self.full_summary_df['Critical Ratio'], i)
+                self.full_summary_df['P' + str(i) + 'Asset'] = self.full_summary_df['P' + str(i) + 'Asset'].apply(lambda x: round(x, 1))
+
+            self.full_summary_df['Critical Ratio'] = self.full_summary_df['Critical Ratio'].apply(lambda x: round(x, 1))
+
+            self.full_summary_df['Return Rate'] = str(round(total_return_rate, 2))
+            self.full_summary_df['Max Drawdown'] = str(round(max_draw_down, 2))
+            self.full_summary_df['JC Sharpe'] = str(round(jc_sharpe_ratio, 2))
+
             print("trade_file: " + str(self.trade_file))
             write_df.to_csv(self.trade_file, index = False)
 
@@ -2232,10 +2261,21 @@ class CurrencyTrader(threading.Thread):
 
 
             if not is_production:
-                plot_pnl_figure(write_df, self.chart_folder, self.currency)
+                plot_pnl_figure(write_df, self.chart_folder, self.currency, start_draw_down, end_draw_down)
 
 
 
+    def calc_max_drawdown(self, x):
+        df = pd.DataFrame({'cum_pnl': x})
+        df['max_cum_pnl'] = df['cum_pnl'].cummax()
+        df['draw_down'] = df['max_cum_pnl'] - df['cum_pnl']
+
+        max_draw_down = df['draw_down'].max()
+        end = df['draw_down'].argmax()
+
+        start = which(df['cum_pnl'] == df.iloc[end]['max_cum_pnl'])[0]
+
+        return (max_draw_down, start, end)
 
 
     def trade(self):

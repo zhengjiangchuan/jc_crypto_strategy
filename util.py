@@ -725,7 +725,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
 
 
-def plot_pnl_figure(trade_df, out_folder, currency):
+def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_down):
 
     # print("trade_df:")
     # print(trade_df)
@@ -774,6 +774,9 @@ def plot_pnl_figure(trade_df, out_folder, currency):
         axes.set_title(currency + " Cum Pnl Curve")
         #axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
         axes.axhline(0, ls='--', color='blue', linewidth=1)
+
+        axes.axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
+        axes.axvline(end_draw_down + 1, ls='--', color='red', linewidth=1)
 
         print("Output pnl folder = " + os.path.join(out_folder, currency + '_pnl.png'))
         fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))

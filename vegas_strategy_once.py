@@ -70,12 +70,13 @@ if use_dynamic_TP:
 
 class CurrencyPair:
 
-    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown):
+    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
         self.coefficient = coefficient
         self.actual_maxdrawdown = actual_maxdrawdown
+        self.optimal_gradient_num = optimal_gradient_num
 
 
 def convert_to_time(timestamp):
@@ -108,7 +109,7 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
 
     data_df = data_df[['time', 'currency', 'open', 'high', 'low', 'close']]
 
-    print("Row number = " + str(data_df.shape[0]) + " &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print("Row number = " + str(data_df.shape[0]) + " &&")
     #
     print("here printing")
     print(data_df.iloc[-20:])
@@ -391,8 +392,8 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
-    #currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    currencies_to_run = ['ADAUSD']
+    currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
+    #currencies_to_run = ['BTCUSD', 'ADAUSD']
 
     #currencies_to_run = []
 
@@ -549,7 +550,7 @@ def start_do_trading():
     for i in range(currency_df.shape[0]):
         row = currency_df.iloc[i]
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
-                                        row['actual_maxdrawdown'])]
+                                        row['actual_maxdrawdown'], row['optimal_gradient_num'])]
 
     print("currencies:")
     print([currencyPair.currency for currencyPair in currency_pairs])
@@ -581,7 +582,11 @@ def start_do_trading():
 
     #chart_folder_name = "3gradients_entry_3gradients_exit_shortmacd_exit"
 
-    chart_folder_name = "8gradients_entry_8gradients_exit_execution_really_finalOne4"
+    #chart_folder_name = "8gradients_entry_8gradients_exit"
+
+    #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
+
+    general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
     #chart_folder_name = "3gradients_entry_3gradients_exit"
 
@@ -590,8 +595,15 @@ def start_do_trading():
 
 
 
-
+    chart_folder_names = []
     for currency_pair in currency_pairs:
+
+        drawdown = currency_pair.actual_maxdrawdown * 100
+        #chart_folder_name = str(currency_pair.optimal_gradient_num) + "gradients_entry_" + str(currency_pair.optimal_gradient_num) + "gradients_exit_execution_" + str(drawdown) + "pctDrawDown"
+
+        chart_folder_name = str(currency_pair.optimal_gradient_num) + "gradients_entry_" + str(currency_pair.optimal_gradient_num) + "gradients_exit_" + str(drawdown) + "pctDrawDown"
+
+        chart_folder_names += [chart_folder_name]
 
         currency = currency_pair.currency
 
@@ -769,9 +781,12 @@ def start_do_trading():
         exchange_rate = currency_pair.exchange_rate
         coefficient = currency_pair.coefficient
         actual_maxdrawdown = currency_pair.actual_maxdrawdown
+        optimal_gradient_num = currency_pair.optimal_gradient_num
+
+        #print("optimal_gradient_num = " + str(optimal_gradient_num))
 
         #print("Here performance_file = " + performance_file)
-        currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, data_folder,
+        currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, data_folder,
                                          chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx,
                                          email_message_file, currency in currencies_to_notify)
         currency_trader.daemon = True
@@ -969,8 +984,11 @@ def start_do_trading():
 
         perf_dfs = []
         trade_dfs = []
+        i = 0
         for currency in currency_list:
             #perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+            chart_folder_name = chart_folder_names[i]
+            i += 1
             perf_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_performance.csv")
             perf_dfs += [pd.read_csv(perf_file)]
 
@@ -993,9 +1011,9 @@ def start_do_trading():
         selected_perf_df = perf_df[perf_df['Currency'].isin(selected_currencies)]
         print(selected_perf_df)
 
-        perf_df.to_csv(os.path.join(root_folder, chart_folder_name + ".csv"), index = False)
+        perf_df.to_csv(os.path.join(root_folder, general_chart_folder_name + ".csv"), index = False)
 
-        des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + chart_folder_name)
+        des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + general_chart_folder_name)
         if not os.path.exists(des_pnl_folder):
             os.makedirs(des_pnl_folder)
 
@@ -1014,7 +1032,7 @@ def start_do_trading():
 
 
 
-        des_bar_folder = os.path.join(root_folder, 'all_bars_' + chart_folder_name)
+        des_bar_folder = os.path.join(root_folder, 'all_bars_' + general_chart_folder_name)
         if not os.path.exists(des_bar_folder):
             os.makedirs(des_bar_folder)
 
@@ -1042,7 +1060,12 @@ def start_do_trading():
         trade_df = trade_df.drop(columns=['trade_id', 'long_trade_id', 'short_trade_id', 'cum_pnl'])
         trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
 
+        i = 0
         for currency in currency_list:
+
+            chart_folder_name = chart_folder_names[i]
+            i += 1
+
             #print("currency = " + str(currency))
             pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
             if os.path.exists(pic_path):
