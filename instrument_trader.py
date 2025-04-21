@@ -65,6 +65,23 @@ data_source = 2
 #initial_bar_number = 1000 #3555  50
 initial_bar_number = 50 if data_source == 1 else 5000
 
+initial_bar_number_5min = 3000
+
+#until_date_5min = "2024-09-24"
+#until_date_5min = "2024-10-10"
+#until_date_5min = "2024-10-26"
+#until_date_5min = "2024-11-11"
+#until_date_5min = "2024-11-27"
+#until_date_5min = "2024-12-13"
+#until_date_5min = "2024-12-29"
+#until_date_5min = "2025-01-14"
+#until_date_5min = "2025-01-30"
+#until_date_5min = "2025-02-15"
+#until_date_5min = "2025-03-03"
+#until_date_5min = "2025-03-19"
+#until_date_5min = "2025-04-03"
+#until_date_5min = "2025-04-18"
+
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
 
@@ -230,7 +247,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -256,7 +273,9 @@ vegas_condition_threshold = 10 if relax_vegas else 1
 initial_entry_value = 100.0
 default_leverage = 10
 
-do_smart_execution = False
+do_smart_execution = True
+
+use_5min_in_smart_execution = True
 
 if do_smart_execution:
 
@@ -317,7 +336,9 @@ if do_smart_execution:
 
 class CurrencyTrader(threading.Thread):
 
-    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num,  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify):
+    def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num,
+                 data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify, data_file_5min = None,
+                 decimal = 5):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -328,15 +349,20 @@ class CurrencyTrader(threading.Thread):
         self.chart_folder = chart_folder
         self.simple_chart_folder = simple_chart_folder
         self.data_df = None
+        self.data_df_5min = None
+
         self.last_time = None
         self.log_file = log_file
         self.data_file = data_file
+        self.data_file_5min = data_file_5min
         self.trade_file = trade_file
         self.performance_file = performance_file
         self.usdfx = usdfx
 
         self.email_message_fd = open(email_message_file, 'w')
         self.email_message_caches = []
+
+        self.decimal = decimal
 
         self.is_notify = is_notify
 
@@ -416,9 +442,22 @@ class CurrencyTrader(threading.Thread):
             print('[' + current_time + ' ' + self.currency + ']  ' + msg)
 
 
-    def feed_data(self, new_data_df):
+    def feed_data(self, new_data_df, new_data_df_5min = None):
 
         self.data_df = new_data_df
+        self.data_df_5min = new_data_df_5min
+
+        if self.data_df_5min is not None:
+            print("Round to " + str(self.decimal) + " decimals.....")
+            for col in ['open', 'high', 'low', 'close']:
+                self.data_df_5min[col] = self.data_df_5min[col].apply(lambda x: round(x, self.decimal))
+
+        if self.data_df_5min is not None and use_5min_in_smart_execution:
+
+            self.data_df_5min['location'] = list(range(self.data_df_5min.shape[0]))
+
+            self.data_df = pd.merge(self.data_df, self.data_df_5min[['time', 'location']], on = ['time'], how = 'left')
+
 
     def run(self):
         print("Running...........")
@@ -1658,31 +1697,85 @@ class CurrencyTrader(threading.Thread):
 
             while long_start_id + j < self.data_df.shape[0]:
 
-                cur_data = self.data_df.iloc[long_start_id + j]
+                #cur_data = self.data_df.iloc[long_start_id + j]
+                #print("")
+                #print("Long 1h time = " + str(self.data_df.iloc[long_start_id + j]['time']) + '..............................')
 
                 if do_smart_execution:
-                    for k in range(len(strategy_executions)):
 
-                        execution = strategy_executions[k]
+                    can_use_5min = False
+                    if use_5min_in_smart_execution:
+                        loc_start = self.data_df.iloc[long_start_id + j]['location']
+                        loc_end = None
 
-                        if not execution.active:
-                            continue
-
-
-                        while True:
-
-                            ###############
-
-                            if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price > cur_data['open'] + (1e-5):
-                                loss_ref_price = cur_data['close']
+                        if loc_start is not None and loc_start > 0:
+                            if long_start_id + j + 1 < self.data_df.shape[0]:
+                                loc_end = self.data_df.iloc[long_start_id + j + 1]['location']
+                                if loc_end is None:
+                                    loc_end = self.data_df_5min.shape[0]
                             else:
-                                loss_ref_price = cur_data['low']
+                                loc_end = loc_start + 12
 
-                            hit_stop_loss = (loss_ref_price <= execution.take_loss_price) and (execution.take_loss_price > execution.strategy_entry_price)
+                        if loc_start is not None and loc_end is not None and loc_start >= 0 and loc_end > 0:
+                            loc_start = int(loc_start)
+                            loc_end = int(loc_end)
+                            can_use_5min = True
 
-                            if hit_stop_loss:
+                    if can_use_5min:
+                        use_data_df = self.data_df_5min
+                    else:
+                        use_data_df = self.data_df
+                        loc_start = long_start_id + j
+                        loc_end = long_start_id + j + 1
 
-                                execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+
+                    #print("loc_start = " + str(loc_start))
+                    #print("loc_end = " + str(loc_end))
+
+                    for y in range(loc_start, loc_end):
+                        cur_data = use_data_df.iloc[y]
+
+                        #print("    Long 5min time = " + str(cur_data['time']))
+
+                        for k in range(len(strategy_executions)):
+
+                            execution = strategy_executions[k]
+
+                            if not execution.active:
+                                continue
+
+
+                            while True:
+
+                                ###############
+
+                                if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price > cur_data['open'] + (1e-5):
+                                    loss_ref_price = cur_data['close']
+                                else:
+                                    loss_ref_price = cur_data['low']
+
+                                hit_stop_loss = (loss_ref_price <= execution.take_loss_price) and (execution.take_loss_price > execution.strategy_entry_price)
+
+                                if hit_stop_loss:
+
+                                    execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                                                             is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
+
+                                    long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
+                                                                    execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                                                                    execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                                                                    execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                                                                    execution.pnl]]
+
+                                    break
+
+                                ###############
+
+                                hit_stop_profit = cur_data['high'] >= execution.take_profit_price
+                                if not hit_stop_profit:
+                                    break
+
+                                execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price,
                                                          is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
 
                                 long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
@@ -1691,58 +1784,22 @@ class CurrencyTrader(threading.Thread):
                                                                 execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                                 execution.pnl]]
 
-                                break
-
-                            ###############
-
-                            hit_stop_profit = cur_data['high'] >= execution.take_profit_price
-                            if not hit_stop_profit:
-                                break
-
-                            execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price,
-                                                     is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
-
-                            long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
-                                                            execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
-                                                            execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
-                                                            execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
-                                                            execution.pnl]]
-
-                            if k < len(strategy_executions) - 1:
-                                next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
-                                                               take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
-                                                               strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
-                                                               execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
-                                                               strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
-                                                               )
-                                strategy_executions[k] = next_execution
-                                execution = strategy_executions[k]
-                                #hit_stop_profit = cur_data['high'] >= execution.take_profit_price
-                            else:
-                                break
-                                
+                                if k < len(strategy_executions) - 1:
+                                    next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
+                                                                   take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
+                                                                   strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
+                                                                   execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
+                                                                   strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                   )
+                                    strategy_executions[k] = next_execution
+                                    execution = strategy_executions[k]
+                                    #hit_stop_profit = cur_data['high'] >= execution.take_profit_price
+                                else:
+                                    break
 
 
-                        # if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price > cur_data['open']:
-                        #     loss_ref_price = cur_data['close']
-                        # else:
-                        #     loss_ref_price = cur_data['low']
-                        #
-                        #
-                        # hit_stop_loss = (loss_ref_price <= execution.take_loss_price) and (execution.take_loss_price > execution.strategy_entry_price)
-                        #
-                        # if hit_stop_loss:
-                        #
-                        #     execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
-                        #                              is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
-                        #
-                        #     long_strategy_execution_records += [['long', long_trade_id, 0, k+1, execution.execution_id, execution.leverage,
-                        #                                     execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
-                        #                                     execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
-                        #                                     execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
-                        #                                     execution.pnl]]
-
-
+                if do_smart_execution and can_use_5min:
+                    cur_data = self.data_df.iloc[long_start_id + j]
 
                 if long_macd_indicate_long or (not is_short_macd_fire):
                     is_exit = cur_data['long_macd_long_exit'] or cur_data['macd_short_enter']
@@ -1903,46 +1960,95 @@ class CurrencyTrader(threading.Thread):
 
             while short_start_id + j < self.data_df.shape[0]:
 
-                cur_data = self.data_df.iloc[short_start_id + j]
+                #cur_data = self.data_df.iloc[short_start_id + j]
+
+                #print("")
+                #print("Short 1h time = " + str(self.data_df.iloc[short_start_id + j]['time']) + '..............................')
 
                 if do_smart_execution:
-                    for k in range(len(strategy_executions)):
 
-                        execution = strategy_executions[k]
+                    can_use_5min = False
+                    if use_5min_in_smart_execution:
+                        loc_start = self.data_df.iloc[short_start_id + j]['location']
+                        loc_end = None
 
-                        if not execution.active:
-                            continue
-
-
-
-                        while True:
-
-                            if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price < cur_data['open'] - (1e-5):
-                                loss_ref_price = cur_data['close']
+                        if loc_start is not None and loc_start > 0:
+                            if short_start_id + j + 1 < self.data_df.shape[0]:
+                                loc_end = self.data_df.iloc[short_start_id + j + 1]['location']
+                                if loc_end is None:
+                                    loc_end = self.data_df_5min.shape[0]
                             else:
-                                loss_ref_price = cur_data['high']
+                                loc_end = loc_start + 12
+
+                        if loc_start is not None and loc_end is not None and loc_start >= 0 and loc_end > 0:
+                            loc_start = int(loc_start)
+                            loc_end = int(loc_end)
+                            can_use_5min = True
+
+                    if can_use_5min:
+                        use_data_df = self.data_df_5min
+                    else:
+                        use_data_df = self.data_df
+                        loc_start = short_start_id + j
+                        loc_end = short_start_id + j + 1
 
 
-                            hit_stop_loss = (loss_ref_price >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
+                    for y in range(loc_start, loc_end):
+                        cur_data = use_data_df.iloc[y]
 
-                            if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
-                                print("short_trade_id = " + str(short_trade_id))
-                                print("strategy_id = " + str(execution.strategy_id))
-                                print("execution_id = " + str(execution.execution_id))
+                        #print("    Short 5min time = " + str(cur_data['time']))
 
-                                print("cur time = " + str(cur_data['time']))
-                                print("execution_entry_time = " + str(execution.execution_entry_time))
-                                print("execution_entry_price = " + str(execution.execution_entry_price))
-                                print("open = " + str(cur_data['open']))
-                                print("loss_ref_price = " + str(loss_ref_price))
-                                print("take_loss_price = " + str(execution.take_loss_price))
-                                print("strategy_entry_price = " + str(execution.strategy_entry_price))
-                                print("hit_stop_loss = " + str(hit_stop_loss))
-                                #sys.exit(0)
+                        for k in range(len(strategy_executions)):
 
-                            if hit_stop_loss:
+                            execution = strategy_executions[k]
 
-                                execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                            if not execution.active:
+                                continue
+
+
+                            while True:
+
+                                if execution.execution_entry_time == cur_data['time'] and execution.execution_entry_price < cur_data['open'] - (1e-5):
+                                    loss_ref_price = cur_data['close']
+                                else:
+                                    loss_ref_price = cur_data['high']
+
+
+                                hit_stop_loss = (loss_ref_price >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
+
+                                # if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
+                                #     print("short_trade_id = " + str(short_trade_id))
+                                #     print("strategy_id = " + str(execution.strategy_id))
+                                #     print("execution_id = " + str(execution.execution_id))
+                                #
+                                #     print("cur time = " + str(cur_data['time']))
+                                #     print("execution_entry_time = " + str(execution.execution_entry_time))
+                                #     print("execution_entry_price = " + str(execution.execution_entry_price))
+                                #     print("open = " + str(cur_data['open']))
+                                #     print("loss_ref_price = " + str(loss_ref_price))
+                                #     print("take_loss_price = " + str(execution.take_loss_price))
+                                #     print("strategy_entry_price = " + str(execution.strategy_entry_price))
+                                #     print("hit_stop_loss = " + str(hit_stop_loss))
+                                #     #sys.exit(0)
+
+                                if hit_stop_loss:
+
+                                    execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
+                                                             is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
+
+                                    short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
+                                                                    execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
+                                                                    execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
+                                                                    execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
+                                                                    execution.pnl]]
+
+                                    break
+
+                                hit_stop_profit = cur_data['low'] <= execution.take_profit_price
+                                if not hit_stop_profit:
+                                    break
+
+                                execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price,
                                                          is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
 
                                 short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
@@ -1951,58 +2057,27 @@ class CurrencyTrader(threading.Thread):
                                                                 execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                                 execution.pnl]]
 
-                                break
-
-                            hit_stop_profit = cur_data['low'] <= execution.take_profit_price
-                            if not hit_stop_profit:
-                                break
-
-                            execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_profit_price,
-                                                     is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
-
-                            short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
-                                                            execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
-                                                            execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
-                                                            execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
-                                                            execution.pnl]]
-
-                            # if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
-                            #     print("Last record so far:")
-                            #     print(short_strategy_execution_records[-1])
+                                # if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
+                                #     print("Last record so far:")
+                                #     print(short_strategy_execution_records[-1])
 
 
-                            if k < len(strategy_executions) - 1:
-                                next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
-                                                               take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
-                                                               strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
-                                                               execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
-                                                               strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
-                                                               )
-                                strategy_executions[k] = next_execution
-                                execution = strategy_executions[k]
-                                #hit_stop_profit = cur_data['low'] <= execution.take_profit_price
-                            else:
-                                break
+                                if k < len(strategy_executions) - 1:
+                                    next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
+                                                                   take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
+                                                                   strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
+                                                                   execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
+                                                                   strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                   )
+                                    strategy_executions[k] = next_execution
+                                    execution = strategy_executions[k]
+                                    #hit_stop_profit = cur_data['low'] <= execution.take_profit_price
+                                else:
+                                    break
 
 
-
-                        # hit_stop_loss = (cur_data['high'] >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
-                        #
-                        # if hit_stop_loss:
-                        #
-                        #     execution.exit_execution(execution_exit_time=cur_data['time'], execution_exit_price=execution.take_loss_price,
-                        #                              is_signal_exit=False, is_extra_execution=(k == len(self.leverage)))
-                        #
-                        #     short_strategy_execution_records += [['short', 0, short_trade_id, k+1, execution.execution_id, execution.leverage,
-                        #                                     execution.take_profit_pct, execution.take_profit_price, execution.take_loss_pct, execution.take_loss_price,
-                        #                                     execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
-                        #                                     execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
-                        #                                     execution.pnl]]
-
-
-
-
-
+                if do_smart_execution and can_use_5min:
+                    cur_data = self.data_df.iloc[short_start_id + j]
 
                 if long_macd_indicate_short or (not is_short_macd_fire):
                     is_exit = cur_data['long_macd_short_exit'] or cur_data['macd_long_enter']
@@ -2194,6 +2269,9 @@ class CurrencyTrader(threading.Thread):
         # print(write_df.iloc[0:10])
 
         self.data_df.to_csv(self.data_file, index = False)
+
+        if self.data_df_5min is not None and self.data_file_5min is not None:
+            self.data_df_5min.to_csv(self.data_file_5min, index = False)
 
         self.data_df.iloc[-1:][['currency','time', 'open', 'high', 'low', 'close']].to_csv(self.data_file[:-len('.csv')] + '_lastRow.csv', index = False)
 

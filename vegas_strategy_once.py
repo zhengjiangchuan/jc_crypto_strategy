@@ -65,25 +65,29 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
+read_5min_data = True
+
 if use_dynamic_TP:
     profit_loss_ratio = 10
 
 class CurrencyPair:
 
-    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num):
+    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
         self.coefficient = coefficient
         self.actual_maxdrawdown = actual_maxdrawdown
         self.optimal_gradient_num = optimal_gradient_num
+        self.optimal_gradient_num_execution = optimal_gradient_num_execution
+        self.decimal = decimal
 
 
 def convert_to_time(timestamp):
    #return datetime.fromtimestamp(timestamp+28800)
     return datetime.fromtimestamp(timestamp)
 
-def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_time = True):
+def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, start_timestamp=-1, is_convert_to_time = True):
     # Initialize client - apikey parameter is requiered
     td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
 
@@ -91,8 +95,9 @@ def get_bar_data2(currency, bar_number=240, start_timestamp=-1, is_convert_to_ti
     # Construct the necessary time series
     ts = td.time_series(
         symbol=currency[:-3] + '/' + currency[-3:],
-        interval="1h",
-        outputsize=initial_bar_number,
+        interval=interval,
+        outputsize=bar_number, #initial_bar_number
+        end_date=end_date,
         timezone="Asia/Singapore",
     )
 
@@ -331,8 +336,10 @@ def start_do_trading():
     #data_source = 2
 
     is_real_time_trading = False
-
     is_weekend = True
+
+    is_real_time_trading_5min = False
+    is_weekend_5min = True
 
     is_do_portfolio_trading = False
 
@@ -393,7 +400,7 @@ def start_do_trading():
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
     currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    #currencies_to_run = ['BTCUSD', 'ADAUSD']
+    #currencies_to_run = ['SOLUSD']
 
     #currencies_to_run = []
 
@@ -550,7 +557,7 @@ def start_do_trading():
     for i in range(currency_df.shape[0]):
         row = currency_df.iloc[i]
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
-                                        row['actual_maxdrawdown'], row['optimal_gradient_num'])]
+                                        row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'])]
 
     print("currencies:")
     print([currencyPair.currency for currencyPair in currency_pairs])
@@ -567,6 +574,10 @@ def start_do_trading():
     simple_chart_folders = []
     log_files = []
     data_files = []
+
+    if read_5min_data:
+        data_files_5min = []
+
     trade_files = []
     performance_files = []
 
@@ -588,6 +599,14 @@ def start_do_trading():
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
+    if do_smart_execution:
+        general_chart_folder_name += "_execution"
+
+    if read_5min_data and use_5min_in_smart_execution:
+        general_chart_folder_name += "_5min"
+
+    #general_chart_folder_name += "_SOLUSD"
+
     #chart_folder_name = "3gradients_entry_3gradients_exit"
 
     #chart_folder_name = "cross_entry_cross_exit"
@@ -601,7 +620,15 @@ def start_do_trading():
         drawdown = currency_pair.actual_maxdrawdown * 100
         #chart_folder_name = str(currency_pair.optimal_gradient_num) + "gradients_entry_" + str(currency_pair.optimal_gradient_num) + "gradients_exit_execution_" + str(drawdown) + "pctDrawDown"
 
-        chart_folder_name = str(currency_pair.optimal_gradient_num) + "gradients_entry_" + str(currency_pair.optimal_gradient_num) + "gradients_exit_" + str(drawdown) + "pctDrawDown"
+        gradient_num_str = str(currency_pair.optimal_gradient_num_execution) if do_smart_execution else str(currency_pair.optimal_gradient_num)
+        chart_folder_name = gradient_num_str + \
+                            "gradients_entry_" + gradient_num_str + "gradients_exit" + ("_" + str(drawdown) + "pctDrawDown" if do_smart_execution else "")
+
+        if read_5min_data and use_5min_in_smart_execution:
+            chart_folder_name += "_5min"
+
+        #chart_folder_name += "_SOLUSD"
+
 
         chart_folder_names += [chart_folder_name]
 
@@ -636,7 +663,16 @@ def start_do_trading():
             fd = open(log_file, 'w')
             fd.close()
 
+        #
+        #data_file = os.path.join(data_folder, currency + ".csv")
+        #data_file_5min = os.path.join(data_folder, currency + "_5min.csv")
+        #
+
         data_file = os.path.join(currency_data_folder, currency + ".csv")
+
+        if read_5min_data:
+            data_file_5min = os.path.join(currency_data_folder, currency + "_5min.csv")
+
         #trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
 
         trade_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_all_trades.csv")
@@ -656,6 +692,8 @@ def start_do_trading():
         simple_chart_folders += [simple_chart_folder]
         log_files += [log_file]
         data_files += [data_file]
+        if read_5min_data:
+            data_files_5min += [data_file_5min]
         trade_files += [trade_file]
         performance_files += [performance_file]
 
@@ -772,7 +810,7 @@ def start_do_trading():
 
 
 
-
+    i = 0
     for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file in list(
             zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx, email_message_files)):
 
@@ -781,14 +819,20 @@ def start_do_trading():
         exchange_rate = currency_pair.exchange_rate
         coefficient = currency_pair.coefficient
         actual_maxdrawdown = currency_pair.actual_maxdrawdown
-        optimal_gradient_num = currency_pair.optimal_gradient_num
+        optimal_gradient_num = currency_pair.optimal_gradient_num if not do_smart_execution else currency_pair.optimal_gradient_num_execution
+        decimal = currency_pair.decimal
+
+        data_file_5min = None
+        if read_5min_data:
+            data_file_5min = data_files_5min[i]
+            i += 1
 
         #print("optimal_gradient_num = " + str(optimal_gradient_num))
 
         #print("Here performance_file = " + performance_file)
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, data_folder,
                                          chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx,
-                                         email_message_file, currency in currencies_to_notify)
+                                         email_message_file, currency in currencies_to_notify, data_file_5min if read_5min_data else None, decimal)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
@@ -816,6 +860,7 @@ def start_do_trading():
 
 
                     data_file = os.path.join(data_folder, currency + ".csv")
+                    data_file_5min = os.path.join(data_folder, currency + "_5min.csv")
                     print("data_file:")
                     print(data_file)
 
@@ -836,12 +881,6 @@ def start_do_trading():
                             data_df.reset_index(inplace=True)
                             data_df = data_df.drop(columns=['index'])
 
-                        #data_df = data_df.iloc[0:-2]
-
-                        #BBCF
-                        #data_df = data_df[data_df['time'] <= datetime(2024, 12, 19, 18, 0, 0)]
-
-
 
 
                         last_time = data_df.iloc[-1]['time']
@@ -856,16 +895,11 @@ def start_do_trading():
                         if is_real_time_trading:
 
                             if data_source == 1:
-                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number)
                             else:
-                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=last_timestamp)
+                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number)
 
-                            # print("incremental_data_df:")
-                            # print(incremental_data_df)
 
-                            # if is_weekend:
-                            #     incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
-                            # else:
 
                             if incremental_data_df.iloc[0]['time'] > last_time:
                                 print("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
@@ -875,14 +909,6 @@ def start_do_trading():
                             else:
                                 incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
-                            # print("incremental_data_df length = " + str(incremental_data_df.shape[0]))
-                            #
-                            # print("incremental_data_df after:")
-                            # print(incremental_data_df)
-                            #
-                            # # incremental_data_df = incremental_data_df.iloc[1:-1]
-                            #
-                            # print("Critical incremental_data_df length = " + str(incremental_data_df.shape[0]))
 
                         if is_real_time_trading and incremental_data_df.shape[0] > 0:
 
@@ -896,32 +922,116 @@ def start_do_trading():
                     else:
                         print("Currency file does not exit, query initial data from web")
 
+                        # if data_source == 1:
+                        #     temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
+                        # else:
+                        #     temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
+                        #
+                        # last_timestamp = temp_data_df.iloc[-1]['time']
+                        #
+                        #
+                        # print("last_timestamp: " + str(last_timestamp))
+                        # #print(datetime.fromtimestamp(last_timestamp))
+                        # #start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
+                        # print("initial_bar_num = " + str(initial_bar_number))
+                        # start_timestamp = last_timestamp - timedelta(hours = initial_bar_number - 1)
+                        #
+                        #
+                        # print("last_timestamp = " + str(last_timestamp))
+                        # print("start_timestamp = " + str(start_timestamp))
+
                         if data_source == 1:
-                            temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
+                            data_df = get_bar_data2(currency, bar_number=initial_bar_number)
                         else:
-                            temp_data_df = get_bar_data2(currency, bar_number=2, is_convert_to_time=False)
-
-                        last_timestamp = temp_data_df.iloc[-1]['time']
-
-
-                        print("last_timestamp: " + str(last_timestamp))
-                        #print(datetime.fromtimestamp(last_timestamp))
-                        #start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
-                        print("initial_bar_num = " + str(initial_bar_number))
-                        start_timestamp = last_timestamp - timedelta(hours = initial_bar_number - 1)
-
-
-                        print("last_timestamp = " + str(last_timestamp))
-                        print("start_timestamp = " + str(start_timestamp))
-
-                        if data_source == 1:
-                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
-                        else:
-                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, start_timestamp=start_timestamp)
+                            data_df = get_bar_data2(currency, bar_number=initial_bar_number)
 
                         data_df = data_df.iloc[:-1]
 
 
+                    if read_5min_data:
+
+                        print("Read 5 min data")
+
+                        if os.path.exists(data_file_5min):
+
+                            data_df_5min = pd.read_csv(data_file_5min)
+
+                            data_df_5min['time'] = data_df_5min['time'].apply(lambda x: preprocess_time(x))
+
+                            data_df_5min = data_df_5min[['currency', 'time', 'open', 'high', 'low', 'close']]
+
+
+                            last_time = data_df_5min.iloc[-1]['time']
+                            print("last_time = " + str(last_time))
+                            last_timestamp = int(datetime.timestamp(last_time)) #- 28800
+                            # next_timestamp = last_timestamp + 3600
+
+                            print("Here last time = " + str(last_time))
+                            print("last_timestamp = " + str(last_timestamp))
+                            # time.sleep(15)
+
+                            if is_real_time_trading_5min:
+
+                                if data_source == 1:
+                                    incremental_data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min')
+                                else:
+                                    incremental_data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min')
+
+
+
+                                if incremental_data_df_5min.iloc[0]['time'] > last_time:
+                                    print("5min bar: last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df_5min.iloc[0]['time']), file = sys.stderr)
+
+                                if is_weekend_5min:
+                                    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time]
+                                else:
+                                    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time].iloc[0:-1]
+
+
+                            if is_real_time_trading_5min and incremental_data_df_5min.shape[0] > 0:
+
+
+
+
+                                data_df_5min = pd.concat([data_df_5min, incremental_data_df_5min])
+
+
+                                data_df_5min.reset_index(inplace=True)
+                                data_df_5min = data_df_5min.drop(columns=['index'])
+
+                                # for col in ['open', 'high', 'low', 'close']:
+                                #     data_df_5min[col] = data_df_5min[col].apply(lambda x: round(x, currency_trader.decimal))
+
+                        else:
+                            print("Currency file does not exit, query initial data from web")
+
+                            # if data_source == 1:
+                            #     temp_data_df = get_bar_data2(currency, bar_number=2, interval='5min',  is_convert_to_time=False)
+                            # else:
+                            #     temp_data_df = get_bar_data2(currency, bar_number=2, interval='5min',  is_convert_to_time=False)
+                            #
+                            # last_timestamp = temp_data_df.iloc[-1]['time']
+                            #
+                            #
+                            # print("last_timestamp: " + str(last_timestamp))
+                            # #print(datetime.fromtimestamp(last_timestamp))
+                            # #start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
+                            # print("initial_bar_num = " + str(initial_bar_number))
+                            # start_timestamp = last_timestamp - timedelta(hours = initial_bar_number - 1)
+                            #
+                            #
+                            # print("last_timestamp = " + str(last_timestamp))
+                            # print("start_timestamp = " + str(start_timestamp))
+
+                            if data_source == 1:
+                                data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min')
+                            else:
+                                data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min')
+
+                            data_df_5min = data_df_5min.iloc[:-1]
+
+                            # for col in ['open', 'high', 'low', 'close']:
+                            #     data_df_5min[col] = data_df_5min[col].apply(lambda x: round(x, currency_trader.decimal))
 
                     # print("Initial data_df:")
                     # print(data_df.iloc[-20:])
@@ -941,17 +1051,38 @@ def start_do_trading():
                         else:
                             last_time = None
 
-                        if last_time is not None:
+                        if read_5min_data:
+                            if data_df_5min is not None and data_df_5min.shape[0] > 0:
+                                last_time_5min = data_df.iloc[-1]['time']
+                            else:
+                                last_time_5min = None
+
+                        if last_time is not None and ((not read_5min_data) or last_time_5min is not None):
                             delta = datetime.now() - last_time
+
+                            if read_5min_data:
+                                delta_5min = datetime.now() - last_time_5min
 
                             print("last_time = " + str(last_time))
                             print("now = " + str(datetime.now()))
 
-                            if delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0:
+                            if read_5min_data:
+                                print('last_time_5min = ' + str(last_time_5min))
+
+
+
+                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0) and (
+                                    (not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 600 and delta_5min.days == 0)
+                            ):
                                 print("Received up-to-date data for currency pair " + currency)
 
                                 is_new_data_received[i] = True
-                                currency_trader.feed_data(data_df)
+
+                                if read_5min_data:
+                                    currency_trader.feed_data(data_df, data_df_5min)
+                                else:
+                                    currency_trader.feed_data(data_df)
+
                                 currency_trader.trade()
                             else:
                                 if trial_numbers[i] <= maximum_trial_number:
@@ -967,7 +1098,12 @@ def start_do_trading():
                             is_new_data_received[i] = True
 
                             print("Start trading")
-                            currency_trader.feed_data(data_df)
+                            if read_5min_data:
+                                currency_trader.feed_data(data_df, data_df_5min)
+                            else:
+                                currency_trader.feed_data(data_df)
+
+
                             currency_trader.trade()
 
         for i in range(len(currency_traders)):
