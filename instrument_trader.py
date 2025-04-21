@@ -277,6 +277,8 @@ do_smart_execution = True
 
 use_5min_in_smart_execution = True
 
+do_reentry = True
+
 if do_smart_execution:
 
     class StrategyExecution:
@@ -1697,7 +1699,7 @@ class CurrencyTrader(threading.Thread):
 
             while long_start_id + j < self.data_df.shape[0]:
 
-                #cur_data = self.data_df.iloc[long_start_id + j]
+                cur_data_1h = self.data_df.iloc[long_start_id + j]
                 #print("")
                 #print("Long 1h time = " + str(self.data_df.iloc[long_start_id + j]['time']) + '..............................')
 
@@ -1741,7 +1743,7 @@ class CurrencyTrader(threading.Thread):
 
                             execution = strategy_executions[k]
 
-                            if not execution.active:
+                            if (not execution.active) or (execution.execution_entry_time > cur_data['time']):  #New Code
                                 continue
 
 
@@ -1766,6 +1768,23 @@ class CurrencyTrader(threading.Thread):
                                                                     execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
                                                                     execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                                     execution.pnl]]
+
+                                    ######### New Code ##############
+                                    if can_use_5min and do_reentry and k < len(strategy_executions) - 1:
+                                        if cur_data_1h['close'] > execution.take_loss_price:
+                                             #Allow re-entry after 1h bar closes
+                                             if long_start_id + j + 1 < self.data_df.shape[0]:
+                                                 next_cur_data_1h = self.data_df.iloc[long_start_id + j + 1]
+
+                                                 next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
+                                                                       take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
+                                                                       strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
+                                                                       execution_entry_time=next_cur_data_1h['time'], execution_entry_price=next_cur_data_1h['open'],
+                                                                       strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                       )
+                                                 strategy_executions[k] = next_execution
+                                    ###################################
+                                    
 
                                     break
 
@@ -2002,7 +2021,7 @@ class CurrencyTrader(threading.Thread):
 
                             execution = strategy_executions[k]
 
-                            if not execution.active:
+                            if (not execution.active) or (execution.execution_entry_time > cur_data['time']):
                                 continue
 
 
@@ -2041,6 +2060,23 @@ class CurrencyTrader(threading.Thread):
                                                                     execution.execution_entry_time, execution.execution_entry_price, execution.execution_entry_value,
                                                                     execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                                     execution.pnl]]
+
+                                     ######### New Code ##############
+                                    if can_use_5min and do_reentry and k < len(strategy_executions) - 1:
+                                        if cur_data_1h['close'] < execution.take_loss_price:
+
+                                             #Allow re-entry after 1h bar closes
+                                             if short_start_id + j + 1 < self.data_df.shape[0]:
+                                                 next_cur_data_1h = self.data_df.iloc[short_start_id + j + 1]
+
+                                                 next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
+                                                                       take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
+                                                                       strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
+                                                                       execution_entry_time=next_cur_data_1h['time'], execution_entry_price=next_cur_data_1h['open'],
+                                                                       strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                       )
+                                                 strategy_executions[k] = next_execution
+                                    ###################################
 
                                     break
 

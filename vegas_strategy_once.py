@@ -400,7 +400,7 @@ def start_do_trading():
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
     currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    #currencies_to_run = ['SOLUSD']
+    #currencies_to_run = ['ADAUSD']
 
     #currencies_to_run = []
 
@@ -605,7 +605,10 @@ def start_do_trading():
     if read_5min_data and use_5min_in_smart_execution:
         general_chart_folder_name += "_5min"
 
-    #general_chart_folder_name += "_SOLUSD"
+    if do_reentry:
+        general_chart_folder_name += "_reentryc"
+
+    #general_chart_folder_name += "_regression"
 
     #chart_folder_name = "3gradients_entry_3gradients_exit"
 
@@ -627,7 +630,10 @@ def start_do_trading():
         if read_5min_data and use_5min_in_smart_execution:
             chart_folder_name += "_5min"
 
-        #chart_folder_name += "_SOLUSD"
+        if do_reentry:
+            chart_folder_name += "_reentryc"
+
+        #chart_folder_name += "_regression"
 
 
         chart_folder_names += [chart_folder_name]
