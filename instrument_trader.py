@@ -63,7 +63,7 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 5000
+initial_bar_number = 50 if data_source == 1 else 1000
 
 initial_bar_number_5min = 3000
 
@@ -273,11 +273,11 @@ vegas_condition_threshold = 10 if relax_vegas else 1
 initial_entry_value = 100.0
 default_leverage = 10
 
-do_smart_execution = True
+do_smart_execution = False
 
-use_5min_in_smart_execution = True
+use_5min_in_smart_execution = False
 
-do_reentry = True
+do_reentry = False
 
 if do_smart_execution:
 
@@ -1716,7 +1716,8 @@ class CurrencyTrader(threading.Thread):
                                 if loc_end is None:
                                     loc_end = self.data_df_5min.shape[0]
                             else:
-                                loc_end = loc_start + 12
+                                loc_end = min(loc_start + 12, self.data_df_5min.shape[0])
+
 
                         if loc_start is not None and loc_end is not None and loc_start >= 0 and loc_end > 0:
                             loc_start = int(loc_start)
@@ -1817,7 +1818,7 @@ class CurrencyTrader(threading.Thread):
                                     break
 
 
-                if do_smart_execution and can_use_5min:
+                if (not do_smart_execution) or can_use_5min:
                     cur_data = self.data_df.iloc[long_start_id + j]
 
                 if long_macd_indicate_long or (not is_short_macd_fire):
@@ -1997,7 +1998,7 @@ class CurrencyTrader(threading.Thread):
                                 if loc_end is None:
                                     loc_end = self.data_df_5min.shape[0]
                             else:
-                                loc_end = loc_start + 12
+                                loc_end = min(loc_start + 12, self.data_df_5min.shape[0])
 
                         if loc_start is not None and loc_end is not None and loc_start >= 0 and loc_end > 0:
                             loc_start = int(loc_start)
@@ -2112,7 +2113,7 @@ class CurrencyTrader(threading.Thread):
                                     break
 
 
-                if do_smart_execution and can_use_5min:
+                if (not do_smart_execution) or can_use_5min:
                     cur_data = self.data_df.iloc[short_start_id + j]
 
                 if long_macd_indicate_short or (not is_short_macd_fire):

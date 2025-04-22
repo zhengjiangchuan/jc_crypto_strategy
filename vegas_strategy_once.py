@@ -335,11 +335,11 @@ def start_do_trading():
 
     #data_source = 2
 
-    is_real_time_trading = False
-    is_weekend = True
+    is_real_time_trading = True
+    is_weekend = False
 
-    is_real_time_trading_5min = False
-    is_weekend_5min = True
+    is_real_time_trading_5min = True
+    is_weekend_5min = False
 
     is_do_portfolio_trading = False
 
@@ -507,6 +507,7 @@ def start_do_trading():
     #     print("Copy data of " + currency)
     #     file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
     #     file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
+    #     file_path3 = os.path.join(root_folder, currency, "data", currency + "_5min.csv")
     #     out_folder = os.path.join(temp_data_folder, currency, "data")
     #     if not os.path.exists(out_folder):
     #         os.makedirs(out_folder)
@@ -514,6 +515,7 @@ def start_do_trading():
     #     print("Copy from " + file_path + " to " + out_folder)
     #     shutil.copy2(file_path, out_folder)
     #     shutil.copy2(file_path2, out_folder)
+    #     shutil.copy2(file_path3, out_folder)
     #
     # sys.exit(0)
 
@@ -603,10 +605,10 @@ def start_do_trading():
         general_chart_folder_name += "_execution"
 
     if read_5min_data and use_5min_in_smart_execution:
-        general_chart_folder_name += "_5min"
+        general_chart_folder_name += "_5min_0422"
 
     if do_reentry:
-        general_chart_folder_name += "_reentryc"
+        general_chart_folder_name += "_reentry"
 
     #general_chart_folder_name += "_regression"
 
@@ -628,10 +630,10 @@ def start_do_trading():
                             "gradients_entry_" + gradient_num_str + "gradients_exit" + ("_" + str(drawdown) + "pctDrawDown" if do_smart_execution else "")
 
         if read_5min_data and use_5min_in_smart_execution:
-            chart_folder_name += "_5min"
+            chart_folder_name += "_5min_0422"
 
         if do_reentry:
-            chart_folder_name += "_reentryc"
+            chart_folder_name += "_reentry"
 
         #chart_folder_name += "_regression"
 
@@ -1058,8 +1060,13 @@ def start_do_trading():
                             last_time = None
 
                         if read_5min_data:
+
+                            print("Now data_df_5min..........:")
+                            print(data_df_5min.iloc[-5:])
+
                             if data_df_5min is not None and data_df_5min.shape[0] > 0:
-                                last_time_5min = data_df.iloc[-1]['time']
+                                last_time_5min = data_df_5min.iloc[-1]['time']
+                                print("Here last_time_5min = " + str(last_time_5min))
                             else:
                                 last_time_5min = None
 
@@ -1078,7 +1085,7 @@ def start_do_trading():
 
 
                             if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0) and (
-                                    (not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 600 and delta_5min.days == 0)
+                                    (not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 900 and delta_5min.days == 0)
                             ):
                                 print("Received up-to-date data for currency pair " + currency)
 
