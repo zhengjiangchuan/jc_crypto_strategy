@@ -273,9 +273,9 @@ vegas_condition_threshold = 10 if relax_vegas else 1
 initial_entry_value = 100.0
 default_leverage = 10
 
-do_smart_execution = False
+do_smart_execution = True
 
-use_5min_in_smart_execution = False
+use_5min_in_smart_execution = True
 
 do_reentry = False
 
@@ -386,6 +386,20 @@ class CurrencyTrader(threading.Thread):
         self.log_fd = open(self.log_file, 'a')
 
         self.print_to_console = True
+
+        self.current_position = 0
+
+        if os.path.exists(self.trade_file):
+            trade_df = pd.read_csv(self.trade_file)
+            last_trade = trade_df.iloc[-1]
+            if last_trade['exit_id'] == -1:
+                if last_trade['side'] == 'long':
+                    self.current_position = 1
+                else:
+                    self.current_position = -1
+
+
+
         #
         # self.is_cut_data = False
         #

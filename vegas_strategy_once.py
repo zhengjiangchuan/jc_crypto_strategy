@@ -91,6 +91,8 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     # Initialize client - apikey parameter is requiered
     td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
 
+    print("")
+    print("Now = " + str(datetime.now()))
     print("initial_bar_number = " + str(initial_bar_number))
     # Construct the necessary time series
     ts = td.time_series(
@@ -605,7 +607,7 @@ def start_do_trading():
         general_chart_folder_name += "_execution"
 
     if read_5min_data and use_5min_in_smart_execution:
-        general_chart_folder_name += "_5min_0422"
+        general_chart_folder_name += "_5min_0423"
 
     if do_reentry:
         general_chart_folder_name += "_reentry"
@@ -630,7 +632,7 @@ def start_do_trading():
                             "gradients_entry_" + gradient_num_str + "gradients_exit" + ("_" + str(drawdown) + "pctDrawDown" if do_smart_execution else "")
 
         if read_5min_data and use_5min_in_smart_execution:
-            chart_folder_name += "_5min_0422"
+            chart_folder_name += "_5min_0423"
 
         if do_reentry:
             chart_folder_name += "_reentry"
