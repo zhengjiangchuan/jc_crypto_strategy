@@ -279,6 +279,8 @@ use_5min_in_smart_execution = True
 
 do_reentry = False
 
+do_message_printing = True
+
 if do_smart_execution:
 
     class StrategyExecution:
@@ -397,6 +399,14 @@ class CurrencyTrader(threading.Thread):
                     self.current_position = 1
                 else:
                     self.current_position = -1
+
+                self.current_position *= initial_entry_value/last_trade['entry_price'] * default_leverage
+                if last_trade['entry_price'] >= 1:
+                    self.current_position = round(self.current_position, 3)
+                else:
+                    self.current_position = round(self.current_position, 0)
+
+
 
 
 
@@ -1578,6 +1588,21 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num)])
 
+
+        self.data_df['long_macd_long_enter_ready'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num-1)])
+        self.data_df['long_macd_short_enter_ready'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num-1)])
+
+
+        if do_message_printing and self.is_notify:
+            if self.data_df.iloc[-1]['long_macd_long_enter_ready']:
+                sendEmail("Ready to Open Long Position at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
+            elif self.data_df.iloc[-1]['long_macd_short_enter_ready']:
+                sendEmail("Ready to Open Short Position at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
+
+
+
         #Added one
         # self.data_df['long_macd_long_enter'] = self.data_df['long_macd_long_enter'] |\
         #                                        ((self.data_df['prev_macd2'] < self.data_df['prev_msignal2']) & (self.data_df['macd2'] >= self.data_df['msignal2']))
@@ -1618,7 +1643,6 @@ class CurrencyTrader(threading.Thread):
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
         self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_exit_gradient_num)])
-
 
         # self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] |\
         #                                        ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
@@ -1690,6 +1714,39 @@ class CurrencyTrader(threading.Thread):
             exit_time = None
             exit_price = -1
             is_win = False
+
+
+            if do_message_printing:
+                if self.is_notify and (long_start_id == self.data_df.shape[0] - 1 or print_email_message_to_file):
+
+                    current_time = str(self.data_df.iloc[long_start_id]['time'] + timedelta(hours = 1))
+
+                    position = initial_entry_value/entry_price * default_leverage
+                    if entry_price >= 1:
+                        position = round(position, 3)
+                    else:
+                        position = round(position, 0)
+
+                    delta_position = position - self.current_position
+
+                    self.current_position = position
+
+
+                    message_title = "Long " + self.currency + " " + str(delta_position) + " units"
+
+                    message = "At " + current_time + ", long " + self.currency + " roughly " + str(delta_position) + " units at entry price " + str(entry_price) + "\n"
+                    message += "This makes it now at a long position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
+
+                    print("message_title = " + message_title)
+                    print("message:")
+                    print(message)
+
+                    if not print_email_message_to_file:
+                        sendEmail(message_title, message)
+                    else:
+                        self.cache_email_messages(message_title, message, current_time)
+
+
 
             if do_smart_execution:
                 strategy_executions = []
@@ -1969,6 +2026,37 @@ class CurrencyTrader(threading.Thread):
             exit_time = None
             exit_price = -1
             is_win = False
+
+            if do_message_printing:
+                if self.is_notify and (short_start_id == self.data_df.shape[0] - 1 or print_email_message_to_file):
+
+                    current_time = str(self.data_df.iloc[short_start_id]['time'] + timedelta(hours = 1))
+
+                    position = -initial_entry_value/entry_price * default_leverage
+                    if entry_price >= 1:
+                        position = round(position, 3)
+                    else:
+                        position = round(position, 0)
+
+                    delta_position = position - self.current_position
+
+                    self.current_position = position
+
+
+                    message_title = "Short " + self.currency + " " + str(-delta_position) + " units"
+
+                    message = "At " + current_time + ", short " + self.currency + " roughly " + str(-delta_position) + " units at entry price " + str(entry_price) + "\n"
+                    message += "This makes it now at a short position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
+
+                    print("message_title = " + message_title)
+                    print("message:")
+                    print(message)
+
+                    if not print_email_message_to_file:
+                        sendEmail(message_title, message)
+                    else:
+                        self.cache_email_messages(message_title, message, current_time)
+
 
             if do_smart_execution:
                 strategy_executions = []

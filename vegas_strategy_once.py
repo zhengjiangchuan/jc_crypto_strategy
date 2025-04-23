@@ -440,16 +440,8 @@ def start_do_trading():
 
     currencies_to_remove = []
 
-    good_currencies = []
-    if is_run_individual_good_ones:
-        good_currencies = ['EURAUD', 'AUDUSD', 'AUDJPY', 'NZDCHF', 'CADCHF', 'USDCAD', 'GBPCAD', 'GBPUSD', 'CHFJPY',
-                           'AUDCHF',
-                           'NZDUSD', 'USDJPY', 'AUDCAD', 'NZDCAD', 'GBPCHF', 'GBPAUD']
-    elif is_run_aggregated_good_ones:
-        good_currencies = [
-            'CADCHF', 'NZDCHF', 'AUDCHF', 'EURAUD', 'USDCAD', 'GBPCHF', 'EURNZD', 'AUDJPY', 'CHFJPY', 'GBPCAD',
-            'GBPAUD', 'NZDJPY', 'GBPUSD', 'AUDNZD', 'AUDUSD', 'NZDCAD', 'USDCHF'
-        ]
+    good_currencies = ['XRPUSD', 'DOGEUSD']
+
 
     #currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
     currencies_to_notify = good_currencies if len(good_currencies) > 0 else [currency for currency in raw_currencies if currency not in currencies_to_remove]
