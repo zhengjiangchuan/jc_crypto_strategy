@@ -279,7 +279,7 @@ use_5min_in_smart_execution = True
 
 do_reentry = False
 
-do_message_printing = True
+do_message_printing = False
 
 if do_smart_execution:
 
