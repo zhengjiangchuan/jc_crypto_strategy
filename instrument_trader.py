@@ -274,7 +274,6 @@ initial_entry_value = 100.0
 default_leverage = 10
 
 do_smart_execution = False
-
 use_5min_in_smart_execution = False
 
 do_reentry = False
@@ -359,6 +358,7 @@ class CurrencyTrader(threading.Thread):
         self.simple_chart_folder = simple_chart_folder
         self.data_df = None
         self.data_df_5min = None
+        #self.is_finalized = False
 
         self.last_time = None
         self.log_file = log_file
@@ -459,6 +459,7 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df = new_data_df
         self.data_df_5min = new_data_df_5min
+
 
         if self.data_df_5min is not None:
             print("Round to " + str(self.decimal) + " decimals.....")
@@ -2427,6 +2428,7 @@ class CurrencyTrader(threading.Thread):
         # print("write_df:")
         # print(write_df.iloc[0:10])
 
+        #if self.is_finalized:
         self.data_df.to_csv(self.data_file, index = False)
 
         if self.data_df_5min is not None and self.data_file_5min is not None:

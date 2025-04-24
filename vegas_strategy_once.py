@@ -338,10 +338,10 @@ def start_do_trading():
     #data_source = 2
 
     is_real_time_trading = True
-    is_weekend = False
+    #is_weekend = False
 
     is_real_time_trading_5min = True
-    is_weekend_5min = False
+    #is_weekend_5min = False
 
     is_do_portfolio_trading = False
 
@@ -401,8 +401,8 @@ def start_do_trading():
     #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
 
-    currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    #currencies_to_run = ['ADAUSD']
+    #currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
+    currencies_to_run = ['ADAUSD']
 
     #currencies_to_run = []
 
@@ -594,7 +594,7 @@ def start_do_trading():
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_0424"
+    current_date = "_0424_dataTest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -730,9 +730,11 @@ def start_do_trading():
     is_traded_first_time = [False] * len(currency_pairs)
     trial_numbers = [0] * len(currency_pairs)
 
+    waiting_next_time = None
+
     is_all_received = False
 
-    maximum_trial_number = 3
+    maximum_trial_number = 100
 
 
 
@@ -868,9 +870,33 @@ def start_do_trading():
 
     is_do_trading = True
 
+    running_round = 0
+    waiting_round = 0
+
     if is_do_trading:
         while not is_all_received:
+
+            if running_round > 0:
+                print("running_round = " + str(running_round))
+
+                now = datetime.now()
+                print("now = " + str(now))
+                print("waiting_time = " + str(waiting_next_time))
+                if now < waiting_next_time:
+                    seconds_remaining = (waiting_next_time - now).seconds
+                    sleep_seconds = 5
+                    while seconds_remaining > 0:
+                        actual_sleep_seconds = seconds_remaining if seconds_remaining < sleep_seconds else sleep_seconds
+                        time.sleep(actual_sleep_seconds)
+                        now = datetime.now()
+
+                        seconds_remaining = (waiting_next_time - now).seconds if now < waiting_next_time else 0
+                        print("seconds_remaining = " + str(seconds_remaining))
+
+
             is_all_received = True
+            running_round += 1
+
             for i in range(len(currency_traders)):
                 if not is_new_data_received[i]:
                     currency_trader = currency_traders[i]
@@ -931,10 +957,10 @@ def start_do_trading():
                             if incremental_data_df.iloc[0]['time'] > last_time:
                                 print("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
 
-                            if is_weekend:
-                                incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
-                            else:
-                                incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
+                            #if is_weekend:
+                            incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
+                            # else:
+                            #     incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
 
                         if is_real_time_trading and incremental_data_df.shape[0] > 0:
@@ -1009,15 +1035,13 @@ def start_do_trading():
                                 if incremental_data_df_5min.iloc[0]['time'] > last_time:
                                     print("5min bar: last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df_5min.iloc[0]['time']), file = sys.stderr)
 
-                                if is_weekend_5min:
-                                    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time]
-                                else:
-                                    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time].iloc[0:-1]
+                                #if is_weekend_5min:
+                                #    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time]
+                                #else:
+                                incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time].iloc[0:-1]
 
 
                             if is_real_time_trading_5min and incremental_data_df_5min.shape[0] > 0:
-
-
 
 
                                 data_df_5min = pd.concat([data_df_5min, incremental_data_df_5min])
@@ -1071,10 +1095,12 @@ def start_do_trading():
                         # print("preprocessed data:")
                         # print(data_df.iloc[1500:1510])
 
-                    if is_real_time_trading and not is_weekend:
+                    #if is_real_time_trading and not is_weekend:
+                    if is_real_time_trading:
 
-                        if data_df is not None and data_df.shape[0] > 0:
-                            last_time = data_df.iloc[-1]['time']
+                        if data_df is not None and data_df.shape[0] > 1:
+                            #last_time = data_df.iloc[-1]['time']
+                            last_time = data_df.iloc[-2]['time']
                         else:
                             last_time = None
 
@@ -1092,8 +1118,8 @@ def start_do_trading():
                         if last_time is not None and ((not read_5min_data) or last_time_5min is not None):
                             delta = datetime.now() - last_time
 
-                            if read_5min_data:
-                                delta_5min = datetime.now() - last_time_5min
+                            # if read_5min_data:
+                            #     delta_5min = datetime.now() - last_time_5min
 
                             print("last_time = " + str(last_time))
                             print("now = " + str(datetime.now()))
@@ -1103,12 +1129,24 @@ def start_do_trading():
 
 
 
-                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0) and (
-                                    (not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 1200 and delta_5min.days == 0)
-                            ):
+                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0): #7200
+                                    #and (
+                                    #(not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 1200 and delta_5min.days == 0)
+
                                 print("Received up-to-date data for currency pair " + currency)
 
                                 is_new_data_received[i] = True
+
+                                final_data_df = data_df.iloc[0:-1]
+                                if read_5min_data:
+                                    currency_trader.feed_data(final_data_df, data_df_5min)
+                                else:
+                                    currency_trader.feed_data(final_data_df)
+
+                                currency_trader.trade()
+                            else:
+
+                                print("Not received finalized data for " + currency + ", wait 1 minute to try again")
 
                                 if read_5min_data:
                                     currency_trader.feed_data(data_df, data_df_5min)
@@ -1116,11 +1154,19 @@ def start_do_trading():
                                     currency_trader.feed_data(data_df)
 
                                 currency_trader.trade()
-                            else:
+
+
                                 if trial_numbers[i] <= maximum_trial_number:
                                     is_all_received = False
                                     print("Not received data update for " + currency + ", will try again")
                                     trial_numbers[i] += 1
+
+                                    if waiting_round < running_round:
+                                        waiting_next_time = data_df.iloc[-1]['time'] + timedelta(seconds = 3600 + running_round * 60 + 10)  #-1
+                                        print("waiting_next_time = " + str(waiting_next_time))
+                                        waiting_round += 1
+                                        print("running_round = " + str(running_round) + ", waiting_round = " + str(waiting_round))
+
                                 else:
                                     print("Reached maximum number of trials for " + currency + ", give up")
                     else:
