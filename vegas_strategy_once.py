@@ -440,7 +440,8 @@ def start_do_trading():
 
     currencies_to_remove = []
 
-    good_currencies = ['XRPUSD', 'DOGEUSD']
+    #good_currencies = ['XRPUSD', 'DOGEUSD']
+    good_currencies = []
 
 
     #currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
@@ -593,16 +594,28 @@ def start_do_trading():
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
+    current_date = "_0424"
+
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
     if do_smart_execution:
         general_chart_folder_name += "_execution"
 
     if read_5min_data and use_5min_in_smart_execution:
-        general_chart_folder_name += "_5min_0423"
+        general_chart_folder_name += "_5min"
 
     if do_reentry:
         general_chart_folder_name += "_reentry"
+
+    if use_slow_macd:
+        general_chart_folder_name += "_slowMACD"
+    else:
+        general_chart_folder_name += "_fastMACD"
+
+    if printed_figure_num == -1:
+        general_chart_folder_name += "_allPics"
+
+    general_chart_folder_name += current_date
 
     #general_chart_folder_name += "_regression"
 
@@ -624,10 +637,20 @@ def start_do_trading():
                             "gradients_entry_" + gradient_num_str + "gradients_exit" + ("_" + str(drawdown) + "pctDrawDown" if do_smart_execution else "")
 
         if read_5min_data and use_5min_in_smart_execution:
-            chart_folder_name += "_5min_0423"
+            chart_folder_name += "_5min"
 
         if do_reentry:
             chart_folder_name += "_reentry"
+
+        if use_slow_macd:
+            chart_folder_name += "_slowMACD"
+        else:
+            chart_folder_name += "_fastMACD"
+
+        if printed_figure_num == -1:
+            chart_folder_name += "_allPics"
+
+        chart_folder_name += current_date
 
         #chart_folder_name += "_regression"
 
@@ -878,6 +901,8 @@ def start_do_trading():
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
+                        #data_df = data_df[data_df['time'] <= datetime(2025, 4, 22, 8, 0, 0)]
+
                         if use_short_data_for_prod:
                             data_df = data_df[data_df['time'] >= datetime(2023, 11, 30, 2, 0, 0)]
                             data_df.reset_index(inplace=True)
@@ -1079,7 +1104,7 @@ def start_do_trading():
 
 
                             if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0) and (
-                                    (not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 900 and delta_5min.days == 0)
+                                    (not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 1200 and delta_5min.days == 0)
                             ):
                                 print("Received up-to-date data for currency pair " + currency)
 

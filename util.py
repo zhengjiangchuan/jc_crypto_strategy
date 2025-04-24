@@ -821,14 +821,13 @@ mail_user = "glzxely123"
 mail_pass = "10331861oO"
 
 sender = 'glzxely123@163.com'
-receivers = ['jczheng198508@gmail.com']
+#receivers = ['jczheng198508@gmail.com']
+
+receivers = ['glzxely123@163.com']
 
 
 
 def sendEmail(title, content):
-
-    version = 'V2' if use_dynamic_TP else 'V1'
-    title = "[Reversal Strategy " + version + "] " + title
 
     message = MIMEText(content, 'plain', 'utf-8')
     message['From'] = "{}".format(sender)

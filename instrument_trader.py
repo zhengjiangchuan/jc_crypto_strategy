@@ -273,13 +273,18 @@ vegas_condition_threshold = 10 if relax_vegas else 1
 initial_entry_value = 100.0
 default_leverage = 10
 
-do_smart_execution = True
+do_smart_execution = False
 
-use_5min_in_smart_execution = True
+use_5min_in_smart_execution = False
 
 do_reentry = False
 
 do_message_printing = False
+
+use_slow_macd = True
+
+macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
+
 
 if do_smart_execution:
 
@@ -391,24 +396,6 @@ class CurrencyTrader(threading.Thread):
 
         self.current_position = 0
 
-        if os.path.exists(self.trade_file):
-            trade_df = pd.read_csv(self.trade_file)
-            last_trade = trade_df.iloc[-1]
-            if last_trade['exit_id'] == -1:
-                if last_trade['side'] == 'long':
-                    self.current_position = 1
-                else:
-                    self.current_position = -1
-
-                self.current_position *= initial_entry_value/last_trade['entry_price'] * default_leverage
-                if last_trade['entry_price'] >= 1:
-                    self.current_position = round(self.current_position, 3)
-                else:
-                    self.current_position = round(self.current_position, 0)
-
-
-
-
 
         #
         # self.is_cut_data = False
@@ -483,6 +470,34 @@ class CurrencyTrader(threading.Thread):
             self.data_df_5min['location'] = list(range(self.data_df_5min.shape[0]))
 
             self.data_df = pd.merge(self.data_df, self.data_df_5min[['time', 'location']], on = ['time'], how = 'left')
+
+
+        if os.path.exists(self.trade_file):
+            trade_df = pd.read_csv(self.trade_file)
+
+            trade_df['entry_time'] = trade_df['entry_time'].apply(lambda x: preprocess_time(x))
+            trade_df = trade_df[trade_df['entry_time'] < self.data_df.iloc[-1]['time']]
+
+            print("last data time: " + str(self.data_df.iloc[-1]['time']))
+
+            # print("trade_df last 2 rows:")
+            # print(trade_df.iloc[-2:])
+
+            last_trade = trade_df.iloc[-1]
+            #if last_trade['exit_id'] == -1:
+            if last_trade['side'] == 'long':
+                self.current_position = 1
+            else:
+                self.current_position = -1
+
+            print("current_position here = " + str(self.current_position))
+
+            self.current_position *= initial_entry_value/last_trade['entry_price'] * default_leverage
+            if last_trade['entry_price'] >= 1:
+                self.current_position = round(self.current_position, 3)
+            else:
+                self.current_position = int(round(self.current_position, 0))
+
 
 
     def run(self):
@@ -1583,23 +1598,23 @@ class CurrencyTrader(threading.Thread):
 
         #Singapore  3gradients_positive
         macd_enter_gradient_num = self.optimal_gradient_num
-        self.data_df['long_macd_long_enter'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
-                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num)])
-        self.data_df['long_macd_short_enter'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
-                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num)])
+        self.data_df['long_macd_long_enter'] = (self.data_df[macd_gradient] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] > 0) for i in range(1, macd_enter_gradient_num)])
+        self.data_df['long_macd_short_enter'] = (self.data_df[macd_gradient] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_enter_gradient_num)])
 
 
-        self.data_df['long_macd_long_enter_ready'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
-                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_enter_gradient_num-1)])
-        self.data_df['long_macd_short_enter_ready'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
-                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_enter_gradient_num-1)])
+        self.data_df['long_macd_long_enter_ready'] = (self.data_df[macd_gradient] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] > 0) for i in range(1, macd_enter_gradient_num-1)])
+        self.data_df['long_macd_short_enter_ready'] = (self.data_df[macd_gradient] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_enter_gradient_num-1)])
 
 
         if do_message_printing and self.is_notify:
-            if self.data_df.iloc[-1]['long_macd_long_enter_ready']:
-                sendEmail("Ready to Open Long Position at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
-            elif self.data_df.iloc[-1]['long_macd_short_enter_ready']:
-                sendEmail("Ready to Open Short Position at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
+            if self.data_df.iloc[-1]['long_macd_long_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_long_enter']) and self.current_position <= 0:
+                sendEmail("Ready to Open Long Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
+            elif self.data_df.iloc[-1]['long_macd_short_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_short_enter']) and self.current_position >= 0:
+                sendEmail("Ready to Open Short Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
 
 
 
@@ -1639,10 +1654,10 @@ class CurrencyTrader(threading.Thread):
 
 
         macd_exit_gradient_num = self.optimal_gradient_num
-        self.data_df['long_macd_long_exit'] = (self.data_df['macd2_gradient'] < 0) & reduce(lambda left, right: left & right,
-                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] < 0) for i in range(1, macd_exit_gradient_num)])
-        self.data_df['long_macd_short_exit'] = (self.data_df['macd2_gradient'] > 0) & reduce(lambda left, right: left & right,
-                                                                        [(self.data_df['prev' + str(i) + '_macd2_gradient'] > 0) for i in range(1, macd_exit_gradient_num)])
+        self.data_df['long_macd_long_exit'] = (self.data_df[macd_gradient] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_exit_gradient_num)])
+        self.data_df['long_macd_short_exit'] = (self.data_df[macd_gradient] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] > 0) for i in range(1, macd_exit_gradient_num)])
 
         # self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] |\
         #                                        ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))
@@ -1722,10 +1737,15 @@ class CurrencyTrader(threading.Thread):
                     current_time = str(self.data_df.iloc[long_start_id]['time'] + timedelta(hours = 1))
 
                     position = initial_entry_value/entry_price * default_leverage
+
+                    print("Before position = " + str(position))
+
                     if entry_price >= 1:
                         position = round(position, 3)
                     else:
-                        position = round(position, 0)
+                        position = int(round(position, 0))
+
+                    print("After position = " + str(position))
 
                     delta_position = position - self.current_position
 
@@ -1734,7 +1754,7 @@ class CurrencyTrader(threading.Thread):
 
                     message_title = "Long " + self.currency + " " + str(delta_position) + " units"
 
-                    message = "At " + current_time + ", long " + self.currency + " roughly " + str(delta_position) + " units at entry price " + str(entry_price) + "\n"
+                    message = "At " + current_time + ", long " + self.currency + " roughly " + str(delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
                     message += "This makes it now at a long position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
 
                     print("message_title = " + message_title)
@@ -2036,7 +2056,7 @@ class CurrencyTrader(threading.Thread):
                     if entry_price >= 1:
                         position = round(position, 3)
                     else:
-                        position = round(position, 0)
+                        position = int(round(position, 0))
 
                     delta_position = position - self.current_position
 
@@ -2045,7 +2065,7 @@ class CurrencyTrader(threading.Thread):
 
                     message_title = "Short " + self.currency + " " + str(-delta_position) + " units"
 
-                    message = "At " + current_time + ", short " + self.currency + " roughly " + str(-delta_position) + " units at entry price " + str(entry_price) + "\n"
+                    message = "At " + current_time + ", short " + self.currency + " roughly " + str(-delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
                     message += "This makes it now at a short position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
 
                     print("message_title = " + message_title)
