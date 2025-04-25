@@ -63,9 +63,9 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 1000
+initial_bar_number = 50 if data_source == 1 else 5000   #1000
 
-initial_bar_number_5min = 3000
+initial_bar_number_5min = 5000  #3000
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -81,6 +81,8 @@ initial_bar_number_5min = 3000
 #until_date_5min = "2025-03-19"
 #until_date_5min = "2025-04-03"
 #until_date_5min = "2025-04-18"
+
+#until_date = "2025-04-04"
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -273,8 +275,8 @@ vegas_condition_threshold = 10 if relax_vegas else 1
 initial_entry_value = 100.0
 default_leverage = 10
 
-do_smart_execution = False
-use_5min_in_smart_execution = False
+do_smart_execution = True
+use_5min_in_smart_execution = True
 
 do_reentry = False
 
@@ -309,6 +311,7 @@ if do_smart_execution:
             self.execution_exit_time = None
             self.execution_exit_price = -1
             self.execution_exit_value = -1
+
 
             #self.profit_rate = self.take_profit_pct * self.leverage
             #self.loss_rate = self.take_loss_pct * self.leverage
@@ -346,7 +349,7 @@ class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num,
                  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify, data_file_5min = None,
-                 decimal = 5):
+                 decimal = 5, reverse_strategy = False):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -372,6 +375,8 @@ class CurrencyTrader(threading.Thread):
         self.email_message_caches = []
 
         self.decimal = decimal
+
+        self.reverse_strategy = reverse_strategy
 
         self.is_notify = is_notify
 
@@ -1636,6 +1641,16 @@ class CurrencyTrader(threading.Thread):
         self.data_df['short_macd_long_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_long_cond' + str(i)] for i in range(4)])
         self.data_df['short_macd_short_enter'] = reduce(lambda left, right: left & right, [self.data_df['short_macd_short_cond' + str(i)] for i in range(4)])
 
+
+
+
+        if self.reverse_strategy:
+            self.data_df['temp'] = self.data_df['long_macd_long_enter']
+            self.data_df['long_macd_long_enter'] = self.data_df['long_macd_short_enter']
+            self.data_df['long_macd_short_enter'] = self.data_df['temp']
+
+
+
         self.data_df['macd_long_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
         self.data_df['macd_short_enter'] = self.data_df['macd'].notnull() & self.data_df['msignal'].notnull()
 
@@ -1659,6 +1674,18 @@ class CurrencyTrader(threading.Thread):
                                                                         [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_exit_gradient_num)])
         self.data_df['long_macd_short_exit'] = (self.data_df[macd_gradient] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_' + macd_gradient] > 0) for i in range(1, macd_exit_gradient_num)])
+
+        if self.reverse_strategy:
+            self.data_df['temp'] = self.data_df['long_macd_long_enter_ready']
+            self.data_df['long_macd_long_enter_ready'] = self.data_df['long_macd_short_enter_ready']
+            self.data_df['long_macd_short_enter_ready'] = self.data_df['temp']
+
+            self.data_df['temp'] = self.data_df['long_macd_long_exit']
+            self.data_df['long_macd_long_exit'] = self.data_df['long_macd_short_exit']
+            self.data_df['long_macd_short_exit'] = self.data_df['temp']
+
+
+
 
         # self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] |\
         #                                        ((self.data_df['prev_macd2'] > self.data_df['prev_msignal2']) & (self.data_df['macd2'] <= self.data_df['msignal2']))

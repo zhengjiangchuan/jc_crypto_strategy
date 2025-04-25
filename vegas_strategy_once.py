@@ -70,9 +70,11 @@ read_5min_data = True
 if use_dynamic_TP:
     profit_loss_ratio = 10
 
+td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
+
 class CurrencyPair:
 
-    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal):
+    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -81,15 +83,28 @@ class CurrencyPair:
         self.optimal_gradient_num = optimal_gradient_num
         self.optimal_gradient_num_execution = optimal_gradient_num_execution
         self.decimal = decimal
+        self.reverse_strategy = True if reverse_strategy == 1 else False
 
 
 def convert_to_time(timestamp):
    #return datetime.fromtimestamp(timestamp+28800)
     return datetime.fromtimestamp(timestamp)
 
+def get_close_price(currency):
+
+    global td
+
+    ts = td.price(symbol = currency[:-3] + '/' + currency[-3:])
+
+    close_price = float(ts.as_json()['price'])
+
+    return close_price
+
+
+
 def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, start_timestamp=-1, is_convert_to_time = True):
     # Initialize client - apikey parameter is requiered
-    td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
+    global td
 
     print("")
     print("Now = " + str(datetime.now()))
@@ -102,6 +117,10 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
         end_date=end_date,
         timezone="Asia/Singapore",
     )
+
+    # ts = td.price(symbol='ADA/USD')
+    # ts.as_json()
+
 
     # Returns pandas.DataFrame
     data_df = ts.as_pandas()
@@ -322,7 +341,7 @@ def preprocess_data(data_df):
     return new_data_df
 
 
-def start_do_trading():
+def start_do_trading(wakeup = 0):
 
     print("")
     print("")
@@ -348,95 +367,45 @@ def start_do_trading():
     if is_gege_server:
         root_folder = "/home/min/forex/formal_trading"
     else:
-        # if is_real_time_trading:
-        #     root_folder = "C:\\JCForex_prod"
-        # else:
-        root_folder1 = "C:\\JCForex_prod"
-
         #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
 
         root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
 
         #root_folder = "C:\\JCForex_prod2"
 
-
     if not os.path.exists(root_folder):
         os.makedirs(root_folder)
 
-    communicate_files = [file for file in os.listdir(root_folder) if "communicate" in file]
-    communicate_nums = [int(communicate_file[len('communicate'):-len('.txt')]) for communicate_file in communicate_files]
-    if len(communicate_nums) > 0:
-        max_idx = np.array(communicate_nums).argmax()
-    else:
-        max_idx = 0
-        communicate_file = os.path.join(root_folder, "communicate1.txt")
-        fd = open(communicate_file, 'w')
-        fd.close()
-        communicate_files += [communicate_file]
-    communicate_file = os.path.join(root_folder, communicate_files[max_idx])
 
     currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
 
     currency_df = pd.read_csv(currency_file)
 
 
-
-    #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD'] #'AUDCHF', 'EURAUD', 'GBPAUD', 'NZDCAD', 'NZDUSD'
-    #currencies_to_run = ['NZDUSD', 'AUDUSD','AUDCAD','AUDCHF','NZDCAD','NZDCHF', 'GBPNZD']
-    #currencies_to_run = ['NZDUSD', 'AUDCAD', 'EURUSD', 'NZDCAD', 'NZDcurrencies_toCHF']
-
-    #currencies_to_run = ['GBPUSD', 'EURGBP', 'USDCAD', 'CADCHF', 'NZDJPY', 'CADJPY', 'EURCHF', 'EURCAD']
-    #currencies_to_run = ['GBPJPY', 'GBPNZD', 'USDJPY', 'CADJPY']
-
-
-    #currencies_to_run = ['USDCHF', 'CHFJPY', 'AUDCHF', 'EURJPY']
-    #currencies_to_run = ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
-    #currencies_to_run = ['EURUSD','GBPUSD','USDJPY','USDCAD','EURGBP','EURJPY','GBPJPY','USDCHF']
-    #currencies_to_run = ['NZDCHF']
-
-    #currencies_to_run =  ['EURNZD', 'EURJPY', 'USDCAD',  'CADCHF', 'GBPUSD', 'AUDJPY'] + ['GBPCHF', 'EURCAD', 'USDCHF', 'GBPAUD']  + ['NZDCHF']
-
-    #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADCHF', 'EURJPY']
-
-    #currencies_to_run = ['USDJPY', 'GBPJPY', 'CADJPY', 'CHFJPY', 'AUDUSD', 'EURAUD', 'NZDCHF', 'NZDJPY', 'GBPCHF', 'GBPAUD']
-    #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD']
-
-    #currencies_to_run = ['BTCUSD','ETHUSD','ADAUSD', 'DOGEUSD', 'XRPUSD', 'SOLUSD', 'AVAXUSD', 'LTCUSD']
-    currencies_to_run = ['ADAUSD']
-
-    #currencies_to_run = []
-
-    #currencies_to_run = ['XRPUSD']
-
-    #currencies_to_run = ['EURAUD', 'GBPAUD', 'USDCAD', 'GBPUSD'] #['CHFJPY', 'AUDJPY', 'USDCAD', 'NZDUSD']
     raw_currencies = currency_df['instrument'].tolist()
 
+    currency_close_prices = {}
+
+    #currencies_to_run = ['SUIUSD', 'ADAUSD', 'DOGEUSD', 'XRPUSD']
+    currencies_to_run = ['SUIUSD']
+
+    print("wakeup = " + str(wakeup))
+
+    if wakeup == 1:
+        for currency in currencies_to_run:
+            print("Get close price for " + currency)
+            close_price = get_close_price(currency)
+            print("close_price = " + str(close_price))
+            currency_close_prices[currency] = close_price
+
+    print("Sleep 2 seconds")
+    time.sleep(2)
 
 
-    # currencies_str = ','.join([currency[:3] + '/' + currency[3:] for currency in raw_currencies])
-    #
-    # print("currencies_str:")
-    # print(currencies_str)
-    # sys.exit(0)
-
-    # critical_one = 'GBPAUD'
-    # critical_idx = 0
-    # for i in range(len(raw_currencies)):
-    #     if raw_currencies[i] == critical_one:
-    #         critical_idx = i
-    #         break
-    #
-    # currencies_to_run = raw_currencies[critical_idx:]
 
 
-    #currencies_to_run = [currency for currency in raw_currencies if currency not in ['GBPUSD']]
 
-    # currencies_to_notify = ['CADCHF', 'GBPUSD', 'EURJPY', 'EURCAD', 'NZDCHF', 'AUDJPY', 'EURNZD']
-    # currencies_to_remove = ['NZDJPY', 'NZDCAD', 'AUDUSD', 'EURUSD', 'NZDUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
-    #                         'GBPCAD', 'GBPCHF'] + ['CHFJPY']
 
-    #currencies_to_remove = ['NZDJPY', 'NZDCAD', 'EURUSD', 'AUDCAD', 'GBPNZD', 'GBPAUD', 'EURGBP',
-    #                        'GBPCAD', 'GBPCHF'] + ['CHFJPY'] + ['AUDCHF', 'AUDNZD']
 
     currencies_to_remove = []
 
@@ -554,7 +523,7 @@ def start_do_trading():
     for i in range(currency_df.shape[0]):
         row = currency_df.iloc[i]
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
-                                        row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'])]
+                                        row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'], row['reverse_strategy'])]
 
     print("currencies:")
     print([currencyPair.currency for currencyPair in currency_pairs])
@@ -594,7 +563,7 @@ def start_do_trading():
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_0424_dataTest"
+    current_date = "_0425_dataTest_normal"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -848,6 +817,7 @@ def start_do_trading():
         actual_maxdrawdown = currency_pair.actual_maxdrawdown
         optimal_gradient_num = currency_pair.optimal_gradient_num if not do_smart_execution else currency_pair.optimal_gradient_num_execution
         decimal = currency_pair.decimal
+        reverse_strategy = currency_pair.reverse_strategy
 
         data_file_5min = None
         if read_5min_data:
@@ -859,7 +829,7 @@ def start_do_trading():
         #print("Here performance_file = " + performance_file)
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, data_folder,
                                          chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx,
-                                         email_message_file, currency in currencies_to_notify, data_file_5min if read_5min_data else None, decimal)
+                                         email_message_file, currency in currencies_to_notify, data_file_5min if read_5min_data else None, decimal, reverse_strategy)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
@@ -1056,23 +1026,6 @@ def start_do_trading():
                         else:
                             print("Currency file does not exit, query initial data from web")
 
-                            # if data_source == 1:
-                            #     temp_data_df = get_bar_data2(currency, bar_number=2, interval='5min',  is_convert_to_time=False)
-                            # else:
-                            #     temp_data_df = get_bar_data2(currency, bar_number=2, interval='5min',  is_convert_to_time=False)
-                            #
-                            # last_timestamp = temp_data_df.iloc[-1]['time']
-                            #
-                            #
-                            # print("last_timestamp: " + str(last_timestamp))
-                            # #print(datetime.fromtimestamp(last_timestamp))
-                            # #start_timestamp = last_timestamp - 3600 * (initial_bar_number-1)
-                            # print("initial_bar_num = " + str(initial_bar_number))
-                            # start_timestamp = last_timestamp - timedelta(hours = initial_bar_number - 1)
-                            #
-                            #
-                            # print("last_timestamp = " + str(last_timestamp))
-                            # print("start_timestamp = " + str(start_timestamp))
 
                             if data_source == 1:
                                 data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min')
@@ -1127,33 +1080,61 @@ def start_do_trading():
                             if read_5min_data:
                                 print('last_time_5min = ' + str(last_time_5min))
 
+                            # testing_seconds = 7200
+                            # if wakeup == 1:
+                            #     testing_seconds = 3600
 
+                            #print("testing_seconds = " + str(testing_seconds))
 
-                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0): #7200
-                                    #and (
-                                    #(not read_5min_data) or (delta_5min.seconds > 0 and delta_5min.seconds < 1200 and delta_5min.days == 0)
+                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0):
+
 
                                 print("Received up-to-date data for currency pair " + currency)
 
+
                                 is_new_data_received[i] = True
 
-                                final_data_df = data_df.iloc[0:-1]
+                                final_data_df = data_df.iloc[0:-1] #The last bar is the current hour, which has not been completed and we don't use as well
                                 if read_5min_data:
                                     currency_trader.feed_data(final_data_df, data_df_5min)
                                 else:
                                     currency_trader.feed_data(final_data_df)
+
+                                if currency in currency_close_prices:
+                                    close_price = currency_close_prices[currency]
+                                    real_close_price = final_data_df.iloc[-1]['close']
+                                    print("Close Price checking: last_price = " + str(close_price) + ", close = " + str(real_close_price))
+                                    difference = abs((close_price - real_close_price)/real_close_price)
+                                    print("difference = " + str(difference))
+
 
                                 currency_trader.trade()
                             else:
 
                                 print("Not received finalized data for " + currency + ", wait 1 minute to try again")
 
-                                if read_5min_data:
-                                    currency_trader.feed_data(data_df, data_df_5min)
-                                else:
-                                    currency_trader.feed_data(data_df)
 
-                                currency_trader.trade()
+                                #data_df = data_df.iloc[0:-1] #Temp for testing
+
+                                if running_round == 1:
+
+                                    if currency in currency_close_prices:
+                                        if currency in currency_close_prices:
+                                            close_price = currency_close_prices[currency]
+                                            print(currency + " real time last price = " + str(close_price))
+                                            data_df.at[data_df.index[-1], 'close'] = close_price
+
+                                            print("Real time data:")
+                                            print(data_df.iloc[-5:])
+
+                                            print("")
+
+                                            if read_5min_data:
+                                                currency_trader.feed_data(data_df, data_df_5min)
+                                            else:
+                                                currency_trader.feed_data(data_df)
+
+                                            currency_trader.trade()
 
 
                                 if trial_numbers[i] <= maximum_trial_number:

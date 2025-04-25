@@ -18,7 +18,7 @@ def wait_for_trigger():
     temp_time = current_time + timedelta(seconds=3600)
     next_hour = datetime(temp_time.year, temp_time.month, temp_time.day, temp_time.hour, 0, 0)
 
-    #next_hour = current_time + timedelta(seconds = 120)  #Temp for debug
+    #next_hour = current_time + timedelta(seconds = 60)  #Temp for debug
     print("Next hour: " + str(next_hour))
 
     seconds_remaining = (next_hour - current_time).seconds
@@ -46,15 +46,17 @@ def wait_for_trigger():
             print("seconds_remaining = " + str(seconds_remaining))
             print("total_sleep_seconds = " + str(total_sleep_seconds))
 
-    now = datetime.now()
-    while (now - next_hour).seconds < 2:
-        print("Now is " + now.strftime("%Y-%m-%d %H:%M:%S"))
-        time.sleep(1)
-        now = datetime.now()
+    # now = datetime.now()
+    # while (now - next_hour).seconds < 2:
+    #     print("Now is " + now.strftime("%Y-%m-%d %H:%M:%S"))
+    #     time.sleep(1)
+    #     now = datetime.now()
+
+
 
     #sendEmail("Trading program still alive", "")
 
-    return
+    return 1
 
 
 # def start_trader():
@@ -85,6 +87,7 @@ if __name__ == '__main__':
     #     time.sleep(10)
     #     print("Sleeping finishes")
 
+    wakeup = 0
     while True:
         print("Waiting for the next trigger")
 
@@ -92,7 +95,7 @@ if __name__ == '__main__':
         # son_process.start()
         print("Run trading program")
         #os.system("python vegas_strategy_once.py")
-        start_do_trading()
+        start_do_trading(wakeup=wakeup)
 
         print("Going to enter wait_for_trigger")
-        wait_for_trigger()
+        wakeup = wait_for_trigger()
