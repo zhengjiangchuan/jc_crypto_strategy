@@ -356,10 +356,10 @@ def start_do_trading(wakeup = 0):
 
     #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
     #is_weekend = False
 
-    is_real_time_trading_5min = True
+    is_real_time_trading_5min = False
     #is_weekend_5min = False
 
     is_do_portfolio_trading = False
@@ -386,8 +386,8 @@ def start_do_trading(wakeup = 0):
 
     currency_close_prices = {}
 
-    #currencies_to_run = ['SUIUSD', 'ADAUSD', 'DOGEUSD', 'XRPUSD']
-    currencies_to_run = ['SUIUSD']
+    #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD']
+    currencies_to_run = ['AVAXUSD']
 
     print("wakeup = " + str(wakeup))
 
@@ -563,7 +563,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_0425_dataTest_normal"
+    current_date = "_20250426_AVAXUSD"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -580,6 +580,12 @@ def start_do_trading(wakeup = 0):
         general_chart_folder_name += "_slowMACD"
     else:
         general_chart_folder_name += "_fastMACD"
+
+    if use_guppy_filter:
+        general_chart_folder_name += "_guppyFilter"
+
+    if use_guppy_condition:
+        general_chart_folder_name += "_guppyCondition"
 
     if printed_figure_num == -1:
         general_chart_folder_name += "_allPics"
@@ -615,6 +621,12 @@ def start_do_trading(wakeup = 0):
             chart_folder_name += "_slowMACD"
         else:
             chart_folder_name += "_fastMACD"
+
+        if use_guppy_filter:
+            chart_folder_name += "_guppyFilter"
+
+        if use_guppy_condition:
+            chart_folder_name += "_guppyCondition"
 
         if printed_figure_num == -1:
             chart_folder_name += "_allPics"
@@ -1134,7 +1146,7 @@ def start_do_trading(wakeup = 0):
                                             else:
                                                 currency_trader.feed_data(data_df)
 
-                                            currency_trader.trade()
+                                            currency_trader.trade(print_ready=False)
 
 
                                 if trial_numbers[i] <= maximum_trial_number:

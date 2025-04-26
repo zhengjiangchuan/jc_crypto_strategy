@@ -840,6 +840,8 @@ def sendEmail(title, content):
         print("Sending Email....")
         smtpObj.sendmail(sender, receivers, message.as_string())
         print("mail has been send successfully.")
+
+        print("Send email: " + title + " " + content)
         print("")
     except smtplib.SMTPException as e:
         print(e)

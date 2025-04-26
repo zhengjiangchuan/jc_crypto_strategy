@@ -63,9 +63,9 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 5000   #1000
+initial_bar_number = 50 if data_source == 1 else 1000   #1000
 
-initial_bar_number_5min = 5000  #3000
+initial_bar_number_5min = 3000  #3000
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -249,7 +249,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = -1
 
 plot_day_line = True
 plot_cross_point = True
@@ -275,14 +275,18 @@ vegas_condition_threshold = 10 if relax_vegas else 1
 initial_entry_value = 100.0
 default_leverage = 10
 
-do_smart_execution = True
-use_5min_in_smart_execution = True
+do_smart_execution = False
+use_5min_in_smart_execution = False
 
 do_reentry = False
 
 do_message_printing = False
 
-use_slow_macd = True
+use_slow_macd = False
+
+use_guppy_filter = True
+
+use_guppy_condition = False
 
 macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
@@ -377,6 +381,9 @@ class CurrencyTrader(threading.Thread):
         self.decimal = decimal
 
         self.reverse_strategy = reverse_strategy
+
+        if use_guppy_condition:
+            self.reverse_strategy = True
 
         self.is_notify = is_notify
 
@@ -519,7 +526,7 @@ class CurrencyTrader(threading.Thread):
             return round(price, 5)
 
 
-    def calculate_signals(self):
+    def calculate_signals(self, print_ready = True):
 
         self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
         self.data_df['hour'] = self.data_df['time'].apply(lambda x: x.hour)
@@ -1616,7 +1623,7 @@ class CurrencyTrader(threading.Thread):
                                                                         [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_enter_gradient_num-1)])
 
 
-        if do_message_printing and self.is_notify:
+        if do_message_printing and self.is_notify and print_ready:
             if self.data_df.iloc[-1]['long_macd_long_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_long_enter']) and self.current_position <= 0:
                 sendEmail("Ready to Open Long Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
             elif self.data_df.iloc[-1]['long_macd_short_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_short_enter']) and self.current_position >= 0:
@@ -1656,6 +1663,14 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['macd_long_enter'] = self.data_df['long_macd_long_enter']
         self.data_df['macd_short_enter'] = self.data_df['long_macd_short_enter']
+
+
+        if use_guppy_filter:
+            self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (~self.data_df['guppy_all_strong_aligned_short'])
+            self.data_df['macd_short_enter'] = self.data_df['macd_short_enter'] & (~self.data_df['guppy_all_strong_aligned_long'])
+        elif use_guppy_condition:
+            self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (self.data_df['guppy_all_strong_aligned_long'])
+            self.data_df['macd_short_enter'] = self.data_df['macd_short_enter'] & (self.data_df['guppy_all_strong_aligned_short'])
 
         # self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter']
         # self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter']
@@ -2544,11 +2559,11 @@ class CurrencyTrader(threading.Thread):
         return (max_draw_down, start, end)
 
 
-    def trade(self):
+    def trade(self, print_ready=True):
 
         print("Do trading............")
 
-        self.calculate_signals()
+        self.calculate_signals(print_ready)
 
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
