@@ -563,7 +563,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250426_AVAXUSD"
+    current_date = "_20250427_38"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -583,6 +583,9 @@ def start_do_trading(wakeup = 0):
 
     if use_guppy_filter:
         general_chart_folder_name += "_guppyFilter"
+
+    if also_filter_too_late:
+        general_chart_folder_name += "_filterTooLate"
 
     if use_guppy_condition:
         general_chart_folder_name += "_guppyCondition"
@@ -624,6 +627,9 @@ def start_do_trading(wakeup = 0):
 
         if use_guppy_filter:
             chart_folder_name += "_guppyFilter"
+
+        if also_filter_too_late:
+            chart_folder_name += "_filterTooLate"
 
         if use_guppy_condition:
             chart_folder_name += "_guppyCondition"

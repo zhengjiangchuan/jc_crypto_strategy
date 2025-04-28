@@ -249,7 +249,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = -1
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -285,6 +285,7 @@ do_message_printing = False
 use_slow_macd = False
 
 use_guppy_filter = True
+also_filter_too_late = False
 
 use_guppy_condition = False
 
@@ -1616,6 +1617,15 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_macd_short_enter'] = (self.data_df[macd_gradient] < 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_enter_gradient_num)])
 
+        if use_guppy_filter:
+            self.data_df['long_macd_long_enter_too_late'] = (self.data_df[macd_gradient] > 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] > 0) for i in range(1, macd_enter_gradient_num+1)])
+            self.data_df['long_macd_short_enter_too_late'] = (self.data_df[macd_gradient] < 0) & reduce(lambda left, right: left & right,
+                                                                        [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_enter_gradient_num+1)])
+
+
+
+
 
         self.data_df['long_macd_long_enter_ready'] = (self.data_df[macd_gradient] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_' + macd_gradient] > 0) for i in range(1, macd_enter_gradient_num-1)])
@@ -1668,6 +1678,11 @@ class CurrencyTrader(threading.Thread):
         if use_guppy_filter:
             self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (~self.data_df['guppy_all_strong_aligned_short'])
             self.data_df['macd_short_enter'] = self.data_df['macd_short_enter'] & (~self.data_df['guppy_all_strong_aligned_long'])
+
+            if also_filter_too_late:
+                self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (~self.data_df['long_macd_long_enter_too_late'])
+                self.data_df['macd_short_enter'] = self.data_df['macd_short_enter'] & (~self.data_df['long_macd_short_enter_too_late'])
+
         elif use_guppy_condition:
             self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (self.data_df['guppy_all_strong_aligned_long'])
             self.data_df['macd_short_enter'] = self.data_df['macd_short_enter'] & (self.data_df['guppy_all_strong_aligned_short'])
