@@ -9,31 +9,24 @@ import os
 
 import talib
 from coinbase.rest import RESTClient
-
+from CoinbaseUtil import *
 
 from coinbase.rest import RESTClient
 from json import dumps
 import uuid
 
-#Perpetual products
-#api_key = "organizations/e7135013-aa60-482a-a55e-c60a6a970c81/apiKeys/3c78feac-c110-4c9e-9735-16f58d59828e"
-#api_secret = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIAA2HylG8UDwS+vf40Bv3NncEVzqHS7tW06hT/yYRWvioAoGCCqGSM49\nAwEHoUQDQgAEOug7rG6O3YCkx68Ef/nvMT1ybDqFIiX7ch1D1iQlQTh9Hfodpp5H\nha/0PGByLqGpmBvVW045AGvbMpLwlMnLnA==\n-----END EC PRIVATE KEY-----\n"
+api_key, api_secret = get_api_keys()
 
-
-api_key = "organizations/e7135013-aa60-482a-a55e-c60a6a970c81/apiKeys/3cc1a37a-8aaf-44e9-a0d6-e3c502f47524"
-api_secret = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEICPGFLZfZPt8Weus5uEbBM5byLec3rjtgwzayetQHAv0oAoGCCqGSM49\nAwEHoUQDQgAEQyvr+7tyDfjDd/8GfllUiN7SS9iVDUEr12IspRwJuwLPzLm/FcYr\nDdDYm0vsH8JQS0qKxWhZRpkN6eK3Kp0rSA==\n-----END EC PRIVATE KEY-----\n"
-
-#Common products
-#api_key = "organizations/e7135013-aa60-482a-a55e-c60a6a970c81/apiKeys/f9768c30-233d-429f-a030-a34c68e821a1"
-#api_secret = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIRsX6fWvodAKWiWdqxZq+jebkWyZxp5Bx9nf051cRv7oAoGCCqGSM49\nAwEHoUQDQgAEt0W1SRROiZwrl50RHXxR/lQHsisvhrg5yPLlDdsiPKsKEY+R/yaN\nHuGOsmAiTQcayEPKV05NUdzyAdfpdCMIhA==\n-----END EC PRIVATE KEY-----\n"
-
-#api_secret = ""
 
 
 
 client = RESTClient(api_key = api_key,
                     api_secret= api_secret)
 accounts = client.get_accounts()
+
+account = accounts.accounts[0]
+portfolio_id = account['retail_portfolio_id']
+print("portfolio_id = " + str(portfolio_id))
 
 # products = client.get_products()
 #
@@ -52,8 +45,8 @@ permission = client.get_api_key_permissions()
 print("permissions:")
 print(permission.to_dict())
 
-perps_balances = client.get_perps_portfolio_balances(portfolio_uuid='0194271a-bd95-7ba7-a028-6561a970128b')
-perps_summary = client.get_perps_portfolio_summary(portfolio_uuid='0194271a-bd95-7ba7-a028-6561a970128b')
+perps_balances = client.get_perps_portfolio_balances(portfolio_uuid=portfolio_id)
+perps_summary = client.get_perps_portfolio_summary(portfolio_uuid=portfolio_id)
 
 print("balances:")
 print(perps_balances.to_dict())
@@ -70,14 +63,15 @@ client_order_id = f"order_{uuid.uuid4()}"
 
 print("client_order_id = " + client_order_id)
 
+symbol = "ADA-PERP-INTX"
 try:
     response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
                                    side="SELL",
                                    order_configuration={
                                        "limit_limit_gtc":{
-                                           "base_size" : "600",
-                                           "limit_price" : "0.8"
+                                           "base_size" : "750",
+                                           "limit_price" : "0.85"
 
                                        }
                                    },
@@ -91,7 +85,34 @@ except Exception as e:
 
 
 print("order is")
-print(response['success_response']['order_id'])
+
+order_id = response['success_response']['order_id']
+
+print(order_id)
+
+
+order = client.get_order(order_id = order_id).order
+status = order['status']
+filled_size = order['filled_size']
+print("status = " + str(status))
+print("filled_size = " + str(filled_size))
+
+
+#position = client.get_perps_position(portfolio_uuid=portfolio_id, symbol=symbol)
+
+positions = client.list_perps_positions(portfolio_uuid=portfolio_id).positions
+
+print("Positions: size = " + str(len(positions)))
+
+for position in positions:
+    print("product_id=" + position['product_id'])
+    print("symbol=" + position['symbol'])
+    print("position_side=" + position['position_side'])
+    print("margin_type=" + position['margin_type'])
+    print("net_size=" + position['net_size'])
+    print("leverage=" + position['leverage'])
+    print("unrealized_pnl=" + position['unrealized_pnl'])
+
 
 
 
