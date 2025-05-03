@@ -52,7 +52,7 @@ print("balances:")
 print(perps_balances.to_dict())
 print("perps_summary:")
 print(perps_summary.to_dict())
-product = client.get_product("BTC-USDC")
+product = client.get_product("ADA-PERP-INTX")
 print("product:")
 print(product.to_dict())
 btc_usd_price = float(product["price"])
@@ -67,17 +67,17 @@ symbol = "ADA-PERP-INTX"
 try:
     response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
-                                   side="SELL",
+                                   side="BUY",
                                    order_configuration={
                                        "limit_limit_gtc":{
-                                           "base_size" : "750",
-                                           "limit_price" : "0.85"
+                                           "base_size" : "20",
+                                           "limit_price" : "0.725"
 
                                        }
                                    },
-                                   leverage="10"
-                                   #margin_type = "CROSS"#,
-                                   #retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
+                                   leverage="10",
+                                   margin_type = "CROSS",
+                                   retail_portfolio_id=portfolio_id
                                    )
     print(f"Order placed: {response}")
 except Exception as e:
@@ -98,7 +98,6 @@ print("status = " + str(status))
 print("filled_size = " + str(filled_size))
 
 
-#position = client.get_perps_position(portfolio_uuid=portfolio_id, symbol=symbol)
 
 positions = client.list_perps_positions(portfolio_uuid=portfolio_id).positions
 
@@ -111,7 +110,8 @@ for position in positions:
     print("margin_type=" + position['margin_type'])
     print("net_size=" + position['net_size'])
     print("leverage=" + position['leverage'])
-    print("unrealized_pnl=" + position['unrealized_pnl'])
+    unrealized_pnl = position['unrealized_pnl']
+    print("unrealized_pnl=" + unrealized_pnl['value'] + unrealized_pnl['currency'])
 
 
 

@@ -23,7 +23,7 @@ import os
 
 from util import *
 import gzip
-
+from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 
 #from vegas_strategy_once import profit_loss_ratio
@@ -35,6 +35,12 @@ import matplotlib.ticker as ticker
 import urllib.request
 
 from io import StringIO
+
+from coinbase.rest import RESTClient
+from CoinbaseUtil import *
+from coinbase.rest import RESTClient
+from json import dumps
+import uuid
 
 
 
@@ -282,15 +288,22 @@ do_reentry = False
 
 do_message_printing = False
 
+
+
 use_slow_macd = False
 
 use_guppy_filter = True
+
+
+
 also_filter_too_late = False
 
 use_guppy_condition = False
 
 macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
+
+do_real_money_trading = False
 
 if do_smart_execution:
 
@@ -354,7 +367,8 @@ class CurrencyTrader(threading.Thread):
 
     def __init__(self, condition, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num,
                  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file, is_notify, data_file_5min = None,
-                 decimal = 5, reverse_strategy = False):
+                 decimal = 5, reverse_strategy = False,
+                 wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -408,6 +422,7 @@ class CurrencyTrader(threading.Thread):
         self.print_to_console = True
 
         self.current_position = 0
+        self.current_real_position = 0
 
 
         #
@@ -430,6 +445,27 @@ class CurrencyTrader(threading.Thread):
         self.critical_value_data_df = None
 
         self.optimal_gradient_num = optimal_gradient_num
+
+        self.wakeup = wakeup
+
+        self.coinbase_client = coinbase_client
+
+        self.currency_coinbase = currency_coinbase
+        self.coinbase_portfolio_id = coinbase_portfolio_id
+
+        self.crypto_last_price = crypto_last_price
+
+        self.temporary_long = False
+        self.temporary_short = False
+
+        self.temporary_delta_position = 0
+
+        self.client_order_id = None
+        self.order_id = None
+        self.attempt_side = 0
+        self.attempt_size = 0
+
+
 
         if do_smart_execution:
             #self.entry_total_principal = 100
@@ -512,6 +548,18 @@ class CurrencyTrader(threading.Thread):
             else:
                 self.current_position = int(round(self.current_position, 0))
 
+            if do_real_money_trading:
+                positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
+                for position in positions:
+                    if position['symbol'] == self.currency_coinbase:
+                        self.current_real_position = position['net_size']
+                        if position['position_side'] not in ['POSITION_SIDE_LONG', 'POSITION_SIDE_SHORT']:
+                            print("Unknown position side " + position['position_side'])
+                            sys.exit(1)
+
+                        if position['position_side'] == 'POSITION_SIDE_SHORT':
+                            self.current_real_position *= -1
+
 
 
     def run(self):
@@ -527,7 +575,7 @@ class CurrencyTrader(threading.Thread):
             return round(price, 5)
 
 
-    def calculate_signals(self, print_ready = True):
+    def calculate_signals(self, print_ready = True, temporary_decision = False):
 
         self.data_df['date'] = pd.DatetimeIndex(self.data_df['time']).normalize()
         self.data_df['hour'] = self.data_df['time'].apply(lambda x: x.hour)
@@ -855,74 +903,74 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['up_vegas_converge'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-                                            (self.data_df['fast_vegas_gradient'] < self.data_df['slow_vegas_gradient'])
-        self.data_df['up_vegas_converge_previous'] = self.data_df['up_vegas_converge'].shift(1)
-        self.data_df['up_vegas_converge_pp'] = self.data_df['up_vegas_converge_previous'].shift(1)
-
-        self.data_df['down_vegas_converge'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & \
-                                            (self.data_df['fast_vegas_gradient'] > self.data_df['slow_vegas_gradient'])
-        self.data_df['down_vegas_converge_previous'] = self.data_df['down_vegas_converge'].shift(1)
-        self.data_df['down_vegas_converge_pp'] = self.data_df['down_vegas_converge_previous'].shift(1)
-
-        ########## Long ############
-
-        self.data_df['vegas_support_long'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up']) & \
-            (~((self.data_df['up_vegas_converge']) & (self.data_df['up_vegas_converge_previous']) & (self.data_df['up_vegas_converge_pp'])))
-
-        self.data_df['long_encourage_condition'] = (self.data_df['fast_guppy_cross_up']) & (self.data_df['fastest_guppy_line_up'])  #'fastest_guppy_line_up'
-
-        ######### Filters for Scenario where Vegas support long ###############
-
-        self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down'])   #adjust by removing
-        self.data_df['long_filter1'] = (self.data_df['long_filter1']) | (self.data_df['previous_down_guppy_line_num'] >= 3)  #USDCAD Stuff
-        self.data_df['long_filter1'] = (self.data_df['long_filter1']) & (~self.data_df['long_encourage_condition'])
-
-        self.data_df['long_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
-
-        self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
-        self.data_df['long_strong_filter2'] = (self.data_df['guppy_half2_aligned_long']) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
-
-
-        self.data_df['guppy_long_reverse'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['ma_close30_gradient'] < 0)
-        self.data_df['prev_guppy_long_reverse'] = self.data_df['guppy_long_reverse'].shift(1)
-        self.data_df['prev2_guppy_long_reverse'] = self.data_df['prev_guppy_long_reverse'].shift(1)
-        self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) | (self.data_df['prev_guppy_long_reverse']) | (self.data_df['prev2_guppy_long_reverse'])
-        #self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) & (self.data_df['prev_guppy_long_reverse']) & (self.data_df['prev2_guppy_long_reverse'])
-
-
-        self.data_df['can_long1'] = self.data_df['vegas_support_long'] #&\
-                                    #(~self.data_df['guppy_half1_strong_aligned_short']) & (~self.data_df['prev_guppy_half1_strong_aligned_short']) & (~self.data_df['prev2_guppy_half1_strong_aligned_short']) #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
-
-
-        ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
-
-        self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) |\
-                                         ((self.data_df['guppy_half2_strong_aligned_long'])) |\
-                                         (self.data_df['guppy_all_aligned_long']) | (self.data_df['long_encourage_condition'])
-        self.data_df['long_condition'] = self.data_df['long_condition'] & (~self.data_df['fastest_guppy_line_lasting_down'])
-        self.data_df['long_condition'] = self.data_df['long_condition'] & (self.data_df['guppy_first_half_min'] > self.data_df['guppy_second_half_max'])
-
-        #self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) #Adjust2
-        self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
-
-        # Old One
-        self.data_df['final_long_filter1'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate < -vegas_threshold) & (self.data_df['vegas_phase_duration'] < 96) & (self.data_df['prev_vegas_phase_entire_duration'] < 96) &\
-                                              ( ((self.data_df['fast_vegas_down']) & (self.data_df['previous_fast_vegas_down'])) |\
-                                             ((self.data_df['slow_vegas_down']) & (self.data_df['previous_slow_vegas_down'])) |\
-                                             ((self.data_df['previous_fast_vegas_down']) & (self.data_df['pp_fast_vegas_down'])) |\
-                                             ((self.data_df['previous_slow_vegas_down']) & (self.data_df['pp_slow_vegas_down']))
-                                             )
-
-
-        # New Change
-        self.data_df['final_long_filter2'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate < -vegas_threshold) & (self.data_df['vegas_phase_duration'] >= 96)
-        self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
-                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_above_vegas'] & self.data_df['guppy_all_strong_aligned_long']
-        self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
-
-        self.data_df['final_long_filter'] = self.data_df['final_long_filter1'] | self.data_df['final_long_filter2']
-
+        # self.data_df['up_vegas_converge'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        #                                     (self.data_df['fast_vegas_gradient'] < self.data_df['slow_vegas_gradient'])
+        # self.data_df['up_vegas_converge_previous'] = self.data_df['up_vegas_converge'].shift(1)
+        # self.data_df['up_vegas_converge_pp'] = self.data_df['up_vegas_converge_previous'].shift(1)
+        #
+        # self.data_df['down_vegas_converge'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & \
+        #                                     (self.data_df['fast_vegas_gradient'] > self.data_df['slow_vegas_gradient'])
+        # self.data_df['down_vegas_converge_previous'] = self.data_df['down_vegas_converge'].shift(1)
+        # self.data_df['down_vegas_converge_pp'] = self.data_df['down_vegas_converge_previous'].shift(1)
+        #
+        # ########## Long ############
+        #
+        # self.data_df['vegas_support_long'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up']) & \
+        #     (~((self.data_df['up_vegas_converge']) & (self.data_df['up_vegas_converge_previous']) & (self.data_df['up_vegas_converge_pp'])))
+        #
+        # self.data_df['long_encourage_condition'] = (self.data_df['fast_guppy_cross_up']) & (self.data_df['fastest_guppy_line_up'])  #'fastest_guppy_line_up'
+        #
+        # ######### Filters for Scenario where Vegas support long ###############
+        #
+        # self.data_df['long_filter1'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down'])   #adjust by removing
+        # self.data_df['long_filter1'] = (self.data_df['long_filter1']) | (self.data_df['previous_down_guppy_line_num'] >= 3)  #USDCAD Stuff
+        # self.data_df['long_filter1'] = (self.data_df['long_filter1']) & (~self.data_df['long_encourage_condition'])
+        #
+        # self.data_df['long_filter2'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
+        #
+        # self.data_df['long_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_short'])
+        # self.data_df['long_strong_filter2'] = (self.data_df['guppy_half2_aligned_long']) & (self.data_df['fastest_guppy_line_down']) & (self.data_df['fast_guppy_cross_down'])
+        #
+        #
+        # self.data_df['guppy_long_reverse'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['ma_close30_gradient'] < 0)
+        # self.data_df['prev_guppy_long_reverse'] = self.data_df['guppy_long_reverse'].shift(1)
+        # self.data_df['prev2_guppy_long_reverse'] = self.data_df['prev_guppy_long_reverse'].shift(1)
+        # self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) | (self.data_df['prev_guppy_long_reverse']) | (self.data_df['prev2_guppy_long_reverse'])
+        # #self.data_df['recent_guppy_long_reverse'] = (self.data_df['guppy_long_reverse']) & (self.data_df['prev_guppy_long_reverse']) & (self.data_df['prev2_guppy_long_reverse'])
+        #
+        #
+        # self.data_df['can_long1'] = self.data_df['vegas_support_long'] #&\
+        #                             #(~self.data_df['guppy_half1_strong_aligned_short']) & (~self.data_df['prev_guppy_half1_strong_aligned_short']) & (~self.data_df['prev2_guppy_half1_strong_aligned_short']) #& (~self.data_df['long_filter1']) & (~self.data_df['long_filter2'])  #Modify
+        #
+        #
+        # ######## Conditions for Scenario where Vegas does not support long ############### #second condition is EURUSD stuff
+        #
+        # self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) |\
+        #                                  ((self.data_df['guppy_half2_strong_aligned_long'])) |\
+        #                                  (self.data_df['guppy_all_aligned_long']) | (self.data_df['long_encourage_condition'])
+        # self.data_df['long_condition'] = self.data_df['long_condition'] & (~self.data_df['fastest_guppy_line_lasting_down'])
+        # self.data_df['long_condition'] = self.data_df['long_condition'] & (self.data_df['guppy_first_half_min'] > self.data_df['guppy_second_half_max'])
+        #
+        # #self.data_df['long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) #Adjust2
+        # self.data_df['can_long2'] = (~self.data_df['vegas_support_long']) & self.data_df['long_condition']
+        #
+        # # Old One
+        # self.data_df['final_long_filter1'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate < -vegas_threshold) & (self.data_df['vegas_phase_duration'] < 96) & (self.data_df['prev_vegas_phase_entire_duration'] < 96) &\
+        #                                       ( ((self.data_df['fast_vegas_down']) & (self.data_df['previous_fast_vegas_down'])) |\
+        #                                      ((self.data_df['slow_vegas_down']) & (self.data_df['previous_slow_vegas_down'])) |\
+        #                                      ((self.data_df['previous_fast_vegas_down']) & (self.data_df['pp_fast_vegas_down'])) |\
+        #                                      ((self.data_df['previous_slow_vegas_down']) & (self.data_df['pp_slow_vegas_down']))
+        #                                      )
+        #
+        #
+        # # New Change
+        # self.data_df['final_long_filter2'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate < -vegas_threshold) & (self.data_df['vegas_phase_duration'] >= 96)
+        # self.data_df['long_filter_exempt'] = self.data_df['fast_vegas_up'] & self.data_df['previous_fast_vegas_up'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
+        #                                      (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_above_vegas'] & self.data_df['guppy_all_strong_aligned_long']
+        # self.data_df['final_long_filter2'] = self.data_df['final_long_filter2'] & (~self.data_df['long_filter_exempt'])
+        #
+        # self.data_df['final_long_filter'] = self.data_df['final_long_filter1'] | self.data_df['final_long_filter2']
+        #
 
 
 
@@ -948,131 +996,131 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['can_long'] = True #(self.data_df['can_long1']) | (self.data_df['can_long2'])
-        #self.data_df['can_long'] = (self.data_df['vegas_support_long']) & (self.data_df['long_condition'])  #strong adjust
-
-        self.data_df['can_long'] = (self.data_df['can_long']) & (~self.data_df['final_long_filter']) #USDCAD stuff
-
-        ##############
-        self.data_df['final_long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) |\
-                                         ((self.data_df['guppy_half2_strong_aligned_long'])) |\
-                                         (self.data_df['guppy_all_aligned_long'])
-        #self.data_df['final_long_condition'] = self.data_df['final_long_condition'] & (~self.data_df['fastest_guppy_line_lasting_down'])
-        self.data_df['final_long_condition1'] = self.data_df['final_long_condition'] & (self.data_df['guppy_first_half_min'] > self.data_df['guppy_second_half_max'])
-
-
+        # self.data_df['can_long'] = True #(self.data_df['can_long1']) | (self.data_df['can_long2'])
+        # #self.data_df['can_long'] = (self.data_df['vegas_support_long']) & (self.data_df['long_condition'])  #strong adjust
+        #
+        # self.data_df['can_long'] = (self.data_df['can_long']) & (~self.data_df['final_long_filter']) #USDCAD stuff
+        #
+        # ##############
+        # self.data_df['final_long_condition'] = (self.data_df['guppy_half1_strong_aligned_long']) |\
+        #                                  ((self.data_df['guppy_half2_strong_aligned_long'])) |\
+        #                                  (self.data_df['guppy_all_aligned_long'])
+        # #self.data_df['final_long_condition'] = self.data_df['final_long_condition'] & (~self.data_df['fastest_guppy_line_lasting_down'])
+        # self.data_df['final_long_condition1'] = self.data_df['final_long_condition'] & (self.data_df['guppy_first_half_min'] > self.data_df['guppy_second_half_max'])
+        #
+        #
+        # # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        # #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        # #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        # #                                         (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_strong_aligned_short'])
+        #
+        # #old one
         # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
         #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
         #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                         (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_strong_aligned_short'])
-
-        #old one
-        self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
-                                                (self.data_df['middle'] > self.data_df['upper_vegas']) &\
-                                                (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-                                                (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
-
-
-        # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
-        #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
-        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                         (self.data_df['vegas_phase_duration'] > 48) & (self.data_df['guppy_lines_down_num'] < 3) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
-
-
-
-
-        # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
-        #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
-        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
-
-
-
-
-        # self.data_df['final_long_condition2'] = (self.data_df['middle'] > self.data_df['upper_vegas']) &\
-        #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
-        #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
-
-        #Change Change
-        self.data_df['must_reject_long'] = False #(self.data_df['final_long_condition']) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
-
-        #self.data_df['must_reject_long'] = (self.data_df['final_long_condition'] & (~self.data_df['final_long_condition2'])) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
-
-        self.data_df['must_reject_long2'] = (~self.data_df['vegas_support_long']) & (self.data_df['ma_close30_gradient'] < 0) & (self.data_df['ma_close35_gradient'] < 0) & (self.data_df['ma_close30'] < self.data_df['ma_close35'])
-        #self.data_df['must_reject_long2'] = self.data_df['must_reject_long2'] & (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)
-
-        self.data_df['must_reject_long2'] = self.data_df['must_reject_long2'] &\
-                                            (((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)) | (self.data_df['fast_vegas'] < self.data_df['slow_vegas']))
-
-        self.data_df['must_reject_long3'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down'])
-
-        self.data_df['must_reject_long4'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['bar_up_phase_duration'] >= 24*5) & (self.data_df['guppy_lines_down_num'] >= 3)
-
-        self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition1']  | self.data_df['final_long_condition2'])
-        self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long']) & (~self.data_df['must_reject_long2'])# & (~self.data_df['must_reject_long3'])
-        #self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long4'])
-        ###############
-
-
-        #self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['recent_guppy_long_reverse'])
-
-
-        ######### Short ############
-
-        self.data_df['vegas_support_short'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down']) & \
-            (~((self.data_df['down_vegas_converge']) & (self.data_df['down_vegas_converge_previous'])  & (self.data_df['down_vegas_converge_pp'])))
-
-        self.data_df['short_encourage_condition'] = (self.data_df['fast_guppy_cross_down']) & (self.data_df['fastest_guppy_line_down']) #fastest_guppy_line_down
-
-        ######### Filters for Scenario where Vegas support short ###############
-
-        self.data_df['short_filter1'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up'])  #adjust by removing
-        self.data_df['short_filter1'] = (self.data_df['short_filter1']) | (self.data_df['previous_up_guppy_line_num'] >= 3)  #USDCAD Stuff
-        self.data_df['short_filter1'] = (self.data_df['short_filter1']) & (~self.data_df['short_encourage_condition'])
-
-        self.data_df['short_filter2'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
-
-        self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
-        self.data_df['short_strong_filter2'] = (self.data_df['guppy_half2_aligned_short']) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
-
-        self.data_df['guppy_short_reverse'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['ma_close30_gradient'] > 0)
-        self.data_df['prev_guppy_short_reverse'] = self.data_df['guppy_short_reverse'].shift(1)
-        self.data_df['prev2_guppy_short_reverse'] = self.data_df['prev_guppy_short_reverse'].shift(1)
-        self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) | (self.data_df['prev_guppy_short_reverse']) | (self.data_df['prev2_guppy_short_reverse'])
-        #self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) & (self.data_df['prev_guppy_short_reverse']) & (self.data_df['prev2_guppy_short_reverse'])
-
-
-        self.data_df['can_short1'] = self.data_df['vegas_support_short'] #&\
-                                     #(~self.data_df['guppy_half1_strong_aligned_long']) & (~self.data_df['prev_guppy_half1_strong_aligned_long']) & (~self.data_df['prev2_guppy_half1_strong_aligned_long']) #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
-
-        ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
-
-        self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) |\
-                                          ((self.data_df['guppy_half2_strong_aligned_short'])) |\
-                                          (self.data_df['guppy_all_aligned_short']) | (self.data_df['short_encourage_condition'])
-
-        self.data_df['short_condition'] = self.data_df['short_condition'] & (~self.data_df['fastest_guppy_line_lasting_up'])
-        self.data_df['short_condition'] = self.data_df['short_condition'] & (self.data_df['guppy_first_half_max'] < self.data_df['guppy_second_half_min'])
-
-        #self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) #Adjust2
-        self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
-
-        # Old One
-        self.data_df['final_short_filter1'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate > vegas_threshold) & (self.data_df['vegas_phase_duration'] < 96) & (self.data_df['prev_vegas_phase_entire_duration'] < 96) &\
-                                              ( ((self.data_df['fast_vegas_up']) & (self.data_df['previous_fast_vegas_up'])) |\
-                                             ((self.data_df['slow_vegas_up']) & (self.data_df['previous_slow_vegas_up'])) |\
-                                             ((self.data_df['previous_fast_vegas_up']) & (self.data_df['pp_fast_vegas_up'])) |\
-                                             ((self.data_df['previous_slow_vegas_up']) & (self.data_df['pp_slow_vegas_up']))
-                                             )
-
-
-        # New Change
-        self.data_df['final_short_filter2'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate > vegas_threshold) & (self.data_df['vegas_phase_duration'] >= 96)
-        self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
-                                             (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_below_vegas'] & self.data_df['guppy_all_strong_aligned_short']
-        self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
-
-        self.data_df['final_short_filter'] = self.data_df['final_short_filter1'] | self.data_df['final_short_filter2']
+        #                                         (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+        #
+        #
+        # # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        # #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        # #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        # #                                         (self.data_df['vegas_phase_duration'] > 48) & (self.data_df['guppy_lines_down_num'] < 3) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+        #
+        #
+        #
+        #
+        # # self.data_df['final_long_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        # #                                         (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        # #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        # #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+        #
+        #
+        #
+        #
+        # # self.data_df['final_long_condition2'] = (self.data_df['middle'] > self.data_df['upper_vegas']) &\
+        # #                                         (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) &\
+        # #                                         (~self.data_df['guppy_all_aligned_short']) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+        #
+        # #Change Change
+        # self.data_df['must_reject_long'] = False #(self.data_df['final_long_condition']) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
+        #
+        # #self.data_df['must_reject_long'] = (self.data_df['final_long_condition'] & (~self.data_df['final_long_condition2'])) & (self.data_df['guppy_first_half_min'] <= self.data_df['guppy_second_half_max'])
+        #
+        # self.data_df['must_reject_long2'] = (~self.data_df['vegas_support_long']) & (self.data_df['ma_close30_gradient'] < 0) & (self.data_df['ma_close35_gradient'] < 0) & (self.data_df['ma_close30'] < self.data_df['ma_close35'])
+        # #self.data_df['must_reject_long2'] = self.data_df['must_reject_long2'] & (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)
+        #
+        # self.data_df['must_reject_long2'] = self.data_df['must_reject_long2'] &\
+        #                                     (((self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)) | (self.data_df['fast_vegas'] < self.data_df['slow_vegas']))
+        #
+        # self.data_df['must_reject_long3'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down'])
+        #
+        # self.data_df['must_reject_long4'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['bar_up_phase_duration'] >= 24*5) & (self.data_df['guppy_lines_down_num'] >= 3)
+        #
+        # self.data_df['can_long'] = (self.data_df['can_long']) & (self.data_df['final_long_condition1']  | self.data_df['final_long_condition2'])
+        # self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long']) & (~self.data_df['must_reject_long2'])# & (~self.data_df['must_reject_long3'])
+        # #self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['must_reject_long4'])
+        # ###############
+        #
+        #
+        # #self.data_df['can_long'] = self.data_df['can_long'] & (~self.data_df['recent_guppy_long_reverse'])
+        #
+        #
+        # ######### Short ############
+        #
+        # self.data_df['vegas_support_short'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['fast_vegas_down']) & (self.data_df['slow_vegas_down']) & \
+        #     (~((self.data_df['down_vegas_converge']) & (self.data_df['down_vegas_converge_previous'])  & (self.data_df['down_vegas_converge_pp'])))
+        #
+        # self.data_df['short_encourage_condition'] = (self.data_df['fast_guppy_cross_down']) & (self.data_df['fastest_guppy_line_down']) #fastest_guppy_line_down
+        #
+        # ######### Filters for Scenario where Vegas support short ###############
+        #
+        # self.data_df['short_filter1'] = (self.data_df['up_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up'])  #adjust by removing
+        # self.data_df['short_filter1'] = (self.data_df['short_filter1']) | (self.data_df['previous_up_guppy_line_num'] >= 3)  #USDCAD Stuff
+        # self.data_df['short_filter1'] = (self.data_df['short_filter1']) & (~self.data_df['short_encourage_condition'])
+        #
+        # self.data_df['short_filter2'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
+        #
+        # self.data_df['short_strong_filter1'] = (self.data_df['guppy_half1_strong_aligned_long'])
+        # self.data_df['short_strong_filter2'] = (self.data_df['guppy_half2_aligned_short']) & (self.data_df['fastest_guppy_line_up']) & (self.data_df['fast_guppy_cross_up'])
+        #
+        # self.data_df['guppy_short_reverse'] = (self.data_df['down_guppy_line_num'] >= 3) & (self.data_df['ma_close30_gradient'] > 0)
+        # self.data_df['prev_guppy_short_reverse'] = self.data_df['guppy_short_reverse'].shift(1)
+        # self.data_df['prev2_guppy_short_reverse'] = self.data_df['prev_guppy_short_reverse'].shift(1)
+        # self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) | (self.data_df['prev_guppy_short_reverse']) | (self.data_df['prev2_guppy_short_reverse'])
+        # #self.data_df['recent_guppy_short_reverse'] = (self.data_df['guppy_short_reverse']) & (self.data_df['prev_guppy_short_reverse']) & (self.data_df['prev2_guppy_short_reverse'])
+        #
+        #
+        # self.data_df['can_short1'] = self.data_df['vegas_support_short'] #&\
+        #                              #(~self.data_df['guppy_half1_strong_aligned_long']) & (~self.data_df['prev_guppy_half1_strong_aligned_long']) & (~self.data_df['prev2_guppy_half1_strong_aligned_long']) #& (~self.data_df['short_filter1']) & (~self.data_df['short_filter2'])  #Modify
+        #
+        # ######## Conditions for Scenario where Vegas does not support short ###############  #second condition is EURUSD stuff
+        #
+        # self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) |\
+        #                                   ((self.data_df['guppy_half2_strong_aligned_short'])) |\
+        #                                   (self.data_df['guppy_all_aligned_short']) | (self.data_df['short_encourage_condition'])
+        #
+        # self.data_df['short_condition'] = self.data_df['short_condition'] & (~self.data_df['fastest_guppy_line_lasting_up'])
+        # self.data_df['short_condition'] = self.data_df['short_condition'] & (self.data_df['guppy_first_half_max'] < self.data_df['guppy_second_half_min'])
+        #
+        # #self.data_df['short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) #Adjust2
+        # self.data_df['can_short2'] = (~self.data_df['vegas_support_short']) & self.data_df['short_condition']
+        #
+        # # Old One
+        # self.data_df['final_short_filter1'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate > vegas_threshold) & (self.data_df['vegas_phase_duration'] < 96) & (self.data_df['prev_vegas_phase_entire_duration'] < 96) &\
+        #                                       ( ((self.data_df['fast_vegas_up']) & (self.data_df['previous_fast_vegas_up'])) |\
+        #                                      ((self.data_df['slow_vegas_up']) & (self.data_df['previous_slow_vegas_up'])) |\
+        #                                      ((self.data_df['previous_fast_vegas_up']) & (self.data_df['pp_fast_vegas_up'])) |\
+        #                                      ((self.data_df['previous_slow_vegas_up']) & (self.data_df['pp_slow_vegas_up']))
+        #                                      )
+        #
+        #
+        # # New Change
+        # self.data_df['final_short_filter2'] = ((self.data_df['fast_vegas'] - self.data_df['slow_vegas'])*self.lot_size*self.exchange_rate > vegas_threshold) & (self.data_df['vegas_phase_duration'] >= 96)
+        # self.data_df['short_filter_exempt'] = self.data_df['fast_vegas_down'] & self.data_df['previous_fast_vegas_down'] & (self.data_df['vegas_phase_duration'] < 8*24) &\
+        #                                      (self.data_df['vegas_distance_gradient'] < 0) & (self.data_df['prev_vegas_distance_gradient'] < 0) & self.data_df['guppy_all_below_vegas'] & self.data_df['guppy_all_strong_aligned_short']
+        # self.data_df['final_short_filter2'] = self.data_df['final_short_filter2'] & (~self.data_df['short_filter_exempt'])
+        #
+        # self.data_df['final_short_filter'] = self.data_df['final_short_filter1'] | self.data_df['final_short_filter2']
 
 
 
@@ -1099,69 +1147,69 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['can_short'] = True #(self.data_df['can_short1']) | (self.data_df['can_short2'])
-        #self.data_df['can_short'] = (self.data_df['vegas_support_short']) & (self.data_df['short_condition']) #strong adjust
-
-        self.data_df['can_short'] = (self.data_df['can_short']) & (~self.data_df['final_short_filter']) #USDCAD stuff
-
-        #############
-        self.data_df['final_short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) |\
-                                          ((self.data_df['guppy_half2_strong_aligned_short'])) |\
-                                          (self.data_df['guppy_all_aligned_short'])
-        #self.data_df['final_short_condition'] = self.data_df['final_short_condition'] & (~self.data_df['fastest_guppy_line_lasting_up'])
-        self.data_df['final_short_condition1'] = self.data_df['final_short_condition'] & (self.data_df['guppy_first_half_max'] < self.data_df['guppy_second_half_min'])
-
+        # self.data_df['can_short'] = True #(self.data_df['can_short1']) | (self.data_df['can_short2'])
+        # #self.data_df['can_short'] = (self.data_df['vegas_support_short']) & (self.data_df['short_condition']) #strong adjust
+        #
+        # self.data_df['can_short'] = (self.data_df['can_short']) & (~self.data_df['final_short_filter']) #USDCAD stuff
+        #
+        # #############
+        # self.data_df['final_short_condition'] = (self.data_df['guppy_half1_strong_aligned_short']) |\
+        #                                   ((self.data_df['guppy_half2_strong_aligned_short'])) |\
+        #                                   (self.data_df['guppy_all_aligned_short'])
+        # #self.data_df['final_short_condition'] = self.data_df['final_short_condition'] & (~self.data_df['fastest_guppy_line_lasting_up'])
+        # self.data_df['final_short_condition1'] = self.data_df['final_short_condition'] & (self.data_df['guppy_first_half_max'] < self.data_df['guppy_second_half_min'])
+        #
+        # # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
+        # #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        # #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        # #                                          (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_strong_aligned_long'])
+        #
+        # #Old
         # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
         #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) &\
         #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                          (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_strong_aligned_long'])
-
-        #Old
-        self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
-                                                 (self.data_df['middle'] < self.data_df['lower_vegas']) &\
-                                                 (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-                                                 (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
-
-        # self.data_df['final_short_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
-        #                                         (self.data_df['middle'] < self.data_df['lower_vegas']) &\
-        #                                         (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                         (self.data_df['vegas_phase_duration'] > 48) & (self.data_df['guppy_lines_up_num'] < 3) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
-
-
-        # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
-        #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) &\
-        #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
-
-
-
-        # self.data_df['final_short_condition2'] = (self.data_df['middle'] < self.data_df['lower_vegas']) &\
-        #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
-        #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
-
-        #Change Change
-        self.data_df['must_reject_short'] = False #(self.data_df['final_short_condition']) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
-
-
-        #self.data_df['must_reject_short'] = (self.data_df['final_short_condition'] & (~self.data_df['final_short_condition2'])) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
-
-        self.data_df['must_reject_short2'] = (~self.data_df['vegas_support_short']) & (self.data_df['ma_close30_gradient'] > 0) & (self.data_df['ma_close35_gradient'] > 0) & (self.data_df['ma_close30'] > self.data_df['ma_close35'])
-        #self.data_df['must_reject_short2'] = self.data_df['must_reject_short2'] & (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)
-
-        self.data_df['must_reject_short2'] = self.data_df['must_reject_short2'] &\
-                                            (((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)) | (self.data_df['fast_vegas'] > self.data_df['slow_vegas']))
-
-        self.data_df['must_reject_short3'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up'])
-
-        self.data_df['must_reject_short4'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['bar_up_phase_duration'] >= 24*5) & (self.data_df['guppy_lines_up_num'] >= 3)
-
-
-
-        self.data_df['can_short'] = (self.data_df['can_short']) & (self.data_df['final_short_condition1'] | self.data_df['final_short_condition2'])
-        self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short']) & (~self.data_df['must_reject_short2'])# & (~self.data_df['must_reject_short3'])
-        #self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short4'])
-
-        ############
+        #                                          (self.data_df['vegas_phase_duration'] > 48) & (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
+        #
+        # # self.data_df['final_short_condition2'] = (self.data_df['bar_up_phase_duration'] > 48) &\
+        # #                                         (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        # #                                         (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        # #                                         (self.data_df['vegas_phase_duration'] > 48) & (self.data_df['guppy_lines_up_num'] < 3) #& (self.data_df['middle'] < self.data_df['guppy_max'])#& (~self.data_df['guppy_half1_strong_aligned_short'])
+        #
+        #
+        # # self.data_df['final_short_condition2'] = (self.data_df['bar_down_phase_duration'] > 48) &\
+        # #                                          (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        # #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        # #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
+        #
+        #
+        #
+        # # self.data_df['final_short_condition2'] = (self.data_df['middle'] < self.data_df['lower_vegas']) &\
+        # #                                          (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) &\
+        # #                                          (~self.data_df['guppy_all_aligned_long']) #& (self.data_df['middle'] > self.data_df['guppy_min'])#& (~self.data_df['guppy_half1_strong_aligned_long'])
+        #
+        # #Change Change
+        # self.data_df['must_reject_short'] = False #(self.data_df['final_short_condition']) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
+        #
+        #
+        # #self.data_df['must_reject_short'] = (self.data_df['final_short_condition'] & (~self.data_df['final_short_condition2'])) & (self.data_df['guppy_first_half_max'] >= self.data_df['guppy_second_half_min'])
+        #
+        # self.data_df['must_reject_short2'] = (~self.data_df['vegas_support_short']) & (self.data_df['ma_close30_gradient'] > 0) & (self.data_df['ma_close35_gradient'] > 0) & (self.data_df['ma_close30'] > self.data_df['ma_close35'])
+        # #self.data_df['must_reject_short2'] = self.data_df['must_reject_short2'] & (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)
+        #
+        # self.data_df['must_reject_short2'] = self.data_df['must_reject_short2'] &\
+        #                                     (((self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['vegas_phase_duration'] >= 24*8)) | (self.data_df['fast_vegas'] > self.data_df['slow_vegas']))
+        #
+        # self.data_df['must_reject_short3'] = (self.data_df['fast_vegas'] > self.data_df['slow_vegas']) & (self.data_df['fast_vegas_up']) & (self.data_df['slow_vegas_up'])
+        #
+        # self.data_df['must_reject_short4'] = (self.data_df['fast_vegas'] < self.data_df['slow_vegas']) & (self.data_df['bar_up_phase_duration'] >= 24*5) & (self.data_df['guppy_lines_up_num'] >= 3)
+        #
+        #
+        #
+        # self.data_df['can_short'] = (self.data_df['can_short']) & (self.data_df['final_short_condition1'] | self.data_df['final_short_condition2'])
+        # self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short']) & (~self.data_df['must_reject_short2'])# & (~self.data_df['must_reject_short3'])
+        # #self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['must_reject_short4'])
+        #
+        # ############
 
 
         #self.data_df['can_short'] = self.data_df['can_short'] & (~self.data_df['recent_guppy_short_reverse'])
@@ -1185,111 +1233,111 @@ class CurrencyTrader(threading.Thread):
 
 
 
-        self.data_df['m12_above_upper_vegas'] = self.data_df['ma_close12'] > self.data_df['upper_vegas']
-        self.data_df['m12_below_lower_vegas'] = self.data_df['ma_close12'] < self.data_df['lower_vegas']
-
-        self.data_df['m12_above_lower_vegas'] = self.data_df['ma_close12'] > self.data_df['lower_vegas']
-        self.data_df['m12_below_upper_vegas'] = self.data_df['ma_close12'] < self.data_df['upper_vegas']
-
-
-        self.data_df['low_price_to_upper_vegas'] = self.data_df['low'] - self.data_df['upper_vegas']
-        self.data_df['middle_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['max_price']  #middle_price
-
-        self.data_df['high_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['high']
-        self.data_df['middle_price_to_upper_vegas'] = self.data_df['min_price'] - self.data_df['upper_vegas']  #middle_price
-
-
-        self.data_df['recent_min_low_price_to_upper_vegas'] = self.data_df['low_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
-                                                                                                            min_periods = vegas_reverse_look_back_window).min()
-        self.data_df['recent_max_middle_price_to_lower_vegas'] = self.data_df['middle_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
-                                                                                                            min_periods = vegas_reverse_look_back_window).max()
-
-
-        self.data_df['recent_min_high_price_to_lower_vegas'] = self.data_df['high_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
-                                                                                                            min_periods = vegas_reverse_look_back_window).min()
-        self.data_df['recent_max_middle_price_to_upper_vegas'] = self.data_df['middle_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
-                                                                                                            min_periods = vegas_reverse_look_back_window).max()
-
-        self.data_df['m12_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
-        self.data_df['m12_to_upper_vegas'] = self.data_df['upper_vegas'] - self.data_df['ma_close12']
-
-        self.data_df['recent_min_m12_to_lower_vegas'] = self.data_df['m12_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
-                                                                                                   min_periods = vegas_reverse_look_back_window).min()
-        self.data_df['recent_min_m12_to_upper_vegas'] = self.data_df['m12_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
-                                                                                                   min_periods = vegas_reverse_look_back_window).min()
+        # self.data_df['m12_above_upper_vegas'] = self.data_df['ma_close12'] > self.data_df['upper_vegas']
+        # self.data_df['m12_below_lower_vegas'] = self.data_df['ma_close12'] < self.data_df['lower_vegas']
+        #
+        # self.data_df['m12_above_lower_vegas'] = self.data_df['ma_close12'] > self.data_df['lower_vegas']
+        # self.data_df['m12_below_upper_vegas'] = self.data_df['ma_close12'] < self.data_df['upper_vegas']
+        #
+        #
+        # self.data_df['low_price_to_upper_vegas'] = self.data_df['low'] - self.data_df['upper_vegas']
+        # self.data_df['middle_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['max_price']  #middle_price
+        #
+        # self.data_df['high_price_to_lower_vegas'] = self.data_df['lower_vegas'] - self.data_df['high']
+        # self.data_df['middle_price_to_upper_vegas'] = self.data_df['min_price'] - self.data_df['upper_vegas']  #middle_price
+        #
+        #
+        # self.data_df['recent_min_low_price_to_upper_vegas'] = self.data_df['low_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
+        #                                                                                                     min_periods = vegas_reverse_look_back_window).min()
+        # self.data_df['recent_max_middle_price_to_lower_vegas'] = self.data_df['middle_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
+        #                                                                                                     min_periods = vegas_reverse_look_back_window).max()
+        #
+        #
+        # self.data_df['recent_min_high_price_to_lower_vegas'] = self.data_df['high_price_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
+        #                                                                                                     min_periods = vegas_reverse_look_back_window).min()
+        # self.data_df['recent_max_middle_price_to_upper_vegas'] = self.data_df['middle_price_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
+        #                                                                                                     min_periods = vegas_reverse_look_back_window).max()
+        #
+        # self.data_df['m12_to_lower_vegas'] = self.data_df['ma_close12'] - self.data_df['lower_vegas']
+        # self.data_df['m12_to_upper_vegas'] = self.data_df['upper_vegas'] - self.data_df['ma_close12']
+        #
+        # self.data_df['recent_min_m12_to_lower_vegas'] = self.data_df['m12_to_lower_vegas'].rolling(vegas_reverse_look_back_window,
+        #                                                                                            min_periods = vegas_reverse_look_back_window).min()
+        # self.data_df['recent_min_m12_to_upper_vegas'] = self.data_df['m12_to_upper_vegas'].rolling(vegas_reverse_look_back_window,
+        #                                                                                            min_periods = vegas_reverse_look_back_window).min()
 
 
         ################## Added features #########################
 
         bar_lookback_num = 5
 
-        self.data_df['positive_close'] = np.where(self.data_df['is_positive'], self.data_df['close'], np.nan)
-        self.data_df['positive_close'] = self.data_df['positive_close'].fillna(method = 'bfill').fillna(0)
-        self.data_df['positive_close_diff'] = self.data_df['positive_close'].diff()
-
-        self.data_df['negative_close'] = np.where(self.data_df['is_negative'], self.data_df['close'], np.nan)
-        self.data_df['negative_close'] = self.data_df['negative_close'].fillna(method = 'bfill').fillna(0)
-        self.data_df['negative_close_diff'] = self.data_df['negative_close'].diff()
-
-        self.data_df['positive_close_increase'] = np.where(self.data_df['positive_close_diff'] >= 0, 1, 0)
-        self.data_df['positive_close_decrease'] = np.where(self.data_df['positive_close_diff'] < 0, 1, 0)
-
-        self.data_df['negative_close_decrease'] = np.where(self.data_df['negative_close_diff'] <= 0, 1, 0)
-        self.data_df['negative_close_increase'] = np.where(self.data_df['negative_close_diff'] > 0, 1, 0)
-
-        self.data_df['recent_positive_close_decrease_num'] = self.data_df['positive_close_decrease'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
-        self.data_df['recent_negative_close_increase_num'] = self.data_df['negative_close_increase'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
-
-        self.data_df['prev_recent_positive_close_decrease_num'] = self.data_df['recent_positive_close_decrease_num'].shift(1)  ###
-        self.data_df['prev_recent_negative_close_increase_num'] = self.data_df['recent_negative_close_increase_num'].shift(1)
-
-
-
-        self.data_df['positive_open'] = np.where(self.data_df['positive'], self.data_df['open'], np.nan)
-        self.data_df['positive_open'] = self.data_df['positive_open'].fillna(method = 'bfill').fillna(0)
-        self.data_df['positive_open_diff'] = self.data_df['positive_open'].diff()
-
-        self.data_df['negative_open'] = np.where(self.data_df['negative'], self.data_df['open'], np.nan)
-        self.data_df['negative_open'] = self.data_df['negative_open'].fillna(method = 'bfill').fillna(0)
-        self.data_df['negative_open_diff'] = self.data_df['negative_open'].diff()
-
-        self.data_df['positive_open_increase'] = np.where(self.data_df['positive_open_diff'] >= 0, 1, 0)
-        self.data_df['positive_open_decrease'] = np.where(self.data_df['positive_open_diff'] < 0, 1, 0)
-
-        self.data_df['negative_open_decrease'] = np.where(self.data_df['negative_open_diff'] <= 0, 1, 0)
-        self.data_df['negative_open_increase'] = np.where(self.data_df['negative_open_diff'] > 0, 1, 0)
-
-        self.data_df['recent_positive_open_decrease_num'] = self.data_df['positive_open_decrease'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
-        self.data_df['recent_negative_open_increase_num'] = self.data_df['negative_open_increase'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
-
-        self.data_df['prev_recent_positive_open_decrease_num'] = self.data_df['recent_positive_open_decrease_num'].shift(1)  ###
-        self.data_df['prev_recent_negative_open_increase_num'] = self.data_df['recent_negative_open_increase_num'].shift(1)
-
-
-
-
-        self.data_df['recent_positive_bar_num'] = self.data_df['positive'].rolling(bar_lookback_num, min_periods = bar_lookback_num).sum()
-        self.data_df['recent_negative_bar_num'] = self.data_df['negative'].rolling(bar_lookback_num, min_periods = bar_lookback_num).sum()
-
-        self.data_df['prev_recent_positive_bar_num'] = self.data_df['recent_positive_bar_num'].shift(1)
-        self.data_df['prev_recent_negative_bar_num'] = self.data_df['recent_negative_bar_num'].shift(1)
-
-
-        self.data_df['backward_min_price'] = self.data_df['min_price'].shift(bar_lookback_num)
-        self.data_df['backward_max_price'] = self.data_df['max_price'].shift(bar_lookback_num)
-
-
-        self.data_df['special_reject_short_cond1'] = self.data_df['prev_recent_positive_bar_num'] >= 3
-        self.data_df['special_reject_short_cond2'] = self.data_df['prev_is_positive'] & (~self.data_df['prev_is_small_body']) & self.data_df['pp_is_positive'] & (~self.data_df['pp_is_small_body'])
-        self.data_df['special_reject_short_cond3'] = (self.data_df['prev_recent_positive_close_decrease_num'] == 0) & (self.data_df['prev_recent_positive_open_decrease_num'] == 0)
-        self.data_df['special_reject_short_cond4'] = self.data_df['is_negative'] & (self.data_df['min_price'] <= self.data_df['backward_min_price'])
-        self.data_df['special_reject_short_cond'] = reduce(lambda left, right: left & right, [self.data_df['special_reject_short_cond' + str(i)] for i in range(1, 5)])
-
-        self.data_df['special_reject_long_cond1'] = self.data_df['prev_recent_negative_bar_num'] >= 3
-        self.data_df['special_reject_long_cond2'] = self.data_df['prev_is_negative'] & (~self.data_df['prev_is_small_body']) & self.data_df['pp_is_negative'] & (~self.data_df['pp_is_small_body'])
-        self.data_df['special_reject_long_cond3'] = (self.data_df['prev_recent_negative_close_increase_num'] == 0) & (self.data_df['prev_recent_negative_open_increase_num'] == 0)
-        self.data_df['special_reject_long_cond4'] = self.data_df['is_positive'] & (self.data_df['max_price'] >= self.data_df['backward_max_price'])
-        self.data_df['special_reject_long_cond'] = reduce(lambda left, right: left & right, [self.data_df['special_reject_long_cond' + str(i)] for i in range(1, 5)])
+        # self.data_df['positive_close'] = np.where(self.data_df['is_positive'], self.data_df['close'], np.nan)
+        # self.data_df['positive_close'] = self.data_df['positive_close'].fillna(method = 'bfill').fillna(0)
+        # self.data_df['positive_close_diff'] = self.data_df['positive_close'].diff()
+        #
+        # self.data_df['negative_close'] = np.where(self.data_df['is_negative'], self.data_df['close'], np.nan)
+        # self.data_df['negative_close'] = self.data_df['negative_close'].fillna(method = 'bfill').fillna(0)
+        # self.data_df['negative_close_diff'] = self.data_df['negative_close'].diff()
+        #
+        # self.data_df['positive_close_increase'] = np.where(self.data_df['positive_close_diff'] >= 0, 1, 0)
+        # self.data_df['positive_close_decrease'] = np.where(self.data_df['positive_close_diff'] < 0, 1, 0)
+        #
+        # self.data_df['negative_close_decrease'] = np.where(self.data_df['negative_close_diff'] <= 0, 1, 0)
+        # self.data_df['negative_close_increase'] = np.where(self.data_df['negative_close_diff'] > 0, 1, 0)
+        #
+        # self.data_df['recent_positive_close_decrease_num'] = self.data_df['positive_close_decrease'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+        # self.data_df['recent_negative_close_increase_num'] = self.data_df['negative_close_increase'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+        #
+        # self.data_df['prev_recent_positive_close_decrease_num'] = self.data_df['recent_positive_close_decrease_num'].shift(1)  ###
+        # self.data_df['prev_recent_negative_close_increase_num'] = self.data_df['recent_negative_close_increase_num'].shift(1)
+        #
+        #
+        #
+        # self.data_df['positive_open'] = np.where(self.data_df['positive'], self.data_df['open'], np.nan)
+        # self.data_df['positive_open'] = self.data_df['positive_open'].fillna(method = 'bfill').fillna(0)
+        # self.data_df['positive_open_diff'] = self.data_df['positive_open'].diff()
+        #
+        # self.data_df['negative_open'] = np.where(self.data_df['negative'], self.data_df['open'], np.nan)
+        # self.data_df['negative_open'] = self.data_df['negative_open'].fillna(method = 'bfill').fillna(0)
+        # self.data_df['negative_open_diff'] = self.data_df['negative_open'].diff()
+        #
+        # self.data_df['positive_open_increase'] = np.where(self.data_df['positive_open_diff'] >= 0, 1, 0)
+        # self.data_df['positive_open_decrease'] = np.where(self.data_df['positive_open_diff'] < 0, 1, 0)
+        #
+        # self.data_df['negative_open_decrease'] = np.where(self.data_df['negative_open_diff'] <= 0, 1, 0)
+        # self.data_df['negative_open_increase'] = np.where(self.data_df['negative_open_diff'] > 0, 1, 0)
+        #
+        # self.data_df['recent_positive_open_decrease_num'] = self.data_df['positive_open_decrease'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+        # self.data_df['recent_negative_open_increase_num'] = self.data_df['negative_open_increase'].rolling(bar_lookback_num-1, min_periods = bar_lookback_num-1).sum()
+        #
+        # self.data_df['prev_recent_positive_open_decrease_num'] = self.data_df['recent_positive_open_decrease_num'].shift(1)  ###
+        # self.data_df['prev_recent_negative_open_increase_num'] = self.data_df['recent_negative_open_increase_num'].shift(1)
+        #
+        #
+        #
+        #
+        # self.data_df['recent_positive_bar_num'] = self.data_df['positive'].rolling(bar_lookback_num, min_periods = bar_lookback_num).sum()
+        # self.data_df['recent_negative_bar_num'] = self.data_df['negative'].rolling(bar_lookback_num, min_periods = bar_lookback_num).sum()
+        #
+        # self.data_df['prev_recent_positive_bar_num'] = self.data_df['recent_positive_bar_num'].shift(1)
+        # self.data_df['prev_recent_negative_bar_num'] = self.data_df['recent_negative_bar_num'].shift(1)
+        #
+        #
+        # self.data_df['backward_min_price'] = self.data_df['min_price'].shift(bar_lookback_num)
+        # self.data_df['backward_max_price'] = self.data_df['max_price'].shift(bar_lookback_num)
+        #
+        #
+        # self.data_df['special_reject_short_cond1'] = self.data_df['prev_recent_positive_bar_num'] >= 3
+        # self.data_df['special_reject_short_cond2'] = self.data_df['prev_is_positive'] & (~self.data_df['prev_is_small_body']) & self.data_df['pp_is_positive'] & (~self.data_df['pp_is_small_body'])
+        # self.data_df['special_reject_short_cond3'] = (self.data_df['prev_recent_positive_close_decrease_num'] == 0) & (self.data_df['prev_recent_positive_open_decrease_num'] == 0)
+        # self.data_df['special_reject_short_cond4'] = self.data_df['is_negative'] & (self.data_df['min_price'] <= self.data_df['backward_min_price'])
+        # self.data_df['special_reject_short_cond'] = reduce(lambda left, right: left & right, [self.data_df['special_reject_short_cond' + str(i)] for i in range(1, 5)])
+        #
+        # self.data_df['special_reject_long_cond1'] = self.data_df['prev_recent_negative_bar_num'] >= 3
+        # self.data_df['special_reject_long_cond2'] = self.data_df['prev_is_negative'] & (~self.data_df['prev_is_small_body']) & self.data_df['pp_is_negative'] & (~self.data_df['pp_is_small_body'])
+        # self.data_df['special_reject_long_cond3'] = (self.data_df['prev_recent_negative_close_increase_num'] == 0) & (self.data_df['prev_recent_negative_open_increase_num'] == 0)
+        # self.data_df['special_reject_long_cond4'] = self.data_df['is_positive'] & (self.data_df['max_price'] >= self.data_df['backward_max_price'])
+        # self.data_df['special_reject_long_cond'] = reduce(lambda left, right: left & right, [self.data_df['special_reject_long_cond' + str(i)] for i in range(1, 5)])
 
 
 
@@ -1633,11 +1681,13 @@ class CurrencyTrader(threading.Thread):
                                                                         [(self.data_df['prev' + str(i) + '_' + macd_gradient] < 0) for i in range(1, macd_enter_gradient_num-1)])
 
 
-        if do_message_printing and self.is_notify and print_ready:
+        if do_message_printing and self.is_notify and print_ready and not use_guppy_filter and not use_guppy_condition and not self.reverse_strategy:
             if self.data_df.iloc[-1]['long_macd_long_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_long_enter']) and self.current_position <= 0:
                 sendEmail("Ready to Open Long Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
             elif self.data_df.iloc[-1]['long_macd_short_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_short_enter']) and self.current_position >= 0:
                 sendEmail("Ready to Open Short Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
+
+
 
 
 
@@ -1752,6 +1802,134 @@ class CurrencyTrader(threading.Thread):
 
 
 
+        if self.temporary_long:
+            if (not temporary_decision) and (not self.data_df.iloc[-1]['macd_long_enter']):
+
+                current_time = self.data_df.iloc[-1]['time'] + timedelta(hours = 1)
+
+                if do_real_money_trading and self.wakeup == 1:
+
+                    print("At " + current_time + ", Revoke long decision just made.")
+
+                    filled_size = 0
+                    orderResponse = self.coinbase_client.get_order(order_id=self.order_id)
+                    if hasattr(orderResponse, "order"):
+                        order = orderResponse.order
+                        if order is not None:
+                            status = order['status']
+                            filled_size = float(order['filled_size'])
+
+                    print("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.attempt_size))
+
+                    if filled_size < self.attempt_size:
+                        try:
+                            print("Cancel the open order " + self.order_id)
+                            cancel_response = self.coinbase_client.cancel_orders(order_ids=[self.order_id])
+                            print("Cancel Response:")
+                            print(cancel_response)
+                        except Exception as e:
+                            print("Error:", e)
+
+                    if filled_size > 0:
+                        try:
+                            print("Sell " + str(filled_size) + " at market price")
+                            client_order_id = f"order_{uuid.uuid4()}"
+                            response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
+                                                           client_order_id=client_order_id,
+                                                           side="SELL",
+                                                           order_configuration={
+                                                               "market_market_ioc":{
+                                                                   "base_size" : str(filled_size)
+                                                               }
+                                                           },
+                                                           leverage=str(default_leverage),
+                                                           margin_type = "CROSS",
+                                                           retail_portfolio_id=self.coinbase_portfolio_id
+                                                           )
+                            print(f"Order placed: {response}")
+                        except Exception as e:
+                            print("Error:", e)
+
+                    self.order_id = None
+                    self.client_order_id = None
+                    self.attempt_size = 0
+                    self.attempt_size = 0
+
+                if do_message_printing and self.is_notify:
+                    message_title = "Revoke long decision made just now by shorting " + str(self.temporary_delta_position) + " units at market price"
+                    message = ""
+
+                    if not print_email_message_to_file:
+                        sendEmail(message_title, message)
+                    else:
+                        self.cache_email_messages(message_title, message, current_time)
+
+        if self.temporary_short:
+            if (not temporary_decision) and (not self.data_df.iloc[-1]['macd_short_enter']):
+
+                current_time = self.data_df.iloc[-1]['time'] + timedelta(hours = 1)
+
+                if do_real_money_trading and self.wakeup == 1:
+
+                    print("At " + current_time + ", Revoke short decision just made.")
+
+                    filled_size = 0
+                    orderResponse = self.coinbase_client.get_order(order_id=self.order_id)
+                    if hasattr(orderResponse, "order"):
+                        order = orderResponse.order
+                        if order is not None:
+                            status = order['status']
+                            filled_size = float(order['filled_size'])
+
+                    print("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.attempt_size))
+
+                    if filled_size < self.attempt_size:
+                        try:
+                            print("Cancel the open order " + self.order_id)
+                            cancel_response = self.coinbase_client.cancel_orders(order_ids=[self.order_id])
+                            print("Cancel Response:")
+                            print(cancel_response)
+                        except Exception as e:
+                            print("Error:", e)
+
+                    if filled_size > 0:
+                        try:
+                            print("Buy " + str(filled_size) + " at market price")
+                            client_order_id = f"order_{uuid.uuid4()}"
+                            response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
+                                                           client_order_id=client_order_id,
+                                                           side="BUY",
+                                                           order_configuration={
+                                                               "market_market_ioc":{
+                                                                   "base_size" : str(filled_size)
+                                                               }
+                                                           },
+                                                           leverage=str(default_leverage),
+                                                           margin_type = "CROSS",
+                                                           retail_portfolio_id=self.coinbase_portfolio_id
+                                                           )
+                            print(f"Order placed: {response}")
+                        except Exception as e:
+                            print("Error:", e)
+
+                    self.order_id = None
+                    self.client_order_id = None
+                    self.attempt_size = 0
+                    self.attempt_size = 0
+
+
+                if do_message_printing and self.is_notify:
+                    message_title = "Revoke short decision made just now by longing " + str(-self.temporary_delta_position) + " units at market price"
+                    message = ""
+
+                    if not print_email_message_to_file:
+                        sendEmail(message_title, message)
+                    else:
+                        self.cache_email_messages(message_title, message, current_time)
+
+
+
+
         print("")
         print("Calculating Long positions.............")
         print("")
@@ -1823,6 +2001,48 @@ class CurrencyTrader(threading.Thread):
                         sendEmail(message_title, message)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
+
+                    if temporary_decision:
+                        self.temporary_long = True
+                        self.temporary_delta_position = delta_position
+
+
+                    if do_real_money_trading and self.wakeup == 1:
+                        if self.current_real_position <= 0:
+                            real_position = initial_entry_value/self.crypto_last_price * default_leverage
+                            if self.crypto_last_price >= 1:
+                                real_position = round(real_position, 3)
+                            else:
+                                real_position = int(round(real_position, 0))
+
+                            print(self.currency + " current real position = " + str(self.current_real_position))
+                            print(self.currency + " target real position = " + str(real_position))
+                            real_delta_position = real_position - self.current_real_position
+
+                            try:
+                                print("At " + current_time + ", place real long order of " + str(real_delta_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                self.client_order_id = f"order_{uuid.uuid4()}"
+                                response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
+                                                               client_order_id=self.client_order_id,
+                                                               side="BUY",
+                                                               order_configuration={
+                                                                   "limit_limit_gtc":{
+                                                                       "base_size" : str(real_delta_position),
+                                                                       "limit_price" : str(self.crypto_last_price)
+
+                                                                   }
+                                                               },
+                                                               leverage=str(default_leverage),
+                                                               margin_type = "CROSS",
+                                                               retail_portfolio_id=self.coinbase_portfolio_id
+                                                               )
+                                print(f"Order placed: {response}")
+                            except Exception as e:
+                                print(f"Order failed: {e}")
+
+                            self.order_id = response['success_response']['order_id']
+                            self.attempt_side = 1
+                            self.attempt_size = real_delta_position
 
 
 
@@ -2134,6 +2354,48 @@ class CurrencyTrader(threading.Thread):
                         sendEmail(message_title, message)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
+
+                    if temporary_decision:
+                        self.temporary_short = True
+                        self.temporary_delta_position = delta_position
+
+
+                    if do_real_money_trading and self.wakeup == 1:
+                        if self.current_real_position >= 0:
+                            real_position = -initial_entry_value/self.crypto_last_price * default_leverage
+                            if self.crypto_last_price >= 1:
+                                real_position = round(real_position, 3)
+                            else:
+                                real_position = int(round(real_position, 0))
+
+                            print(self.currency + " current real position = " + str(self.current_real_position))
+                            print(self.currency + " target real position = " + str(real_position))
+                            real_delta_position = real_position - self.current_real_position
+
+                            try:
+                                print("At " + current_time + ", place real short order of " + str(-real_delta_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                self.client_order_id = f"order_{uuid.uuid4()}"
+                                response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
+                                                               client_order_id=self.client_order_id,
+                                                               side="SELL",
+                                                               order_configuration={
+                                                                   "limit_limit_gtc":{
+                                                                       "base_size" : str(-real_delta_position),
+                                                                       "limit_price" : str(self.crypto_last_price)
+
+                                                                   }
+                                                               },
+                                                               leverage=str(default_leverage),
+                                                               margin_type = "CROSS",
+                                                               retail_portfolio_id=self.coinbase_portfolio_id
+                                                               )
+                                print(f"Order placed: {response}")
+                            except Exception as e:
+                                print(f"Order failed: {e}")
+
+                            self.order_id = response['success_response']['order_id']
+                            self.attempt_side = -1
+                            self.attempt_size = -real_delta_position
 
 
             if do_smart_execution:
@@ -2574,11 +2836,11 @@ class CurrencyTrader(threading.Thread):
         return (max_draw_down, start, end)
 
 
-    def trade(self, print_ready=True):
+    def trade(self, print_ready=True, temporary_decision = False):
 
         print("Do trading............")
 
-        self.calculate_signals(print_ready)
+        self.calculate_signals(print_ready, temporary_decision)
 
         print_prefix = "[Currency " + self.currency + "] "
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
