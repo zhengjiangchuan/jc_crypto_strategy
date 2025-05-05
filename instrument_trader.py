@@ -297,8 +297,8 @@ do_message_printing = False
 
 
 
-use_slow_macd = False
-use_guppy_filter = True
+use_slow_macd = True
+use_guppy_filter = False
 
 do_stop_loss = False
 reentry_after_stop_loss = False
@@ -2274,6 +2274,32 @@ class CurrencyTrader(threading.Thread):
                             except Exception as e:
                                 print(f"Order failed: {e}")
 
+                            if do_stop_loss:
+                                try:
+                                    print("At " + current_time + ", place real long stop loss order of " + str(
+                                        real_position) + " at stop loss price " + str(
+                                        long_stop_loss_price))
+
+                                    stop_loss_order_id = f"order_{uuid.uuid4()}"
+                                    response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
+                                                                   # BTC-USDC is the correct product id
+                                                                   client_order_id=stop_loss_order_id,
+                                                                   side="SELL",
+                                                                   order_configuration={
+                                                                       "stop_limit_stop_limit_gtc": {
+                                                                           "base_size": str(real_position),
+                                                                           "limit_price": str(long_stop_loss_price*0.9),
+                                                                           "stop_price": str(long_stop_loss_price)
+                                                                       }
+                                                                   },
+                                                                   leverage="10",
+                                                                   margin_type="CROSS"
+                                                                   # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
+                                                                   )
+
+                                except Exception as e:
+                                    print(f"Order failed: {e}")
+
                             self.order_id = response['success_response']['order_id']
                             self.attempt_side = 1
                             self.attempt_size = real_delta_position
@@ -2666,6 +2692,32 @@ class CurrencyTrader(threading.Thread):
                                 print(f"Order placed: {response}")
                             except Exception as e:
                                 print(f"Order failed: {e}")
+
+                            if do_stop_loss:
+                                try:
+                                    print("At " + current_time + ", place real short stop loss order of " + str(
+                                        -real_position) + " at stop loss price " + str(
+                                        short_stop_loss_price))
+
+                                    stop_loss_order_id = f"order_{uuid.uuid4()}"
+                                    response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
+                                                                   # BTC-USDC is the correct product id
+                                                                   client_order_id=stop_loss_order_id,
+                                                                   side="BUY",
+                                                                   order_configuration={
+                                                                       "stop_limit_stop_limit_gtc": {
+                                                                           "base_size": str(-real_position),
+                                                                           "limit_price": str(short_stop_loss_price*1.1),
+                                                                           "stop_price": str(short_stop_loss_price)
+                                                                       }
+                                                                   },
+                                                                   leverage="10",
+                                                                   margin_type="CROSS"
+                                                                   # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
+                                                                   )
+
+                                except Exception as e:
+                                    print(f"Order failed: {e}")
 
                             self.order_id = response['success_response']['order_id']
                             self.attempt_side = -1
