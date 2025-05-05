@@ -69,9 +69,12 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 1000   #1000
+initial_bar_number = 50 if data_source == 1 else 500   #1000
 
-initial_bar_number_5min = 3000  #3000
+initial_bar_number_5min = 5000  #3000
+
+until_date_5min = None
+until_date = None
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -87,6 +90,8 @@ initial_bar_number_5min = 3000  #3000
 #until_date_5min = "2025-03-19"
 #until_date_5min = "2025-04-03"
 #until_date_5min = "2025-04-18"
+
+#until_date_5min = "2025-04-30"
 
 #until_date = "2025-04-04"
 
@@ -291,7 +296,6 @@ do_message_printing = False
 
 
 use_slow_macd = False
-
 use_guppy_filter = True
 
 

@@ -261,6 +261,10 @@ def preprocess_time(t):
 
     return datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
 
+def preprocess_date(d):
+
+    return datetime.datetime.strptime(d, "%Y-%m-%d")
+
 def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short_df,
                            num_days = 10, plot_jc = False, plot_bolling = False, is_jc_calculated = False, print_prefix = "",
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
