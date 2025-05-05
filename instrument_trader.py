@@ -260,7 +260,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = 4
 
 plot_day_line = True
 plot_cross_point = True
@@ -297,8 +297,8 @@ do_message_printing = False
 
 
 
-use_slow_macd = True
-use_guppy_filter = False
+use_slow_macd = False
+use_guppy_filter = True
 
 do_stop_loss = False
 reentry_after_stop_loss = False

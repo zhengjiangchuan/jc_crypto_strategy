@@ -71,7 +71,7 @@ read_5min_data = True
 if use_dynamic_TP:
     profit_loss_ratio = 10
 
-td = TDClient(apikey="dbc2c6a6a33840d4b2a11a371def5973")
+td = TDClient(apikey=get_twelvedata_api_keys())
 
 if do_real_money_trading:
     api_key, api_secret = get_api_keys()
@@ -362,10 +362,10 @@ def start_do_trading(wakeup = 0):
 
     #data_source = 2
 
-    is_real_time_trading = False
+    is_real_time_trading = True
     #is_weekend = False
 
-    is_real_time_trading_5min = False
+    is_real_time_trading_5min = True
     #is_weekend_5min = False
 
     is_do_portfolio_trading = False
@@ -588,7 +588,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250505_regression"
+    current_date = "_20250505_newdata"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -618,7 +618,7 @@ def start_do_trading(wakeup = 0):
     if do_stop_loss:
         general_chart_folder_name += "_stopLoss"
 
-    if not reentry_after_stop_loss:
+    if do_stop_loss and not reentry_after_stop_loss:
         general_chart_folder_name += "_notReentryAfterSL"
 
     if printed_figure_num == -1:
@@ -668,7 +668,7 @@ def start_do_trading(wakeup = 0):
         if do_stop_loss:
             chart_folder_name += "_stopLoss"
 
-        if not reentry_after_stop_loss:
+        if do_stop_loss and not reentry_after_stop_loss:
             chart_folder_name += "_notReentryAfterSL"
 
         if printed_figure_num == -1:
@@ -1190,7 +1190,10 @@ def start_do_trading(wakeup = 0):
                                     trial_numbers[i] += 1
 
                                     if waiting_round < running_round:
-                                        waiting_next_time = data_df.iloc[-1]['time'] + timedelta(seconds = 3600 + running_round * 60 + 10)  #-1
+                                        #waiting_next_time = data_df.iloc[-1]['time'] + timedelta(seconds = 3600 + running_round * 60 + 10)  #-1
+                                        now_time = datetime.now()
+                                        print("now is " + str(now_time))
+                                        waiting_next_time = datetime(now_time.year, now_time.month, now_time.day, now_time.hour, now_time.minute, now_time.second, 0) + timedelta(seconds = 60)
                                         print("waiting_next_time = " + str(waiting_next_time))
                                         waiting_round += 1
                                         print("running_round = " + str(running_round) + ", waiting_round = " + str(waiting_round))
