@@ -362,10 +362,10 @@ def start_do_trading(wakeup = 0):
 
     #data_source = 2
 
-    is_real_time_trading = True
+    is_real_time_trading = False
     #is_weekend = False
 
-    is_real_time_trading_5min = True
+    is_real_time_trading_5min = False
     #is_weekend_5min = False
 
     is_do_portfolio_trading = False
@@ -396,7 +396,7 @@ def start_do_trading(wakeup = 0):
 
     currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
     #currencies_to_run = ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-    #currencies_to_run = ['LINKUSD']
+    #currencies_to_run = ['XTZUSD']
 
     print("wakeup = " + str(wakeup))
 
@@ -588,7 +588,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250505"
+    current_date = "_20250505_regression"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -614,6 +614,12 @@ def start_do_trading(wakeup = 0):
 
     if use_guppy_condition:
         general_chart_folder_name += "_guppyCondition"
+
+    if do_stop_loss:
+        general_chart_folder_name += "_stopLoss"
+
+    if not reentry_after_stop_loss:
+        general_chart_folder_name += "_notReentryAfterSL"
 
     if printed_figure_num == -1:
         general_chart_folder_name += "_allPics"
@@ -658,6 +664,12 @@ def start_do_trading(wakeup = 0):
 
         if use_guppy_condition:
             chart_folder_name += "_guppyCondition"
+
+        if do_stop_loss:
+            chart_folder_name += "_stopLoss"
+
+        if not reentry_after_stop_loss:
+            chart_folder_name += "_notReentryAfterSL"
 
         if printed_figure_num == -1:
             chart_folder_name += "_allPics"

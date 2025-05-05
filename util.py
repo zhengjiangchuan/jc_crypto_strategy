@@ -6,6 +6,8 @@ use_dynamic_TP = True
 def warn(*args, **kwargs):
     pass
 
+
+
 import warnings
 warnings.warn = warn
 
@@ -397,8 +399,12 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         # macd_long_signal_idx = which(sub_data['macd_long_signal'])
         # macd_short_signal_idx = which(sub_data['macd_short_signal'])
         #
-        cross_macd_up_idx = which(sub_data['macd_cross_label_line'] == -1)
-        cross_macd_down_idx = which(sub_data['macd_cross_label_line'] == 1)
+
+        cross_macd_up_idx = []
+        cross_macd_down_idx = []
+        if 'macd_cross_label_line' in sub_data.columns:
+            cross_macd_up_idx = which(sub_data['macd_cross_label_line'] == -1)
+            cross_macd_down_idx = which(sub_data['macd_cross_label_line'] == 1)
 
 
 
@@ -654,7 +660,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             sub_df1['signal'] = 'macd'
             sub_df2['signal'] = 'msignal'
 
+            # sub_df1 = sub_df1.iloc[0:20]
+            # sub_df2 = sub_df2.iloc[0:20]
+
+            sub_df1 = sub_df1.fillna(0)
+            sub_df2 = sub_df2.fillna(0)
+
             sub_df = pd.concat([sub_df1, sub_df2])
+            # sub_df.reset_index(inplace = True)
 
             ############
             sub_df3 = candle_df[['time_id', 'macd2']]
@@ -666,7 +679,14 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             sub_df3['signal'] = 'macd2'
             sub_df4['signal'] = 'msignal2'
 
+            sub_df3 = sub_df3.fillna(0)
+            sub_df4 = sub_df4.fillna(0)
+
+
             sub_df_slow = pd.concat([sub_df3, sub_df4])
+
+            # print("sub_df:")
+            # print(sub_df)
 
             sns.lineplot(x = 'time_id', y = 'macd_indicator', hue = 'signal', data = sub_df, ax = aux_axes)
             #plt.setp(aux_axes.get_xticklabels(), rotation=45)
