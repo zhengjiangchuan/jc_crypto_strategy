@@ -80,7 +80,8 @@ if do_real_money_trading:
 
 class CurrencyPair:
 
-    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy):
+    def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
+                 use_slow_macd, use_guppy_filter, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -90,6 +91,12 @@ class CurrencyPair:
         self.optimal_gradient_num_execution = optimal_gradient_num_execution
         self.decimal = decimal
         self.reverse_strategy = True if reverse_strategy == 1 else False
+        self.use_slow_macd = True if use_slow_macd == 1 else False
+        self.use_guppy_filter = True if use_guppy_filter == 1 else False
+        self.do_stop_loss = True if do_stop_loss == 1 else False
+        self.reentry_after_stop_loss = True if reentry_after_stop_loss == 1 else False
+        self.also_filter_too_late = True if also_filter_too_late == 1 else False
+        self.use_guppy_condition = True if use_guppy_condition == 1 else False
 
 
 def convert_to_time(timestamp):
@@ -368,6 +375,8 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading_5min = True
     #is_weekend_5min = False
 
+    manual_delay = 10
+
     is_do_portfolio_trading = False
 
     if is_gege_server:
@@ -396,7 +405,7 @@ def start_do_trading(wakeup = 0):
 
     currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
     #currencies_to_run = ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-    #currencies_to_run = ['XTZUSD']
+    #currencies_to_run = ['DOGEUSD', 'AVAXUSD']
 
     print("wakeup = " + str(wakeup))
 
@@ -410,8 +419,10 @@ def start_do_trading(wakeup = 0):
             currency_close_prices[currency] = close_price
 
         if do_real_money_trading:
+            coinbase_currencies = []
             for currency in currencies_to_run:
                 coinbase_currency = currency[:-len('USD')] + '-PERP-INTX'
+                coinbase_currencies += [coinbase_currency]
                 print("Get current price for " + coinbase_currency)
                 product = client.get_product(coinbase_currency)
                 coinbase_price = float(product['price'])
@@ -547,8 +558,15 @@ def start_do_trading(wakeup = 0):
     currency_pairs = []
     for i in range(currency_df.shape[0]):
         row = currency_df.iloc[i]
+
+        # if row['instrument'] == 'DOGEUSD':
+        #     print("row:")
+        #     print(row)
+        #     sys.exit(0)
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
-                                        row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'], row['reverse_strategy'])]
+                                        row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
+                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['do_stop_loss'],
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'])]
 
     print("currencies:")
     print([currencyPair.currency for currencyPair in currency_pairs])
@@ -570,6 +588,10 @@ def start_do_trading(wakeup = 0):
         data_files_5min = []
 
     trade_files = []
+    trade_prod_files = []
+
+    delay_cost_files = []
+
     performance_files = []
 
     email_message_files = []
@@ -588,7 +610,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250505_newdata"
+    current_date = "_20250509"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -601,24 +623,24 @@ def start_do_trading(wakeup = 0):
     if do_reentry:
         general_chart_folder_name += "_reentry"
 
-    if use_slow_macd:
+    if global_use_slow_macd:
         general_chart_folder_name += "_slowMACD"
     else:
         general_chart_folder_name += "_fastMACD"
 
-    if use_guppy_filter:
+    if global_use_guppy_filter:
         general_chart_folder_name += "_guppyFilter"
 
-    if also_filter_too_late:
+    if global_also_filter_too_late:
         general_chart_folder_name += "_filterTooLate"
 
-    if use_guppy_condition:
+    if global_use_guppy_condition:
         general_chart_folder_name += "_guppyCondition"
 
-    if do_stop_loss:
+    if global_do_stop_loss:
         general_chart_folder_name += "_stopLoss"
 
-    if do_stop_loss and not reentry_after_stop_loss:
+    if global_do_stop_loss and not global_reentry_after_stop_loss:
         general_chart_folder_name += "_notReentryAfterSL"
 
     if printed_figure_num == -1:
@@ -651,24 +673,24 @@ def start_do_trading(wakeup = 0):
         if do_reentry:
             chart_folder_name += "_reentry"
 
-        if use_slow_macd:
+        if currency_pair.use_slow_macd:
             chart_folder_name += "_slowMACD"
         else:
             chart_folder_name += "_fastMACD"
 
-        if use_guppy_filter:
+        if currency_pair.use_guppy_filter:
             chart_folder_name += "_guppyFilter"
 
-        if also_filter_too_late:
+        if currency_pair.also_filter_too_late:
             chart_folder_name += "_filterTooLate"
 
-        if use_guppy_condition:
+        if currency_pair.use_guppy_condition:
             chart_folder_name += "_guppyCondition"
 
-        if do_stop_loss:
+        if currency_pair.do_stop_loss:
             chart_folder_name += "_stopLoss"
 
-        if do_stop_loss and not reentry_after_stop_loss:
+        if currency_pair.do_stop_loss and not currency_pair.reentry_after_stop_loss:
             chart_folder_name += "_notReentryAfterSL"
 
         if printed_figure_num == -1:
@@ -725,6 +747,10 @@ def start_do_trading(wakeup = 0):
         #trade_file = os.path.join(currency_folder, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
 
         trade_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_all_trades.csv")
+        trade_prod_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_all_trades_prod.csv")
+
+        delay_cost_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_delay_cost_prod.csv")
+
         #performance_file = os.path.join(currency_folder, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
 
         performance_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_performance.csv")
@@ -744,6 +770,9 @@ def start_do_trading(wakeup = 0):
         if read_5min_data:
             data_files_5min += [data_file_5min]
         trade_files += [trade_file]
+        trade_prod_files += [trade_prod_file]
+        delay_cost_files += [delay_cost_file]
+
         performance_files += [performance_file]
 
         email_message_files += [email_message_file]
@@ -862,8 +891,8 @@ def start_do_trading(wakeup = 0):
 
 
     i = 0
-    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx, email_message_file in list(
-            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, performance_files, fx, email_message_files)):
+    for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx, email_message_file in list(
+            zip(currency_pairs, data_folders, chart_folders, simple_chart_folders, log_files, data_files, trade_files, trade_prod_files, delay_cost_files, performance_files, fx, email_message_files)):
 
         currency = currency_pair.currency
         lot_size = currency_pair.lot_size
@@ -873,6 +902,12 @@ def start_do_trading(wakeup = 0):
         optimal_gradient_num = currency_pair.optimal_gradient_num if not do_smart_execution else currency_pair.optimal_gradient_num_execution
         decimal = currency_pair.decimal
         reverse_strategy = currency_pair.reverse_strategy
+        use_slow_macd = currency_pair.use_slow_macd
+        use_guppy_filter = currency_pair.use_guppy_filter
+        do_stop_loss = currency_pair.do_stop_loss
+        reentry_after_stop_loss = currency_pair.reentry_after_stop_loss
+        also_filter_too_late = currency_pair.also_filter_too_late
+        use_guppy_condition = currency_pair.use_guppy_condition
 
         data_file_5min = None
         if read_5min_data:
@@ -886,11 +921,16 @@ def start_do_trading(wakeup = 0):
 
 
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, data_folder,
-                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, performance_file, usdfx,
+                                         chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx,
                                          email_message_file, currency in currencies_to_notify, data_file_5min if read_5min_data else None, decimal, reverse_strategy, wakeup,
-                                         currency[:-len('USD')] + '-PERP-INTX' if do_real_money_trading else None,
-                                         portfolio_id,
-                                         currency_coinbase_close_prices[currency] if do_real_money_trading else 0)
+                                         coinbase_client = client if do_real_money_trading else None,
+                                         currency_coinbase = currency[:-len('USD')] + '-PERP-INTX' if do_real_money_trading else None,
+                                         coinbase_portfolio_id = portfolio_id,
+                                         crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading else 0,
+                                         use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter,
+                                         do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
+                                         also_filter_too_late = also_filter_too_late,
+                                         use_guppy_condition = use_guppy_condition)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
@@ -1215,27 +1255,54 @@ def start_do_trading(wakeup = 0):
 
                             currency_trader.trade()
 
-        for i in range(len(currency_traders)):
-            if is_new_data_received[i]:
-                currency_trader = currency_traders[i]
-                currency_trader.post_processing()
-
+                    if manual_delay > 0:
+                        print("Sleep " + str(manual_delay) + " seconds ")
+                        time.sleep(manual_delay)
 
 
 
         if do_real_money_trading and wakeup == 1:
 
+            print("")
+            print("Checking fill status ......................")
+
             is_open_order_filled = [False] * len(currency_pairs)
-            unfilled_sizes = [-1] * len(currency_pairs)
+
+            is_long_open_order_filled = [False] * len(currency_pairs)
+            is_short_open_order_filled = [False] * len(currency_pairs)
+            is_close_long_open_order_filled = [False] * len(currency_pairs)
+            is_close_short_open_order_filled = [False] * len(currency_pairs)
+
+            long_filled_sizes = [-1] * len(currency_pairs)
+            short_filled_sizes = [-1] * len(currency_pairs)
+            close_long_filled_sizes = [-1] * len(currency_pairs)
+            close_short_filled_sizes = [-1] * len(currency_pairs)
+
+            long_unfilled_sizes = [-1] * len(currency_pairs)
+            short_unfilled_sizes = [-1] * len(currency_pairs)
+            close_long_unfilled_sizes = [-1] * len(currency_pairs)
+            close_short_unfilled_sizes = [-1] * len(currency_pairs)
+
+            long_filled_prices = [-1] * len(currency_pairs)
+            short_filled_prices = [-1] * len(currency_pairs)
+            close_long_filled_prices = [-1] * len(currency_pairs)
+            close_short_filled_prices = [-1] * len(currency_pairs)
+
+
             is_all_filled = False
 
             max_trials = 60
             trial_id = 0
+
+            use_market_order = False
+
             while not is_all_filled:
 
                 is_all_filled = True
 
                 for i in range(len(currency_traders)):
+
+                    print("Checking crypto " + currency_traders[i].currency)
 
                     if not is_open_order_filled[i]:
 
@@ -1243,30 +1310,168 @@ def start_do_trading(wakeup = 0):
                         print("")
                         print("Checking fill status of " + currency_trader.currency + " open orders if any")
 
-                        if currency_trader.order_id is None:
-                            print("No open orders.")
-                            is_open_order_filled[i] = True
+                        if currency_trader.long_order_id is None:
+                            print("No open long order.")
+                            is_long_open_order_filled[i] = True
                         else:
-                            fully_filled = False
+                            if currency_trader.long_order_id is not None:
+                                print("long_order_id = " + currency_trader.long_order_id)
+                                fully_filled = False
+                                orderResponse = client.get_order(order_id=currency_trader.long_order_id)
+                                if hasattr(orderResponse, "order"):
+                                    order = orderResponse.order
+                                    if order is not None:
+                                        status = order['status']
+                                        filled_size = float(order['filled_size'])
+                                        filled_price = float(order['average_filled_price'])
+                                        if not use_market_order:
+                                            long_filled_sizes[i] = filled_size
+                                            long_filled_prices[i] = filled_price
 
-                            orderResponse = client.get_order(order_id=currency_trader.order_id)
-                            if hasattr(orderResponse, "order"):
-                                order = orderResponse.order
-                                if order is not None:
-                                    status = order['status']
-                                    filled_size = float(order['filled_size'])
-                                    print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.attempt_size))
-                                    if status == 'FILLED' and filled_size == currency_trader.attempt_size:
-                                        fully_filled = True
-                                    unfilled_sizes[i] = currency_trader.attempt_size - filled_size
+                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.long_attempt_size))
+                                        if status == 'FILLED' and filled_size == currency_trader.long_attempt_size:
+                                            fully_filled = True
+                                        long_unfilled_sizes[i] = currency_trader.long_attempt_size - filled_size
 
 
-                            if fully_filled:
-                                print("Fully filled!")
-                                is_open_order_filled[i] = True
-                            else:
-                                print("Not fully filled.")
-                                is_all_filled = False
+                                if fully_filled:
+                                    print("long order fully filled!")
+                                    is_long_open_order_filled[i] = True
+                                    currency_trader.reset_long()
+
+                                    if use_market_order:
+                                        average_fill_price = (long_filled_sizes[i] * long_filled_prices[i] + filled_size * filled_price)/(long_filled_sizes[i] + filled_size)
+                                        currency_trader.set_long_fill(average_fill_price, long_filled_sizes[i] + filled_size)
+                                    else:
+                                        currency_trader.set_long_fill(filled_price, filled_size)
+                                else:
+                                    print("long order not fully filled.")
+                                    is_all_filled = False
+
+                        if currency_trader.short_order_id is None:
+                            print("No open short order.")
+                            is_short_open_order_filled[i] = True
+                        else:
+                            if currency_trader.short_order_id is not None:
+                                print("short_order_id = " + currency_trader.short_order_id)
+                                fully_filled = False
+                                orderResponse = client.get_order(order_id=currency_trader.short_order_id)
+                                if hasattr(orderResponse, "order"):
+                                    order = orderResponse.order
+                                    if order is not None:
+                                        status = order['status']
+                                        filled_size = float(order['filled_size'])
+                                        filled_price = float(order['average_filled_price'])
+                                        if not use_market_order:
+                                            short_filled_sizes[i] = filled_size
+                                            short_filled_prices[i] = filled_price
+
+                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.short_attempt_size))
+                                        if status == 'FILLED' and filled_size == currency_trader.short_attempt_size:
+                                            fully_filled = True
+                                        short_unfilled_sizes[i] = currency_trader.short_attempt_size - filled_size
+
+
+                                if fully_filled:
+                                    print("short order fully filled!")
+                                    is_short_open_order_filled[i] = True
+                                    currency_trader.reset_short()
+
+                                    if use_market_order:
+                                        average_fill_price = (short_filled_sizes[i] * short_filled_prices[i] + filled_size * filled_price)/(short_filled_sizes[i] + filled_size)
+                                        currency_trader.set_short_fill(average_fill_price, short_filled_sizes[i] + filled_size)
+                                    else:
+                                        currency_trader.set_short_fill(filled_price, filled_size)
+
+                                else:
+                                    print("short order not fully filled.")
+                                    is_all_filled = False
+
+                        if currency_trader.close_long_order_id is None:
+                            print("No open close long order.")
+                            is_close_long_open_order_filled[i] = True
+                        else:
+                            if currency_trader.close_long_order_id is not None:
+                                print("close_long_order_id = " + currency_trader.close_long_order_id)
+                                fully_filled = False
+                                orderResponse = client.get_order(order_id=currency_trader.close_long_order_id)
+                                if hasattr(orderResponse, "order"):
+                                    order = orderResponse.order
+                                    if order is not None:
+                                        status = order['status']
+                                        filled_size = float(order['filled_size'])
+                                        filled_price = float(order['average_filled_price'])
+                                        if not use_market_order:
+                                            close_long_filled_sizes[i] = filled_size
+                                            close_long_filled_prices[i] = filled_price
+
+                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.close_long_attempt_size))
+                                        if status == 'FILLED' and filled_size == currency_trader.close_long_attempt_size:
+                                            fully_filled = True
+                                        close_long_unfilled_sizes[i] = currency_trader.close_long_attempt_size - filled_size
+
+
+                                if fully_filled:
+                                    print("close_long order fully filled!")
+                                    is_close_long_open_order_filled[i] = True
+                                    currency_trader.reset_close_long()
+
+                                    if use_market_order:
+                                        average_fill_price = (close_long_filled_sizes[i] * close_long_filled_prices[i] + filled_size * filled_price)/(close_long_filled_sizes[i] + filled_size)
+                                        currency_trader.set_close_long_fill(average_fill_price, close_long_filled_sizes[i] + filled_size)
+                                    else:
+                                        currency_trader.set_close_long_fill(filled_price, filled_size)
+
+
+                                else:
+                                    print("close_long order not fully filled.")
+                                    is_all_filled = False
+
+
+                        if currency_trader.close_short_order_id is None:
+                            print("No open close_short order.")
+                            is_close_short_open_order_filled[i] = True
+                        else:
+                            if currency_trader.close_short_order_id is not None:
+                                print("close_short_order_id = " + currency_trader.close_short_order_id)
+                                fully_filled = False
+                                orderResponse = client.get_order(order_id=currency_trader.close_short_order_id)
+                                if hasattr(orderResponse, "order"):
+                                    order = orderResponse.order
+                                    if order is not None:
+                                        status = order['status']
+                                        filled_size = float(order['filled_size'])
+                                        filled_price = float(order['average_filled_price'])
+                                        if not use_market_order:
+                                            close_short_filled_sizes[i] = filled_size
+                                            close_short_filled_prices[i] = filled_price
+
+                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.close_short_attempt_size))
+                                        if status == 'FILLED' and filled_size == currency_trader.close_short_attempt_size:
+                                            fully_filled = True
+                                        close_short_unfilled_sizes[i] = currency_trader.close_short_attempt_size - filled_size
+
+
+                                if fully_filled:
+                                    print("close_short order fully filled!")
+                                    is_close_short_open_order_filled[i] = True
+                                    currency_trader.reset_close_short()
+
+                                    if use_market_order:
+                                        average_fill_price = (close_short_filled_sizes[i] * close_short_filled_prices[i] + filled_size * filled_price)/(close_short_filled_sizes[i] + filled_size)
+                                        currency_trader.set_close_short_fill(average_fill_price, close_short_filled_sizes[i] + filled_size)
+                                    else:
+                                        currency_trader.set_close_short_fill(filled_price, filled_size)
+
+
+                                else:
+                                    print("close_short order not fully filled.")
+                                    is_all_filled = False
+
+
+                        is_open_order_filled[i] = is_long_open_order_filled[i] and is_short_open_order_filled[i] and is_close_long_open_order_filled[i] and is_close_short_open_order_filled[i]
+
+
 
                 if not is_all_filled:
 
@@ -1278,15 +1483,18 @@ def start_do_trading(wakeup = 0):
                         trial_id += 1
                     else:
                         print("")
+                        use_market_order = True
                         print("Reached max waiting time. Now use market orders to fill all")
                         for i in range(len(currency_traders)):
-                            if not is_open_order_filled[i]:
+                            print("")
+                            print("Crypto " + str(currency_traders[i].currency))
+
+                            if not is_long_open_order_filled[i]:
                                 currency_trader = currency_traders[i]
-                                unfilled_size = unfilled_sizes[i]
-                                order_id = currency_trader.order_id
+                                unfilled_size = long_unfilled_sizes[i]
 
                                 try:
-                                    cancel_response = client.cancel_orders(order_ids=[order_id])
+                                    cancel_response = client.cancel_orders(order_ids=[currency_trader.long_order_id])
                                     print("Cancel Response:")
                                     print(cancel_response)
                                 except Exception as e:
@@ -1296,7 +1504,7 @@ def start_do_trading(wakeup = 0):
                                     client_order_id = f"order_{uuid.uuid4()}"
                                     response = client.create_order(product_id=currency_trader.currency_coinbase,
                                                                    client_order_id=client_order_id,
-                                                                   side="BUY" if currency_trader.attempt_side > 0 else "SELL",
+                                                                   side="BUY",
                                                                    order_configuration={
                                                                        "market_market_ioc":{
                                                                            "base_size" : str(unfilled_size)
@@ -1310,12 +1518,19 @@ def start_do_trading(wakeup = 0):
                                 except Exception as e:
                                     print(f"Order failed: {e}")
 
+                                currency_trader.set_long(response['success_response']['order_id'], unfilled_size)
+
+
 
                 else:
                     print("")
                     print("All cryptos have their open orders fully filled, bye bye!")
 
 
+        for i in range(len(currency_traders)):
+            if is_new_data_received[i]:
+                currency_trader = currency_traders[i]
+                currency_trader.post_processing()
 
         #sendEmail("Trader process ends", "")
 
