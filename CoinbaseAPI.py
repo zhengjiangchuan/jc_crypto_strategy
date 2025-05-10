@@ -17,7 +17,7 @@ import uuid
 
 api_key, api_secret = get_api_keys()
 
-
+a=3
 
 
 client = RESTClient(api_key = api_key,
