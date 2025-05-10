@@ -362,31 +362,17 @@ def start_do_trading(wakeup = 0):
     print("start do trading!")
     #print("Child process starts")
 
-    is_gege_server = False
-
-
-    data_source = 2 if is_crypto else 1
-
-    #data_source = 2
-
-    is_real_time_trading = True
+    is_real_time_trading = False
     #is_weekend = False
 
-    is_real_time_trading_5min = True
+    is_real_time_trading_5min = False
     #is_weekend_5min = False
 
-    manual_delay = 10
+    manual_delay = 10 if is_real_time_trading else 0
 
     is_do_portfolio_trading = False
 
-    if is_gege_server:
-        root_folder = "/home/min/forex/formal_trading"
-    else:
-        #root_folder = "C:\\Users\\admin\\Desktop\\old data\\JCForex_prod" if data_source == 1 else "C:\\Uesrs\\admin\\JCForex_prod2"
-
-        root_folder = "C:\\Users\\admin\\JCForex_prod" if data_source == 1 else "C:\\Users\\admin\\JCForex_prod2"  #2
-
-        #root_folder = "C:\\JCForex_prod2"
+    root_folder = os.getenv("CRYPTO_PROD")
 
     if not os.path.exists(root_folder):
         os.makedirs(root_folder)
@@ -403,9 +389,9 @@ def start_do_trading(wakeup = 0):
 
     currency_coinbase_close_prices = {}
 
-    currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+    #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
     #currencies_to_run = ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-    #currencies_to_run = ['DOGEUSD', 'AVAXUSD']
+    currencies_to_run = ['DOGEUSD', 'AVAXUSD']
 
     print("wakeup = " + str(wakeup))
 
@@ -610,7 +596,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250509"
+    current_date = "_20250510_temp"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -1018,12 +1004,8 @@ def start_do_trading(wakeup = 0):
 
                         if is_real_time_trading:
 
-                            if data_source == 1:
-                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
-                            else:
-                                incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
 
-
+                            incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
 
                             if incremental_data_df.iloc[0]['time'] > last_time:
                                 print("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
@@ -1046,11 +1028,7 @@ def start_do_trading(wakeup = 0):
                     else:
                         print("Currency file does not exit, query initial data from web")
 
-
-                        if data_source == 1:
-                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
-                        else:
-                            data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
+                        data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
 
                         data_df = data_df.iloc[:-1]
 
@@ -1079,10 +1057,8 @@ def start_do_trading(wakeup = 0):
 
                             if is_real_time_trading_5min:
 
-                                if data_source == 1:
-                                    incremental_data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
-                                else:
-                                    incremental_data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
+
+                                incremental_data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
 
 
 
@@ -1112,11 +1088,7 @@ def start_do_trading(wakeup = 0):
                         else:
                             print("Currency file does not exit, query initial data from web")
 
-
-                            if data_source == 1:
-                                data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
-                            else:
-                                data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
+                            data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
 
                             if until_date_5min is None or datetime.today() < preprocess_date(until_date_5min):
                                 data_df_5min = data_df_5min.iloc[:-1]
@@ -1124,17 +1096,7 @@ def start_do_trading(wakeup = 0):
                             # for col in ['open', 'high', 'low', 'close']:
                             #     data_df_5min[col] = data_df_5min[col].apply(lambda x: round(x, currency_trader.decimal))
 
-                    # print("Initial data_df:")
-                    # print(data_df.iloc[-20:])
 
-
-                    # if data_source == 2:
-                    #     print("preprocess data")
-                    #     data_df = preprocess_data(data_df)  #Preprocess data to de-noise bars at weekends
-                    #     print("preprocess finished")
-
-                        # print("preprocessed data:")
-                        # print(data_df.iloc[1500:1510])
 
                     #if is_real_time_trading and not is_weekend:
                     if is_real_time_trading and (until_date is None or datetime.today() < preprocess_date(until_date)):

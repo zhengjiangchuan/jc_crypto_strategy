@@ -1,6 +1,6 @@
 
 
-is_production = False
+
 
 
 def warn(*args, **kwargs):
@@ -76,6 +76,9 @@ initial_bar_number_5min = 5000  #3000
 
 until_date_5min = None
 until_date = None
+
+is_production = False
+print("Global is_production = " + str(is_production))
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -296,7 +299,7 @@ use_5min_in_smart_execution = False
 do_message_printing = False
 do_reentry = False
 
-use_global = False
+use_global = True
 
 global_use_slow_macd = True
 global_use_guppy_filter = False
@@ -3822,6 +3825,8 @@ class CurrencyTrader(threading.Thread):
 
 
     def trade(self, print_ready=True, temporary_decision = False):
+
+        print("In trade method, is_production = " + str(is_production))
 
         trade_start_time = datetime.now()
         print("trade_start_time = " + str(trade_start_time))
