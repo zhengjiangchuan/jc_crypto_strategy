@@ -121,12 +121,12 @@ def calc_macd(df, attr):
     #df['macd_period_high' + str(window)] = df['macd'].rolling(window, min_periods = window).max()
     #df['macd_period_low' + str(window)] = df['macd'].rolling(window, min_periods = window).min()
 
-    #print("In calc_macd:")
-    #print(df[['time','close','macd','msignal', 'macd_period_high' + str(window), 'macd_period_low' + str(window)]])
+    #log_msg("In calc_macd:")
+    #log_msg(df[['time','close','macd','msignal', 'macd_period_high' + str(window), 'macd_period_low' + str(window)]])
 
     #
-    # print("macd:")
-    # print(df[['time', 'close', 'macd', 'msignal']].tail(30))
+    # log_msg("macd:")
+    # log_msg(df[['time', 'close', 'macd', 'msignal']].tail(30))
     #
 
 
@@ -272,10 +272,10 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
                            bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
-                           use_dynamic_TP = False, figure_num = -1, plot_day_line = True, plot_cross_point = False, plot_long = True, plot_short = False, remove_plots = False):
+                           use_dynamic_TP = False, figure_num = -1, plot_day_line = True, plot_cross_point = False, plot_long = True, plot_short = False, remove_plots = False, log_msg = None):
 
-    print("In plot_candle_bar_charts:")
-    print("tick_interval = " + str(tick_interval))
+    log_msg("In plot_candle_bar_charts:")
+    #log_msg("tick_interval = " + str(tick_interval))
 
     if bar_fig_folder is not None and os.path.exists(bar_fig_folder):
 
@@ -327,7 +327,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
 
-        print(print_prefix + " Plot candle bar data from " + start_date_str + " until " + end_date_str)
+        log_msg(print_prefix + "Plot candle bar data from " + start_date_str + " until " + end_date_str)
 
         start_date_simple_str = start_date.strftime('%Y%m%d')
         end_date_simple_str = end_date.strftime('%Y%m%d')
@@ -345,8 +345,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         long_sub_data = long_df if long_df.shape[0] == 0 else long_df[(long_df['exit_time'] >= sub_data.iloc[0]['time']) &\
                                                                       (long_df['entry_time'] <= sub_data.iloc[-1]['time'])]
 
-        # print("short_df: length: " + str(short_df.shape[0]))
-        # print(short_df)
+        # log_msg("short_df: length: " + str(short_df.shape[0]))
+        # log_msg(short_df)
         short_sub_data = short_df if short_df.shape[0] == 0 else short_df[(short_df['exit_time'] >= sub_data.iloc[0]['time']) &\
                                                                           (short_df['entry_time'] <= sub_data.iloc[-1]['time'])]
 
@@ -437,8 +437,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         raw_long_points = sub_data[sub_data['macd_long_enter']]['entry_id'].tolist()
         not_finished_long_points = [p for p in raw_long_points if p not in long_win_points and p not in long_lose_points]
 
-        # print("long_sub_data:")
-        # print(long_sub_data)
+        # log_msg("long_sub_data:")
+        # log_msg(long_sub_data)
 
         long_hit_profit = long_sub_data[long_sub_data['is_win']][['entry_id', 'exit_id', 'entry_price', 'exit_price']]
         long_hit_loss = long_sub_data[~long_sub_data['is_win']][['entry_id', 'exit_id', 'entry_price', 'exit_price']]
@@ -504,9 +504,9 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         # long_hit_profit['entry_id'] = long_hit_profit['entry_id'].astype(int)
         # long_hit_profit['exit_id'] = long_hit_profit['exit_id'].astype(int)
 
-        # print("Fucking type:")
+        # log_msg("Fucking type:")
         # if long_hit_profit.shape[0] > 0:
-        #     print(type(long_hit_profit.iloc[0]['entry_id']))
+        #     log_msg(type(long_hit_profit.iloc[0]['entry_id']))
 
         # for my_df in [long_hit_profit, long_not_hit_profit, long_hit_loss, long_not_hit_loss, short_hit_profit, short_not_hit_profit, short_hit_loss, short_not_hit_loss]:
         #     my_df['entry_id'] = my_df['entry_id'].astype(int)
@@ -633,8 +633,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         trade_times = candle_df['time']
         time_number = candle_df.shape[0]
 
-        # print("trade_times:")
-        # print(trade_times[0:10])
+        # log_msg("trade_times:")
+        # log_msg(trade_times[0:10])
 
         def format_date(x, pos=None):
             thisind = np.clip(int(x + 0.5), 0, time_number - 1)
@@ -643,8 +643,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             my_time = trade_times[thisind].strftime('%H')
 
             # if x == 10:
-            #     print("x = " + str(x))
-            #     print("my_time = " + str(my_time))
+            #     log_msg("x = " + str(x))
+            #     log_msg("my_time = " + str(my_time))
 
             return my_time
 
@@ -685,8 +685,8 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
             sub_df_slow = pd.concat([sub_df3, sub_df4])
 
-            # print("sub_df:")
-            # print(sub_df)
+            # log_msg("sub_df:")
+            # log_msg(sub_df)
 
             sns.lineplot(x = 'time_id', y = 'macd_indicator', hue = 'signal', data = sub_df, ax = aux_axes)
             #plt.setp(aux_axes.get_xticklabels(), rotation=45)
@@ -730,7 +730,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
 
         fig_file_name = raw_symbol + '_' + interval + file_name_suffix + ('_long' if plot_long else '_short') + '.png'
         fig_file_path = os.path.join(bar_fig_folder, fig_file_name)
-        #print(print_prefix + " Save figure " + fig_file_name)
+        #log_msg(print_prefix + " Save figure " + fig_file_name)
 
         #plt.xticks(fontsize = 20)
         #plt.yticks(fontsize = 20)
@@ -738,21 +738,21 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         try:
             fig.savefig(fig_file_path)
         except Exception as error:
-            print(error)
+            log_msg(error)
         plt.close(fig)
 
 
         figs += [fig]
 
-    print("Plotting finishes")
+    log_msg("Plotting finishes")
     return None #list(zip(figs, intervals))
 
 
 
-def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_down):
+def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_down, log_msg):
 
-    # print("trade_df:")
-    # print(trade_df)
+    # log_msg("trade_df:")
+    # log_msg(trade_df)
 
     old_pnl_file = os.path.join(out_folder, currency + '_pnl.png')
     if os.path.exists(old_pnl_file):
@@ -773,7 +773,7 @@ def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_do
         trade_df = pd.concat([dummy_trade_df, trade_df])
         trade_df['id'] = list(range(trade_df.shape[0]))
 
-        print("Plot pnl figure")
+        log_msg("Plot pnl figure")
         fig = plt.figure(figsize = (10,10))
 
         axes = fig.subplots(nrows = 1, ncols = 1)
@@ -783,16 +783,16 @@ def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_do
         # trade_df.reset_index(inplace = True)
         # trade_df = trade_df.drop(columns = ['index'])
 
-        # print("trade_df:")
-        # print(trade_df)
+        # log_msg("trade_df:")
+        # log_msg(trade_df)
         #
-        # print("fucking type:")
-        # print(type(trade_df.iloc[2]['cum_pnl']))
+        # log_msg("fucking type:")
+        # log_msg(type(trade_df.iloc[2]['cum_pnl']))
 
         trade_df['cum_pnl'] = trade_df['cum_pnl'].astype(int)
         #trade_df['cum_reverse_pnl'] = trade_df['cum_reverse_pnl'].astype(int)
         #
-        # print(trade_df[['id','cum_pnl']])
+        # log_msg(trade_df[['id','cum_pnl']])
 
         sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes)
         axes.set_title(currency + " Cum Pnl Curve")
@@ -802,7 +802,7 @@ def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_do
         axes.axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
         axes.axvline(end_draw_down + 1, ls='--', color='red', linewidth=1)
 
-        print("Output pnl folder = " + os.path.join(out_folder, currency + '_pnl.png'))
+        log_msg("Output pnl folder = " + os.path.join(out_folder, currency + '_pnl.png'))
         fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))
         plt.close(fig)
 
@@ -838,7 +838,7 @@ def convert_to_5min(t):
 import smtplib
 from email.header import Header
 from email.mime.text import MIMEText
-
+from optparse import OptionParser
 
 mail_host = "smtp.163.com"
 mail_user = "glzxely123"
@@ -849,7 +849,21 @@ sender = 'glzxely123@163.com'
 
 receivers = ['glzxely123@163.com']
 
+parser = OptionParser()
+parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
+                  help="Currency Pair to run")
+parser.add_option("-l", "--log", dest="log_file", default = "no",
+                  help="log file")
 
+
+(options, args) = parser.parse_args()
+
+currency_to_run = options.currency_pair
+log2_file = options.log_file
+
+
+
+#def writeLog()
 
 def sendEmail(title, content):
 
@@ -861,14 +875,14 @@ def sendEmail(title, content):
     try:
         smtpObj = smtplib.SMTP_SSL(mail_host, 465)
         smtpObj.login(mail_user, mail_pass)
-        print("Sending Email....")
+        log_msg("Sending Email....")
         smtpObj.sendmail(sender, receivers, message.as_string())
-        print("mail has been send successfully.")
+        log_msg("mail has been send successfully.")
 
-        print("Send email: " + title + " " + content)
-        print("")
+        log_msg("Send email: " + title + " " + content)
+        log_msg("")
     except smtplib.SMTPException as e:
-        print(e)
+        log_msg(e)
     #pass
 
 

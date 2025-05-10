@@ -50,10 +50,47 @@ parser = OptionParser()
 parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
                   help="Currency Pair to run")
 
-
 (options, args) = parser.parse_args()
 
 currency_to_run = options.currency_pair
+
+global_log_file = "algo_log.txt"
+
+#log_msg("currency_to_run = " + currency_to_run)
+
+if currency_to_run != 'all':
+    global_log_file = currency_to_run + "_algo_log.txt"
+
+root_folder = os.getenv("CRYPTO_PROD")
+
+if not os.path.exists(root_folder):
+    os.makedirs(root_folder)
+
+
+global_log_path = os.path.join(root_folder, global_log_file)
+global_log_fd = open(global_log_path, "w")
+
+
+def log_msg(msg):
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # current_time = (datetime.now() + timedelta(seconds = 28800)).strftime("%Y-%m-%d %H:%M:%S")
+
+    if isinstance(msg, pd.DataFrame):
+        print('[' + current_time + ']  \n' + str(msg), file=global_log_fd)
+    else:
+        print('[' + current_time + ']  ' + str(msg), file=global_log_fd)
+
+    global_log_fd.flush()
+
+    if print_to_console:
+        if isinstance(msg, pd.DataFrame):
+            print('[' + current_time + ']  \n' + str(msg))
+        else:
+            print('[' + current_time + ']  ' + str(msg))
+
+
+
+
 
 app_id = "168180645499516"
 
@@ -119,9 +156,9 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     # Initialize client - apikey parameter is requiered
     global td
 
-    print("")
-    print("Now = " + str(datetime.now()))
-    print("initial_bar_number = " + str(initial_bar_number))
+    log_msg("")
+    log_msg("Now = " + str(datetime.now()))
+    log_msg("initial_bar_number = " + str(initial_bar_number))
     # Construct the necessary time series
     ts = td.time_series(
         symbol=currency[:-3] + '/' + currency[-3:],
@@ -148,10 +185,10 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
 
     data_df = data_df[['time', 'currency', 'open', 'high', 'low', 'close']]
 
-    print("Row number = " + str(data_df.shape[0]) + " &&")
+    log_msg("Row number = " + str(data_df.shape[0]) + " &&")
     #
-    print("here printing")
-    print(data_df.iloc[-20:])
+    log_msg("here printing")
+    log_msg(data_df.iloc[-20:])
 
     return data_df
 
@@ -169,8 +206,8 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
     # if start_timestamp != -1:
     #     query = query + "/st-" + str(start_timestamp)
 
-    print("query:")
-    print(query)
+    log_msg("query:")
+    log_msg(query)
 
     with urllib.request.urlopen(query) as response:
         reply = response.read().decode("utf-8")
@@ -194,10 +231,10 @@ def get_bar_data(currency, bar_number=240, start_timestamp=-1, is_convert_to_tim
 
         data_df = data_df.drop(columns=['dummy'])
 
-        # print("final data_df:")
-        # print(data_df)
+        # log_msg("final data_df:")
+        # log_msg(data_df)
 
-        print("data number: " + str(data_df.shape[0]))
+        log_msg("data number: " + str(data_df.shape[0]))
 
         return data_df
 
@@ -218,32 +255,32 @@ def preprocess_data(data_df):
 
     data_df['total_seconds'] = data_df['delta_days'] * 24 * 3600 + data_df['delta_seconds']
 
-    #print(type(data_df.iloc[-1]['time_delta']))
-    #print(data_df.iloc[-1]['time_delta'].seconds)
+    #log_msg(type(data_df.iloc[-1]['time_delta']))
+    #log_msg(data_df.iloc[-1]['time_delta'].seconds)
 
-    # print("###########")
-    # print("Temp data")
-    # print(data_df.iloc[1500:1510])
-    # print("###########")
+    # log_msg("###########")
+    # log_msg("Temp data")
+    # log_msg(data_df.iloc[1500:1510])
+    # log_msg("###########")
 
     critical_index = list(which(data_df['total_seconds'] > 3600)) + [data_df.shape[0]]
 
     sub_dfs = []
 
-    print(critical_index)
+    log_msg(critical_index)
 
-    print("critical_index length = " + str(len(critical_index)))
-    print("")
+    log_msg("critical_index length = " + str(len(critical_index)))
+    log_msg("")
 
     start = 0
     for i in range(len(critical_index)):
 
-        # print("i = " + str(i))
-        # print("start = " + str(start))
-        # print("end = " + str(critical_index[i]))
+        # log_msg("i = " + str(i))
+        # log_msg("start = " + str(start))
+        # log_msg("end = " + str(critical_index[i]))
         sub_df = data_df.iloc[start:critical_index[i]]
-        # print("sub_df length = " + str(sub_df.shape[0]))
-        # print("")
+        # log_msg("sub_df length = " + str(sub_df.shape[0]))
+        # log_msg("")
         start = critical_index[i]
 
         sub_dfs += [sub_df]
@@ -253,13 +290,13 @@ def preprocess_data(data_df):
     new_sub_dfs = []
     for j in range(len(sub_dfs)):
 
-       # print("j = " + str(j))
+       # log_msg("j = " + str(j))
 
         sub_df = sub_dfs[j]
 
-        # print("now sub_df.columns = ")
-        # print(sub_df.columns)
-        # print("length = " + str(sub_df.shape[0]))
+        # log_msg("now sub_df.columns = ")
+        # log_msg(sub_df.columns)
+        # log_msg("length = " + str(sub_df.shape[0]))
 
         ########Added Code ##########
         if sub_df.shape[0] < 2:
@@ -268,7 +305,7 @@ def preprocess_data(data_df):
 
         #############################
 
-        #print("sub df size = " + str(sub_df.shape[0]))
+        #log_msg("sub df size = " + str(sub_df.shape[0]))
 
         # sub_df.at[sub_df.index[0], 'open'] = 0.0
 
@@ -276,33 +313,33 @@ def preprocess_data(data_df):
         first_time = sub_df.iloc[0]['time']
         last_time = sub_df.iloc[-1]['time']
 
-        # print("first_time = " + str(first_time))
-        # print("last_time = " + str(last_time))
-        # print("")
+        # log_msg("first_time = " + str(first_time))
+        # log_msg("last_time = " + str(last_time))
+        # log_msg("")
 
-        #     print("Old head:")
+        #     log_msg("Old head:")
         #     display(sub_df.iloc[0:5])
 
-        #     print("Old tail:")
+        #     log_msg("Old tail:")
         #     display(sub_df.iloc[-5:])
 
 
         if last_close_price is not None:
 
             # if j == 32:
-            #     print("j = " + str(j))
+            #     log_msg("j = " + str(j))
             #
-            #     print("Before sub_df:")
-            #     print(sub_df)
+            #     log_msg("Before sub_df:")
+            #     log_msg(sub_df)
 
             if first_time.hour < 5:
                 sub_df = sub_df.iloc[1:]
 
             # if j == 32:
-            #     print("After sub_df:")
-            #     print(sub_df)
+            #     log_msg("After sub_df:")
+            #     log_msg(sub_df)
             #
-            #     print("")
+            #     log_msg("")
 
             if sub_df.iloc[0]['time'].hour == 5:
                 for col in price_cols:
@@ -326,20 +363,20 @@ def preprocess_data(data_df):
 
                 sub_df = pd.concat([sub_df, added_df])
 
-                # print("sub_df.columns = ")
-                # print(sub_df.columns)
-                # print("added_df.columns = ")
-                # print(added_df.columns)
+                # log_msg("sub_df.columns = ")
+                # log_msg(sub_df.columns)
+                # log_msg("added_df.columns = ")
+                # log_msg(added_df.columns)
             else:
                 sub_df = sub_df[['currency', 'time'] + price_cols]
 
         else:
             sub_df = sub_df[['currency', 'time'] + price_cols]
 
-            #     print("New head:")
+            #     log_msg("New head:")
         #     display(sub_df.iloc[0:5])
 
-        #     print("New tail:")
+        #     log_msg("New tail:")
         #     display(sub_df.iloc[-5:])
 
         new_sub_dfs += [sub_df]
@@ -349,18 +386,20 @@ def preprocess_data(data_df):
     new_data_df.reset_index(inplace=True)
     new_data_df = new_data_df.drop(columns=['index'])
 
-    # print("new_data_df.columns = ")
-    # print(new_data_df.columns)
+    # log_msg("new_data_df.columns = ")
+    # log_msg(new_data_df.columns)
     return new_data_df
 
 
 def start_do_trading(wakeup = 0):
 
-    print("")
-    print("")
-    print("###########################################")
-    print("start do trading!")
-    #print("Child process starts")
+    global my_log_file
+
+    log_msg("")
+    log_msg("")
+    log_msg("###########################################")
+    log_msg("start do trading!")
+    #log_msg("Child process starts")
 
     is_real_time_trading = False
     #is_weekend = False
@@ -372,10 +411,6 @@ def start_do_trading(wakeup = 0):
 
     is_do_portfolio_trading = False
 
-    root_folder = os.getenv("CRYPTO_PROD")
-
-    if not os.path.exists(root_folder):
-        os.makedirs(root_folder)
 
 
     currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
@@ -391,17 +426,21 @@ def start_do_trading(wakeup = 0):
 
     #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
     #currencies_to_run = ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-    currencies_to_run = ['DOGEUSD', 'AVAXUSD']
 
-    print("wakeup = " + str(wakeup))
+    if currency_to_run != 'all':
+        currencies_to_run = [currency_to_run]
+    else:
+        currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+
+    log_msg("wakeup = " + str(wakeup))
 
     portfolio_id = None
 
     if wakeup == 1:
         for currency in currencies_to_run:
-            print("Get close price for " + currency)
+            log_msg("Get close price for " + currency)
             close_price = get_close_price(currency)
-            print("close_price = " + str(close_price))
+            log_msg("close_price = " + str(close_price))
             currency_close_prices[currency] = close_price
 
         if do_real_money_trading:
@@ -409,10 +448,10 @@ def start_do_trading(wakeup = 0):
             for currency in currencies_to_run:
                 coinbase_currency = currency[:-len('USD')] + '-PERP-INTX'
                 coinbase_currencies += [coinbase_currency]
-                print("Get current price for " + coinbase_currency)
+                log_msg("Get current price for " + coinbase_currency)
                 product = client.get_product(coinbase_currency)
                 coinbase_price = float(product['price'])
-                print("Current price = " + str(coinbase_price))
+                log_msg("Current price = " + str(coinbase_price))
 
                 currency_coinbase_close_prices[currency] = coinbase_price
 
@@ -420,7 +459,7 @@ def start_do_trading(wakeup = 0):
             account = accounts.accounts[0]
             portfolio_id = str(account['retail_portfolio_id'])
 
-    print("Sleep 2 seconds")
+    log_msg("Sleep 2 seconds")
     time.sleep(2)
 
 
@@ -438,13 +477,13 @@ def start_do_trading(wakeup = 0):
     #currencies_to_notify = [currency for currency in raw_currencies if currency not in currencies_to_remove]
     currencies_to_notify = good_currencies if len(good_currencies) > 0 else [currency for currency in raw_currencies if currency not in currencies_to_remove]
 
-    print("currencies_to_notify:")
-    print(currencies_to_notify)
-    print("Num = " + str(len(currencies_to_notify)))
+    log_msg("currencies_to_notify:")
+    log_msg(currencies_to_notify)
+    log_msg("Num = " + str(len(currencies_to_notify)))
 
 
-    print("good_currencies:")
-    print(good_currencies)
+    log_msg("good_currencies:")
+    log_msg(good_currencies)
 
 
     raw_data_folders = []
@@ -463,18 +502,18 @@ def start_do_trading(wakeup = 0):
 
     post_run_currency_list = [currency for currency in currency_list if currency not in good_currencies]
 
-    print("pre_run_currency_list:")
-    print(pre_run_currency_list)
-    print("post_run_currency_list:")
-    print(post_run_currency_list)
+    log_msg("pre_run_currency_list:")
+    log_msg(pre_run_currency_list)
+    log_msg("post_run_currency_list:")
+    log_msg(post_run_currency_list)
 
     currency_list = pre_run_currency_list + post_run_currency_list
 
     # if len(currency_list) == 0:
     #     currency_list = currencies_to_run
 
-    print("final currency_list:")
-    print(currency_list)
+    log_msg("final currency_list:")
+    log_msg(currency_list)
 
     sorted_currency_df = pd.DataFrame({'instrument' : currency_list, 'cid' : list(range(len(currency_list)))})
     currency_df = pd.merge(currency_df, sorted_currency_df, on = ['instrument'], how='inner')
@@ -484,13 +523,13 @@ def start_do_trading(wakeup = 0):
 
 
     ################### Temp Copy Currency data outside ##################
-    # print("root_folder: ")
-    # print(root_folder)
+    # log_msg("root_folder: ")
+    # log_msg(root_folder)
     # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
     #     os.makedirs(temp_data_folder)
     # for currency in currency_list:
-    #     print("Copy data of " + currency)
+    #     log_msg("Copy data of " + currency)
     #     file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
     #     file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
     #     file_path3 = os.path.join(root_folder, currency, "data", currency + "_5min.csv")
@@ -498,20 +537,20 @@ def start_do_trading(wakeup = 0):
     #     if not os.path.exists(out_folder):
     #         os.makedirs(out_folder)
     #
-    #     print("Copy from " + file_path + " to " + out_folder)
+    #     log_msg("Copy from " + file_path + " to " + out_folder)
     #     shutil.copy2(file_path, out_folder)
     #     shutil.copy2(file_path2, out_folder)
     #     shutil.copy2(file_path3, out_folder)
     #
     # sys.exit(0)
 
-    # print("root_folder: ") #Never run this, keep alearted, running this will make your data lost
-    # print(root_folder)
+    # log_msg("root_folder: ") #Never run this, keep alearted, running this will make your data lost
+    # log_msg(root_folder)
     # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
     #     os.makedirs(temp_data_folder)
     # for currency in currency_list:
-    #     print("Copy data of " + currency)
+    #     log_msg("Copy data of " + currency)
     #     file_path = os.path.join(root_folder, currency, "data")
     #
     #     if not os.path.exists(file_path):
@@ -523,7 +562,7 @@ def start_do_trading(wakeup = 0):
     #     if not os.path.exists(out_folder):
     #         os.makedirs(out_folder)
     #
-    #     print("Copy from " + out_folder_path + " to " + file_path)
+    #     log_msg("Copy from " + out_folder_path + " to " + file_path)
     #     shutil.copy2(out_folder_path, file_path)
     #
     # sys.exit(0)
@@ -534,8 +573,8 @@ def start_do_trading(wakeup = 0):
 
 
 
-    print("currency_df:")
-    print(currency_df)
+    log_msg("currency_df:")
+    log_msg(currency_df)
 
 
 
@@ -546,16 +585,16 @@ def start_do_trading(wakeup = 0):
         row = currency_df.iloc[i]
 
         # if row['instrument'] == 'DOGEUSD':
-        #     print("row:")
-        #     print(row)
+        #     log_msg("row:")
+        #     log_msg(row)
         #     sys.exit(0)
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
                                         row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['do_stop_loss'],
         row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'])]
 
-    print("currencies:")
-    print([currencyPair.currency for currencyPair in currency_pairs])
+    log_msg("currencies:")
+    log_msg([currencyPair.currency for currencyPair in currency_pairs])
     #sys.exit(0)
 
     # currencies = list(currency_df['currency'])
@@ -699,11 +738,11 @@ def start_do_trading(wakeup = 0):
         if not os.path.exists(currency_data_folder):
             os.makedirs(currency_data_folder)
 
-        print("currency_folder:")
-        print(currency_folder)
+        log_msg("currency_folder:")
+        log_msg(currency_folder)
         data_folder = os.path.join(currency_folder, "data")
-        print("data_folder:")
-        print(data_folder)
+        log_msg("data_folder:")
+        log_msg(data_folder)
         if not os.path.exists(data_folder):
             os.makedirs(data_folder)
 
@@ -745,7 +784,7 @@ def start_do_trading(wakeup = 0):
 
         email_message_file = os.path.join(currency_folder, currency + "_" + chart_folder_name + "_emails.txt")
 
-        #print("Fuck performance_file " + performance_file)
+        #log_msg("Fuck performance_file " + performance_file)
 
         currency_folders += [currency_folder]
         data_folders += [data_folder]
@@ -805,7 +844,7 @@ def start_do_trading(wakeup = 0):
                 data_file = os.path.join(data_folder, currency + ".csv")
 
 
-            print("Read: " + data_file)
+            log_msg("Read: " + data_file)
 
             df = pd.read_csv(data_file)
             close_prices += [float(df.iloc[-1]['close'])]
@@ -814,7 +853,7 @@ def start_do_trading(wakeup = 0):
 
         currency = currency_list[i]
 
-        #print("Processing currency " + currency)
+        #log_msg("Processing currency " + currency)
 
         currencies += [currency]
 
@@ -851,21 +890,21 @@ def start_do_trading(wakeup = 0):
 
                 fx += [target_fx]
 
-                print("Found target currency " + fx_currency)
+                log_msg("Found target currency " + fx_currency)
                 break
 
-        print("")
+        log_msg("")
 
-    print("currencies = " + str(len(currencies)))
-    print("fx_currencies = " + str(len(fx_currencies)))
-    print("fx_raw = " + str(len(fx_raw)))
-    print("reciprocal = " + str(len(reciprocal)))
-    print("fx = " + str(len(fx)))
+    log_msg("currencies = " + str(len(currencies)))
+    log_msg("fx_currencies = " + str(len(fx_currencies)))
+    log_msg("fx_raw = " + str(len(fx_raw)))
+    log_msg("reciprocal = " + str(len(reciprocal)))
+    log_msg("fx = " + str(len(fx)))
 
     final_summary_data = pd.DataFrame({'currency' : currencies, 'fx_currency': fx_currencies, 'raw_fx' : fx_raw, 'reciprocal' : reciprocal, 'fx' : fx})
 
-    print("final_summary_data:")
-    print(final_summary_data)
+    log_msg("final_summary_data:")
+    log_msg(final_summary_data)
 
     #sys.exit(0)
 
@@ -900,9 +939,9 @@ def start_do_trading(wakeup = 0):
             data_file_5min = data_files_5min[i]
             i += 1
 
-        #print("optimal_gradient_num = " + str(optimal_gradient_num))
+        #log_msg("optimal_gradient_num = " + str(optimal_gradient_num))
 
-        #print("Here performance_file = " + performance_file)
+        #log_msg("Here performance_file = " + performance_file)
 
 
 
@@ -921,8 +960,8 @@ def start_do_trading(wakeup = 0):
 
         currency_traders += [currency_trader]
 
-    print("data_folders:")
-    print(data_folders)
+    log_msg("data_folders:")
+    log_msg(data_folders)
 
 
     is_do_trading = True
@@ -934,11 +973,11 @@ def start_do_trading(wakeup = 0):
         while not is_all_received:
 
             if running_round > 0:
-                print("running_round = " + str(running_round))
+                log_msg("running_round = " + str(running_round))
 
                 now = datetime.now()
-                print("now = " + str(now))
-                print("waiting_time = " + str(waiting_next_time))
+                log_msg("now = " + str(now))
+                log_msg("waiting_time = " + str(waiting_next_time))
                 if now < waiting_next_time:
                     seconds_remaining = (waiting_next_time - now).seconds
                     sleep_seconds = 5
@@ -948,7 +987,7 @@ def start_do_trading(wakeup = 0):
                         now = datetime.now()
 
                         seconds_remaining = (waiting_next_time - now).seconds if now < waiting_next_time else 0
-                        print("seconds_remaining = " + str(seconds_remaining))
+                        log_msg("seconds_remaining = " + str(seconds_remaining))
 
 
             is_all_received = True
@@ -964,13 +1003,13 @@ def start_do_trading(wakeup = 0):
 
                     print_prefix = "[Currency " + currency + "] "
 
-                    print("Query initial for currency pair " + currency)
+                    log_msg("Query initial for currency pair " + currency)
 
 
                     data_file = os.path.join(data_folder, currency + ".csv")
                     data_file_5min = os.path.join(data_folder, currency + "_5min.csv")
-                    print("data_file:")
-                    print(data_file)
+                    log_msg("data_file:")
+                    log_msg(data_file)
 
                     data_df = None
 
@@ -994,12 +1033,12 @@ def start_do_trading(wakeup = 0):
 
 
                         last_time = data_df.iloc[-1]['time']
-                        print("last_time = " + str(last_time))
+                        log_msg("last_time = " + str(last_time))
                         last_timestamp = int(datetime.timestamp(last_time)) #- 28800
                         # next_timestamp = last_timestamp + 3600
 
-                        print("Here last time = " + str(last_time))
-                        print("last_timestamp = " + str(last_timestamp))
+                        log_msg("Here last time = " + str(last_time))
+                        log_msg("last_timestamp = " + str(last_timestamp))
                         # time.sleep(15)
 
                         if is_real_time_trading:
@@ -1008,7 +1047,7 @@ def start_do_trading(wakeup = 0):
                             incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
 
                             if incremental_data_df.iloc[0]['time'] > last_time:
-                                print("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
+                                log_msg("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
 
                             #if is_weekend:
                             incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
@@ -1026,7 +1065,7 @@ def start_do_trading(wakeup = 0):
                             data_df = data_df.drop(columns=['index'])
 
                     else:
-                        print("Currency file does not exit, query initial data from web")
+                        log_msg("Currency file does not exit, query initial data from web")
 
                         data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
 
@@ -1035,7 +1074,7 @@ def start_do_trading(wakeup = 0):
 
                     if read_5min_data:
 
-                        print("Read 5 min data")
+                        log_msg("Read 5 min data")
 
                         if os.path.exists(data_file_5min):
 
@@ -1047,12 +1086,12 @@ def start_do_trading(wakeup = 0):
 
 
                             last_time = data_df_5min.iloc[-1]['time']
-                            print("last_time = " + str(last_time))
+                            log_msg("last_time = " + str(last_time))
                             last_timestamp = int(datetime.timestamp(last_time)) #- 28800
                             # next_timestamp = last_timestamp + 3600
 
-                            print("Here last time = " + str(last_time))
-                            print("last_timestamp = " + str(last_timestamp))
+                            log_msg("Here last time = " + str(last_time))
+                            log_msg("last_timestamp = " + str(last_timestamp))
                             # time.sleep(15)
 
                             if is_real_time_trading_5min:
@@ -1063,7 +1102,7 @@ def start_do_trading(wakeup = 0):
 
 
                                 if incremental_data_df_5min.iloc[0]['time'] > last_time:
-                                    print("5min bar: last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df_5min.iloc[0]['time']), file = sys.stderr)
+                                    log_msg("5min bar: last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df_5min.iloc[0]['time']), file = sys.stderr)
 
                                 #if is_weekend_5min:
                                 #    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time]
@@ -1086,7 +1125,7 @@ def start_do_trading(wakeup = 0):
                                 #     data_df_5min[col] = data_df_5min[col].apply(lambda x: round(x, currency_trader.decimal))
 
                         else:
-                            print("Currency file does not exit, query initial data from web")
+                            log_msg("Currency file does not exit, query initial data from web")
 
                             data_df_5min = get_bar_data2(currency, bar_number=initial_bar_number_5min, interval='5min', end_date = until_date_5min)
 
@@ -1109,12 +1148,12 @@ def start_do_trading(wakeup = 0):
 
                         if read_5min_data:
 
-                            print("Now data_df_5min..........:")
-                            print(data_df_5min.iloc[-5:])
+                            log_msg("Now data_df_5min..........:")
+                            log_msg(data_df_5min.iloc[-5:])
 
                             if data_df_5min is not None and data_df_5min.shape[0] > 0:
                                 last_time_5min = data_df_5min.iloc[-1]['time']
-                                print("Here last_time_5min = " + str(last_time_5min))
+                                log_msg("Here last_time_5min = " + str(last_time_5min))
                             else:
                                 last_time_5min = None
 
@@ -1124,22 +1163,22 @@ def start_do_trading(wakeup = 0):
                             # if read_5min_data:
                             #     delta_5min = datetime.now() - last_time_5min
 
-                            print("last_time = " + str(last_time))
-                            print("now = " + str(datetime.now()))
+                            log_msg("last_time = " + str(last_time))
+                            log_msg("now = " + str(datetime.now()))
 
                             if read_5min_data:
-                                print('last_time_5min = ' + str(last_time_5min))
+                                log_msg('last_time_5min = ' + str(last_time_5min))
 
                             # testing_seconds = 7200
                             # if wakeup == 1:
                             #     testing_seconds = 3600
 
-                            #print("testing_seconds = " + str(testing_seconds))
+                            #log_msg("testing_seconds = " + str(testing_seconds))
 
                             if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0):
 
 
-                                print("Received up-to-date data for currency pair " + currency)
+                                log_msg("Received up-to-date data for currency pair " + currency)
 
 
                                 is_new_data_received[i] = True
@@ -1153,15 +1192,15 @@ def start_do_trading(wakeup = 0):
                                 if currency in currency_close_prices:
                                     close_price = currency_close_prices[currency]
                                     real_close_price = final_data_df.iloc[-1]['close']
-                                    print("Close Price checking: last_price = " + str(close_price) + ", close = " + str(real_close_price))
+                                    log_msg("Close Price checking: last_price = " + str(close_price) + ", close = " + str(real_close_price))
                                     difference = abs((close_price - real_close_price)/real_close_price)
-                                    print("difference = " + str(difference))
+                                    log_msg("difference = " + str(difference))
 
 
                                 currency_trader.trade()
                             else:
 
-                                print("Not received finalized data for " + currency + ", wait 1 minute to try again")
+                                log_msg("Not received finalized data for " + currency + ", wait 1 minute to try again")
 
 
                                 #data_df = data_df.iloc[0:-1] #Temp for testing
@@ -1170,13 +1209,13 @@ def start_do_trading(wakeup = 0):
                                     if currency in currency_close_prices:
                                         if currency in currency_close_prices:
                                             close_price = currency_close_prices[currency]
-                                            print(currency + " real time last price = " + str(close_price))
+                                            log_msg(currency + " real time last price = " + str(close_price))
                                             data_df.at[data_df.index[-1], 'close'] = close_price
 
-                                            print("Real time data:")
-                                            print(data_df.iloc[-5:])
+                                            log_msg("Real time data:")
+                                            log_msg(data_df.iloc[-5:])
 
-                                            print("")
+                                            log_msg("")
 
                                         if read_5min_data:
                                             currency_trader.feed_data(data_df, data_df_5min)
@@ -1188,27 +1227,27 @@ def start_do_trading(wakeup = 0):
 
                                 if trial_numbers[i] <= maximum_trial_number:
                                     is_all_received = False
-                                    print("Not received data update for " + currency + ", will try again")
+                                    log_msg("Not received data update for " + currency + ", will try again")
                                     trial_numbers[i] += 1
 
                                     if waiting_round < running_round:
                                         #waiting_next_time = data_df.iloc[-1]['time'] + timedelta(seconds = 3600 + running_round * 60 + 10)  #-1
                                         now_time = datetime.now()
-                                        print("now is " + str(now_time))
+                                        log_msg("now is " + str(now_time))
                                         waiting_next_time = datetime(now_time.year, now_time.month, now_time.day, now_time.hour, now_time.minute, now_time.second, 0) + timedelta(seconds = 60)
-                                        print("waiting_next_time = " + str(waiting_next_time))
+                                        log_msg("waiting_next_time = " + str(waiting_next_time))
                                         waiting_round += 1
-                                        print("running_round = " + str(running_round) + ", waiting_round = " + str(waiting_round))
+                                        log_msg("running_round = " + str(running_round) + ", waiting_round = " + str(waiting_round))
 
                                 else:
-                                    print("Reached maximum number of trials for " + currency + ", give up")
+                                    log_msg("Reached maximum number of trials for " + currency + ", give up")
                     else:
 
                         if data_df is not None:
 
                             is_new_data_received[i] = True
 
-                            print("Start trading without checking if data up-to-date as not necessary")
+                            log_msg("Start trading without checking if data up-to-date as not necessary")
                             if read_5min_data:
                                 currency_trader.feed_data(data_df, data_df_5min)
                             else:
@@ -1218,15 +1257,15 @@ def start_do_trading(wakeup = 0):
                             currency_trader.trade()
 
                     if manual_delay > 0:
-                        print("Sleep " + str(manual_delay) + " seconds ")
+                        log_msg("Sleep " + str(manual_delay) + " seconds ")
                         time.sleep(manual_delay)
 
 
 
         if do_real_money_trading and wakeup == 1:
 
-            print("")
-            print("Checking fill status ......................")
+            log_msg("")
+            log_msg("Checking fill status ......................")
 
             is_open_order_filled = [False] * len(currency_pairs)
 
@@ -1264,20 +1303,20 @@ def start_do_trading(wakeup = 0):
 
                 for i in range(len(currency_traders)):
 
-                    print("Checking crypto " + currency_traders[i].currency)
+                    log_msg("Checking crypto " + currency_traders[i].currency)
 
                     if not is_open_order_filled[i]:
 
                         currency_trader = currency_traders[i]
-                        print("")
-                        print("Checking fill status of " + currency_trader.currency + " open orders if any")
+                        log_msg("")
+                        log_msg("Checking fill status of " + currency_trader.currency + " open orders if any")
 
                         if currency_trader.long_order_id is None:
-                            print("No open long order.")
+                            log_msg("No open long order.")
                             is_long_open_order_filled[i] = True
                         else:
                             if currency_trader.long_order_id is not None:
-                                print("long_order_id = " + currency_trader.long_order_id)
+                                log_msg("long_order_id = " + currency_trader.long_order_id)
                                 fully_filled = False
                                 orderResponse = client.get_order(order_id=currency_trader.long_order_id)
                                 if hasattr(orderResponse, "order"):
@@ -1290,32 +1329,38 @@ def start_do_trading(wakeup = 0):
                                             long_filled_sizes[i] = filled_size
                                             long_filled_prices[i] = filled_price
 
-                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.long_attempt_size))
+                                        log_msg("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.long_attempt_size))
                                         if status == 'FILLED' and filled_size == currency_trader.long_attempt_size:
                                             fully_filled = True
                                         long_unfilled_sizes[i] = currency_trader.long_attempt_size - filled_size
 
 
                                 if fully_filled:
-                                    print("long order fully filled!")
+                                    log_msg("long order fully filled!")
                                     is_long_open_order_filled[i] = True
                                     currency_trader.reset_long()
 
                                     if use_market_order:
+                                        log_msg("Fully filled by market order")
+                                        log_msg("Passive fill size=" + str(long_filled_sizes[i]) + ", passive fill price=" + str(long_filled_prices[i]) +
+                                              ", market fill size=" + str(filled_size) + ", market fill price=" + str(filled_price))
                                         average_fill_price = (long_filled_sizes[i] * long_filled_prices[i] + filled_size * filled_price)/(long_filled_sizes[i] + filled_size)
                                         currency_trader.set_long_fill(average_fill_price, long_filled_sizes[i] + filled_size)
+
+                                        log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(long_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_long_fill(filled_price, filled_size)
+                                        log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
                                 else:
-                                    print("long order not fully filled.")
+                                    log_msg("long order not fully filled.")
                                     is_all_filled = False
 
                         if currency_trader.short_order_id is None:
-                            print("No open short order.")
+                            log_msg("No open short order.")
                             is_short_open_order_filled[i] = True
                         else:
                             if currency_trader.short_order_id is not None:
-                                print("short_order_id = " + currency_trader.short_order_id)
+                                log_msg("short_order_id = " + currency_trader.short_order_id)
                                 fully_filled = False
                                 orderResponse = client.get_order(order_id=currency_trader.short_order_id)
                                 if hasattr(orderResponse, "order"):
@@ -1328,33 +1373,39 @@ def start_do_trading(wakeup = 0):
                                             short_filled_sizes[i] = filled_size
                                             short_filled_prices[i] = filled_price
 
-                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.short_attempt_size))
+                                        log_msg("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.short_attempt_size))
                                         if status == 'FILLED' and filled_size == currency_trader.short_attempt_size:
                                             fully_filled = True
                                         short_unfilled_sizes[i] = currency_trader.short_attempt_size - filled_size
 
 
                                 if fully_filled:
-                                    print("short order fully filled!")
+                                    log_msg("short order fully filled!")
                                     is_short_open_order_filled[i] = True
                                     currency_trader.reset_short()
 
                                     if use_market_order:
+                                        log_msg("Fully filled by market order")
+                                        log_msg("Passive fill size=" + str(short_filled_sizes[i]) + ", passive fill price=" + str(short_filled_prices[i]) +
+                                              ", market fill size=" + str(filled_size) + ", market fill price=" + str(filled_price))
                                         average_fill_price = (short_filled_sizes[i] * short_filled_prices[i] + filled_size * filled_price)/(short_filled_sizes[i] + filled_size)
                                         currency_trader.set_short_fill(average_fill_price, short_filled_sizes[i] + filled_size)
+
+                                        log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(short_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_short_fill(filled_price, filled_size)
+                                        log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
                                 else:
-                                    print("short order not fully filled.")
+                                    log_msg("short order not fully filled.")
                                     is_all_filled = False
 
                         if currency_trader.close_long_order_id is None:
-                            print("No open close long order.")
+                            log_msg("No open close long order.")
                             is_close_long_open_order_filled[i] = True
                         else:
                             if currency_trader.close_long_order_id is not None:
-                                print("close_long_order_id = " + currency_trader.close_long_order_id)
+                                log_msg("close_long_order_id = " + currency_trader.close_long_order_id)
                                 fully_filled = False
                                 orderResponse = client.get_order(order_id=currency_trader.close_long_order_id)
                                 if hasattr(orderResponse, "order"):
@@ -1367,35 +1418,41 @@ def start_do_trading(wakeup = 0):
                                             close_long_filled_sizes[i] = filled_size
                                             close_long_filled_prices[i] = filled_price
 
-                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.close_long_attempt_size))
+                                        log_msg("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.close_long_attempt_size))
                                         if status == 'FILLED' and filled_size == currency_trader.close_long_attempt_size:
                                             fully_filled = True
                                         close_long_unfilled_sizes[i] = currency_trader.close_long_attempt_size - filled_size
 
 
                                 if fully_filled:
-                                    print("close_long order fully filled!")
+                                    log_msg("close_long order fully filled!")
                                     is_close_long_open_order_filled[i] = True
                                     currency_trader.reset_close_long()
 
                                     if use_market_order:
+                                        log_msg("Fully filled by market order")
+                                        log_msg("Passive fill size=" + str(close_long_filled_sizes[i]) + ", passive fill price=" + str(close_long_filled_prices[i]) +
+                                              ", market fill size=" + str(filled_size) + ", market fill price=" + str(filled_price))
                                         average_fill_price = (close_long_filled_sizes[i] * close_long_filled_prices[i] + filled_size * filled_price)/(close_long_filled_sizes[i] + filled_size)
                                         currency_trader.set_close_long_fill(average_fill_price, close_long_filled_sizes[i] + filled_size)
+
+                                        log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(close_long_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_close_long_fill(filled_price, filled_size)
+                                        log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
 
                                 else:
-                                    print("close_long order not fully filled.")
+                                    log_msg("close_long order not fully filled.")
                                     is_all_filled = False
 
 
                         if currency_trader.close_short_order_id is None:
-                            print("No open close_short order.")
+                            log_msg("No open close_short order.")
                             is_close_short_open_order_filled[i] = True
                         else:
                             if currency_trader.close_short_order_id is not None:
-                                print("close_short_order_id = " + currency_trader.close_short_order_id)
+                                log_msg("close_short_order_id = " + currency_trader.close_short_order_id)
                                 fully_filled = False
                                 orderResponse = client.get_order(order_id=currency_trader.close_short_order_id)
                                 if hasattr(orderResponse, "order"):
@@ -1408,26 +1465,32 @@ def start_do_trading(wakeup = 0):
                                             close_short_filled_sizes[i] = filled_size
                                             close_short_filled_prices[i] = filled_price
 
-                                        print("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.close_short_attempt_size))
+                                        log_msg("filled_size = " + str(filled_size) + ", attempt_size = " + str(currency_trader.close_short_attempt_size))
                                         if status == 'FILLED' and filled_size == currency_trader.close_short_attempt_size:
                                             fully_filled = True
                                         close_short_unfilled_sizes[i] = currency_trader.close_short_attempt_size - filled_size
 
 
                                 if fully_filled:
-                                    print("close_short order fully filled!")
+                                    log_msg("close_short order fully filled!")
                                     is_close_short_open_order_filled[i] = True
                                     currency_trader.reset_close_short()
 
                                     if use_market_order:
+                                        log_msg("Fully filled by market order")
+                                        log_msg("Passive fill size=" + str(close_short_filled_sizes[i]) + ", passive fill price=" + str(close_short_filled_prices[i]) +
+                                              ", market fill size=" + str(filled_size) + ", market fill price=" + str(filled_price))
                                         average_fill_price = (close_short_filled_sizes[i] * close_short_filled_prices[i] + filled_size * filled_price)/(close_short_filled_sizes[i] + filled_size)
                                         currency_trader.set_close_short_fill(average_fill_price, close_short_filled_sizes[i] + filled_size)
+
+                                        log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(close_short_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_close_short_fill(filled_price, filled_size)
+                                        log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
 
                                 else:
-                                    print("close_short order not fully filled.")
+                                    log_msg("close_short order not fully filled.")
                                     is_all_filled = False
 
 
@@ -1438,31 +1501,33 @@ def start_do_trading(wakeup = 0):
                 if not is_all_filled:
 
                     if trial_id < max_trials:
-                        print("")
+                        log_msg("")
                         wait_seconds = 10
-                        print("Not all cryptos have fully filled their open orders, wait for " + str(wait_seconds) + " seconds and check again.")
+                        log_msg("Not all cryptos have fully filled their open orders, wait for " + str(wait_seconds) + " seconds and check again.")
                         time.sleep(wait_seconds)
                         trial_id += 1
                     else:
-                        print("")
+                        log_msg("")
                         use_market_order = True
-                        print("Reached max waiting time. Now use market orders to fill all")
+                        log_msg("Reached max waiting time. Now use market orders to fill all")
                         for i in range(len(currency_traders)):
-                            print("")
-                            print("Crypto " + str(currency_traders[i].currency))
+                            log_msg("")
+                            log_msg("Crypto " + str(currency_traders[i].currency))
 
                             if not is_long_open_order_filled[i]:
                                 currency_trader = currency_traders[i]
                                 unfilled_size = long_unfilled_sizes[i]
 
                                 try:
+                                    log_msg("Cancel long order " + currency_trader.long_order_id)
                                     cancel_response = client.cancel_orders(order_ids=[currency_trader.long_order_id])
-                                    print("Cancel Response:")
-                                    print(cancel_response)
+                                    log_msg("Cancel Response:")
+                                    log_msg(cancel_response)
                                 except Exception as e:
-                                    print("Error:", e)
+                                    log_msg("Error:", e)
 
                                 try:
+                                    log_msg("Place market long order of " + str(unfilled_size) + " units")
                                     client_order_id = f"order_{uuid.uuid4()}"
                                     response = client.create_order(product_id=currency_trader.currency_coinbase,
                                                                    client_order_id=client_order_id,
@@ -1476,17 +1541,117 @@ def start_do_trading(wakeup = 0):
                                                                    margin_type = "CROSS",
                                                                    retail_portfolio_id=currency_trader.coinbase_portfolio_id
                                                                    )
-                                    print(f"Order placed: {response}")
+                                    log_msg(f"Order placed: {response}")
                                 except Exception as e:
-                                    print(f"Order failed: {e}")
+                                    log_msg(f"Order failed: {e}")
 
                                 currency_trader.set_long(response['success_response']['order_id'], unfilled_size)
 
 
+                            if not is_short_open_order_filled[i]:
+                                currency_trader = currency_traders[i]
+                                unfilled_size = short_unfilled_sizes[i]
+
+                                try:
+                                    log_msg("Cancel short order " + currency_trader.short_order_id)
+                                    cancel_response = client.cancel_orders(order_ids=[currency_trader.short_order_id])
+                                    log_msg("Cancel Response:")
+                                    log_msg(cancel_response)
+                                except Exception as e:
+                                    log_msg("Error:", e)
+
+                                try:
+                                    log_msg("Place market short order of " + str(unfilled_size) + " units")
+                                    client_order_id = f"order_{uuid.uuid4()}"
+                                    response = client.create_order(product_id=currency_trader.currency_coinbase,
+                                                                   client_order_id=client_order_id,
+                                                                   side="SELL",
+                                                                   order_configuration={
+                                                                       "market_market_ioc":{
+                                                                           "base_size" : str(unfilled_size)
+                                                                       }
+                                                                   },
+                                                                   leverage=str(default_leverage),
+                                                                   margin_type = "CROSS",
+                                                                   retail_portfolio_id=currency_trader.coinbase_portfolio_id
+                                                                   )
+                                    log_msg(f"Order placed: {response}")
+                                except Exception as e:
+                                    log_msg(f"Order failed: {e}")
+
+                                currency_trader.set_short(response['success_response']['order_id'], unfilled_size)
+
+                            if not is_close_long_open_order_filled[i]:
+                                currency_trader = currency_traders[i]
+                                unfilled_size = long_unfilled_sizes[i]
+
+                                try:
+                                    log_msg("Cancel close_long order " + currency_trader.close_long_order_id)
+                                    cancel_response = client.cancel_orders(order_ids=[currency_trader.close_long_order_id])
+                                    log_msg("Cancel Response:")
+                                    log_msg(cancel_response)
+                                except Exception as e:
+                                    log_msg("Error:", e)
+
+                                try:
+                                    log_msg("Place market close_long order of " + str(unfilled_size) + " units")
+                                    client_order_id = f"order_{uuid.uuid4()}"
+                                    response = client.create_order(product_id=currency_trader.currency_coinbase,
+                                                                   client_order_id=client_order_id,
+                                                                   side="SELL",
+                                                                   order_configuration={
+                                                                       "market_market_ioc":{
+                                                                           "base_size" : str(unfilled_size)
+                                                                       }
+                                                                   },
+                                                                   leverage=str(default_leverage),
+                                                                   margin_type = "CROSS",
+                                                                   retail_portfolio_id=currency_trader.coinbase_portfolio_id
+                                                                   )
+                                    log_msg(f"Order placed: {response}")
+                                except Exception as e:
+                                    log_msg(f"Order failed: {e}")
+
+                                currency_trader.set_close_long(response['success_response']['order_id'], unfilled_size)
+
+                            if not is_close_short_open_order_filled[i]:
+                                currency_trader = currency_traders[i]
+                                unfilled_size = long_unfilled_sizes[i]
+
+                                try:
+                                    log_msg("Cancel close_short order " + currency_trader.close_short_order_id)
+                                    cancel_response = client.cancel_orders(order_ids=[currency_trader.close_short_order_id])
+                                    log_msg("Cancel Response:")
+                                    log_msg(cancel_response)
+                                except Exception as e:
+                                    log_msg("Error:", e)
+
+                                try:
+                                    log_msg("Place market close_short order of " + str(unfilled_size) + " units")
+                                    client_order_id = f"order_{uuid.uuid4()}"
+                                    response = client.create_order(product_id=currency_trader.currency_coinbase,
+                                                                   client_order_id=client_order_id,
+                                                                   side="BUY",
+                                                                   order_configuration={
+                                                                       "market_market_ioc":{
+                                                                           "base_size" : str(unfilled_size)
+                                                                       }
+                                                                   },
+                                                                   leverage=str(default_leverage),
+                                                                   margin_type = "CROSS",
+                                                                   retail_portfolio_id=currency_trader.coinbase_portfolio_id
+                                                                   )
+                                    log_msg(f"Order placed: {response}")
+                                except Exception as e:
+                                    log_msg(f"Order failed: {e}")
+
+                                currency_trader.set_close_short(response['success_response']['order_id'], unfilled_size)
+
+
 
                 else:
-                    print("")
-                    print("All cryptos have their open orders fully filled, bye bye!")
+                    log_msg("")
+                    log_msg("All cryptos have their open orders fully filled, bye bye!")
 
 
         for i in range(len(currency_traders)):
@@ -1496,10 +1661,10 @@ def start_do_trading(wakeup = 0):
 
         #sendEmail("Trader process ends", "")
 
-        print("Finished trading *********************************")
+        log_msg("Finished trading *********************************")
 
 
-        print("Collecting Results....")
+        log_msg("Collecting Results....")
 
         perf_dfs = []
         trade_dfs = []
@@ -1520,15 +1685,15 @@ def start_do_trading(wakeup = 0):
         trade_df = pd.concat(trade_dfs)
         trade_df = trade_df.sort_values(by = ['entry_time'])
 
-        print("Final Performance Result:")
+        log_msg("Final Performance Result:")
         perf_df.reset_index(inplace = True)
         perf_df = perf_df.drop(columns = ['index'])
-        print(perf_df)
+        log_msg(perf_df)
 
-        print("")
-        print("Selected currencies Performance Result:")
-        selected_perf_df = perf_df[perf_df['Currency'].isin(selected_currencies)]
-        print(selected_perf_df)
+        # log_msg("")
+        # log_msg("Selected currencies Performance Result:")
+        # selected_perf_df = perf_df[perf_df['Currency'].isin(selected_currencies)]
+        # log_msg(selected_perf_df)
 
         perf_df.to_csv(os.path.join(root_folder, general_chart_folder_name + ".csv"), index = False)
 
@@ -1566,14 +1731,14 @@ def start_do_trading(wakeup = 0):
                 os.remove(target_file)
 
         des_selected_bar_folder = os.path.join(des_bar_folder, 'selected')
-        print("des_selected_bar_folder")
-        print(des_selected_bar_folder)
+        # log_msg("des_selected_bar_folder")
+        # log_msg(des_selected_bar_folder)
         if not os.path.exists(des_selected_bar_folder):
             os.makedirs(des_selected_bar_folder)
 
 
 
-        print("Copying bar charts and pnl charts...")
+        log_msg("Copying bar charts and pnl charts...")
         #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
 
         trade_df = trade_df.drop(columns=['trade_id', 'long_trade_id', 'short_trade_id', 'cum_pnl'])
@@ -1585,7 +1750,7 @@ def start_do_trading(wakeup = 0):
             chart_folder_name = chart_folder_names[i]
             i += 1
 
-            #print("currency = " + str(currency))
+            #log_msg("currency = " + str(currency))
             pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
             if os.path.exists(pic_path):
                 shutil.copy2(pic_path, des_pnl_folder)
@@ -1599,27 +1764,27 @@ def start_do_trading(wakeup = 0):
             for chart_file in chart_files:
                 if 'pnl' not in chart_file:
 
-                    #print(os.path.join(currency_chart_folder, chart_file))
-                    #print(des_bar_folder)
+                    #log_msg(os.path.join(currency_chart_folder, chart_file))
+                    #log_msg(des_bar_folder)
 
                     shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
 
-                    #print("des_bar_folder:")
-                    #print(des_bar_folder)
+                    #log_msg("des_bar_folder:")
+                    #log_msg(des_bar_folder)
 
                     if currency in selected_currencies:
-                        # print("currency_chart_folder:")
-                        # print(currency_chart_folder)
-                        # print("source file:")
-                        # print(os.path.join(currency_chart_folder, chart_file))
-                        # print("des folder:")
-                        # print(des_selected_bar_folder)
+                        # log_msg("currency_chart_folder:")
+                        # log_msg(currency_chart_folder)
+                        # log_msg("source file:")
+                        # log_msg(os.path.join(currency_chart_folder, chart_file))
+                        # log_msg("des folder:")
+                        # log_msg(des_selected_bar_folder)
 
                         source_exists = os.path.exists(os.path.join(currency_chart_folder, chart_file))
                         des_exists = os.path.exists(des_selected_bar_folder)
 
-                        # print("source_exist = " + str(source_exists))
-                        # print("des_exist = " + str(des_exists))
+                        # log_msg("source_exist = " + str(source_exists))
+                        # log_msg("des_exist = " + str(des_exists))
 
                         shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_selected_bar_folder)
 
@@ -1628,7 +1793,7 @@ def start_do_trading(wakeup = 0):
 
 
     if False:
-        # print("Sleeping")
+        # log_msg("Sleeping")
         # time.sleep(10)
         #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
 
@@ -1660,7 +1825,7 @@ def start_do_trading(wakeup = 0):
 
         #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
 
-        print("Wakeup")
+        log_msg("Wakeup")
 
         if not os.path.exists(dest_folder):
             os.makedirs(dest_folder)
@@ -1675,18 +1840,18 @@ def start_do_trading(wakeup = 0):
         symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder)
                           if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file and 'portfolio' not in file]
 
-        print("symbol_folders:")
-        print(symbol_folders)
+        log_msg("symbol_folders:")
+        log_msg(symbol_folders)
 
 
 
         currency_list = list(currency_df['currency'])
-        #print("currency_list*************************:")
-        print(currency_list)
+        #log_msg("currency_list*************************:")
+        log_msg(currency_list)
 
         for symbol_folder in symbol_folders:
 
-            #print('symbol_folder =' + symbol_folder)
+            #log_msg('symbol_folder =' + symbol_folder)
 
             if symbol_folder[-6:] not in currency_list:
                 continue
@@ -1695,7 +1860,7 @@ def start_do_trading(wakeup = 0):
             # if symbol_folder[-6:] not in selected_ones:
             #     continue
 
-            print("Process symbol folder " + symbol_folder)
+            log_msg("Process symbol folder " + symbol_folder)
             chart_folder = os.path.join(symbol_folder, "chart")
 
             files = os.listdir(chart_folder)
@@ -1707,21 +1872,21 @@ def start_do_trading(wakeup = 0):
             for file in files:
                 file_path = os.path.join(chart_folder, file)
 
-                print("file_path = " + file_path)
-                print("dest_folder = " + dest_folder)
+                log_msg("file_path = " + file_path)
+                log_msg("dest_folder = " + dest_folder)
                 shutil.copy2(file_path, dest_folder)
 
 
         sendEmail("Charts sent!", "")
 
 
-    if is_do_portfolio_trading:
-        print("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
-        os.system('python plot_pnl_curve.py')
-    else:
-        print("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+    # if is_do_portfolio_trading:
+    #     log_msg("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+    #     os.system('python plot_pnl_curve.py')
+    # else:
+    #     log_msg("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
 
-    print("All finished")
+    log_msg("All finished")
     #sys.exit(0)
 
 

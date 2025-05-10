@@ -78,7 +78,7 @@ until_date_5min = None
 until_date = None
 
 is_production = False
-print("Global is_production = " + str(is_production))
+
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -301,8 +301,8 @@ do_reentry = False
 
 use_global = True
 
-global_use_slow_macd = True
-global_use_guppy_filter = False
+global_use_slow_macd = False
+global_use_guppy_filter = True
 
 global_do_stop_loss = False
 global_reentry_after_stop_loss = False
@@ -312,6 +312,7 @@ global_use_guppy_condition = False
 
 production_running = False
 
+print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
 
@@ -422,15 +423,15 @@ class CurrencyTrader(threading.Thread):
         self.also_filter_too_late = global_also_filter_too_late if use_global else also_filter_too_late
         self.use_guppy_condition = global_use_guppy_condition if use_global else use_guppy_condition
 
-        # print("use_slow_macd = " + str(self.use_slow_macd))
-        # print("use_guppy_filter = " + str(self.use_guppy_filter))
-        # print("do_stop_loss = " + str(self.do_stop_loss))
-        # print("reentry_after_stop_loss = " + str(self.reentry_after_stop_loss))
-        # print("also_filter_too_late = " + str(self.also_filter_too_late))
-        # print("use_guppy_condition = " + str(self.use_guppy_condition))
+        # self.log_msg("use_slow_macd = " + str(self.use_slow_macd))
+        # self.log_msg("use_guppy_filter = " + str(self.use_guppy_filter))
+        # self.log_msg("do_stop_loss = " + str(self.do_stop_loss))
+        # self.log_msg("reentry_after_stop_loss = " + str(self.reentry_after_stop_loss))
+        # self.log_msg("also_filter_too_late = " + str(self.also_filter_too_late))
+        # self.log_msg("use_guppy_condition = " + str(self.use_guppy_condition))
 
         self.macd_gradient = 'macd2_gradient' if self.use_slow_macd else 'macd_gradient'
-        #print("macd_gradient = " + str(self.macd_gradient))
+        #self.log_msg("macd_gradient = " + str(self.macd_gradient))
 
         if self.use_guppy_condition:
             self.reverse_strategy = True
@@ -477,7 +478,7 @@ class CurrencyTrader(threading.Thread):
 
         #self.currency_file = os.path.join(data_folder, currency + "100.csv")
 
-        self.log_fd = open(self.log_file, 'a')
+        self.log_fd = open(self.log_file, 'w')
 
         self.print_to_console = True
 
@@ -653,11 +654,18 @@ class CurrencyTrader(threading.Thread):
 
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         #current_time = (datetime.now() + timedelta(seconds = 28800)).strftime("%Y-%m-%d %H:%M:%S")
-        print('[' + current_time + ' ' + self.currency + ']  ' + msg, file = self.log_fd)
+        if isinstance(msg, pd.DataFrame):
+            print('[' + current_time + ' ' + self.currency + ']  \n' + str(msg), file = self.log_fd)
+        else:
+            print('[' + current_time + ' ' + self.currency + ']  ' + str(msg), file=self.log_fd)
+
         self.log_fd.flush()
 
-        if self.print_to_console:
-            print('[' + current_time + ' ' + self.currency + ']  ' + msg)
+        if print_to_console:
+            if isinstance(msg, pd.DataFrame):
+                print('[' + current_time + ' ' + self.currency + ']  \n' + str(msg))
+            else:
+                print('[' + current_time + ' ' + self.currency + ']  ' + str(msg))
 
 
     def feed_data(self, new_data_df, new_data_df_5min = None):
@@ -667,7 +675,7 @@ class CurrencyTrader(threading.Thread):
 
 
         if self.data_df_5min is not None:
-            print("Round to " + str(self.decimal) + " decimals.....")
+            self.log_msg("Round to " + str(self.decimal) + " decimals.....")
             for col in ['open', 'high', 'low', 'close']:
                 self.data_df_5min[col] = self.data_df_5min[col].apply(lambda x: round(x, self.decimal))
 
@@ -686,10 +694,10 @@ class CurrencyTrader(threading.Thread):
                 trade_df['entry_time'] = trade_df['entry_time'].apply(lambda x: preprocess_time(x))
                 trade_df = trade_df[trade_df['entry_time'] < self.data_df.iloc[-1]['time']]
 
-                print("last data time: " + str(self.data_df.iloc[-1]['time']))
+                self.log_msg("last data time: " + str(self.data_df.iloc[-1]['time']))
 
-                # print("trade_df last 2 rows:")
-                # print(trade_df.iloc[-2:])
+                # self.log_msg("trade_df last 2 rows:")
+                # self.log_msg(trade_df.iloc[-2:])
 
                 last_trade = trade_df.iloc[-1]
 
@@ -701,7 +709,7 @@ class CurrencyTrader(threading.Thread):
                     else:
                         self.current_position = -1
 
-                    print("current_position here = " + str(self.current_position))
+                    self.log_msg("current_position here = " + str(self.current_position))
 
                     self.current_position *= initial_entry_value/last_trade['entry_price'] * default_leverage
                     if last_trade['entry_price'] >= 1:
@@ -718,7 +726,7 @@ class CurrencyTrader(threading.Thread):
                     if position['symbol'] == self.currency_coinbase:
                         self.current_real_position = position['net_size']
                         if position['position_side'] not in ['POSITION_SIDE_LONG', 'POSITION_SIDE_SHORT']:
-                            print("Unknown position side " + position['position_side'])
+                            self.log_msg("Unknown position side " + position['position_side'])
                             sys.exit(1)
 
                         if position['position_side'] == 'POSITION_SIDE_SHORT':
@@ -727,7 +735,7 @@ class CurrencyTrader(threading.Thread):
 
 
     def run(self):
-        print("Running...........")
+        self.log_msg("Running...........")
         self.trade()
 
 
@@ -1856,15 +1864,15 @@ class CurrencyTrader(threading.Thread):
 
                 macd_cross_label = macd_cross_labels[idi]
 
-                #print("macd_cross_label = " + str(macd_cross_label))
+                #self.log_msg("macd_cross_label = " + str(macd_cross_label))
 
                 group_df = self.data_df.iloc[start_idxx:end_idxx][['time', 'macd']]
 
                 if macd_cross_label == 0:
-                    # print("start_idxx = " + str(start_idxx) + " end_idxx = " + str(end_idxx))
-                    # print("group_df:")
-                    # print(group_df)
-                    # print("")
+                    # self.log_msg("start_idxx = " + str(start_idxx) + " end_idxx = " + str(end_idxx))
+                    # self.log_msg("group_df:")
+                    # self.log_msg(group_df)
+                    # self.log_msg("")
 
                     if group_df[group_df['macd'].isnull()].shape[0] > 0:
                         group_df['critical_value'] = np.nan
@@ -1898,12 +1906,12 @@ class CurrencyTrader(threading.Thread):
 
             macd_group_data_df_all = pd.concat(macd_group_data_dfs)
 
-            # print("macd_group_data_df_all:")
-            # print(macd_group_data_df_all.iloc[0:60])
+            # self.log_msg("macd_group_data_df_all:")
+            # self.log_msg(macd_group_data_df_all.iloc[0:60])
             #
-            # print("macd_group_data_df_all length = " + str(macd_group_data_df_all.shape[0]))
-            # print("data_df length = " + str(self.data_df.shape[0]))
-            # print(len(macd_group_data_df_all))
+            # self.log_msg("macd_group_data_df_all length = " + str(macd_group_data_df_all.shape[0]))
+            # self.log_msg("data_df length = " + str(self.data_df.shape[0]))
+            # self.log_msg(len(macd_group_data_df_all))
 
             if len(macd_group_data_df_all) != self.data_df.shape[0]:
                 raise Exception(
@@ -1911,8 +1919,8 @@ class CurrencyTrader(threading.Thread):
                         len(macd_group_data_df_all)) + " while data_df length = " + str(
                         self.data_df.shape[0]))
 
-            #print("First")
-            #print(self.data_df.iloc[0:100][['time', 'macd', 'msignal']])
+            #self.log_msg("First")
+            #self.log_msg(self.data_df.iloc[0:100][['time', 'macd', 'msignal']])
 
             self.data_df = pd.concat([self.data_df, macd_group_data_df_all], axis=1)
 
@@ -1920,7 +1928,7 @@ class CurrencyTrader(threading.Thread):
                 ['lower_vegas', 'upper_vegas', 'guppy_min', 'guppy_max', 'macd_cross_duration', 'high', 'low', 'max_price',
                  'min_price']]
 
-            #print(self.data_df.iloc[0:100][['time', 'macd', 'msignal', 'critical_value_id', 'critical_value']])
+            #self.log_msg(self.data_df.iloc[0:100][['time', 'macd', 'msignal', 'critical_value_id', 'critical_value']])
             #sys.exit(0)
 
 
@@ -2003,13 +2011,13 @@ class CurrencyTrader(threading.Thread):
                                      ]
 
             for ti in range(len(target_long_cols)):
-                #print("Add column " + target_long_cols[ti])
+                #self.log_msg("Add column " + target_long_cols[ti])
                 self.data_df[target_long_cols[ti]] = np.where(
                     self.data_df['long_macd_need_look_backward'],
                     self.data_df[need_look_backward_cols[ti]],
                     self.data_df[no_need_look_backward_cols[ti]]
                 )
-                #print("Column " + target_long_cols[ti] + " in data_df? " + str(target_long_cols[ti] in self.data_df.columns))
+                #self.log_msg("Column " + target_long_cols[ti] + " in data_df? " + str(target_long_cols[ti] in self.data_df.columns))
 
 
 
@@ -2194,7 +2202,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    print("At " + current_time + ", Revoke long decision just made.")
+                    self.log_msg("At " + current_time + ", Revoke long decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.long_order_id)
@@ -2203,23 +2211,23 @@ class CurrencyTrader(threading.Thread):
                         if order is not None:
                             filled_size = float(order['filled_size'])
 
-                    print("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.long_attempt_size))
+                    self.log_msg("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.long_attempt_size))
 
                     if filled_size < self.long_attempt_size:
                         try:
-                            print("Cancel the open order " + self.long_order_id)
+                            self.log_msg("Cancel the open order " + self.long_order_id)
                             cancel_response = self.coinbase_client.cancel_orders(order_ids=[self.long_order_id])
-                            print("Cancel Response:")
-                            print(cancel_response)
+                            self.log_msg("Cancel Response:")
+                            self.log_msg(cancel_response)
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                     if filled_size > 0:
 
                         fill_price = float(order['average_filled_price'])
 
                         try:
-                            print("Sell " + str(filled_size) + " at market price")
+                            self.log_msg("Sell " + str(filled_size) + " at market price")
                             client_order_id = f"order_{uuid.uuid4()}"
                             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                            client_order_id=client_order_id,
@@ -2233,13 +2241,12 @@ class CurrencyTrader(threading.Thread):
                                                            margin_type = "CROSS",
                                                            retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
-                            print(f"Order placed: {response}")
+                            self.log_msg(f"Order placed: {response}")
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
 
                         close_size = 0
-                        close_fill_price = -1
                         while close_size < filled_size:
                             orderResponse = self.coinbase_client.get_order(order_id=response['success_response']['order_id'])
                             if hasattr(orderResponse, "order"):
@@ -2279,7 +2286,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    print("At " + current_time + ", Revoke close long decision just made.")
+                    self.log_msg("At " + current_time + ", Revoke close long decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.close_long_order_id)
@@ -2288,23 +2295,23 @@ class CurrencyTrader(threading.Thread):
                         if order is not None:
                             filled_size = float(order['filled_size'])
 
-                    print("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.close_long_attempt_size))
+                    self.log_msg("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.close_long_attempt_size))
 
                     if filled_size < self.close_long_attempt_size:
                         try:
-                            print("Cancel the open order " + self.close_long_order_id)
+                            self.log_msg("Cancel the open order " + self.close_long_order_id)
                             cancel_response = self.coinbase_client.cancel_orders(order_ids=[self.close_long_order_id])
-                            print("Cancel Response:")
-                            print(cancel_response)
+                            self.log_msg("Cancel Response:")
+                            self.log_msg(cancel_response)
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                     if filled_size > 0:
 
                         fill_price = float(order['average_filled_price'])
 
                         try:
-                            print("Buy " + str(filled_size) + " at market price")
+                            self.log_msg("Buy " + str(filled_size) + " at market price")
                             client_order_id = f"order_{uuid.uuid4()}"
                             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                            client_order_id=client_order_id,
@@ -2318,12 +2325,11 @@ class CurrencyTrader(threading.Thread):
                                                            margin_type = "CROSS",
                                                            retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
-                            print(f"Order placed: {response}")
+                            self.log_msg(f"Order placed: {response}")
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                         close_size = 0
-                        close_fill_price = -1
                         while close_size < filled_size:
                             orderResponse = self.coinbase_client.get_order(order_id=response['success_response']['order_id'])
                             if hasattr(orderResponse, "order"):
@@ -2362,7 +2368,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    print("At " + current_time + ", Revoke short decision just made.")
+                    self.log_msg("At " + current_time + ", Revoke short decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.short_order_id)
@@ -2371,23 +2377,23 @@ class CurrencyTrader(threading.Thread):
                         if order is not None:
                             filled_size = float(order['filled_size'])
 
-                    print("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.short_attempt_size))
+                    self.log_msg("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.short_attempt_size))
 
                     if filled_size < self.short_attempt_size:
                         try:
-                            print("Cancel the open order " + self.short_order_id)
+                            self.log_msg("Cancel the open order " + self.short_order_id)
                             cancel_response = self.coinbase_client.cancel_orders(order_ids=[self.short_order_id])
-                            print("Cancel Response:")
-                            print(cancel_response)
+                            self.log_msg("Cancel Response:")
+                            self.log_msg(cancel_response)
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                     if filled_size > 0:
 
                         fill_price = float(order['average_filled_price'])
 
                         try:
-                            print("Buy " + str(filled_size) + " at market price")
+                            self.log_msg("Buy " + str(filled_size) + " at market price")
                             client_order_id = f"order_{uuid.uuid4()}"
                             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                            client_order_id=client_order_id,
@@ -2401,12 +2407,11 @@ class CurrencyTrader(threading.Thread):
                                                            margin_type = "CROSS",
                                                            retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
-                            print(f"Order placed: {response}")
+                            self.log_msg(f"Order placed: {response}")
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                         close_size = 0
-                        close_fill_price = -1
                         while close_size < filled_size:
                             orderResponse = self.coinbase_client.get_order(
                                 order_id=response['success_response']['order_id'])
@@ -2446,7 +2451,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    print("At " + current_time + ", Revoke close short decision just made.")
+                    self.log_msg("At " + current_time + ", Revoke close short decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.close_short_order_id)
@@ -2455,23 +2460,23 @@ class CurrencyTrader(threading.Thread):
                         if order is not None:
                             filled_size = float(order['filled_size'])
 
-                    print("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.close_short_attempt_size))
+                    self.log_msg("Fill size = " + str(filled_size) + ", Attempt size = " + str(self.close_short_attempt_size))
 
                     if filled_size < self.close_long_attempt_size:
                         try:
-                            print("Cancel the open order " + self.close_short_order_id)
+                            self.log_msg("Cancel the open order " + self.close_short_order_id)
                             cancel_response = self.coinbase_client.cancel_orders(order_ids=[self.close_short_order_id])
-                            print("Cancel Response:")
-                            print(cancel_response)
+                            self.log_msg("Cancel Response:")
+                            self.log_msg(cancel_response)
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                     if filled_size > 0:
 
                         fill_price = float(order['average_filled_price'])
 
                         try:
-                            print("Sell " + str(filled_size) + " at market price")
+                            self.log_msg("Sell " + str(filled_size) + " at market price")
                             client_order_id = f"order_{uuid.uuid4()}"
                             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                            client_order_id=client_order_id,
@@ -2485,12 +2490,11 @@ class CurrencyTrader(threading.Thread):
                                                            margin_type = "CROSS",
                                                            retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
-                            print(f"Order placed: {response}")
+                            self.log_msg(f"Order placed: {response}")
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
                         close_size = 0
-                        close_fill_price = -1
                         while close_size < filled_size:
                             orderResponse = self.coinbase_client.get_order(
                                 order_id=response['success_response']['order_id'])
@@ -2523,9 +2527,9 @@ class CurrencyTrader(threading.Thread):
                 self.temporary_delta_position = 0
 
 
-        print("")
-        print("Calculating Long positions.............")
-        print("")
+        self.log_msg("")
+        self.log_msg("Calculating Long positions.............")
+        self.log_msg("")
 
         long_start_ids = which(self.data_df['macd_long_enter'])
 
@@ -2571,14 +2575,14 @@ class CurrencyTrader(threading.Thread):
 
                     position = initial_entry_value/entry_price * default_leverage
 
-                    print("Before position = " + str(position))
+                    self.log_msg("Before position = " + str(position))
 
                     if entry_price >= 1:
                         position = round(position, 3)
                     else:
                         position = int(round(position, 0))
 
-                    print("After position = " + str(position))
+                    self.log_msg("After position = " + str(position))
 
                     #delta_position = position - self.current_position
                     delta_position = position
@@ -2591,9 +2595,9 @@ class CurrencyTrader(threading.Thread):
                     message = "At " + current_time + ", long " + self.currency + " roughly " + str(delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
                     message += "This makes it now at a long position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
 
-                    print("message_title = " + message_title)
-                    print("message:")
-                    print(message)
+                    self.log_msg("message_title = " + message_title)
+                    self.log_msg("message:")
+                    self.log_msg(message)
 
                     if not print_email_message_to_file:
                         sendEmail(message_title, message)
@@ -2613,13 +2617,13 @@ class CurrencyTrader(threading.Thread):
                             else:
                                 real_position = int(round(real_position, 0))
 
-                            print(self.currency + " current real position = " + str(self.current_real_position))
-                            print(self.currency + " target real position = " + str(real_position))
+                            self.log_msg(self.currency + " current real position = " + str(self.current_real_position))
+                            self.log_msg(self.currency + " target real position = " + str(real_position))
                             #real_delta_position = real_position - self.current_real_position
                             real_delta_position = real_position
 
                             try:
-                                print("At " + current_time + ", open long position by placing real long order of " + str(real_delta_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                self.log_msg("At " + current_time + ", open long position by placing real long order of " + str(real_delta_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                 client_order_id = f"order_{uuid.uuid4()}"
                                 response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                                client_order_id=client_order_id,
@@ -2635,13 +2639,13 @@ class CurrencyTrader(threading.Thread):
                                                                margin_type = "CROSS",
                                                                retail_portfolio_id=self.coinbase_portfolio_id
                                                                )
-                                print(f"Order placed: {response}")
+                                self.log_msg(f"Order placed: {response}")
                             except Exception as e:
-                                print(f"Order failed: {e}")
+                                self.log_msg(f"Order failed: {e}")
 
                             if self.do_stop_loss:
                                 try:
-                                    print("At " + current_time + ", place real long stop loss order of " + str(
+                                    self.log_msg("At " + current_time + ", place real long stop loss order of " + str(
                                         real_position) + " at stop loss price " + str(
                                         long_stop_loss_price))
 
@@ -2663,7 +2667,7 @@ class CurrencyTrader(threading.Thread):
                                                                    )
 
                                 except Exception as e:
-                                    print(f"Order failed: {e}")
+                                    self.log_msg(f"Order failed: {e}")
 
                             self.long_order_id = response['success_response']['order_id']
                             self.long_attempt_size = real_delta_position
@@ -2701,8 +2705,8 @@ class CurrencyTrader(threading.Thread):
             while long_start_id + j < self.data_df.shape[0]:
 
                 cur_data_1h = self.data_df.iloc[long_start_id + j]
-                #print("")
-                #print("Long 1h time = " + str(self.data_df.iloc[long_start_id + j]['time']) + '..............................')
+                #self.log_msg("")
+                #self.log_msg("Long 1h time = " + str(self.data_df.iloc[long_start_id + j]['time']) + '..............................')
 
                 if do_smart_execution:
 
@@ -2733,13 +2737,13 @@ class CurrencyTrader(threading.Thread):
                         loc_end = long_start_id + j + 1
 
 
-                    #print("loc_start = " + str(loc_start))
-                    #print("loc_end = " + str(loc_end))
+                    #self.log_msg("loc_start = " + str(loc_start))
+                    #self.log_msg("loc_end = " + str(loc_end))
 
                     for y in range(loc_start, loc_end):
                         cur_data = use_data_df.iloc[y]
 
-                        #print("    Long 5min time = " + str(cur_data['time']))
+                        #self.log_msg("    Long 5min time = " + str(cur_data['time']))
 
                         for k in range(len(strategy_executions)):
 
@@ -2874,9 +2878,9 @@ class CurrencyTrader(threading.Thread):
                                 message_title = "Long position of " + str(self.current_position) + " units of " + self.currency + " closed at stop loss price " + str(exit_price)
                                 message = "At current time" + str(exit_time) + " " + message_title
 
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
+                                self.log_msg("message_title = " + message_title)
+                                self.log_msg("message:")
+                                self.log_msg(message)
 
                                 if not print_email_message_to_file:
                                     sendEmail(message_title, message)
@@ -2891,9 +2895,9 @@ class CurrencyTrader(threading.Thread):
                                 message_title = "Long position of " + str(self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
                                 message = "At current time" + str(exit_time) + " " + message_title
 
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
+                                self.log_msg("message_title = " + message_title)
+                                self.log_msg("message:")
+                                self.log_msg(message)
 
                                 if not print_email_message_to_file:
                                     sendEmail(message_title, message)
@@ -2908,7 +2912,7 @@ class CurrencyTrader(threading.Thread):
                             if do_real_money_trading and self.wakeup == 1 and long_start_id + j == self.data_df.shape[0] - 1:
                                 if self.current_real_position >= 0:
                                     try:
-                                        print("At " + current_time + ", close long position by placing real short order of " + str(self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                        self.log_msg("At " + current_time + ", close long position by placing real short order of " + str(self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                         client_order_id = f"order_{uuid.uuid4()}"
                                         response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                                        client_order_id=client_order_id,
@@ -2924,9 +2928,9 @@ class CurrencyTrader(threading.Thread):
                                                                        margin_type = "CROSS",
                                                                        retail_portfolio_id=self.coinbase_portfolio_id
                                                                        )
-                                        print(f"Order placed: {response}")
+                                        self.log_msg(f"Order placed: {response}")
                                     except Exception as e:
-                                        print(f"Order failed: {e}")
+                                        self.log_msg(f"Order failed: {e}")
 
                                     self.close_long_order_id = response['success_response']['order_id']
                                     self.close_long_attempt_size = self.current_real_position
@@ -3020,9 +3024,9 @@ class CurrencyTrader(threading.Thread):
         ##########################################################
 
         result_data = []
-        print("")
-        print("Calculating Short positions.............")
-        print("")
+        self.log_msg("")
+        self.log_msg("Calculating Short positions.............")
+        self.log_msg("")
 
         short_start_ids = which(self.data_df['macd_short_enter'])
 
@@ -3081,9 +3085,9 @@ class CurrencyTrader(threading.Thread):
                     message = "At " + current_time + ", short " + self.currency + " roughly " + str(-delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
                     message += "This makes it now at a short position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
 
-                    print("message_title = " + message_title)
-                    print("message:")
-                    print(message)
+                    self.log_msg("message_title = " + message_title)
+                    self.log_msg("message:")
+                    self.log_msg(message)
 
                     if not print_email_message_to_file:
                         sendEmail(message_title, message)
@@ -3103,13 +3107,13 @@ class CurrencyTrader(threading.Thread):
                             else:
                                 real_position = int(round(real_position, 0))
 
-                            print(self.currency + " current real position = " + str(self.current_real_position))
-                            print(self.currency + " target real position = " + str(real_position))
+                            self.log_msg(self.currency + " current real position = " + str(self.current_real_position))
+                            self.log_msg(self.currency + " target real position = " + str(real_position))
                             #real_delta_position = real_position - self.current_real_position
                             real_delta_position = real_position
 
                             try:
-                                print("At " + current_time + ", open short position by placing real short order of " + str(-real_delta_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                self.log_msg("At " + current_time + ", open short position by placing real short order of " + str(-real_delta_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                 client_order_id = f"order_{uuid.uuid4()}"
                                 response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                                client_order_id=client_order_id,
@@ -3125,13 +3129,13 @@ class CurrencyTrader(threading.Thread):
                                                                margin_type = "CROSS",
                                                                retail_portfolio_id=self.coinbase_portfolio_id
                                                                )
-                                print(f"Order placed: {response}")
+                                self.log_msg(f"Order placed: {response}")
                             except Exception as e:
-                                print(f"Order failed: {e}")
+                                self.log_msg(f"Order failed: {e}")
 
                             if self.do_stop_loss:
                                 try:
-                                    print("At " + current_time + ", place real short stop loss order of " + str(
+                                    self.log_msg("At " + current_time + ", place real short stop loss order of " + str(
                                         -real_position) + " at stop loss price " + str(
                                         short_stop_loss_price))
 
@@ -3153,7 +3157,7 @@ class CurrencyTrader(threading.Thread):
                                                                    )
 
                                 except Exception as e:
-                                    print(f"Order failed: {e}")
+                                    self.log_msg(f"Order failed: {e}")
 
                             self.short_order_id += response['success_response']['order_id']
                             self.short_attempt_size += -real_delta_position
@@ -3192,8 +3196,8 @@ class CurrencyTrader(threading.Thread):
 
                 #cur_data = self.data_df.iloc[short_start_id + j]
 
-                #print("")
-                #print("Short 1h time = " + str(self.data_df.iloc[short_start_id + j]['time']) + '..............................')
+                #self.log_msg("")
+                #self.log_msg("Short 1h time = " + str(self.data_df.iloc[short_start_id + j]['time']) + '..............................')
 
                 if do_smart_execution:
 
@@ -3226,7 +3230,7 @@ class CurrencyTrader(threading.Thread):
                     for y in range(loc_start, loc_end):
                         cur_data = use_data_df.iloc[y]
 
-                        #print("    Short 5min time = " + str(cur_data['time']))
+                        #self.log_msg("    Short 5min time = " + str(cur_data['time']))
 
                         for k in range(len(strategy_executions)):
 
@@ -3247,18 +3251,18 @@ class CurrencyTrader(threading.Thread):
                                 hit_stop_loss = (loss_ref_price >= execution.take_loss_price) and (execution.take_loss_price < execution.strategy_entry_price)
 
                                 # if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
-                                #     print("short_trade_id = " + str(short_trade_id))
-                                #     print("strategy_id = " + str(execution.strategy_id))
-                                #     print("execution_id = " + str(execution.execution_id))
+                                #     self.log_msg("short_trade_id = " + str(short_trade_id))
+                                #     self.log_msg("strategy_id = " + str(execution.strategy_id))
+                                #     self.log_msg("execution_id = " + str(execution.execution_id))
                                 #
-                                #     print("cur time = " + str(cur_data['time']))
-                                #     print("execution_entry_time = " + str(execution.execution_entry_time))
-                                #     print("execution_entry_price = " + str(execution.execution_entry_price))
-                                #     print("open = " + str(cur_data['open']))
-                                #     print("loss_ref_price = " + str(loss_ref_price))
-                                #     print("take_loss_price = " + str(execution.take_loss_price))
-                                #     print("strategy_entry_price = " + str(execution.strategy_entry_price))
-                                #     print("hit_stop_loss = " + str(hit_stop_loss))
+                                #     self.log_msg("cur time = " + str(cur_data['time']))
+                                #     self.log_msg("execution_entry_time = " + str(execution.execution_entry_time))
+                                #     self.log_msg("execution_entry_price = " + str(execution.execution_entry_price))
+                                #     self.log_msg("open = " + str(cur_data['open']))
+                                #     self.log_msg("loss_ref_price = " + str(loss_ref_price))
+                                #     self.log_msg("take_loss_price = " + str(execution.take_loss_price))
+                                #     self.log_msg("strategy_entry_price = " + str(execution.strategy_entry_price))
+                                #     self.log_msg("hit_stop_loss = " + str(hit_stop_loss))
                                 #     #sys.exit(0)
 
                                 if hit_stop_loss:
@@ -3305,8 +3309,8 @@ class CurrencyTrader(threading.Thread):
                                                                 execution.pnl]]
 
                                 # if short_trade_id == 49 and execution.strategy_id == 2 and execution.execution_id == 6:
-                                #     print("Last record so far:")
-                                #     print(short_strategy_execution_records[-1])
+                                #     self.log_msg("Last record so far:")
+                                #     self.log_msg(short_strategy_execution_records[-1])
 
 
                                 if k < len(strategy_executions) - 1:
@@ -3373,9 +3377,9 @@ class CurrencyTrader(threading.Thread):
                                 message_title = "Short position of " + str(-self.current_position) + " units of " + self.currency + " closed at stop loss price " + str(exit_price)
                                 message = "At current time" + str(exit_time) + " " + message_title
 
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
+                                self.log_msg("message_title = " + message_title)
+                                self.log_msg("message:")
+                                self.log_msg(message)
 
                                 if not print_email_message_to_file:
                                     sendEmail(message_title, message)
@@ -3390,9 +3394,9 @@ class CurrencyTrader(threading.Thread):
                                 message_title = "Short position of " + str(-self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
                                 message = "At current time" + str(exit_time) + " " + message_title
 
-                                print("message_title = " + message_title)
-                                print("message:")
-                                print(message)
+                                self.log_msg("message_title = " + message_title)
+                                self.log_msg("message:")
+                                self.log_msg(message)
 
                                 if not print_email_message_to_file:
                                     sendEmail(message_title, message)
@@ -3407,7 +3411,7 @@ class CurrencyTrader(threading.Thread):
                             if do_real_money_trading and self.wakeup == 1 and short_start_id + j == self.data_df.shape[0] - 1:
                                 if self.current_real_position <= 0:
                                     try:
-                                        print("At " + current_time + ", close short position by placing real long order of " + str(-self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                        self.log_msg("At " + current_time + ", close short position by placing real long order of " + str(-self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                         client_order_id = f"order_{uuid.uuid4()}"
                                         response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                                        client_order_id=client_order_id,
@@ -3423,9 +3427,9 @@ class CurrencyTrader(threading.Thread):
                                                                        margin_type = "CROSS",
                                                                        retail_portfolio_id=self.coinbase_portfolio_id
                                                                        )
-                                        print(f"Order placed: {response}")
+                                        self.log_msg(f"Order placed: {response}")
                                     except Exception as e:
-                                        print(f"Order failed: {e}")
+                                        self.log_msg(f"Order failed: {e}")
 
                                     self.close_short_order_id = response['success_response']['order_id']
                                     self.close_short_attempt_size = -self.current_real_position
@@ -3535,8 +3539,8 @@ class CurrencyTrader(threading.Thread):
         self.full_summary_df = summary_df
 
         if report_performance:
-            print("Performance Summary")
-            print(self.full_summary_df)
+            self.log_msg("Performance Summary")
+            self.log_msg(self.full_summary_df)
 
         self.write_long_df = write_long_df
         self.write_short_df = write_short_df
@@ -3562,8 +3566,8 @@ class CurrencyTrader(threading.Thread):
 
     def post_processing(self):
 
-        print("")
-        print("Post processing currency pair " + str(self.currency))
+        self.log_msg("")
+        self.log_msg("Post processing currency pair " + str(self.currency))
 
         if print_email_message_to_file:
 
@@ -3574,12 +3578,12 @@ class CurrencyTrader(threading.Thread):
             for i in range(email_messages_df.shape[0]):
 
                 email_data_entry = email_messages_df.iloc[i]
-                print(str(i+1) + ":", file = self.email_message_fd)
-                print(email_data_entry['title'], file = self.email_message_fd)
-                print(email_data_entry['content'], file = self.email_message_fd)
+                self.log_msg(str(i+1) + ":", file = self.email_message_fd)
+                self.log_msg(email_data_entry['title'], file = self.email_message_fd)
+                self.log_msg(email_data_entry['content'], file = self.email_message_fd)
                 #self.email_message_fd.flush()
-                print("", file = self.email_message_fd)
-                print("", file = self.email_message_fd)
+                self.log_msg("", file = self.email_message_fd)
+                self.log_msg("", file = self.email_message_fd)
 
             self.email_message_fd.close()
 
@@ -3727,8 +3731,8 @@ class CurrencyTrader(threading.Thread):
             0
         )
 
-        # print("write_df:")
-        # print(write_df.iloc[0:10])
+        # self.log_msg("write_df:")
+        # self.log_msg(write_df.iloc[0:10])
 
         #if self.is_finalized:
         self.data_df.to_csv(self.data_file, index = False)
@@ -3795,10 +3799,10 @@ class CurrencyTrader(threading.Thread):
             self.full_summary_df['Max Drawdown'] = str(round(max_draw_down, 2))
             self.full_summary_df['JC Sharpe'] = str(round(jc_sharpe_ratio, 2))
 
-            print("trade_file: " + str(self.trade_file))
+            self.log_msg("trade_file: " + str(self.trade_file))
             write_df.to_csv(self.trade_file, index = False)
 
-            print("performance_file: " + str(self.performance_file))
+            self.log_msg("performance_file: " + str(self.performance_file))
             self.full_summary_df.to_csv(self.performance_file, index = False)
 
             if do_smart_execution:
@@ -3807,7 +3811,7 @@ class CurrencyTrader(threading.Thread):
 
 
             if not is_production:
-                plot_pnl_figure(write_df, self.chart_folder, self.currency, start_draw_down, end_draw_down)
+                plot_pnl_figure(write_df, self.chart_folder, self.currency, start_draw_down, end_draw_down, self.log_msg)
 
 
 
@@ -3826,24 +3830,25 @@ class CurrencyTrader(threading.Thread):
 
     def trade(self, print_ready=True, temporary_decision = False):
 
-        print("In trade method, is_production = " + str(is_production))
+        self.log_msg("In trade method, is_production = " + str(is_production))
 
         trade_start_time = datetime.now()
-        print("trade_start_time = " + str(trade_start_time))
-        print("Do trading............")
+        self.log_msg("trade_start_time = " + str(trade_start_time))
+        self.log_msg("Do trading............")
 
         self.calculate_signals(print_ready, temporary_decision)
 
         trade_end_time = datetime.now()
-        print("trade_end_time = " + str(trade_end_time))
+        self.log_msg("trade_end_time = " + str(trade_end_time))
 
         delta_time = trade_end_time - trade_start_time
         delta_minute = delta_time.seconds//60
         delta_second = delta_time.seconds%60
 
-        print("Trading takes " + str(delta_minute) + " minutes " + str(delta_second) + " seconds.")
+        self.log_msg("Trading takes " + str(delta_minute) + " minutes " + str(delta_second) + " seconds.")
 
-        print_prefix = "[Currency " + self.currency + "] "
+        #print_prefix = "[Currency " + self.currency + "] "
+        print_prefix = ""
         all_days = pd.Series(self.data_df['date'].unique()).dt.to_pydatetime()
 
         if not is_production:
@@ -3854,7 +3859,7 @@ class CurrencyTrader(threading.Thread):
                                    is_plot_aux = True,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num, plot_day_line = plot_day_line, plot_cross_point = plot_cross_point,
-                                   plot_long = True, plot_short = False, remove_plots = True)
+                                   plot_long = True, plot_short = False, remove_plots = True, log_msg = self.log_msg)
 
             plot_candle_bar_charts(self.currency, self.data_df, all_days, self.long_df, self.short_df,
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
@@ -3864,10 +3869,10 @@ class CurrencyTrader(threading.Thread):
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP=use_dynamic_TP, figure_num=printed_figure_num,
                                    plot_day_line=plot_day_line, plot_cross_point=plot_cross_point,
-                                   plot_long=False, plot_short=True, remove_plots = False)
+                                   plot_long=False, plot_short=True, remove_plots = False, log_msg = self.log_msg)
 
 
-        print("Finish")
+        self.log_msg("Finish")
 
 
 
