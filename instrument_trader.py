@@ -732,6 +732,8 @@ class CurrencyTrader(threading.Thread):
                         if position['position_side'] == 'POSITION_SIDE_SHORT':
                             self.current_real_position *= -1
 
+                        self.log_msg("Query real position = " + str(self.current_real_position))
+
 
 
     def run(self):
