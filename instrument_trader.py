@@ -287,7 +287,7 @@ vegas_threshold = 1 if relax_vegas else 0
 
 vegas_condition_threshold = 10 if relax_vegas else 1
 
-initial_entry_value = 100.0
+initial_entry_value = 50.0
 default_leverage = 10
 
 enable_short_macd_signal = False
@@ -296,7 +296,7 @@ do_smart_execution = False
 use_5min_in_smart_execution = False
 
 
-do_message_printing = False
+do_message_printing = True
 do_reentry = False
 
 use_global = True
@@ -316,7 +316,7 @@ print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
 
-do_real_money_trading = False
+do_real_money_trading = True
 
 if do_smart_execution:
 
@@ -709,18 +709,19 @@ class CurrencyTrader(threading.Thread):
                     else:
                         self.current_position = -1
 
-                    self.log_msg("current_position here = " + str(self.current_position))
-
                     self.current_position *= initial_entry_value/last_trade['entry_price'] * default_leverage
                     if last_trade['entry_price'] >= 1:
                         self.current_position = round(self.current_position, 3)
                     else:
                         self.current_position = int(round(self.current_position, 0))
 
+                    self.log_msg("current_position = " + str(self.current_position))
+
             else:
                 self.current_position = 0
 
-            if do_real_money_trading:
+            if do_real_money_trading and self.wakeup == 1:
+                print("portfolio_id = " + str(self.coinbase_portfolio_id))
                 positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
                 for position in positions:
                     if position['symbol'] == self.currency_coinbase:
@@ -2091,7 +2092,7 @@ class CurrencyTrader(threading.Thread):
                                                                         [(self.data_df['prev' + str(i) + '_' + self.macd_gradient] < 0) for i in range(1, macd_enter_gradient_num-1)])
 
 
-        if do_message_printing and self.is_notify and print_ready and not self.use_guppy_filter and not self.use_guppy_condition and not self.reverse_strategy:
+        if do_message_printing and self.is_notify and print_ready and not self.use_guppy_condition and not self.reverse_strategy:
             if self.data_df.iloc[-1]['long_macd_long_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_long_enter']) and self.current_position <= 0:
                 sendEmail("Ready to Open Long Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2)), "")
             elif self.data_df.iloc[-1]['long_macd_short_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_short_enter']) and self.current_position >= 0:

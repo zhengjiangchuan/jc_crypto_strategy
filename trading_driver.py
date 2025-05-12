@@ -54,7 +54,7 @@ def wait_for_trigger():
 
 
 
-    #sendEmail("Trading program still alive", "")
+    sendEmail("Trading program still alive", "")
 
     return 1
 

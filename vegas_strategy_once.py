@@ -103,7 +103,7 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = True
+read_5min_data = False
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
@@ -401,7 +401,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = False
+    is_real_time_trading = True
     #is_weekend = False
 
     is_real_time_trading_5min = False
@@ -431,6 +431,9 @@ def start_do_trading(wakeup = 0):
         currencies_to_run = [currency_to_run]
     else:
         currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+
+    print("currencies_to_run:")
+    print(currencies_to_run)
 
     log_msg("wakeup = " + str(wakeup))
 
@@ -635,7 +638,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250510_temp"
+    current_date = "_20250512"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -951,7 +954,7 @@ def start_do_trading(wakeup = 0):
                                          coinbase_client = client if do_real_money_trading else None,
                                          currency_coinbase = currency[:-len('USD')] + '-PERP-INTX' if do_real_money_trading else None,
                                          coinbase_portfolio_id = portfolio_id,
-                                         crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading else 0,
+                                         crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading and currency in currency_coinbase_close_prices else 0,
                                          use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
@@ -1256,7 +1259,7 @@ def start_do_trading(wakeup = 0):
 
                             currency_trader.trade()
 
-                    if manual_delay > 0:
+                    if manual_delay > 0 and len(currency_pairs) > 4:
                         log_msg("Sleep " + str(manual_delay) + " seconds ")
                         time.sleep(manual_delay)
 

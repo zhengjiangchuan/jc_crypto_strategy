@@ -875,14 +875,14 @@ def sendEmail(title, content):
     try:
         smtpObj = smtplib.SMTP_SSL(mail_host, 465)
         smtpObj.login(mail_user, mail_pass)
-        log_msg("Sending Email....")
+        print("Sending Email....")
         smtpObj.sendmail(sender, receivers, message.as_string())
-        log_msg("mail has been send successfully.")
+        print("mail has been send successfully.")
 
-        log_msg("Send email: " + title + " " + content)
-        log_msg("")
+        print("Send email: " + title + " " + content)
+        print("")
     except smtplib.SMTPException as e:
-        log_msg(e)
+        print(e)
     #pass
 
 
