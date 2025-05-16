@@ -255,13 +255,20 @@ def attach_ha_bars(df_bar):
 
 def preprocess_time(t):
 
-    if t[0] == "\'":
-        t = t[1:]
+    # print("t:")
+    # print(t)
+    # print(type(t))
 
-    if len(t) < 19:
-        t = t + ' 00:00:00'
+    if isinstance(t, str):
+        if t[0] == "\'":
+            t = t[1:]
 
-    return datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
+        if len(t) < 19:
+            t = t + ' 00:00:00'
+
+        return datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
+    else:
+        return None
 
 def preprocess_date(d):
 

@@ -61,44 +61,44 @@ client_order_id = f"order_{uuid.uuid4()}"
 
 print("client_order_id = " + client_order_id)
 
-symbol = "ADA-PERP-INTX"
-try:
-    response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
-                                   client_order_id=client_order_id,
-                                   side="BUY",
-                                   order_configuration={
-                                       "limit_limit_gtc":{
-                                           "base_size" : "20",
-                                           "limit_price" : "0.725"
-
-                                       }
-                                   },
-                                   leverage="10",
-                                   margin_type = "CROSS",
-                                   retail_portfolio_id=portfolio_id
-                                   )
-    print(f"Order placed: {response}")
-except Exception as e:
-    print(f"Order failed: {e}")
-
-
-print("order is")
-
-order_id = response['success_response']['order_id']
-
-print(order_id)
-
-
-order = client.get_order(order_id = order_id).order
-status = order['status']
-filled_size = order['filled_size']
-print("status = " + str(status))
-print("filled_size = " + str(filled_size))
+# symbol = "ADA-PERP-INTX"
+# try:
+#     response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
+#                                    client_order_id=client_order_id,
+#                                    side="BUY",
+#                                    order_configuration={
+#                                        "limit_limit_gtc":{
+#                                            "base_size" : "20",
+#                                            "limit_price" : "0.725"
+#
+#                                        }
+#                                    },
+#                                    leverage="10",
+#                                    margin_type = "CROSS",
+#                                    retail_portfolio_id=portfolio_id
+#                                    )
+#     print(f"Order placed: {response}")
+# except Exception as e:
+#     print(f"Order failed: {e}")
+#
+#
+# print("order is")
+#
+# order_id = response['success_response']['order_id']
+#
+# print(order_id)
+#
+#
+# order = client.get_order(order_id = order_id).order
+# status = order['status']
+# filled_size = order['filled_size']
+# print("status = " + str(status))
+# print("filled_size = " + str(filled_size))
 
 
 
 positions = client.list_perps_positions(portfolio_uuid=portfolio_id).positions
-
+print(type(positions))
 print("Positions: size = " + str(len(positions)))
 
 for position in positions:

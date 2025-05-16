@@ -54,6 +54,9 @@ parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
 
 currency_to_run = options.currency_pair
 
+print("currency_to_run = " + currency_to_run)
+
+
 global_log_file = "algo_log.txt"
 
 #log_msg("currency_to_run = " + currency_to_run)
@@ -407,7 +410,7 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading_5min = False
     #is_weekend_5min = False
 
-    manual_delay = 10 if is_real_time_trading else 0
+    manual_delay = 1 if is_real_time_trading else 0  #manual_delay = 10
 
     is_do_portfolio_trading = False
 
@@ -430,7 +433,8 @@ def start_do_trading(wakeup = 0):
     if currency_to_run != 'all':
         currencies_to_run = [currency_to_run]
     else:
-        currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+        #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+        currencies_to_run = ['ETHUSD', 'AVAXUSD', 'ADAUSD']
 
     print("currencies_to_run:")
     print(currencies_to_run)
@@ -458,9 +462,11 @@ def start_do_trading(wakeup = 0):
 
                 currency_coinbase_close_prices[currency] = coinbase_price
 
-            accounts = client.get_accounts()
-            account = accounts.accounts[0]
-            portfolio_id = str(account['retail_portfolio_id'])
+
+    if do_real_money_trading:
+        accounts = client.get_accounts()
+        account = accounts.accounts[0]
+        portfolio_id = str(account['retail_portfolio_id'])
 
     log_msg("Sleep 2 seconds")
     time.sleep(2)
@@ -638,7 +644,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250512"
+    current_date = "_20250516"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 

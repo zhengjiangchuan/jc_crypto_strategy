@@ -87,7 +87,7 @@ if __name__ == '__main__':
     #     time.sleep(10)
     #     print("Sleeping finishes")
 
-    wakeup = 0
+    wakeup = 0 #0
     while True:
         print("Waiting for the next trigger")
 

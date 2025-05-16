@@ -172,7 +172,7 @@ for theRound in range(total_round):
         df['entry_price'] = df['take_profit_price']
 
     df['entry_notional'] = df['principal'] * df['leverage']
-    df['entry_amount'] = df['entry_notional'] / entry_price
+    df['entry_amount'] = df['entry_notional'] / df['entry_price']
 
     if entry_price > 10:
         df['entry_amount'] = df['entry_amount'].apply(lambda x: round(x, 5))

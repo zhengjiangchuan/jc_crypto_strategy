@@ -1,5 +1,5 @@
 import numpy as np
-import scipy as scp
+
 import pandas as pd
 import seaborn as sns
 sns.set()
@@ -28,7 +28,10 @@ filter_hasty_trades = False
 is_crypto = True
 
 forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_4gradients_entry_4gradients_exit_0405"
+#root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD"
+root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter"
+
+
 
 #root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
 
@@ -79,7 +82,7 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
     currency_list = currency_df['instrument'].tolist()
 
-    currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOGEUSD', 'XRPUSD']
+    currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
 
     #currency_list = currency_list[0:2]
 
@@ -151,8 +154,13 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
 
+    #trade_files = [os.path.join(forex_dir,
+    #                            "all_pnl_n_gradients_entry_n_gradients_exit_slowMACD_20250514\\all_trades.csv")]
+
     trade_files = [os.path.join(forex_dir,
-                                "all_pnl_4gradients_entry_4gradients_exit\\all_trades.csv")]
+                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_20250514\\all_trades.csv")]
+
+
 
     #trade_files = [os.path.join(forex_dir,
     #                            "all_pnl_short_macd_strategy_3gradients_close\\all_trades.csv")]
@@ -606,9 +614,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes)
         axes.set_title(currency_name + " All Cum Pnl Curve", fontsize=font_size)
         axes.set_xlabel(axes.get_xlabel(), size=font_size)
-        #axes[0].set_xticklabels(axes[0].get_xticks(), size=font_size)
+        axes.set_xticklabels(axes.get_xticks(), size=font_size)
         axes.set_ylabel(axes.get_ylabel(), size=font_size)
-        #axes[0].set_yticklabels(axes[0].get_yticks(), size=font_size)
+        axes.set_yticklabels(axes.get_yticks(), size=font_size)
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
         #axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
         #axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
@@ -742,8 +750,8 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 
-start_dates = [datetime(2024,9,1)]
-end_dates = [datetime(2025,4, 30)]
+start_dates = [datetime(2024,8,1)]
+end_dates = [datetime(2025,5, 30)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []
