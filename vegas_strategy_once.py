@@ -413,7 +413,7 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading_5min = True
     #is_weekend_5min = False
 
-    manual_delay = 1 if is_real_time_trading else 0  #manual_delay = 10
+    manual_delay = 10 if is_real_time_trading else 0  #manual_delay = 10
 
     is_do_portfolio_trading = False
 
