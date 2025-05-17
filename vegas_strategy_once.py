@@ -66,6 +66,9 @@ if currency_to_run != 'all':
 
 root_folder = os.getenv("CRYPTO_PROD")
 
+if currency_to_run != "all":
+    root_folder += "_" + currency_to_run
+
 if not os.path.exists(root_folder):
     os.makedirs(root_folder)
 
@@ -106,7 +109,7 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = False
+read_5min_data = True
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
@@ -407,10 +410,10 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading = True
     #is_weekend = False
 
-    is_real_time_trading_5min = False
+    is_real_time_trading_5min = True
     #is_weekend_5min = False
 
-    manual_delay = 1 if is_real_time_trading else 0  #manual_delay = 10
+    manual_delay = 5 if is_real_time_trading else 0  #manual_delay = 10
 
     is_do_portfolio_trading = False
 
@@ -433,8 +436,8 @@ def start_do_trading(wakeup = 0):
     if currency_to_run != 'all':
         currencies_to_run = [currency_to_run]
     else:
-        #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-        currencies_to_run = ['ETHUSD', 'AVAXUSD', 'ADAUSD']
+        currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+        #currencies_to_run = ['ETHUSD', 'AVAXUSD', 'ADAUSD']
 
     print("currencies_to_run:")
     print(currencies_to_run)
