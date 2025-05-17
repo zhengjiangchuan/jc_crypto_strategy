@@ -27,8 +27,7 @@ account = accounts.accounts[0]
 portfolio_id = account['retail_portfolio_id']
 print("portfolio_id = " + str(portfolio_id))
 
-
-
+#This is the correct one
 # products = client.get_products()
 #
 # print("Product")
