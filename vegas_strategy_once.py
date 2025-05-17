@@ -1268,7 +1268,7 @@ def start_do_trading(wakeup = 0):
 
                             currency_trader.trade()
 
-                    if manual_delay > 0 and len(currency_pairs) > 4:
+                    if manual_delay > 0 and len(currency_pairs) > 1:
                         log_msg("Sleep " + str(manual_delay) + " seconds ")
                         time.sleep(manual_delay)
 
