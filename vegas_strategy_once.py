@@ -413,7 +413,7 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading_5min = True
     #is_weekend_5min = False
 
-    manual_delay = 5 if is_real_time_trading else 0  #manual_delay = 10
+    manual_delay = 1 if is_real_time_trading else 0  #manual_delay = 10
 
     is_do_portfolio_trading = False
 
@@ -436,8 +436,8 @@ def start_do_trading(wakeup = 0):
     if currency_to_run != 'all':
         currencies_to_run = [currency_to_run]
     else:
-        currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-        #currencies_to_run = ['ETHUSD', 'AVAXUSD', 'ADAUSD']
+        #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+        currencies_to_run = ['ETHUSD', 'AVAXUSD', 'ADAUSD']
 
     print("currencies_to_run:")
     print(currencies_to_run)
@@ -647,7 +647,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250516"
+    current_date = "_20250517"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
