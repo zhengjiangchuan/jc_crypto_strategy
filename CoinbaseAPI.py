@@ -11,6 +11,7 @@ import talib
 from coinbase.rest import RESTClient
 from CoinbaseUtil import *
 
+
 from coinbase.rest import RESTClient
 from json import dumps
 import uuid
