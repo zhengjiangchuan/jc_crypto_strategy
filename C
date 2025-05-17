@@ -1,0 +1,2 @@
+is_reverse,Trade Num,Win Num,Win Pct,PL Ratio,Unit Profit,Profitable,Long Trade Num,Long Win Num,Long Win Pct,Short Trade Num,Short Win Num,Short Win Pct
+False,40,11,0.28,2.0,-0.17,False,20,5,0.25,20,6,0.3
