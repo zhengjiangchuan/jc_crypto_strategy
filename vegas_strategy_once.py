@@ -74,7 +74,7 @@ if not os.path.exists(root_folder):
 
 
 global_log_path = os.path.join(root_folder, global_log_file)
-global_log_fd = open(global_log_path, "w")
+global_log_fd = open(global_log_path, "a")
 
 
 def log_msg(msg):
@@ -109,7 +109,7 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = True
+read_5min_data = False
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
@@ -410,10 +410,10 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading = True
     #is_weekend = False
 
-    is_real_time_trading_5min = True
+    is_real_time_trading_5min = False
     #is_weekend_5min = False
 
-    manual_delay = 10 if is_real_time_trading else 0  #manual_delay = 10
+    manual_delay = 1 if is_real_time_trading else 0  #manual_delay = 10
 
     is_do_portfolio_trading = False
 
@@ -647,7 +647,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250517"
+    current_date = "_20250518"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -1268,7 +1268,7 @@ def start_do_trading(wakeup = 0):
 
                             currency_trader.trade()
 
-                    if manual_delay > 0 and len(currency_pairs) > 1:
+                    if manual_delay > 0 and len(currency_pairs) > 4:
                         log_msg("Sleep " + str(manual_delay) + " seconds ")
                         time.sleep(manual_delay)
 

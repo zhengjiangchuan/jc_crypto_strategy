@@ -27,10 +27,9 @@ filter_hasty_trades = False
 
 is_crypto = True
 
-forex_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod")
-#root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD"
-root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter"
-
+root_folder = os.path.join(os.getenv("CRYPTO_PROD"))
+#root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
+root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD")
 
 
 #root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
@@ -78,9 +77,9 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     print("")
     print("Constructing Optimal Portfolio for end_date = " + start_date.strftime("%Y%m%d") + "-" + end_date.strftime("%Y%m%d"))
 
-    currency_df = pd.read_csv(os.path.join(forex_dir, "currency.csv")) if not is_crypto else pd.read_csv(os.path.join(forex_dir, "crypto.csv"))
-
-    currency_list = currency_df['instrument'].tolist()
+    # currency_df = pd.read_csv(os.path.join(root_dir, "currency.csv"))
+    #
+    # currency_list = currency_df['instrument'].tolist()
 
     currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
 
@@ -154,13 +153,11 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                             "all_pnl_chart_ratio10removeMustReject3_noSmartClose_macd_0204_notExceedGuppy3_relaxFastSlow_rejectLongTrend_simple\\all_trades.csv")]
 
 
-    #trade_files = [os.path.join(forex_dir,
-    #                            "all_pnl_n_gradients_entry_n_gradients_exit_slowMACD_20250514\\all_trades.csv")]
 
-    trade_files = [os.path.join(forex_dir,
-                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_20250514\\all_trades.csv")]
-
-
+    #trade_files = [os.path.join(root_folder,
+    #                            "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_20250517\\all_trades.csv")]
+    trade_files = [os.path.join(root_folder,
+                                "all_pnl_n_gradients_entry_n_gradients_exit_slowMACD_20250517\\all_trades.csv")]
 
     #trade_files = [os.path.join(forex_dir,
     #                            "all_pnl_short_macd_strategy_3gradients_close\\all_trades.csv")]
