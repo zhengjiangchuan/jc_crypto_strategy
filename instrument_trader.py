@@ -2233,7 +2233,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    self.log_msg("At " + current_time + ", Revoke long decision just made.")
+                    self.log_msg("At " + str(current_time) + ", Revoke long decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.long_order_id)
@@ -2317,7 +2317,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    self.log_msg("At " + current_time + ", Revoke close long decision just made.")
+                    self.log_msg("At " + str(current_time) + ", Revoke close long decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.close_long_order_id)
@@ -2399,7 +2399,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    self.log_msg("At " + current_time + ", Revoke short decision just made.")
+                    self.log_msg("At " + str(current_time) + ", Revoke short decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.short_order_id)
@@ -2482,7 +2482,7 @@ class CurrencyTrader(threading.Thread):
 
                 if do_real_money_trading and self.wakeup == 1:
 
-                    self.log_msg("At " + current_time + ", Revoke close short decision just made.")
+                    self.log_msg("At " + str(current_time) + ", Revoke close short decision just made.")
 
                     filled_size = 0
                     orderResponse = self.coinbase_client.get_order(order_id=self.close_short_order_id)
@@ -2948,7 +2948,7 @@ class CurrencyTrader(threading.Thread):
                             if do_real_money_trading and self.wakeup == 1 and long_start_id + j == self.data_df.shape[0] - 1:
                                 if self.current_real_position > 0 and self.close_long_order_id is None:
                                     try:
-                                        self.log_msg("At " + exit_time + ", close long position by placing real short order of " + str(self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                        self.log_msg("At " + str(exit_time) + ", close long position by placing real short order of " + str(self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                         client_order_id = f"order_{uuid.uuid4()}"
                                         response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                                        client_order_id=client_order_id,
@@ -3455,7 +3455,7 @@ class CurrencyTrader(threading.Thread):
                             if do_real_money_trading and self.wakeup == 1 and short_start_id + j == self.data_df.shape[0] - 1:
                                 if self.current_real_position < 0 and self.close_short_order_id is None:
                                     try:
-                                        self.log_msg("At " + exit_time + ", close short position by placing real long order of " + str(-self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
+                                        self.log_msg("At " + str(exit_time) + ", close short position by placing real long order of " + str(-self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                         client_order_id = f"order_{uuid.uuid4()}"
                                         response = self.coinbase_client.create_order(product_id=self.currency_coinbase,     #BTC-USDC is the correct product id
                                                                        client_order_id=client_order_id,
