@@ -124,7 +124,7 @@ if do_real_money_trading:
 class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
-                 use_slow_macd, use_guppy_filter, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition):
+                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -136,6 +136,7 @@ class CurrencyPair:
         self.reverse_strategy = True if reverse_strategy == 1 else False
         self.use_slow_macd = True if use_slow_macd == 1 else False
         self.use_guppy_filter = True if use_guppy_filter == 1 else False
+        self.use_guppy_filter_for_exit = True if use_guppy_filter_for_exit == 1 else False
         self.do_stop_loss = True if do_stop_loss == 1 else False
         self.reentry_after_stop_loss = True if reentry_after_stop_loss == 1 else False
         self.also_filter_too_late = True if also_filter_too_late == 1 else False
@@ -437,7 +438,8 @@ def start_do_trading(wakeup = 0):
         currencies_to_run = [currency_to_run]
     else:
         #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
-        currencies_to_run = ['ETHUSD', 'AVAXUSD', 'ADAUSD']
+        #currencies_to_run = ['DOGEUSD', 'XRPUSD']
+        currencies_to_run = ['AVAXUSD']
 
     print("currencies_to_run:")
     print(currencies_to_run)
@@ -602,7 +604,7 @@ def start_do_trading(wakeup = 0):
         #     sys.exit(0)
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
-                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['do_stop_loss'],
+                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['do_stop_loss'],
         row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'])]
 
     log_msg("currencies:")
@@ -647,7 +649,7 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_20250518"
+    current_date = "_realtime_0521"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -667,6 +669,9 @@ def start_do_trading(wakeup = 0):
 
     if global_use_guppy_filter:
         general_chart_folder_name += "_guppyFilter"
+
+    if global_use_guppy_filter_for_exit:
+        general_chart_folder_name += "_guppyFilterForExit"
 
     if global_also_filter_too_late:
         general_chart_folder_name += "_filterTooLate"
@@ -710,24 +715,28 @@ def start_do_trading(wakeup = 0):
         if do_reentry:
             chart_folder_name += "_reentry"
 
-        if currency_pair.use_slow_macd:
+        if global_use_slow_macd or currency_pair.use_slow_macd:
             chart_folder_name += "_slowMACD"
         else:
             chart_folder_name += "_fastMACD"
 
-        if currency_pair.use_guppy_filter:
+        if global_use_guppy_filter or currency_pair.use_guppy_filter:
             chart_folder_name += "_guppyFilter"
 
-        if currency_pair.also_filter_too_late:
+        if global_use_guppy_filter_for_exit or currency_pair.use_guppy_filter_for_exit:
+            chart_folder_name += "_guppyFilterForExit"
+
+
+        if global_also_filter_too_late or currency_pair.also_filter_too_late:
             chart_folder_name += "_filterTooLate"
 
-        if currency_pair.use_guppy_condition:
+        if global_use_guppy_condition or currency_pair.use_guppy_condition:
             chart_folder_name += "_guppyCondition"
 
-        if currency_pair.do_stop_loss:
+        if global_do_stop_loss or currency_pair.do_stop_loss:
             chart_folder_name += "_stopLoss"
 
-        if currency_pair.do_stop_loss and not currency_pair.reentry_after_stop_loss:
+        if (global_do_stop_loss and not global_reentry_after_stop_loss) or (currency_pair.do_stop_loss and not currency_pair.reentry_after_stop_loss):
             chart_folder_name += "_notReentryAfterSL"
 
         if printed_figure_num == -1:
@@ -941,6 +950,7 @@ def start_do_trading(wakeup = 0):
         reverse_strategy = currency_pair.reverse_strategy
         use_slow_macd = currency_pair.use_slow_macd
         use_guppy_filter = currency_pair.use_guppy_filter
+        use_guppy_filter_for_exit = currency_pair.use_guppy_filter_for_exit
         do_stop_loss = currency_pair.do_stop_loss
         reentry_after_stop_loss = currency_pair.reentry_after_stop_loss
         also_filter_too_late = currency_pair.also_filter_too_late
@@ -964,7 +974,7 @@ def start_do_trading(wakeup = 0):
                                          currency_coinbase = currency[:-len('USD')] + '-PERP-INTX' if do_real_money_trading else None,
                                          coinbase_portfolio_id = portfolio_id,
                                          crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading and currency in currency_coinbase_close_prices else 0,
-                                         use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter,
+                                         use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter, use_guppy_filter_for_exit = use_guppy_filter_for_exit,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
                                          use_guppy_condition = use_guppy_condition)
@@ -1035,7 +1045,7 @@ def start_do_trading(wakeup = 0):
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2025, 4, 22, 8, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2025, 5, 20, 0, 0, 0)]
 
                         if use_short_data_for_prod:
                             data_df = data_df[data_df['time'] >= datetime(2023, 11, 30, 2, 0, 0)]

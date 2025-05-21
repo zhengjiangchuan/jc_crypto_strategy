@@ -299,10 +299,12 @@ use_5min_in_smart_execution = False
 do_message_printing = True
 do_reentry = False
 
-use_global = False
+use_global = True
 
-global_use_slow_macd = True
-global_use_guppy_filter = False
+global_use_slow_macd = False
+global_use_guppy_filter = True
+
+global_use_guppy_filter_for_exit = True
 
 global_do_stop_loss = False
 global_reentry_after_stop_loss = False
@@ -382,7 +384,7 @@ class CurrencyTrader(threading.Thread):
                  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx, email_message_file, is_notify, data_file_5min = None,
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
-                 use_slow_macd = True, use_guppy_filter = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
+                 use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
                  use_guppy_condition = False):
         super().__init__(name = currency)
         self.condition = condition
@@ -411,6 +413,9 @@ class CurrencyTrader(threading.Thread):
         self.email_message_caches = []
 
         self.decimal = decimal
+        # print("decimal = " + str(self.decimal))
+        # temp_entry_price = 22.1593
+        # print(" units at entry price " + str(round(temp_entry_price, self.decimal)))
 
         self.reverse_strategy = reverse_strategy
 
@@ -418,6 +423,7 @@ class CurrencyTrader(threading.Thread):
 
 
         self.use_guppy_filter = global_use_guppy_filter if use_global else use_guppy_filter
+        self.use_guppy_filter_for_exit = global_use_guppy_filter_for_exit if use_global else use_guppy_filter_for_exit
         self.do_stop_loss = global_do_stop_loss if use_global else do_stop_loss
         self.reentry_after_stop_loss = global_reentry_after_stop_loss if use_global else reentry_after_stop_loss
         self.also_filter_too_late = global_also_filter_too_late if use_global else also_filter_too_late
@@ -461,6 +467,9 @@ class CurrencyTrader(threading.Thread):
 
                 self.long_existing_df = existing_trade_df[existing_trade_df['side'] == 'long']
                 self.short_existing_df = existing_trade_df[existing_trade_df['side'] == 'short']
+
+                # print("long_existing_df:")
+                # print(self.long_existing_df.iloc[-3:])
 
                 #print("existing_long_trade_df:")
                 #print(existing_trade_df.iloc[0:10])
@@ -2179,6 +2188,11 @@ class CurrencyTrader(threading.Thread):
         self.data_df['long_macd_short_exit'] = (self.data_df[self.macd_gradient] > 0) & reduce(lambda left, right: left & right,
                                                                         [(self.data_df['prev' + str(i) + '_' + self.macd_gradient] > 0) for i in range(1, macd_exit_gradient_num)])
 
+        if self.use_guppy_filter_for_exit:
+            self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] & (~self.data_df['guppy_all_strong_aligned_long'])
+            self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] & (~self.data_df['guppy_all_strong_aligned_short'])
+
+
         if self.reverse_strategy:
             self.data_df['temp'] = self.data_df['long_macd_long_enter_ready']
             self.data_df['long_macd_long_enter_ready'] = self.data_df['long_macd_short_enter_ready']
@@ -2618,13 +2632,14 @@ class CurrencyTrader(threading.Thread):
                     #delta_position = position - self.current_position
                     delta_position = position
 
-                    self.current_position = position
+                    #self.current_position = position
 
 
                     message_title = "Long " + self.currency + " " + str(delta_position) + " units"
-
+                    print("entry_price:")
+                    print(entry_price)
                     message = "At " + current_time + ", long " + self.currency + " roughly " + str(delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
-                    message += "This makes it now at a long position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
+                    message += "This makes it now at a long position of " + str(position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
 
                     self.log_msg("message_title = " + message_title)
                     self.log_msg("message:")
@@ -3118,13 +3133,15 @@ class CurrencyTrader(threading.Thread):
                     #delta_position = position - self.current_position
                     delta_position = position
 
-                    self.current_position = position
+                    #self.current_position = position
 
 
                     message_title = "Short " + self.currency + " " + str(-delta_position) + " units"
 
+                    print("entry_price:")
+                    print(entry_price)
                     message = "At " + current_time + ", short " + self.currency + " roughly " + str(-delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
-                    message += "This makes it now at a short position of " + str(self.current_position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
+                    message += "This makes it now at a short position of " + str(position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
 
                     self.log_msg("message_title = " + message_title)
                     self.log_msg("message:")
@@ -3414,6 +3431,10 @@ class CurrencyTrader(threading.Thread):
 
                     is_win = exit_price < entry_price
 
+                    # if short_start_id + j == self.data_df.shape[0] - 1:
+                    #     print("Reach end trade")
+                    #     print("current_position = " + str(self.current_position))
+
                     if self.do_stop_loss and exit_long_by_stop_loss:
 
                         if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
@@ -3648,30 +3669,50 @@ class CurrencyTrader(threading.Thread):
 
         if production_running:
             if self.long_existing_df is not None and 'prod_entry_price' in self.long_existing_df.columns and 'prod_exit_price' in self.long_existing_df.columns:
-                write_long_prod_df = pd.merge(self.write_long_df, self.long_existing_df[['entry_time', 'exit_time', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
-                                              on = ['entry_time', 'exit_time'], how = 'left')
+
+                # print("Fuck 1:")
+                # print(self.write_long_df.iloc[-3:])
+                #
+                # print("Fuck 2:")
+                # print(self.long_existing_df.iloc[-3:])
+
+
+                write_long_prod_df = pd.merge(self.write_long_df, self.long_existing_df[['long_trade_id', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
+                                              on = ['long_trade_id'], how = 'left')
             else:
                 write_long_prod_df = self.write_long_df.copy()
+
+            # print("here1:")
+            # print(write_long_prod_df.iloc[-3:])
 
             if self.long_existing_df is None or 'prod_entry_price' not in self.long_existing_df.columns:
                 write_long_prod_df['prod_entry_price'] = write_long_prod_df['entry_price']
                 write_long_prod_df['prod_exit_price'] = write_long_prod_df['exit_price']
 
                 write_long_prod_df['prod_size'] = initial_entry_value / write_long_prod_df['entry_price'] * default_leverage
+                write_long_prod_df['is_prod'] = 0
 
+            # print("here2:")
+            # print(write_long_prod_df.iloc[-3:])
 
             for col in ['prod_entry_price', 'prod_exit_price']:
                 write_long_prod_df[col] = np.where(
-                    write_long_prod_df[col].isnull(),
+                    (write_long_prod_df[col].isnull()) | (write_long_prod_df[col] <= 0),
                     write_long_prod_df[col[len('prod_'):]],
                     write_long_prod_df[col]
                 )
 
+            # print("here3:")
+            # print(write_long_prod_df.iloc[-3:])
+
             write_long_prod_df['prod_size'] = np.where(
-                write_long_prod_df['prod_size'].isnull(),
+                (write_long_prod_df['prod_size'].isnull()) | (write_long_prod_df['prod_size'] <= 0),
                 initial_entry_value / write_long_prod_df['entry_price'] * default_leverage,
                 write_long_prod_df['prod_size']
             )
+
+            # print("here4:")
+            # print(write_long_prod_df.iloc[-3:])
 
             write_long_prod_df['is_prod'] = np.where(
                 write_long_prod_df['is_prod'].isnull(),
@@ -3691,15 +3732,15 @@ class CurrencyTrader(threading.Thread):
             if self.close_long_order_fill_price > 0:
                 self.log_msg("Write close_long_order_fill_price = " + str(self.close_long_order_fill_price))
                 write_long_prod_df.at[write_long_prod_df.shape[0] - 1, 'prod_exit_price'] = round(self.close_long_order_fill_price, self.decimal)
-                write_long_prod_df.at[write_long_prod_df.shape[0] - 1, 'prod_size'] = self.long_order_fill_size
+                write_long_prod_df.at[write_long_prod_df.shape[0] - 1, 'prod_size'] = self.close_long_order_fill_size
                 write_long_prod_df.at[write_long_prod_df.shape[0] - 1, 'is_prod'] = 1
                 self.reset_close_long_fill()
 
 
 
             if self.short_existing_df is not None and 'prod_entry_price' in self.short_existing_df.columns and 'prod_exit_price' in self.short_existing_df.columns:
-                write_short_prod_df = pd.merge(self.write_short_df, self.short_existing_df[['entry_time', 'exit_time', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
-                                              on = ['entry_time', 'exit_time'], how = 'left')
+                write_short_prod_df = pd.merge(self.write_short_df, self.short_existing_df[['short_trade_id', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
+                                              on = ['short_trade_id'], how = 'left')
             else:
                 write_short_prod_df = self.write_short_df.copy()
 
@@ -3711,18 +3752,19 @@ class CurrencyTrader(threading.Thread):
                 write_short_prod_df['prod_exit_price'] = write_short_prod_df['exit_price']
 
                 write_short_prod_df['prod_size'] = initial_entry_value / write_short_prod_df['entry_price'] * default_leverage
+                write_short_prod_df['is_prod'] = 0
 
 
 
             for col in ['prod_entry_price', 'prod_exit_price']:
                 write_short_prod_df[col] = np.where(
-                    write_short_prod_df[col].isnull(),
+                    (write_short_prod_df[col].isnull()) | (write_short_prod_df[col] <= 0),
                     write_short_prod_df[col[len('prod_'):]],
                     write_short_prod_df[col]
                 )
 
             write_short_prod_df['prod_size'] = np.where(
-                write_short_prod_df['prod_size'].isnull(),
+                (write_short_prod_df['prod_size'].isnull()) | (write_short_prod_df['prod_size'] <= 0),
                 initial_entry_value / write_short_prod_df['entry_price'] * default_leverage,
                 write_short_prod_df['prod_size']
             )
@@ -3745,7 +3787,7 @@ class CurrencyTrader(threading.Thread):
             if self.close_short_order_fill_price > 0:
                 self.log_msg("Write close_short_order_fill_price = " + str(self.close_short_order_fill_price))
                 write_short_prod_df.at[write_short_prod_df.shape[0] - 1, 'prod_exit_price'] = round(self.close_short_order_fill_price, self.decimal)
-                write_short_prod_df.at[write_short_prod_df.shape[0] - 1, 'prod_size'] = self.short_order_fill_size
+                write_short_prod_df.at[write_short_prod_df.shape[0] - 1, 'prod_size'] = self.close_short_order_fill_size
                 write_short_prod_df.at[write_short_prod_df.shape[0] - 1, 'is_prod'] = 1
                 self.reset_close_short_fill()
 
