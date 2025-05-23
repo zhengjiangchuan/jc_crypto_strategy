@@ -872,12 +872,16 @@ log2_file = options.log_file
 
 #def writeLog()
 
-def sendEmail(title, content):
+def sendEmail(title, content, is_alternative = False):
 
     message = MIMEText(content, 'plain', 'utf-8')
     message['From'] = "{}".format(sender)
     message['To'] = ",".join(receivers)
-    message['Subject'] = title
+
+    if is_alternative:
+        message['Subject'] = "[Alternative] " + title
+    else:
+        message['Subject'] = title
 
     try:
         smtpObj = smtplib.SMTP_SSL(mail_host, 465)

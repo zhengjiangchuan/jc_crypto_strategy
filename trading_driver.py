@@ -8,7 +8,15 @@ from util import sendEmail
 from datetime import timedelta
 import pandas as pd
 
-from vegas_strategy_once import *
+while True:
+    try:
+        from vegas_strategy_once import start_do_trading
+        break
+    except Exception as e:
+        print("Exception here: " + str(e))
+        print("Probably network connection exception, trying again after n seconds.")
+        time.sleep(10)
+
 
 def wait_for_trigger():
 
@@ -95,7 +103,13 @@ if __name__ == '__main__':
         # son_process.start()
         print("Run trading program")
         #os.system("python vegas_strategy_once.py")
-        start_do_trading(wakeup=wakeup)
+        try:
+            start_do_trading(wakeup=wakeup)
 
-        print("Going to enter wait_for_trigger")
-        wakeup = wait_for_trigger()
+
+            print("Going to enter wait_for_trigger")
+            wakeup = wait_for_trigger()
+        except Exception as e:
+            print("Exception: " + str(e))
+            print("Probably network connection exception, trying again after n seconds.")
+            time.sleep(10)

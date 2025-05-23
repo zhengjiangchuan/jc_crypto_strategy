@@ -317,8 +317,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = False
+do_real_money_trading = False
 
 if do_smart_execution:
 
@@ -385,7 +385,7 @@ class CurrencyTrader(threading.Thread):
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
                  use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False):
+                 use_guppy_condition = False, is_alternative = False):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -588,6 +588,7 @@ class CurrencyTrader(threading.Thread):
 
             self.each_strategy_entry_value = initial_entry_value / len(self.leverage)
 
+        self.is_alternative = is_alternative
 
         self.log_msg("Initializing...")
 
@@ -2128,11 +2129,11 @@ class CurrencyTrader(threading.Thread):
 
             if self.data_df.iloc[-1]['long_macd_long_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_long_enter']) and self.current_position <= 0:
                 ready_msg = "Ready to Open Long Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2))
-                sendEmail(ready_msg, "")
+                sendEmail(ready_msg, "", is_alternative=self.is_alternative)
                 self.log_msg(ready_msg)
             elif self.data_df.iloc[-1]['long_macd_short_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_short_enter']) and self.current_position >= 0:
                 ready_msg = "Ready to Open Short Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2))
-                sendEmail(ready_msg, "")
+                sendEmail(ready_msg, "", is_alternative=self.is_alternative)
                 self.log_msg(ready_msg)
 
 
@@ -2316,7 +2317,7 @@ class CurrencyTrader(threading.Thread):
                     message = ""
 
                     if not print_email_message_to_file:
-                        sendEmail(message_title, message)
+                        sendEmail(message_title, message, is_alternative=self.is_alternative)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
 
@@ -2397,7 +2398,7 @@ class CurrencyTrader(threading.Thread):
                     message = ""
 
                     if not print_email_message_to_file:
-                        sendEmail(message_title, message)
+                        sendEmail(message_title, message, is_alternative=self.is_alternative)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
 
@@ -2481,7 +2482,7 @@ class CurrencyTrader(threading.Thread):
                     message = ""
 
                     if not print_email_message_to_file:
-                        sendEmail(message_title, message)
+                        sendEmail(message_title, message, is_alternative=self.is_alternative)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
 
@@ -2563,7 +2564,7 @@ class CurrencyTrader(threading.Thread):
                     message = ""
 
                     if not print_email_message_to_file:
-                        sendEmail(message_title, message)
+                        sendEmail(message_title, message, is_alternative=self.is_alternative)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
 
@@ -2646,7 +2647,7 @@ class CurrencyTrader(threading.Thread):
                     self.log_msg(message)
 
                     if not print_email_message_to_file:
-                        sendEmail(message_title, message)
+                        sendEmail(message_title, message, is_alternative=self.is_alternative)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
 
@@ -2934,7 +2935,7 @@ class CurrencyTrader(threading.Thread):
                                 self.log_msg(message)
 
                                 if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
+                                    sendEmail(message_title, message, is_alternative=self.is_alternative)
                                 else:
                                     self.cache_email_messages(message_title, message, current_time)
 
@@ -2951,7 +2952,7 @@ class CurrencyTrader(threading.Thread):
                                 self.log_msg(message)
 
                                 if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
+                                    sendEmail(message_title, message, is_alternative=self.is_alternative)
                                 else:
                                     self.cache_email_messages(message_title, message, current_time)
 
@@ -3148,7 +3149,7 @@ class CurrencyTrader(threading.Thread):
                     self.log_msg(message)
 
                     if not print_email_message_to_file:
-                        sendEmail(message_title, message)
+                        sendEmail(message_title, message, is_alternative=self.is_alternative)
                     else:
                         self.cache_email_messages(message_title, message, current_time)
 
@@ -3447,7 +3448,7 @@ class CurrencyTrader(threading.Thread):
                                 self.log_msg(message)
 
                                 if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
+                                    sendEmail(message_title, message, is_alternative=self.is_alternative)
                                 else:
                                     self.cache_email_messages(message_title, message, current_time)
 
@@ -3464,7 +3465,7 @@ class CurrencyTrader(threading.Thread):
                                 self.log_msg(message)
 
                                 if not print_email_message_to_file:
-                                    sendEmail(message_title, message)
+                                    sendEmail(message_title, message, is_alternative=self.is_alternative)
                                 else:
                                     self.cache_email_messages(message_title, message, current_time)
 

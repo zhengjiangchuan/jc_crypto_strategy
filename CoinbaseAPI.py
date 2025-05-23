@@ -16,7 +16,7 @@ from coinbase.rest import RESTClient
 from json import dumps
 import uuid
 
-api_key, api_secret = get_api_keys()
+api_key, api_secret = get_api_keys(is_alternative=False)
 
 
 client = RESTClient(api_key = api_key,

@@ -47,15 +47,20 @@ import warnings
 warnings.filterwarnings("ignore")
 
 parser = OptionParser()
-parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
-                  help="Currency Pair to run")
+# parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
+#                    help="Currency Pair to run")
+parser.add_option("-c", "--alternative", dest="alternative", default = "all",
+                 help="Use alternative account")
 
 (options, args) = parser.parse_args()
 
-currency_to_run = options.currency_pair
+currency_to_run = "all"
+alternative = options.alternative
 
 print("currency_to_run = " + currency_to_run)
+print("alternative = " + alternative)
 
+#sys.exit(0)
 
 global_log_file = "algo_log.txt"
 
@@ -65,6 +70,8 @@ if currency_to_run != 'all':
     global_log_file = currency_to_run + "_algo_log.txt"
 
 root_folder = os.getenv("CRYPTO_PROD")
+if alternative == 'y':
+    root_folder += "_alternative"
 
 if currency_to_run != "all":
     root_folder += "_" + currency_to_run
@@ -114,10 +121,11 @@ read_5min_data = False
 if use_dynamic_TP:
     profit_loss_ratio = 10
 
+
 td = TDClient(apikey=get_twelvedata_api_keys())
 
 if do_real_money_trading:
-    api_key, api_secret = get_api_keys()
+    api_key, api_secret = get_api_keys(is_alternative = True if alternative == 'y' else False)
     client = RESTClient(api_key = api_key,
                         api_secret= api_secret)
 
@@ -437,9 +445,9 @@ def start_do_trading(wakeup = 0):
     if currency_to_run != 'all':
         currencies_to_run = [currency_to_run]
     else:
-        #currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+        currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
         #currencies_to_run = ['DOGEUSD', 'XRPUSD']
-        currencies_to_run = ['AVAXUSD']
+        #currencies_to_run = ['AVAXUSD']
 
     print("currencies_to_run:")
     print(currencies_to_run)
@@ -473,8 +481,8 @@ def start_do_trading(wakeup = 0):
         account = accounts.accounts[0]
         portfolio_id = str(account['retail_portfolio_id'])
 
-    log_msg("Sleep 2 seconds")
-    time.sleep(2)
+    log_msg("Sleep 1 seconds")
+    time.sleep(1)
 
 
 
@@ -649,7 +657,8 @@ def start_do_trading(wakeup = 0):
 
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
-    current_date = "_realtime_0521"
+    #current_date = "_realtime_0523"  #0521
+    current_date = "_final_prod"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -977,7 +986,7 @@ def start_do_trading(wakeup = 0):
                                          use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter, use_guppy_filter_for_exit = use_guppy_filter_for_exit,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
-                                         use_guppy_condition = use_guppy_condition)
+                                         use_guppy_condition = use_guppy_condition, is_alternative=True if alternative == 'y' else False)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
@@ -1812,95 +1821,6 @@ def start_do_trading(wakeup = 0):
 
 
         #shutil.copy2(file_path, dest_folder)
-
-
-    if False:
-        # log_msg("Sleeping")
-        # time.sleep(10)
-        #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new4_check_2barContinuous"
-
-        #dest_folder = "C:\\Users\\User\\Dropbox\\forex_real_time_new2_improve_filter_vegas_guppy_other_side_fixBug_15"
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0803\\forex_innovativeFire2new_clean_entry_second_entry_Improve2"
-
-        dest_folder = "C:\\Forex\\formal_trading\\All_Charts"
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_innovativeFire2new_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected_upToDate_fixBug2"
-
-
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0529\\final\\original_strategy"
-        #dest_folder = "C:\\Forex\\new_experiments\\0924\\forex_noTrendFollowing_selected"
-
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0918\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_partialBelow_removeSpecial_simpleQuickStop_trend_relaxVegas_includeMore_guppyAligned_closeLogic_twoClose_corrected"
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2"
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0914\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines_reentry_improve_fire2_smallPortfolio"
-
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0904\\forex_innovativeFire2new_quickLossDelayed_reentryrequire4GuppyLines"
-
-
-
-
-        #dest_folder = "C:\\Forex\\new_experiments\\0627\\not_support_half_close"
-
-        log_msg("Wakeup")
-
-        if not os.path.exists(dest_folder):
-            os.makedirs(dest_folder)
-
-        for file in os.listdir(dest_folder):
-
-            if currency_to_run in file:
-                file_path = os.path.join(dest_folder, file)
-                os.remove(file_path)
-
-
-        symbol_folders = [os.path.join(root_folder, file) for file in os.listdir(root_folder)
-                          if os.path.isdir(os.path.join(root_folder, file)) and 'pnl' not in file and 'portfolio' not in file]
-
-        log_msg("symbol_folders:")
-        log_msg(symbol_folders)
-
-
-
-        currency_list = list(currency_df['currency'])
-        #log_msg("currency_list*************************:")
-        log_msg(currency_list)
-
-        for symbol_folder in symbol_folders:
-
-            #log_msg('symbol_folder =' + symbol_folder)
-
-            if symbol_folder[-6:] not in currency_list:
-                continue
-
-
-            # if symbol_folder[-6:] not in selected_ones:
-            #     continue
-
-            log_msg("Process symbol folder " + symbol_folder)
-            chart_folder = os.path.join(symbol_folder, "chart")
-
-            files = os.listdir(chart_folder)
-            if len(files) == 6:
-                files = files[1:]
-
-            #files = files[-1:]
-
-            for file in files:
-                file_path = os.path.join(chart_folder, file)
-
-                log_msg("file_path = " + file_path)
-                log_msg("dest_folder = " + dest_folder)
-                shutil.copy2(file_path, dest_folder)
-
-
-        sendEmail("Charts sent!", "")
-
 
     # if is_do_portfolio_trading:
     #     log_msg("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))

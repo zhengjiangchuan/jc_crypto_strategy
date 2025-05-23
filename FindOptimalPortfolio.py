@@ -29,7 +29,13 @@ is_crypto = True
 
 root_folder = os.path.join(os.getenv("CRYPTO_PROD"))
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
-root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD")
+#root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD")
+
+
+#root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
+#root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit")
+
+root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_combined")
 
 
 #root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
@@ -82,6 +88,8 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     # currency_list = currency_df['instrument'].tolist()
 
     currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+
+    #currency_list = ['AVAXUSD']
 
     #currency_list = currency_list[0:2]
 
@@ -156,8 +164,17 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     #trade_files = [os.path.join(root_folder,
     #                            "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_20250517\\all_trades.csv")]
+
+
     trade_files = [os.path.join(root_folder,
-                                "all_pnl_n_gradients_entry_n_gradients_exit_slowMACD_20250517\\all_trades.csv")]
+                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_realtime_0523\\all_trades.csv"),
+                   os.path.join(root_folder,
+                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit_realtime_0523\\all_trades.csv")
+                   ]
+
+
+
+
 
     #trade_files = [os.path.join(forex_dir,
     #                            "all_pnl_short_macd_strategy_3gradients_close\\all_trades.csv")]
@@ -227,19 +244,19 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         if len(trade_dfs) > 1:
             trade_df_large = trade_dfs[1]
 
-            if use_fewer_trades:
-                trade_df_small['sid'] = list(range(trade_df_small.shape[0]))
-                trade_df_large['lid'] = list(range(trade_df_large.shape[0]))
-
-                merged_df = pd.merge(trade_df_large[['lid', 'instrument', 'side', 'entry_time']],
-                                     trade_df_small[['sid', 'instrument', 'side', 'entry_time']],
-                                     on=['instrument', 'side', 'entry_time'], how='left'
-                                     )
-
-                trade_df_small = trade_df_small[trade_df_small['sid'].isin(merged_df['sid'])]
-
-                trade_df_small = trade_df_small.drop(columns=['sid'])
-                trade_df_large = trade_df_large.drop(columns=['lid'])
+            # if use_fewer_trades:
+            #     trade_df_small['sid'] = list(range(trade_df_small.shape[0]))
+            #     trade_df_large['lid'] = list(range(trade_df_large.shape[0]))
+            #
+            #     merged_df = pd.merge(trade_df_large[['lid', 'instrument', 'side', 'entry_time']],
+            #                          trade_df_small[['sid', 'instrument', 'side', 'entry_time']],
+            #                          on=['instrument', 'side', 'entry_time'], how='left'
+            #                          )
+            #
+            #     trade_df_small = trade_df_small[trade_df_small['sid'].isin(merged_df['sid'])]
+            #
+            #     trade_df_small = trade_df_small.drop(columns=['sid'])
+            #     trade_df_large = trade_df_large.drop(columns=['lid'])
 
             trade_df = pd.concat([trade_df_small,
                                   trade_df_large])  ############################################################ Choose to use one dataframe or two ##############################
@@ -406,6 +423,10 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         #                           np.where(trade_df['is_win'] == -1, 0, -1))
 
         # trade_df['pnl'] = trade_df['pnl']/2.0 ######################################################################################
+
+        if len(trade_dfs) > 0:
+            trade_df['pnl'] = trade_df['pnl']/len(trade_dfs)
+
         trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
 
         trade_df.reset_index(inplace=True)
