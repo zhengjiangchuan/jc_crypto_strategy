@@ -299,12 +299,14 @@ use_5min_in_smart_execution = False
 do_message_printing = True
 do_reentry = False
 
-use_global = True
+use_global = False
 
 global_use_slow_macd = False
 global_use_guppy_filter = True
 
 global_use_guppy_filter_for_exit = True
+global_guppy_force_out = True
+
 
 global_do_stop_loss = False
 global_reentry_after_stop_loss = False
@@ -317,8 +319,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = False
-do_real_money_trading = False
+production_running = True
+do_real_money_trading = True
 
 if do_smart_execution:
 
@@ -384,8 +386,8 @@ class CurrencyTrader(threading.Thread):
                  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx, email_message_file, is_notify, data_file_5min = None,
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
-                 use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False, is_alternative = False):
+                 use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
+                 use_guppy_condition = False, init_entry_value = 0, is_alternative = False):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -424,10 +426,15 @@ class CurrencyTrader(threading.Thread):
 
         self.use_guppy_filter = global_use_guppy_filter if use_global else use_guppy_filter
         self.use_guppy_filter_for_exit = global_use_guppy_filter_for_exit if use_global else use_guppy_filter_for_exit
+        self.guppy_force_out = global_guppy_force_out if use_global else guppy_force_out
         self.do_stop_loss = global_do_stop_loss if use_global else do_stop_loss
         self.reentry_after_stop_loss = global_reentry_after_stop_loss if use_global else reentry_after_stop_loss
         self.also_filter_too_late = global_also_filter_too_late if use_global else also_filter_too_late
         self.use_guppy_condition = global_use_guppy_condition if use_global else use_guppy_condition
+        self.init_entry_value = initial_entry_value if use_global else init_entry_value
+
+        print("currency " + self.currency + " initial entry value = " + str(self.init_entry_value))
+        print("guppy_force_out = " + str(self.guppy_force_out))
 
         # self.log_msg("use_slow_macd = " + str(self.use_slow_macd))
         # self.log_msg("use_guppy_filter = " + str(self.use_guppy_filter))
@@ -586,7 +593,7 @@ class CurrencyTrader(threading.Thread):
             self.take_profit_pct = self.profit_rates / self.leverage
             self.take_loss_pct = self.loss_rates / self.leverage
 
-            self.each_strategy_entry_value = initial_entry_value / len(self.leverage)
+            self.each_strategy_entry_value = self.init_entry_value / len(self.leverage)
 
         self.is_alternative = is_alternative
 
@@ -729,7 +736,7 @@ class CurrencyTrader(threading.Thread):
                     else:
                         self.current_position = -1
 
-                    self.current_position *= initial_entry_value/last_trade['entry_price'] * default_leverage
+                    self.current_position *= self.init_entry_value/last_trade['entry_price'] * default_leverage
                     if last_trade['entry_price'] >= 1:
                         self.current_position = round(self.current_position, 3)
                     else:
@@ -2128,11 +2135,11 @@ class CurrencyTrader(threading.Thread):
             self.log_msg("long_macd_short_enter = " + str(self.data_df.iloc[-1]['long_macd_short_enter']))
 
             if self.data_df.iloc[-1]['long_macd_long_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_long_enter']) and self.current_position <= 0:
-                ready_msg = "Ready to Open Long Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2))
+                ready_msg = "Ready to Open Long Position of " + str(self.init_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2))
                 sendEmail(ready_msg, "", is_alternative=self.is_alternative)
                 self.log_msg(ready_msg)
             elif self.data_df.iloc[-1]['long_macd_short_enter_ready'] and (not self.data_df.iloc[-1]['long_macd_short_enter']) and self.current_position >= 0:
-                ready_msg = "Ready to Open Short Position of " + str(initial_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2))
+                ready_msg = "Ready to Open Short Position of " + str(self.init_entry_value) + " USD for " + self.currency +  " at " + str(self.data_df.iloc[-1]['time'] + timedelta(hours = 2))
                 sendEmail(ready_msg, "", is_alternative=self.is_alternative)
                 self.log_msg(ready_msg)
 
@@ -2192,6 +2199,10 @@ class CurrencyTrader(threading.Thread):
         if self.use_guppy_filter_for_exit:
             self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] & (~self.data_df['guppy_all_strong_aligned_long'])
             self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] & (~self.data_df['guppy_all_strong_aligned_short'])
+
+        if self.guppy_force_out:
+            self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] | self.data_df['guppy_all_strong_aligned_short']
+            self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] | self.data_df['guppy_all_strong_aligned_long']
 
 
         if self.reverse_strategy:
@@ -2619,7 +2630,7 @@ class CurrencyTrader(threading.Thread):
 
                     current_time = str(self.data_df.iloc[long_start_id]['time'] + timedelta(hours = 1))
 
-                    position = initial_entry_value/entry_price * default_leverage
+                    position = self.init_entry_value/entry_price * default_leverage
 
                     self.log_msg("Before position = " + str(position))
 
@@ -2640,7 +2651,7 @@ class CurrencyTrader(threading.Thread):
                     print("entry_price:")
                     print(entry_price)
                     message = "At " + current_time + ", long " + self.currency + " roughly " + str(delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
-                    message += "This makes it now at a long position of " + str(position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
+                    message += "This makes it now at a long position of " + str(position) + " units with an actual notional of " + str(self.init_entry_value) + " dollar\n"
 
                     self.log_msg("message_title = " + message_title)
                     self.log_msg("message:")
@@ -2658,7 +2669,7 @@ class CurrencyTrader(threading.Thread):
 
                     if do_real_money_trading and self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1:
                         if self.current_real_position <= 0 and self.long_order_id is None:
-                            real_position = initial_entry_value/self.crypto_last_price * default_leverage
+                            real_position = self.init_entry_value/self.crypto_last_price * default_leverage
                             if self.crypto_last_price >= 1:
                                 real_position = round(real_position, 3)
                             else:
@@ -2738,7 +2749,7 @@ class CurrencyTrader(threading.Thread):
                 strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                            strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                            execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                           strategy_entry_value = initial_entry_value, execution_entry_value = initial_entry_value)
+                                                           strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
 
                 strategy_executions += [strategy_execution]
 
@@ -3046,7 +3057,7 @@ class CurrencyTrader(threading.Thread):
         if not do_smart_execution:
             long_df['pnl'] = np.where(
                 long_df['entry_time'].notnull() & long_df['exit_time'].notnull(),
-                (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * initial_entry_value * default_leverage,
+                (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * self.init_entry_value * default_leverage,
                 0
             )
             #long_df['pnl'] = (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * initial_entry_value * default_leverage
@@ -3125,7 +3136,7 @@ class CurrencyTrader(threading.Thread):
 
                     current_time = str(self.data_df.iloc[short_start_id]['time'] + timedelta(hours = 1))
 
-                    position = -initial_entry_value/entry_price * default_leverage
+                    position = -self.init_entry_value/entry_price * default_leverage
                     if entry_price >= 1:
                         position = round(position, 3)
                     else:
@@ -3142,7 +3153,7 @@ class CurrencyTrader(threading.Thread):
                     print("entry_price:")
                     print(entry_price)
                     message = "At " + current_time + ", short " + self.currency + " roughly " + str(-delta_position) + " units at entry price " + str(round(entry_price, self.decimal)) + "\n"
-                    message += "This makes it now at a short position of " + str(position) + " units with an actual notional of " + str(initial_entry_value) + " dollar\n"
+                    message += "This makes it now at a short position of " + str(position) + " units with an actual notional of " + str(self.init_entry_value) + " dollar\n"
 
                     self.log_msg("message_title = " + message_title)
                     self.log_msg("message:")
@@ -3160,7 +3171,7 @@ class CurrencyTrader(threading.Thread):
 
                     if do_real_money_trading and self.wakeup == 1 and short_start_id == self.data_df.shape[0] - 1:
                         if self.current_real_position >= 0 and self.short_order_id is None:
-                            real_position = -initial_entry_value/self.crypto_last_price * default_leverage
+                            real_position = -self.init_entry_value/self.crypto_last_price * default_leverage
                             if self.crypto_last_price >= 1:
                                 real_position = round(real_position, 3)
                             else:
@@ -3238,7 +3249,7 @@ class CurrencyTrader(threading.Thread):
                 strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                            strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                            execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                           strategy_entry_value = initial_entry_value, execution_entry_value = initial_entry_value)
+                                                           strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
 
                 strategy_executions += [strategy_execution]
 
@@ -3554,7 +3565,7 @@ class CurrencyTrader(threading.Thread):
         if not do_smart_execution:
             short_df['pnl'] = np.where(
                 short_df['entry_time'].notnull() & short_df['exit_time'].notnull(),
-                -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * initial_entry_value * default_leverage,
+                -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * self.init_entry_value * default_leverage,
                 0
             )
             #short_df['pnl'] = -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * initial_entry_value  * default_leverage
@@ -3690,7 +3701,7 @@ class CurrencyTrader(threading.Thread):
                 write_long_prod_df['prod_entry_price'] = write_long_prod_df['entry_price']
                 write_long_prod_df['prod_exit_price'] = write_long_prod_df['exit_price']
 
-                write_long_prod_df['prod_size'] = initial_entry_value / write_long_prod_df['entry_price'] * default_leverage
+                write_long_prod_df['prod_size'] = self.init_entry_value / write_long_prod_df['entry_price'] * default_leverage
                 write_long_prod_df['is_prod'] = 0
 
             # print("here2:")
@@ -3708,7 +3719,7 @@ class CurrencyTrader(threading.Thread):
 
             write_long_prod_df['prod_size'] = np.where(
                 (write_long_prod_df['prod_size'].isnull()) | (write_long_prod_df['prod_size'] <= 0),
-                initial_entry_value / write_long_prod_df['entry_price'] * default_leverage,
+                self.init_entry_value / write_long_prod_df['entry_price'] * default_leverage,
                 write_long_prod_df['prod_size']
             )
 
@@ -3752,7 +3763,7 @@ class CurrencyTrader(threading.Thread):
                 write_short_prod_df['prod_entry_price'] = write_short_prod_df['entry_price']
                 write_short_prod_df['prod_exit_price'] = write_short_prod_df['exit_price']
 
-                write_short_prod_df['prod_size'] = initial_entry_value / write_short_prod_df['entry_price'] * default_leverage
+                write_short_prod_df['prod_size'] = self.init_entry_value / write_short_prod_df['entry_price'] * default_leverage
                 write_short_prod_df['is_prod'] = 0
 
 
@@ -3766,7 +3777,7 @@ class CurrencyTrader(threading.Thread):
 
             write_short_prod_df['prod_size'] = np.where(
                 (write_short_prod_df['prod_size'].isnull()) | (write_short_prod_df['prod_size'] <= 0),
-                initial_entry_value / write_short_prod_df['entry_price'] * default_leverage,
+                self.init_entry_value / write_short_prod_df['entry_price'] * default_leverage,
                 write_short_prod_df['prod_size']
             )
 
@@ -3797,7 +3808,7 @@ class CurrencyTrader(threading.Thread):
                 (write_long_prod_df['prod_entry_price'] > 0) & (write_long_prod_df['prod_exit_price'] > 0),
                 np.where(
                     write_long_prod_df['is_prod'] == 0,
-                    (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price'])/write_long_prod_df['prod_entry_price'] * initial_entry_value * default_leverage,
+                    (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price'])/write_long_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
                     (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price']) *write_long_prod_df['prod_size']
                 ),
                 0
@@ -3814,7 +3825,7 @@ class CurrencyTrader(threading.Thread):
                 (write_short_prod_df['prod_entry_price'] > 0) & (write_short_prod_df['prod_exit_price'] > 0),
                 np.where(
                     write_short_prod_df['is_prod'] == 0,
-                    -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price'])/write_short_prod_df['prod_entry_price'] * initial_entry_value * default_leverage,
+                    -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price'])/write_short_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
                     -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price']) * write_short_prod_df['prod_size']
                 ),
                 0
@@ -3933,9 +3944,9 @@ class CurrencyTrader(threading.Thread):
                 strategy_execution_df[col] = strategy_execution_df[col].apply(lambda x: round(x, 2))
 
 
-        total_return_rate = write_df.iloc[-1]['cum_pnl']/initial_entry_value
+        total_return_rate = write_df.iloc[-1]['cum_pnl']/self.init_entry_value
         max_draw_down, start_draw_down, end_draw_down = self.calc_max_drawdown(write_df['cum_pnl'])
-        max_draw_down = max_draw_down/initial_entry_value
+        max_draw_down = max_draw_down/self.init_entry_value
         jc_sharpe_ratio = total_return_rate / max_draw_down
 
 

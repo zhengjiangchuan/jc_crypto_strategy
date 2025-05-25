@@ -47,20 +47,20 @@ import warnings
 warnings.filterwarnings("ignore")
 
 parser = OptionParser()
-# parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
-#                    help="Currency Pair to run")
-parser.add_option("-c", "--alternative", dest="alternative", default = "all",
+parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
+                   help="Currency Pair to run")
+parser.add_option("-a", "--alternative", dest="alternative", default = "n",
                  help="Use alternative account")
 
 (options, args) = parser.parse_args()
 
-currency_to_run = "all"
+currency_to_run = options.currency_pair
 alternative = options.alternative
 
 print("currency_to_run = " + currency_to_run)
 print("alternative = " + alternative)
 
-#sys.exit(0)
+
 
 global_log_file = "algo_log.txt"
 
@@ -73,8 +73,8 @@ root_folder = os.getenv("CRYPTO_PROD")
 if alternative == 'y':
     root_folder += "_alternative"
 
-if currency_to_run != "all":
-    root_folder += "_" + currency_to_run
+#if currency_to_run != "all":
+#    root_folder += "_" + currency_to_run
 
 if not os.path.exists(root_folder):
     os.makedirs(root_folder)
@@ -132,7 +132,7 @@ if do_real_money_trading:
 class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
-                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition):
+                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition, init_entry_value):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -145,11 +145,18 @@ class CurrencyPair:
         self.use_slow_macd = True if use_slow_macd == 1 else False
         self.use_guppy_filter = True if use_guppy_filter == 1 else False
         self.use_guppy_filter_for_exit = True if use_guppy_filter_for_exit == 1 else False
+        self.guppy_force_out = True if guppy_force_out == 1 else False
         self.do_stop_loss = True if do_stop_loss == 1 else False
         self.reentry_after_stop_loss = True if reentry_after_stop_loss == 1 else False
         self.also_filter_too_late = True if also_filter_too_late == 1 else False
         self.use_guppy_condition = True if use_guppy_condition == 1 else False
+        self.init_entry_value = init_entry_value
 
+        print("slow_macd = " + str(self.use_slow_macd))
+        print("use_guppy_filter = " + str(self.use_guppy_filter))
+        print("use_guppy_filter_for_exit = " + str(self.use_guppy_filter_for_exit))
+        print("guppy_force_out = " + str(self.guppy_force_out))
+        #sys.exit(0)
 
 def convert_to_time(timestamp):
    #return datetime.fromtimestamp(timestamp+28800)
@@ -422,7 +429,7 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading_5min = False
     #is_weekend_5min = False
 
-    manual_delay = 1 if is_real_time_trading else 0  #manual_delay = 10
+    manual_delay = 10 if is_real_time_trading else 0  #manual_delay = 10
 
     is_do_portfolio_trading = False
 
@@ -431,6 +438,10 @@ def start_do_trading(wakeup = 0):
     currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
 
     currency_df = pd.read_csv(currency_file)
+
+    print("currency_df:")
+    print(currency_df)
+    #sys.exit(0)
 
 
     raw_currencies = currency_df['instrument'].tolist()
@@ -443,11 +454,12 @@ def start_do_trading(wakeup = 0):
     #currencies_to_run = ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
 
     if currency_to_run != 'all':
-        currencies_to_run = [currency_to_run]
+        #currencies_to_run = [currency_to_run]
+        currencies_to_run = currency_to_run.split(',')
     else:
         currencies_to_run = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
         #currencies_to_run = ['DOGEUSD', 'XRPUSD']
-        #currencies_to_run = ['AVAXUSD']
+        #currencies_to_run = ['AVAXUSD','DOGEUSD', 'XRPUSD']
 
     print("currencies_to_run:")
     print(currencies_to_run)
@@ -612,8 +624,8 @@ def start_do_trading(wakeup = 0):
         #     sys.exit(0)
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
-                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['do_stop_loss'],
-        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'])]
+                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['do_stop_loss'],
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'])]
 
     log_msg("currencies:")
     log_msg([currencyPair.currency for currencyPair in currency_pairs])
@@ -658,44 +670,53 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prod"
+    current_date = "_final_prodction"  #_final_prod  _UATTest
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
-    if do_smart_execution:
-        general_chart_folder_name += "_execution"
 
-    if read_5min_data and use_5min_in_smart_execution:
-        general_chart_folder_name += "_5min"
+    if use_global:
 
-    if do_reentry:
-        general_chart_folder_name += "_reentry"
+        if do_smart_execution:
+            general_chart_folder_name += "_execution"
 
-    if global_use_slow_macd:
-        general_chart_folder_name += "_slowMACD"
-    else:
-        general_chart_folder_name += "_fastMACD"
+        if read_5min_data and use_5min_in_smart_execution:
+            general_chart_folder_name += "_5min"
 
-    if global_use_guppy_filter:
-        general_chart_folder_name += "_guppyFilter"
+        if do_reentry:
+            general_chart_folder_name += "_reentry"
 
-    if global_use_guppy_filter_for_exit:
-        general_chart_folder_name += "_guppyFilterForExit"
+        if global_use_slow_macd:
+            general_chart_folder_name += "_slowMACD"
+        else:
+            general_chart_folder_name += "_fastMACD"
 
-    if global_also_filter_too_late:
-        general_chart_folder_name += "_filterTooLate"
+        if global_use_guppy_filter:
+            general_chart_folder_name += "_guppyFilter"
 
-    if global_use_guppy_condition:
-        general_chart_folder_name += "_guppyCondition"
+        if global_use_guppy_filter_for_exit:
+            general_chart_folder_name += "_guppyFilterForExit"
 
-    if global_do_stop_loss:
-        general_chart_folder_name += "_stopLoss"
+        if global_guppy_force_out:
+            general_chart_folder_name += "_guppyForceOut"
 
-    if global_do_stop_loss and not global_reentry_after_stop_loss:
-        general_chart_folder_name += "_notReentryAfterSL"
+        if global_also_filter_too_late:
+            general_chart_folder_name += "_filterTooLate"
+
+        if global_use_guppy_condition:
+            general_chart_folder_name += "_guppyCondition"
+
+        if global_do_stop_loss:
+            general_chart_folder_name += "_stopLoss"
+
+        if global_do_stop_loss and not global_reentry_after_stop_loss:
+            general_chart_folder_name += "_notReentryAfterSL"
 
     if printed_figure_num == -1:
         general_chart_folder_name += "_allPics"
+
+
+
 
     general_chart_folder_name += current_date
 
@@ -724,29 +745,66 @@ def start_do_trading(wakeup = 0):
         if do_reentry:
             chart_folder_name += "_reentry"
 
-        if global_use_slow_macd or currency_pair.use_slow_macd:
-            chart_folder_name += "_slowMACD"
+        if use_global:
+
+            if global_use_slow_macd:
+                chart_folder_name += "_slowMACD"
+            else:
+                chart_folder_name += "_fastMACD"
+
+            if global_use_guppy_filter:
+                chart_folder_name += "_guppyFilter"
+
+            if global_use_guppy_filter_for_exit:
+                chart_folder_name += "_guppyFilterForExit"
+
+            if global_guppy_force_out:
+                chart_folder_name += "_guppyForceOut"
+
+            if global_also_filter_too_late:
+                chart_folder_name += "_filterTooLate"
+
+            if global_use_guppy_condition:
+                chart_folder_name += "_guppyCondition"
+
+            if global_do_stop_loss:
+                chart_folder_name += "_stopLoss"
+
+            if (global_do_stop_loss and not global_reentry_after_stop_loss):
+                chart_folder_name += "_notReentryAfterSL"
+
         else:
-            chart_folder_name += "_fastMACD"
 
-        if global_use_guppy_filter or currency_pair.use_guppy_filter:
-            chart_folder_name += "_guppyFilter"
+            if currency_pair.use_slow_macd:
+                chart_folder_name += "_slowMACD"
+            else:
+                chart_folder_name += "_fastMACD"
 
-        if global_use_guppy_filter_for_exit or currency_pair.use_guppy_filter_for_exit:
-            chart_folder_name += "_guppyFilterForExit"
+            if currency_pair.use_guppy_filter:
+                chart_folder_name += "_guppyFilter"
+
+            if currency_pair.use_guppy_filter_for_exit:
+                chart_folder_name += "_guppyFilterForExit"
+
+            if currency_pair.guppy_force_out:
+                chart_folder_name += "_guppyForceOut"
+
+            if currency_pair.also_filter_too_late:
+                chart_folder_name += "_filterTooLate"
+
+            if currency_pair.use_guppy_condition:
+                chart_folder_name += "_guppyCondition"
+
+            if currency_pair.do_stop_loss:
+                chart_folder_name += "_stopLoss"
+
+            if currency_pair.do_stop_loss and not currency_pair.reentry_after_stop_loss:
+                chart_folder_name += "_notReentryAfterSL"
 
 
-        if global_also_filter_too_late or currency_pair.also_filter_too_late:
-            chart_folder_name += "_filterTooLate"
 
-        if global_use_guppy_condition or currency_pair.use_guppy_condition:
-            chart_folder_name += "_guppyCondition"
 
-        if global_do_stop_loss or currency_pair.do_stop_loss:
-            chart_folder_name += "_stopLoss"
 
-        if (global_do_stop_loss and not global_reentry_after_stop_loss) or (currency_pair.do_stop_loss and not currency_pair.reentry_after_stop_loss):
-            chart_folder_name += "_notReentryAfterSL"
 
         if printed_figure_num == -1:
             chart_folder_name += "_allPics"
@@ -960,10 +1018,12 @@ def start_do_trading(wakeup = 0):
         use_slow_macd = currency_pair.use_slow_macd
         use_guppy_filter = currency_pair.use_guppy_filter
         use_guppy_filter_for_exit = currency_pair.use_guppy_filter_for_exit
+        guppy_force_out = currency_pair.guppy_force_out
         do_stop_loss = currency_pair.do_stop_loss
         reentry_after_stop_loss = currency_pair.reentry_after_stop_loss
         also_filter_too_late = currency_pair.also_filter_too_late
         use_guppy_condition = currency_pair.use_guppy_condition
+        init_entry_value = currency_pair.init_entry_value
 
         data_file_5min = None
         if read_5min_data:
@@ -984,9 +1044,10 @@ def start_do_trading(wakeup = 0):
                                          coinbase_portfolio_id = portfolio_id,
                                          crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading and currency in currency_coinbase_close_prices else 0,
                                          use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter, use_guppy_filter_for_exit = use_guppy_filter_for_exit,
+                                         guppy_force_out = guppy_force_out,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
-                                         use_guppy_condition = use_guppy_condition, is_alternative=True if alternative == 'y' else False)
+                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, is_alternative=True if alternative == 'y' else False)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]

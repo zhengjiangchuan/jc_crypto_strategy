@@ -7,10 +7,27 @@ from multiprocessing import Process
 from util import sendEmail
 from datetime import timedelta
 import pandas as pd
+import sys
+
+# from optparse import OptionParser
+# parser = OptionParser()
+# parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
+#                    help="Currency Pair to run")
+# parser.add_option("-a", "--alternative", dest="alternative", default = "all",
+#                  help="Use alternative account")
+#
+# (options, args) = parser.parse_args()
+#
+# currency_to_run = "all"
+# alternative = options.alternative
+#
+# print("currency_to_run = " + currency_to_run)
+# print("alternative = " + alternative)
+# sys.exit(0)
 
 while True:
     try:
-        from vegas_strategy_once import start_do_trading
+        from vegas_strategy_once import alternative, start_do_trading
         break
     except Exception as e:
         print("Exception here: " + str(e))
@@ -62,7 +79,7 @@ def wait_for_trigger():
 
 
 
-    sendEmail("Trading program still alive", "")
+    sendEmail("Trading program still alive", "", is_alternative = True if alternative == 'y' else False)
 
     return 1
 
@@ -103,7 +120,9 @@ if __name__ == '__main__':
         # son_process.start()
         print("Run trading program")
         #os.system("python vegas_strategy_once.py")
+
         try:
+
             start_do_trading(wakeup=wakeup)
 
 

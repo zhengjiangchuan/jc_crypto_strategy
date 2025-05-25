@@ -856,17 +856,17 @@ sender = 'glzxely123@163.com'
 
 receivers = ['glzxely123@163.com']
 
-parser = OptionParser()
-parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
-                  help="Currency Pair to run")
-parser.add_option("-l", "--log", dest="log_file", default = "no",
-                  help="log file")
-
-
-(options, args) = parser.parse_args()
-
-currency_to_run = options.currency_pair
-log2_file = options.log_file
+# parser = OptionParser()
+# parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
+#                   help="Currency Pair to run")
+# parser.add_option("-l", "--log", dest="log_file", default = "no",
+#                   help="log file")
+#
+#
+# (options, args) = parser.parse_args()
+#
+# currency_to_run = options.currency_pair
+# log2_file = options.log_file
 
 
 

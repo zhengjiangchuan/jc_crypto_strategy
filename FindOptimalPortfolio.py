@@ -28,6 +28,7 @@ filter_hasty_trades = False
 is_crypto = True
 
 root_folder = os.path.join(os.getenv("CRYPTO_PROD"))
+root_folder += "_alternative"
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD")
 
@@ -35,7 +36,7 @@ root_folder = os.path.join(os.getenv("CRYPTO_PROD"))
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit")
 
-root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_combined")
+root_dir = os.path.join(root_folder, "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_combined")
 
 
 #root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
@@ -166,10 +167,11 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                            "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_20250517\\all_trades.csv")]
 
 
-    trade_files = [os.path.join(root_folder,
-                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_realtime_0523\\all_trades.csv"),
+    trade_files = [
                    os.path.join(root_folder,
-                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit_realtime_0523\\all_trades.csv")
+                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_test\\all_trades.csv"),
+                   os.path.join(root_folder,
+                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit_guppyForceOut_test\\all_trades.csv")
                    ]
 
 

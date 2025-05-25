@@ -6,7 +6,9 @@ def get_api_keys(is_alternative = False):
     print("crypto_folder")
     print(crypto_folder)
 
-    key_file = "jc_alternative.txt" if is_alternative else "jc.txt"
+    #key_file = "jc_alternative.txt" if is_alternative else "jc.txt"
+
+    key_file = "jc_alternative.txt" if not is_alternative else "jc.txt"
 
     fd = open(os.path.join(crypto_folder, key_file))
     lines = []
