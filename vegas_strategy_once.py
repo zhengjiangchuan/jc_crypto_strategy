@@ -132,7 +132,8 @@ if do_real_money_trading:
 class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
-                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition, init_entry_value):
+                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
+                 init_entry_value, coinbase_decimal):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -151,6 +152,7 @@ class CurrencyPair:
         self.also_filter_too_late = True if also_filter_too_late == 1 else False
         self.use_guppy_condition = True if use_guppy_condition == 1 else False
         self.init_entry_value = init_entry_value
+        self.coinbase_decimal = coinbase_decimal
 
         print("slow_macd = " + str(self.use_slow_macd))
         print("use_guppy_filter = " + str(self.use_guppy_filter))
@@ -166,7 +168,23 @@ def get_close_price(currency):
 
     global td
 
-    ts = td.price(symbol = currency[:-3] + '/' + currency[-3:])
+    while True:
+        try:
+            ts = td.price(symbol = currency[:-3] + '/' + currency[-3:])
+            break
+        except Exception as e:
+
+            emsg = str(e)
+            log_msg("Exception: " + emsg)
+
+            if 'API credits' in emsg:
+                wait_seconds = 80
+                log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                time.sleep(wait_seconds)
+            else:
+                raise
+
+
 
     close_price = float(ts.as_json()['price'])
 
@@ -178,17 +196,34 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     # Initialize client - apikey parameter is requiered
     global td
 
+
     log_msg("")
     log_msg("Now = " + str(datetime.now()))
     log_msg("initial_bar_number = " + str(initial_bar_number))
     # Construct the necessary time series
-    ts = td.time_series(
-        symbol=currency[:-3] + '/' + currency[-3:],
-        interval=interval,
-        outputsize=bar_number, #initial_bar_number
-        end_date=end_date,
-        timezone="Asia/Singapore",
-    )
+
+    while True:
+        try:
+            ts = td.time_series(
+                symbol=currency[:-3] + '/' + currency[-3:],
+                interval=interval,
+                outputsize=bar_number, #initial_bar_number
+                end_date=end_date,
+                timezone="Asia/Singapore",
+            )
+            break
+        except Exception as e:
+
+            emsg = str(e)
+            log_msg("Exception: " + emsg)
+
+            if 'API credits' in emsg:
+                wait_seconds = 80
+                log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                time.sleep(wait_seconds)
+            else:
+                raise
+
 
     # ts = td.price(symbol='ADA/USD')
     # ts.as_json()
@@ -625,7 +660,7 @@ def start_do_trading(wakeup = 0):
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
                                         row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['do_stop_loss'],
-        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'])]
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'])]
 
     log_msg("currencies:")
     log_msg([currencyPair.currency for currencyPair in currency_pairs])
@@ -1024,6 +1059,7 @@ def start_do_trading(wakeup = 0):
         also_filter_too_late = currency_pair.also_filter_too_late
         use_guppy_condition = currency_pair.use_guppy_condition
         init_entry_value = currency_pair.init_entry_value
+        coinbase_decimal = currency_pair.coinbase_decimal
 
         data_file_5min = None
         if read_5min_data:
@@ -1047,7 +1083,8 @@ def start_do_trading(wakeup = 0):
                                          guppy_force_out = guppy_force_out,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
-                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, is_alternative=True if alternative == 'y' else False)
+                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal,
+                                         is_alternative=True if alternative == 'y' else False)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]

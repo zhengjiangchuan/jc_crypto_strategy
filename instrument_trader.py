@@ -387,7 +387,7 @@ class CurrencyTrader(threading.Thread):
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
                  use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False, init_entry_value = 0, is_alternative = False):
+                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, is_alternative = False):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -432,9 +432,12 @@ class CurrencyTrader(threading.Thread):
         self.also_filter_too_late = global_also_filter_too_late if use_global else also_filter_too_late
         self.use_guppy_condition = global_use_guppy_condition if use_global else use_guppy_condition
         self.init_entry_value = initial_entry_value if use_global else init_entry_value
+        self.coinbase_decimal = coinbase_decimal
 
         print("currency " + self.currency + " initial entry value = " + str(self.init_entry_value))
         print("guppy_force_out = " + str(self.guppy_force_out))
+
+        print("coinbase_decimal = " + str(coinbase_decimal))
 
         # self.log_msg("use_slow_macd = " + str(self.use_slow_macd))
         # self.log_msg("use_guppy_filter = " + str(self.use_guppy_filter))
@@ -2634,10 +2637,15 @@ class CurrencyTrader(threading.Thread):
 
                     self.log_msg("Before position = " + str(position))
 
-                    if entry_price >= 1:
-                        position = round(position, 3)
-                    else:
-                        position = int(round(position, 0))
+                    # if entry_price >= 1:
+                    #     position = round(position, 3)
+                    # else:
+                    #     position = int(round(position, 0))
+
+                    position = round(position, self.coinbase_decimal)
+                    if self.coinbase_decimal == 0:
+                        position = int(position)
+
 
                     self.log_msg("After position = " + str(position))
 
@@ -2670,10 +2678,13 @@ class CurrencyTrader(threading.Thread):
                     if do_real_money_trading and self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1:
                         if self.current_real_position <= 0 and self.long_order_id is None:
                             real_position = self.init_entry_value/self.crypto_last_price * default_leverage
-                            if self.crypto_last_price >= 1:
-                                real_position = round(real_position, 3)
-                            else:
-                                real_position = int(round(real_position, 0))
+                            # if self.crypto_last_price >= 1:
+                            #     real_position = round(real_position, 3)
+                            # else:
+                            #     real_position = int(round(real_position, 0))
+                            real_position = round(real_position, self.coinbase_decimal)
+                            if self.coinbase_decimal == 0:
+                                real_position = int(real_position)
 
                             self.log_msg(self.currency + " current real position = " + str(self.current_real_position))
                             self.log_msg(self.currency + " target real position = " + str(real_position))
@@ -3137,10 +3148,14 @@ class CurrencyTrader(threading.Thread):
                     current_time = str(self.data_df.iloc[short_start_id]['time'] + timedelta(hours = 1))
 
                     position = -self.init_entry_value/entry_price * default_leverage
-                    if entry_price >= 1:
-                        position = round(position, 3)
-                    else:
-                        position = int(round(position, 0))
+                    # if entry_price >= 1:
+                    #     position = round(position, 3)
+                    # else:
+                    #     position = int(round(position, 0))
+
+                    position = round(position, self.coinbase_decimal)
+                    if self.coinbase_decimal == 0:
+                        position = int(position)
 
                     #delta_position = position - self.current_position
                     delta_position = position
@@ -3172,10 +3187,16 @@ class CurrencyTrader(threading.Thread):
                     if do_real_money_trading and self.wakeup == 1 and short_start_id == self.data_df.shape[0] - 1:
                         if self.current_real_position >= 0 and self.short_order_id is None:
                             real_position = -self.init_entry_value/self.crypto_last_price * default_leverage
-                            if self.crypto_last_price >= 1:
-                                real_position = round(real_position, 3)
-                            else:
-                                real_position = int(round(real_position, 0))
+                            # if self.crypto_last_price >= 1:
+                            #     real_position = round(real_position, 3)
+                            # else:
+                            #     real_position = int(round(real_position, 0))
+
+                            real_position = round(real_position, self.coinbase_decimal)
+                            if self.coinbase_decimal == 0:
+                                real_position = int(real_position)
+
+
 
                             self.log_msg(self.currency + " current real position = " + str(self.current_real_position))
                             self.log_msg(self.currency + " target real position = " + str(real_position))

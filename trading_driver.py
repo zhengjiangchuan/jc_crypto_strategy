@@ -25,14 +25,26 @@ import sys
 # print("alternative = " + alternative)
 # sys.exit(0)
 
+def process_exception(e):
+    emsg = str(e)
+    log_msg("Exception: " + emsg)
+
+    if 'HTTPSConnection' in emsg:
+        log_msg("Probably network connection exception, trying again after n seconds.")
+        time.sleep(10)
+    else:
+        raise
+
 while True:
     try:
-        from vegas_strategy_once import alternative, start_do_trading
+        from vegas_strategy_once import alternative, start_do_trading, log_msg
         break
     except Exception as e:
-        print("Exception here: " + str(e))
-        print("Probably network connection exception, trying again after n seconds.")
-        time.sleep(10)
+
+        process_exception(e)
+
+
+
 
 
 def wait_for_trigger():
@@ -125,10 +137,9 @@ if __name__ == '__main__':
 
             start_do_trading(wakeup=wakeup)
 
-
             print("Going to enter wait_for_trigger")
             wakeup = wait_for_trigger()
         except Exception as e:
-            print("Exception: " + str(e))
-            print("Probably network connection exception, trying again after n seconds.")
-            time.sleep(10)
+            process_exception(e)
+
+

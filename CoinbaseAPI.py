@@ -16,7 +16,7 @@ from coinbase.rest import RESTClient
 from json import dumps
 import uuid
 
-api_key, api_secret = get_api_keys(is_alternative=False)
+api_key, api_secret = get_api_keys(is_alternative=True)
 
 
 client = RESTClient(api_key = api_key,
@@ -52,7 +52,7 @@ print("balances:")
 print(perps_balances.to_dict())
 print("perps_summary:")
 print(perps_summary.to_dict())
-product = client.get_product("ADA-PERP-INTX")
+product = client.get_product("XRP-PERP-INTX")
 print("product:")
 print(product.to_dict())
 btc_usd_price = float(product["price"])
@@ -63,15 +63,15 @@ client_order_id = f"order_{uuid.uuid4()}"
 
 print("client_order_id = " + client_order_id)
 
-symbol = "ADA-PERP-INTX"
+symbol = "XRP-PERP-INTX"
 try:
-    response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
+    response = client.create_order(product_id="XRP-PERP-INTX",     #BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
                                    side="BUY",
                                    order_configuration={
                                        "limit_limit_gtc":{
-                                           "base_size" : "20",
-                                           "limit_price" : "0.725"
+                                           "base_size" : "213.1", #20
+                                           "limit_price" : "2.30"#"0.725"
 
                                        }
                                    },
