@@ -122,12 +122,28 @@ if use_dynamic_TP:
     profit_loss_ratio = 10
 
 
-td = TDClient(apikey=get_twelvedata_api_keys())
 
-if do_real_money_trading:
-    api_key, api_secret = get_api_keys(is_alternative = True if alternative == 'y' else False)
-    client = RESTClient(api_key = api_key,
-                        api_secret= api_secret)
+while True:
+    try:
+        if do_real_money_trading:
+            api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+            client = RESTClient(api_key=api_key,
+                                api_secret=api_secret)
+
+        td = TDClient(apikey=get_twelvedata_api_keys())
+        break
+    except Exception as e:
+
+        emsg = str(e)
+        log_msg("Exception: " + emsg)
+
+        if 'HTTPSConnection' in emsg:
+            log_msg("Probably network connection exception, trying again after 10 seconds.")
+            time.sleep(10)
+        else:
+            raise
+
+
 
 class CurrencyPair:
 
@@ -171,6 +187,7 @@ def get_close_price(currency):
     while True:
         try:
             ts = td.price(symbol = currency[:-3] + '/' + currency[-3:])
+            close_price = float(ts.as_json()['price'])
             break
         except Exception as e:
 
@@ -185,8 +202,6 @@ def get_close_price(currency):
                 raise
 
 
-
-    close_price = float(ts.as_json()['price'])
 
     return close_price
 
@@ -211,9 +226,12 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
                 end_date=end_date,
                 timezone="Asia/Singapore",
             )
+
+            data_df = ts.as_pandas()
+
             break
         except Exception as e:
-
+            print("Enter exception processing here:")
             emsg = str(e)
             log_msg("Exception: " + emsg)
 
@@ -230,7 +248,6 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
 
 
     # Returns pandas.DataFrame
-    data_df = ts.as_pandas()
 
     data_df = data_df.iloc[::-1]
 
