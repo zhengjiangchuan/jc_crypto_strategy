@@ -60,8 +60,6 @@ alternative = options.alternative
 print("currency_to_run = " + currency_to_run)
 print("alternative = " + alternative)
 
-
-
 global_log_file = "algo_log.txt"
 
 #log_msg("currency_to_run = " + currency_to_run)
@@ -590,8 +588,13 @@ def start_do_trading(wakeup = 0):
 
     log_msg("pre_run_currency_list:")
     log_msg(pre_run_currency_list)
+
+    print("good_currencies:")
+    print(good_currencies)
     log_msg("post_run_currency_list:")
     log_msg(post_run_currency_list)
+
+
 
     currency_list = pre_run_currency_list + post_run_currency_list
 
@@ -1380,7 +1383,7 @@ def start_do_trading(wakeup = 0):
                                         #waiting_next_time = data_df.iloc[-1]['time'] + timedelta(seconds = 3600 + running_round * 60 + 10)  #-1
                                         now_time = datetime.now()
                                         log_msg("now is " + str(now_time))
-                                        waiting_next_time = datetime(now_time.year, now_time.month, now_time.day, now_time.hour, now_time.minute, now_time.second, 0) + timedelta(seconds = 60)
+                                        waiting_next_time = datetime(now_time.year, now_time.month, now_time.day, now_time.hour, now_time.minute, now_time.second, 0) + timedelta(seconds = 120)
                                         log_msg("waiting_next_time = " + str(waiting_next_time))
                                         waiting_round += 1
                                         log_msg("running_round = " + str(running_round) + ", waiting_round = " + str(waiting_round))
@@ -1729,7 +1732,7 @@ def start_do_trading(wakeup = 0):
 
                             if not is_close_long_open_order_filled[i]:
                                 currency_trader = currency_traders[i]
-                                unfilled_size = long_unfilled_sizes[i]
+                                unfilled_size = close_long_unfilled_sizes[i]
 
                                 try:
                                     log_msg("Cancel close_long order " + currency_trader.close_long_order_id)
@@ -1762,7 +1765,7 @@ def start_do_trading(wakeup = 0):
 
                             if not is_close_short_open_order_filled[i]:
                                 currency_trader = currency_traders[i]
-                                unfilled_size = long_unfilled_sizes[i]
+                                unfilled_size = close_short_unfilled_sizes[i]
 
                                 try:
                                     log_msg("Cancel close_short order " + currency_trader.close_short_order_id)
