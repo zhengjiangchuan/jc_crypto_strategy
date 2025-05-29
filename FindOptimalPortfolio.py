@@ -28,7 +28,7 @@ filter_hasty_trades = False
 is_crypto = True
 
 root_folder = os.path.join(os.getenv("CRYPTO_PROD"))
-root_folder += "_alternative"
+#root_folder += "_alternative"
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "portfolio_construction_n_gradients_entry_n_gradients_exit_slowMACD")
 
@@ -36,9 +36,9 @@ root_folder += "_alternative"
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter")
 #root_dir = os.path.join(os.getenv("CRYPTO_PROD"), "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit")
 
-root_dir = os.path.join(root_folder, "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_combined")
+#root_dir = os.path.join(root_folder, "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_combined")
 
-
+root_dir = os.path.join(root_folder + "_alternative", "jc_portfolio_construction_n_gradients_final_prodction_combined")
 #root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
 
 if not os.path.exists(root_dir):
@@ -88,7 +88,10 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
     #
     # currency_list = currency_df['instrument'].tolist()
 
-    currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+    #currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
+
+    currency_list = ['AVAXUSD', 'DOGEUSD', 'XRPUSD']
+
 
     #currency_list = ['AVAXUSD']
 
@@ -167,12 +170,19 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
     #                            "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_20250517\\all_trades.csv")]
 
 
+    # trade_files = [
+    #                os.path.join(root_folder,
+    #                             "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_test\\all_trades.csv"),
+    #                os.path.join(root_folder,
+    #                             "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit_guppyForceOut_test\\all_trades.csv")
+    #                ]
+
     trade_files = [
-                   os.path.join(root_folder,
-                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_test\\all_trades.csv"),
-                   os.path.join(root_folder,
-                                "all_pnl_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyFilterForExit_guppyForceOut_test\\all_trades.csv")
-                   ]
+        os.path.join(root_folder,
+                     "all_pnl_n_gradients_entry_n_gradients_exit_final_prodction\\all_trades.csv"),
+        os.path.join(root_folder + "_alternative",
+                     "all_pnl_n_gradients_entry_n_gradients_exit_final_prodction\\all_trades.csv")
+    ]
 
 
 
@@ -208,6 +218,11 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         if not accumulated_mode and sorted:
             output_file = os.path.join(final_output_folder,
                                        currency + "_trades.csv")
+
+        if accumulated_mode and sorted and i == len(currency_list) - 1:
+            output_file = os.path.join(final_output_folder,
+                                       "all_combined_trades.csv")
+
 
         removed_currencies = None
 
@@ -426,10 +441,12 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         # trade_df['pnl'] = trade_df['pnl']/2.0 ######################################################################################
 
-        if len(trade_dfs) > 0:
-            trade_df['pnl'] = trade_df['pnl']/len(trade_dfs)
+        # if len(trade_dfs) > 0:
+        #     trade_df['pnl'] = trade_df['pnl']/len(trade_dfs)
 
         trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
+
+        trade_df['cum_pnl'] = trade_df['cum_pnl'].apply(lambda x: round(x, 2))
 
         trade_df.reset_index(inplace=True)
         trade_df = trade_df.drop(columns=['index'])
@@ -488,8 +505,8 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         trade_df_copy = trade_df_copy.drop(columns=['index'])
         # display(trade_df_copy.iloc[-51:]) ####################################################**********************************************************************************************************************************************
 
-        # if output_file is not None:
-        #     trade_df_copy.to_csv(output_file, index=False)
+        if output_file is not None:
+            trade_df_copy.to_csv(output_file, index=False)
 
 
         #Cut from here
