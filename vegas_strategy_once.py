@@ -1817,6 +1817,7 @@ def start_do_trading(wakeup = 0):
 
         perf_dfs = []
         trade_dfs = []
+        prod_trade_dfs = []
         i = 0
         for currency in currency_list:
             #perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
@@ -1827,12 +1828,21 @@ def start_do_trading(wakeup = 0):
 
             #trade_file = os.path.join(root_folder, currency, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
             trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades.csv")
+            prod_trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades_prod.csv")
+
             trade_df = pd.read_csv(trade_file)
             trade_dfs += [trade_df]
 
+            prod_trade_df = pd.read_csv(prod_trade_file)
+            prod_trade_dfs += [prod_trade_df]
+
         perf_df = pd.concat(perf_dfs)
+
         trade_df = pd.concat(trade_dfs)
         trade_df = trade_df.sort_values(by = ['entry_time'])
+
+        prod_trade_df = pd.concat(prod_trade_dfs)
+        prod_trade_df = prod_trade_df.sort_values(by=['entry_time'])
 
         log_msg("Final Performance Result:")
         perf_df.reset_index(inplace = True)
@@ -1891,7 +1901,17 @@ def start_do_trading(wakeup = 0):
         #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
 
         trade_df = trade_df.drop(columns=['trade_id', 'long_trade_id', 'short_trade_id', 'cum_pnl'])
+        trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
+        trade_df['cum_pnl'] = trade_df['cum_pnl'].apply(lambda x: round(x, 2))
         trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
+
+        prod_trade_df = prod_trade_df.drop(columns=['long_trade_id', 'short_trade_id', 'cum_pnl', 'prod_cum_pnl'])
+        prod_trade_df['cum_pnl'] = prod_trade_df['pnl'].cumsum()
+        prod_trade_df['cum_pnl'] = prod_trade_df['cum_pnl'].apply(lambda x: round(x, 2))
+        prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_pnl'].cumsum()
+        prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_cum_pnl'].apply(lambda x: round(x, 2))
+        prod_trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades_prod.csv"), index=False)
+
 
         i = 0
         for currency in currency_list:
