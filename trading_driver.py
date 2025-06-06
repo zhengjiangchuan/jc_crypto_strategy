@@ -127,6 +127,7 @@ if __name__ == '__main__':
     #     print("Sleeping finishes")
 
     wakeup = 0 #0
+    #sendEmail("Trading program still alive", "", is_alternative=True if alternative == 'y' else False)
     while True:
         print("Waiting for the next trigger")
 

@@ -233,7 +233,7 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
             emsg = str(e)
             log_msg("Exception: " + emsg)
 
-            if 'API credits' in emsg:
+            if 'API credits' in emsg or 'Connection aborted' in emsg:
                 wait_seconds = 80
                 log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
                 time.sleep(wait_seconds)
