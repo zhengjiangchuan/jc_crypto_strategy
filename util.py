@@ -118,17 +118,14 @@ def calc_macd(df, attr):
     df['macd2'] = macd2
     df['msignal2'] = macdsignal2
 
-    #df['macd_period_high' + str(window)] = df['macd'].rolling(window, min_periods = window).max()
-    #df['macd_period_low' + str(window)] = df['macd'].rolling(window, min_periods = window).min()
 
-    #log_msg("In calc_macd:")
-    #log_msg(df[['time','close','macd','msignal', 'macd_period_high' + str(window), 'macd_period_low' + str(window)]])
+def calc_rsi(df, attr):
 
-    #
-    # log_msg("macd:")
-    # log_msg(df[['time', 'close', 'macd', 'msignal']].tail(30))
-    #
+    values = df[attr].values
 
+    rsi = talib.RSI(values, timeperiod = 14)
+
+    df['rsi'] = rsi
 
 
 
@@ -278,7 +275,7 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
                            num_days = 10, plot_jc = False, plot_bolling = False, is_jc_calculated = False, print_prefix = "",
                            trade_df = None, trade_buy_time = 'buy_time', trade_sell_time = 'sell_time',
                            state_df = None, is_plot_candle_buy_sell_points = False, is_plot_market_state = False, tick_interval = 0.001,
-                           bar_fig_folder = None, is_plot_aux = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
+                           bar_fig_folder = None, is_plot_aux = False, is_plot_rsi = False, file_name_suffix = '', is_plot_simple_chart = False, plot_exclude = False,
                            use_dynamic_TP = False, figure_num = -1, plot_day_line = True, plot_cross_point = False, plot_long = True, plot_short = False, remove_plots = False, log_msg = None):
 
     log_msg("In plot_candle_bar_charts:")
@@ -419,16 +416,24 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
         fig = plt.figure(figsize = (30, 15))
 
         if is_plot_aux:
-            axes_list = fig.subplots(nrows = 3, ncols = 1, gridspec_kw={'height_ratios': [2, 1, 1]})
-            axes = axes_list[0]
-            aux_axes = axes_list[1]
-            aux_axes2 = axes_list[2]
+
+            if is_plot_rsi:
+                axes_list = fig.subplots(nrows=4, ncols=1, gridspec_kw={'height_ratios': [2, 0.7, 0.7, 0.7]})
+                axes = axes_list[0]
+                aux_axes = axes_list[1]
+                aux_axes2 = axes_list[2]
+                aux_axes3 = axes_list[3]
+            else:
+                axes_list = fig.subplots(nrows = 3, ncols = 1, gridspec_kw={'height_ratios': [2, 1, 1]})
+                axes = axes_list[0]
+                aux_axes = axes_list[1]
+                aux_axes2 = axes_list[2]
         else:
             axes = fig.subplots(nrows = 1, ncols = 1)
 
         candle_df = sub_data[['artificial_time', 'open', 'high', 'low', 'close', 'time']
                              + ['ma_' + 'close' + str(window) for window in windows] + ([] if is_production else ['upper_band_close', 'lower_band_close',
-                                                                                                                  'middle_band_close', 'macd', 'msignal', 'macd2', 'msignal2'])]
+                                                                                                                  'middle_band_close', 'macd', 'msignal', 'macd2', 'msignal2', 'rsi'])]
         candle_df['artificial_time'] = candle_df['artificial_time'].apply(lambda x: mdates.date2num(x))
         int_time_series = candle_df['artificial_time'].values
         candle_matrix = candle_df.values
@@ -733,6 +738,24 @@ def plot_candle_bar_charts(raw_symbol, all_data_df, trading_days, long_df, short
             aux_axes2.xaxis.set_major_locator(ticker.MultipleLocator(10))
             aux_axes2.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
             aux_axes2.axhline(0, ls='--', color='blue', linewidth=1)
+
+
+        if is_plot_rsi:
+            sns.lineplot(x='time_id', y='rsi', data=candle_df[['time_id', 'rsi']], ax=aux_axes3)
+            # plt.setp(aux_axes2.get_xticklabels(), rotation=45)
+            for day_point in d_data['start'].values[1:]:
+                aux_axes3.axvline(time_id_array[day_point], ls='--', color='black', linewidth=1)
+
+            aux_axes3.set_xlabel('time', size=10)
+            aux_axes3.set_ylabel('rsi', size=10)
+            aux_axes3.tick_params(axis='x', labelsize=10)
+            aux_axes3.xaxis.set_major_locator(ticker.MultipleLocator(10))
+            aux_axes3.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+            aux_axes3.axhline(0, ls='--', color='blue', linewidth=1)
+            aux_axes3.axhline(80, ls='--', color='red', linewidth=1)
+            aux_axes3.axhline(20, ls='--', color='red', linewidth=1)
+
+            aux_axes3.set_ylim([0, 100])
 
 
         fig_file_name = raw_symbol + '_' + interval + file_name_suffix + ('_long' if plot_long else '_short') + '.png'
