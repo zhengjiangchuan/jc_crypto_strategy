@@ -79,6 +79,8 @@ until_date = None
 
 is_production = False
 
+plot_rsi = True
+
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -264,7 +266,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = 6
 
 plot_day_line = True
 plot_cross_point = True
@@ -319,8 +321,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = False
+do_real_money_trading = False
 
 if do_smart_execution:
 
@@ -798,6 +800,7 @@ class CurrencyTrader(threading.Thread):
         #if not is_production:
         calc_bolling_bands(self.data_df, "close", bolling_width)
         calc_macd(self.data_df, "close")
+        calc_rsi(self.data_df, "close")
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
@@ -4053,7 +4056,7 @@ class CurrencyTrader(threading.Thread):
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
-                                   is_plot_aux = True,
+                                   is_plot_aux = True, is_plot_rsi = plot_rsi,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP = use_dynamic_TP, figure_num = printed_figure_num, plot_day_line = plot_day_line, plot_cross_point = plot_cross_point,
                                    plot_long = True, plot_short = False, remove_plots = True, log_msg = self.log_msg)
@@ -4062,7 +4065,7 @@ class CurrencyTrader(threading.Thread):
                                    num_days=20, plot_jc=True, plot_bolling=True, is_jc_calculated=True,
                                    is_plot_candle_buy_sell_points=True,
                                    print_prefix=print_prefix,
-                                   is_plot_aux=True,
+                                   is_plot_aux=True, is_plot_rsi = plot_rsi,
                                    bar_fig_folder=self.chart_folder, is_plot_simple_chart=True,
                                    use_dynamic_TP=use_dynamic_TP, figure_num=printed_figure_num,
                                    plot_day_line=plot_day_line, plot_cross_point=plot_cross_point,

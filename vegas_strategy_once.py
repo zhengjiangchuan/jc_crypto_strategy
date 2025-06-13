@@ -473,7 +473,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = True
+    is_real_time_trading = False
     #is_weekend = False
 
     is_real_time_trading_5min = False
