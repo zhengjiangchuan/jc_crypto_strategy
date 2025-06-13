@@ -65,13 +65,13 @@ print("client_order_id = " + client_order_id)
 
 symbol = "XRP-PERP-INTX"
 try:
-    response = client.create_order(product_id="XRP-PERP-INTX",     #BTC-USDC is the correct product id
+    response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
                                    side="BUY",
                                    order_configuration={
                                        "limit_limit_gtc":{
-                                           "base_size" : "213.1", #20
-                                           "limit_price" : "2.30"#"0.725"
+                                           "base_size" : "20", #20
+                                           "limit_price" : "0.65"#"0.725"
 
                                        }
                                    },

@@ -1915,6 +1915,14 @@ def start_do_trading(wakeup = 0):
             prod_trade_df['cum_pnl'] = prod_trade_df['cum_pnl'].apply(lambda x: round(x, 2))
             prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_pnl'].cumsum()
             prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_cum_pnl'].apply(lambda x: round(x, 2))
+
+            prod_trade_df['execution_cost'] = prod_trade_df['prod_pnl'] - prod_trade_df['pnl']
+            prod_trade_df['cum_execution_cost'] = prod_trade_df['execution_cost'].cumsum()
+
+            prod_trade_df['execution_cost'] = prod_trade_df['execution_cost'].apply(lambda x: round(x, 2))
+            prod_trade_df['cum_execution_cost'] = prod_trade_df['cum_execution_cost'].apply(lambda x: round(x, 2))
+
+
             prod_trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades_prod.csv"), index=False)
 
 

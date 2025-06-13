@@ -445,8 +445,11 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         #     trade_df['pnl'] = trade_df['pnl']/len(trade_dfs)
 
         trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
-
         trade_df['cum_pnl'] = trade_df['cum_pnl'].apply(lambda x: round(x, 2))
+
+        if "prod_cum_pnl" in trade_df.columns:
+            trade_df['prod_cum_pnl'] = trade_df['prod_pnl'].cumsum()
+            trade_df['prod_cum_pnl'] = trade_df['prod_cum_pnl'].apply(lambda x: round(x, 2))
 
         trade_df.reset_index(inplace=True)
         trade_df = trade_df.drop(columns=['index'])
@@ -504,6 +507,11 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         trade_df_copy.reset_index(inplace=True)
         trade_df_copy = trade_df_copy.drop(columns=['index'])
         # display(trade_df_copy.iloc[-51:]) ####################################################**********************************************************************************************************************************************
+
+        if "execution_cost" in trade_df_copy.columns:
+            trade_df_copy['cum_execution_cost'] = trade_df_copy['execution_cost'].cumsum()
+            trade_df_copy['cum_execution_cost'] = trade_df_copy['cum_execution_cost'].apply(lambda x: round(x, 2))
+
 
         if output_file is not None:
             trade_df_copy.to_csv(output_file, index=False)
@@ -648,7 +656,59 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
         currency_name = "Until " + currency if accumulated_mode else currency
 
-        sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes)
+        if 'prod_cum_pnl' in trade_df.columns:
+
+            #print(trade_df.iloc[-10:])
+
+            trade_df['cum_execution_cost'] = trade_df['execution_cost'].cumsum()
+
+
+
+            cost_ids = which(trade_df['execution_cost'] != 0)
+            if len(cost_ids) > 0:
+                cut_id = cost_ids[0]
+            else:
+                cut_id = 0
+
+            trade_df = trade_df.iloc[cut_id:]
+            trade_df.reset_index(inplace = True)
+            trade_df = trade_df.drop(columns = ['index'])
+            trade_df['id'] = list(range(trade_df.shape[0]))
+
+            print("Cut trade_df:")
+            print(trade_df.iloc[0:10])
+
+            trade_df_pnl = trade_df[['id', 'cum_pnl']]
+            trade_df_prod_pnl = trade_df[['id', 'prod_cum_pnl']]
+
+            trade_df_prod_pnl = trade_df_prod_pnl.rename(columns = {"prod_cum_pnl" : "cum_pnl"})
+
+            trade_df_pnl['type'] = 'paper_simulation'
+            trade_df_prod_pnl['type'] = 'production'
+
+            overall_trade_df = pd.concat([trade_df_pnl, trade_df_prod_pnl])
+
+            overall_trade_df.reset_index(inplace=True)
+            overall_trade_df = overall_trade_df.drop(columns=['index'])
+
+            print('overall_trade_df:')
+            print(overall_trade_df)
+
+        if 'prod_cum_pnl' in trade_df.columns:
+
+            # print("prev row num = " + str(overall_trade_df.shape[0]))
+            #
+            # overall_trade_df = overall_trade_df.iloc[940:]
+            # print("row num = " + str(overall_trade_df.shape[0]))
+            # print(overall_trade_df.iloc[0:10])
+            # print("")
+            print("Fuck printing here")
+            print('')
+
+            sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', hue = 'type', data=overall_trade_df, ax=axes)
+        else:
+            sns.lineplot(x='id', y='cum_pnl', markers='o', color='blue', data=trade_df, ax=axes)
+
         axes.set_title(currency_name + " All Cum Pnl Curve", fontsize=font_size)
         axes.set_xlabel(axes.get_xlabel(), size=font_size)
         axes.set_xticklabels(axes.get_xticks(), size=font_size)
@@ -657,10 +717,14 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
         # axes.yaxis.set_major_locator(ticker.MultipleLocator(4))
         #axes[0].xaxis.set_major_locator(ticker.MultipleLocator(20))
         #axes[0].yaxis.set_major_locator(ticker.MultipleLocator(1000))
-        axes.axhline(0, ls='--', color='green', linewidth=1)
 
-        axes.axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
-        axes.axvline(end_draw_down + 1, ls='--', color='red', linewidth=1)
+        if 'prod_cum_pnl' not in trade_df.columns:
+            axes.axhline(0, ls='--', color='green', linewidth=1)
+
+            axes.axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
+            axes.axvline(end_draw_down + 1, ls='--', color='red', linewidth=1)
+
+
         plt.setp(axes.get_xticklabels(), rotation=45)
 
         # print("cutoff_trade_num = " + str(cutoff_trade_num))
@@ -788,7 +852,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2024,8,1)]
-end_dates = [datetime(2025,5, 30)]
+end_dates = [datetime(2025,7, 30)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []

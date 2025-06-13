@@ -3876,6 +3876,12 @@ class CurrencyTrader(threading.Thread):
             write_prod_df['entry_price'] = write_prod_df['entry_price'].apply(lambda x: round(x, self.decimal))
             write_prod_df['exit_price'] = write_prod_df['exit_price'].apply(lambda x: round(x, self.decimal))
 
+            write_prod_df['execution_cost'] = write_prod_df['prod_pnl'] - write_prod_df['pnl']
+            write_prod_df['cum_execution_cost'] = write_prod_df['execution_cost'].cumsum()
+
+            write_prod_df['execution_cost'] = write_prod_df['execution_cost'].apply(lambda x: round(x, 2))
+            write_prod_df['cum_execution_cost'] = write_prod_df['cum_execution_cost'].apply(lambda x: round(x, 2))
+
 
             write_prod_df.to_csv(self.trade_prod_file, index = False)
 
