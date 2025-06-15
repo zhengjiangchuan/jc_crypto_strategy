@@ -323,8 +323,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = False
-do_real_money_trading = False
+production_running = True
+do_real_money_trading = True
 
 if do_smart_execution:
 
@@ -805,7 +805,7 @@ class CurrencyTrader(threading.Thread):
         calc_macd(self.data_df, "close")
         calc_rsi(self.data_df, "close")
 
-        self.data_df['over_bought'] = self.data_df['rsi'] >= 80
+        self.data_df['over_bought'] = False #self.data_df['rsi'] >= 80
         self.data_df['over_sold'] = self.data_df['rsi'] <= 20
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
@@ -2959,7 +2959,7 @@ class CurrencyTrader(threading.Thread):
 
                 if is_exit:
 
-                    if self.use_rsi_to_exit and cur_data['over_bought']:
+                    if self.use_rsi_to_exit and cur_data['over_bought'] and not cur_data['long_macd_long_exit_without_rsi']:
                         exit_by_rsi = True
 
                     if self.do_stop_loss and is_stop_loss:
@@ -3507,7 +3507,7 @@ class CurrencyTrader(threading.Thread):
 
                 if is_exit:
 
-                    if self.use_rsi_to_exit and cur_data['over_sold']:
+                    if self.use_rsi_to_exit and cur_data['over_sold'] and not cur_data['long_macd_short_exit_without_rsi']:
                         exit_by_rsi = True
 
                     if self.do_stop_loss and is_stop_loss:

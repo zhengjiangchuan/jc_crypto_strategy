@@ -474,7 +474,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = False
+    is_real_time_trading = True
     #is_weekend = False
 
     is_real_time_trading_5min = False
@@ -526,17 +526,29 @@ def start_do_trading(wakeup = 0):
             log_msg("close_price = " + str(close_price))
             currency_close_prices[currency] = close_price
 
-        if do_real_money_trading:
-            coinbase_currencies = []
-            for currency in currencies_to_run:
-                coinbase_currency = currency[:-len('USD')] + '-PERP-INTX'
-                coinbase_currencies += [coinbase_currency]
-                log_msg("Get current price for " + coinbase_currency)
-                product = client.get_product(coinbase_currency)
-                coinbase_price = float(product['price'])
-                log_msg("Current price = " + str(coinbase_price))
+        try:
+            if do_real_money_trading:
+                coinbase_currencies = []
+                for currency in currencies_to_run:
+                    coinbase_currency = currency[:-len('USD')] + '-PERP-INTX'
+                    coinbase_currencies += [coinbase_currency]
+                    log_msg("Get current price for " + coinbase_currency)
+                    product = client.get_product(coinbase_currency)
+                    coinbase_price = float(product['price'])
+                    log_msg("Current price = " + str(coinbase_price))
 
-                currency_coinbase_close_prices[currency] = coinbase_price
+                    currency_coinbase_close_prices[currency] = coinbase_price
+        except Exception as e:
+            print("Enter exception processing here:")
+            emsg = str(e)
+            log_msg("Exception: " + emsg)
+
+            if 'Remote end closed connection' in emsg:
+                wait_seconds = 80
+                log_msg("Remote end connection closed, waiting " + str(wait_seconds) + " seconds to proceed")
+                time.sleep(wait_seconds)
+            else:
+                raise
 
 
     if do_real_money_trading:
@@ -726,7 +738,7 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prodction_testRsi_regressionTest"  #_final_prod  _UATTest
+    current_date = "_final_prodction_updated"  #_final_prod  _UATTest
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
