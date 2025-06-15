@@ -146,7 +146,7 @@ while True:
 class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
-                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
+                 use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, use_rsi_to_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
                  init_entry_value, coinbase_decimal):
         self.currency = currency
         self.lot_size = lot_size
@@ -161,6 +161,7 @@ class CurrencyPair:
         self.use_guppy_filter = True if use_guppy_filter == 1 else False
         self.use_guppy_filter_for_exit = True if use_guppy_filter_for_exit == 1 else False
         self.guppy_force_out = True if guppy_force_out == 1 else False
+        self.use_rsi_to_exit = True if use_rsi_to_exit == 1 else False
         self.do_stop_loss = True if do_stop_loss == 1 else False
         self.reentry_after_stop_loss = True if reentry_after_stop_loss == 1 else False
         self.also_filter_too_late = True if also_filter_too_late == 1 else False
@@ -473,7 +474,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = True
+    is_real_time_trading = False
     #is_weekend = False
 
     is_real_time_trading_5min = False
@@ -679,7 +680,7 @@ def start_do_trading(wakeup = 0):
         #     sys.exit(0)
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
-                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['do_stop_loss'],
+                                        row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['use_rsi_to_exit'], row['do_stop_loss'],
         row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'])]
 
     log_msg("currencies:")
@@ -725,7 +726,7 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prodction"  #_final_prod  _UATTest
+    current_date = "_final_prodction_testRsi_regressionTest"  #_final_prod  _UATTest
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -754,6 +755,9 @@ def start_do_trading(wakeup = 0):
 
         if global_guppy_force_out:
             general_chart_folder_name += "_guppyForceOut"
+
+        if global_use_rsi_to_exit:
+            general_chart_folder_name += "_rsiExit"
 
         if global_also_filter_too_late:
             general_chart_folder_name += "_filterTooLate"
@@ -816,6 +820,9 @@ def start_do_trading(wakeup = 0):
             if global_guppy_force_out:
                 chart_folder_name += "_guppyForceOut"
 
+            if global_use_rsi_to_exit:
+                chart_folder_name += "_rsiExit"
+
             if global_also_filter_too_late:
                 chart_folder_name += "_filterTooLate"
 
@@ -843,6 +850,9 @@ def start_do_trading(wakeup = 0):
 
             if currency_pair.guppy_force_out:
                 chart_folder_name += "_guppyForceOut"
+
+            if currency_pair.use_rsi_to_exit:
+                chart_folder_name += "_rsiExit"
 
             if currency_pair.also_filter_too_late:
                 chart_folder_name += "_filterTooLate"
@@ -1074,6 +1084,7 @@ def start_do_trading(wakeup = 0):
         use_guppy_filter = currency_pair.use_guppy_filter
         use_guppy_filter_for_exit = currency_pair.use_guppy_filter_for_exit
         guppy_force_out = currency_pair.guppy_force_out
+        use_rsi_to_exit = currency_pair.use_rsi_to_exit
         do_stop_loss = currency_pair.do_stop_loss
         reentry_after_stop_loss = currency_pair.reentry_after_stop_loss
         also_filter_too_late = currency_pair.also_filter_too_late
@@ -1100,7 +1111,7 @@ def start_do_trading(wakeup = 0):
                                          coinbase_portfolio_id = portfolio_id,
                                          crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading and currency in currency_coinbase_close_prices else 0,
                                          use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter, use_guppy_filter_for_exit = use_guppy_filter_for_exit,
-                                         guppy_force_out = guppy_force_out,
+                                         guppy_force_out = guppy_force_out, use_rsi_to_exit = use_rsi_to_exit,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
                                          use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal,

@@ -309,6 +309,8 @@ global_use_guppy_filter = True
 global_use_guppy_filter_for_exit = True
 global_guppy_force_out = True
 
+global_use_rsi_to_exit = False
+
 
 global_do_stop_loss = False
 global_reentry_after_stop_loss = False
@@ -321,8 +323,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = False
+do_real_money_trading = False
 
 if do_smart_execution:
 
@@ -388,7 +390,7 @@ class CurrencyTrader(threading.Thread):
                  data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx, email_message_file, is_notify, data_file_5min = None,
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
-                 use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
+                 use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, use_rsi_to_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
                  use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, is_alternative = False):
         super().__init__(name = currency)
         self.condition = condition
@@ -429,6 +431,7 @@ class CurrencyTrader(threading.Thread):
         self.use_guppy_filter = global_use_guppy_filter if use_global else use_guppy_filter
         self.use_guppy_filter_for_exit = global_use_guppy_filter_for_exit if use_global else use_guppy_filter_for_exit
         self.guppy_force_out = global_guppy_force_out if use_global else guppy_force_out
+        self.use_rsi_to_exit = global_use_rsi_to_exit if use_global else use_rsi_to_exit
         self.do_stop_loss = global_do_stop_loss if use_global else do_stop_loss
         self.reentry_after_stop_loss = global_reentry_after_stop_loss if use_global else reentry_after_stop_loss
         self.also_filter_too_late = global_also_filter_too_late if use_global else also_filter_too_late
@@ -801,6 +804,9 @@ class CurrencyTrader(threading.Thread):
         calc_bolling_bands(self.data_df, "close", bolling_width)
         calc_macd(self.data_df, "close")
         calc_rsi(self.data_df, "close")
+
+        self.data_df['over_bought'] = self.data_df['rsi'] >= 80
+        self.data_df['over_sold'] = self.data_df['rsi'] <= 20
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
@@ -2210,6 +2216,14 @@ class CurrencyTrader(threading.Thread):
             self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] | self.data_df['guppy_all_strong_aligned_short']
             self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] | self.data_df['guppy_all_strong_aligned_long']
 
+        self.data_df['long_macd_long_exit_without_rsi'] = self.data_df['long_macd_long_exit']
+        self.data_df['long_macd_short_exit_without_rsi'] = self.data_df['long_macd_short_exit']
+
+
+        if self.use_rsi_to_exit:
+            self.data_df['long_macd_long_exit'] = self.data_df['long_macd_long_exit'] | self.data_df['over_bought']
+            self.data_df['long_macd_short_exit'] = self.data_df['long_macd_short_exit'] | self.data_df['over_sold']
+
 
         if self.reverse_strategy:
             self.data_df['temp'] = self.data_df['long_macd_long_enter_ready']
@@ -2599,6 +2613,10 @@ class CurrencyTrader(threading.Thread):
         is_effective = [1] * len(long_start_ids)
 
         long_trade_id = 0
+
+        if self.use_rsi_to_exit:
+            exit_by_rsi = False
+
         for i in range(len(long_start_ids)):
 
             if is_effective[i] == 0:
@@ -2608,6 +2626,14 @@ class CurrencyTrader(threading.Thread):
             temp_i = i
             long_start_id = long_start_ids[i]
             long_fire_data = self.data_df.iloc[long_start_id]
+
+            if self.use_rsi_to_exit and exit_by_rsi:
+                if long_fire_data['long_macd_long_enter_too_late']:
+                    self.data_df.at[long_start_ids[i], 'macd_long_enter'] = False
+                    continue
+                else:
+                    exit_by_rsi = False
+
 
             instrument = long_fire_data['currency']
             entry_time = long_fire_data['time']
@@ -2926,8 +2952,15 @@ class CurrencyTrader(threading.Thread):
                         is_exit = cur_data['short_macd_long_exit'] or cur_data['macd_short_enter']
                         #is_exit = cur_data['short_macd_long_exit'] or cur_data['short_macd_short_enter']
 
+                # if self.use_rsi_to_exit and cur_data['over_bought'] and not cur_data['long_macd_long_exit_without_rsi']:
+                #     if not cur_data['long_macd_long_enter_too_late']:
+                #         is_exit = False #If it exits now, it will re-enter immediately, which does not make sense
+
 
                 if is_exit:
+
+                    if self.use_rsi_to_exit and cur_data['over_bought']:
+                        exit_by_rsi = True
 
                     if self.do_stop_loss and is_stop_loss:
                         exit_id = stop_loss_exit_id
@@ -2969,7 +3002,13 @@ class CurrencyTrader(threading.Thread):
                         if self.is_notify and (long_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
                             if self.current_position > 0:
-                                message_title = "Long position of " + str(self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
+
+                                if cur_data['over_bought'] and not cur_data['long_macd_long_exit_without_rsi']:
+                                    prefix = "**Over Bought**"
+                                else:
+                                    prefix = ""
+
+                                message_title = prefix + "Long position of " + str(self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
                                 message = "At current time" + str(exit_time) + " " + message_title
 
                                 self.log_msg("message_title = " + message_title)
@@ -3115,6 +3154,10 @@ class CurrencyTrader(threading.Thread):
         is_effective = [1] * len(short_start_ids)
 
         short_trade_id = 0
+
+        if self.use_rsi_to_exit:
+            exit_by_rsi = False
+
         for i in range(len(short_start_ids)):
 
             if is_effective[i] == 0:
@@ -3124,6 +3167,14 @@ class CurrencyTrader(threading.Thread):
             temp_i = i
             short_start_id = short_start_ids[i]
             short_fire_data = self.data_df.iloc[short_start_id]
+
+            if self.use_rsi_to_exit and exit_by_rsi:
+                if short_fire_data['long_macd_short_enter_too_late']:
+                    self.data_df.at[short_start_ids[i], 'macd_short_enter'] = False
+                    continue
+                else:
+                    exit_by_rsi = False
+
 
             instrument = short_fire_data['currency']
             entry_time = short_fire_data['time']
@@ -3450,7 +3501,14 @@ class CurrencyTrader(threading.Thread):
                         is_exit = cur_data['short_macd_short_exit'] or cur_data['macd_long_enter']
                         #is_exit = cur_data['short_macd_short_exit'] or cur_data['short_macd_long_enter']
 
+                # if self.use_rsi_to_exit and cur_data['over_sold'] and not cur_data['long_macd_short_exit_without_rsi']:
+                #     if not cur_data['long_macd_short_enter_too_late']:
+                #         is_exit = False
+
                 if is_exit:
+
+                    if self.use_rsi_to_exit and cur_data['over_sold']:
+                        exit_by_rsi = True
 
                     if self.do_stop_loss and is_stop_loss:
                         exit_id = stop_loss_exit_id
@@ -3492,7 +3550,13 @@ class CurrencyTrader(threading.Thread):
                         if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
 
                             if self.current_position < 0:
-                                message_title = "Short position of " + str(-self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
+
+                                if cur_data['over_sold'] and not cur_data['long_macd_short_exit_without_rsi']:
+                                    prefix = "**Over Sold**"
+                                else:
+                                    prefix = ""
+
+                                message_title = prefix + "Short position of " + str(-self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
                                 message = "At current time" + str(exit_time) + " " + message_title
 
                                 self.log_msg("message_title = " + message_title)
