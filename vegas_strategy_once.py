@@ -473,7 +473,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = False
+    is_real_time_trading = True
     #is_weekend = False
 
     is_real_time_trading_5min = False
@@ -485,7 +485,7 @@ def start_do_trading(wakeup = 0):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
 
     currency_df = pd.read_csv(currency_file)
 

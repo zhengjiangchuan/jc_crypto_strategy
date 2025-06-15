@@ -266,7 +266,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 6
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -321,8 +321,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = False
-do_real_money_trading = False
+production_running = True
+do_real_money_trading = True
 
 if do_smart_execution:
 
