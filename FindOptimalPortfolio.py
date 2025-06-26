@@ -38,7 +38,7 @@ root_folder = os.path.join(os.getenv("CRYPTO_PROD"))
 
 #root_dir = os.path.join(root_folder, "jc_portfolio_construction_n_gradients_entry_n_gradients_exit_fastMACD_guppyFilter_guppyForceOut_combined")
 
-root_dir = os.path.join(root_folder + "_alternative", "jc_portfolio_construction_n_gradients_final_prodction_combined")
+root_dir = os.path.join(root_folder + "_alternative", "jc_portfolio_construction_n_gradients_final_prodction_updated_correct_combined_single")
 #root_dir = "C:\\Users\\admin\\" + ("JCForex_prod2" if is_crypto else "JCForex_prod") + "\\portfolio_construction_short_macd_strategy_3gradients_close_0405"
 
 if not os.path.exists(root_dir):
@@ -90,8 +90,9 @@ def construct_portfolio_for_end_date(end_date, start_date = datetime(2023, 4, 1)
 
     #currency_list = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'LTCUSD', 'XRPUSD', 'AVAXUSD', 'DOGEUSD'] + ['LINKUSD', 'DOTUSD', 'UNIUSD', 'XTZUSD']
 
-    currency_list = ['AVAXUSD', 'DOGEUSD', 'XRPUSD']
+    #currency_list = ['AVAXUSD', 'DOGEUSD', 'XRPUSD']
 
+    currency_list = ['AVAXUSD']
 
     #currency_list = ['AVAXUSD']
 
@@ -179,9 +180,9 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
     trade_files = [
         os.path.join(root_folder,
-                     "all_pnl_n_gradients_entry_n_gradients_exit_final_prodction\\all_trades.csv"),
+                     "all_pnl_n_gradients_entry_n_gradients_exit_final_prodction_updated_correct\\all_trades.csv"),
         os.path.join(root_folder + "_alternative",
-                     "all_pnl_n_gradients_entry_n_gradients_exit_final_prodction\\all_trades.csv")
+                     "all_pnl_n_gradients_entry_n_gradients_exit_final_prodction_updated_correct\\all_trades.csv")
     ]
 
 
@@ -852,7 +853,7 @@ def calculate_currency_performance(end_date, currency_list, sorted, accumulated_
 
 
 start_dates = [datetime(2024,8,1)]
-end_dates = [datetime(2025,7, 30)]
+end_dates = [datetime(2025,12, 30)]
 
 columns = ['by_date', 'optimal_currency_list']
 final_data = []

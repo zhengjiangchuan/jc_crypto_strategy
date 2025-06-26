@@ -69,7 +69,9 @@ is_short = False
 
 side = -1 if is_short else 1
 
-out_folder = "C:\\Users\\admin\\CryptoTrading\\LeverageTrading"
+#out_folder = "C:\\Users\\admin\\CryptoTrading\\LeverageTrading"
+
+out_folder = "C:\\Users\\jczhe\\CryptoTrading\\LeverageTrading"
 
 initial_decision_file = os.path.join(out_folder, instrument + "_initial_decision" + ("_short" if side == -1 else "") + "23.csv")
 strategy_file = os.path.join(out_folder, instrument + "_strategy" + ("_short" if side == -1 else "") + "23.csv")

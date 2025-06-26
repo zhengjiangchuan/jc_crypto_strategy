@@ -2177,6 +2177,9 @@ class CurrencyTrader(threading.Thread):
         self.data_df['macd_long_enter'] = self.data_df['long_macd_long_enter']
         self.data_df['macd_short_enter'] = self.data_df['long_macd_short_enter']
 
+        #print("Fuck here:")
+        #print(self.data_df.iloc[-10:][['time', 'macd_short_enter', 'long_macd_short_enter']])
+
 
         if self.use_guppy_filter:
             self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (~self.data_df['guppy_all_strong_aligned_short'])
@@ -2189,6 +2192,10 @@ class CurrencyTrader(threading.Thread):
         elif self.use_guppy_condition:
             self.data_df['macd_long_enter'] = self.data_df['macd_long_enter'] & (self.data_df['guppy_all_strong_aligned_long'])
             self.data_df['macd_short_enter'] = self.data_df['macd_short_enter'] & (self.data_df['guppy_all_strong_aligned_short'])
+
+        #print("Fuck here2:")
+        #print(self.data_df.iloc[-10:][['time', 'macd_short_enter', 'long_macd_short_enter']])
+
 
         # self.data_df['macd_long_enter'] = self.data_df['short_macd_long_enter']
         # self.data_df['macd_short_enter'] = self.data_df['short_macd_short_enter']
@@ -2628,7 +2635,7 @@ class CurrencyTrader(threading.Thread):
             long_fire_data = self.data_df.iloc[long_start_id]
 
             if self.use_rsi_to_exit and exit_by_rsi:
-                if long_fire_data['long_macd_long_enter_too_late']:
+                if long_fire_data['long_macd_long_enter_too_late'] and long_start_id > 0 and not self.data_df.iloc[long_start_id-1]['guppy_all_strong_aligned_short']:
                     self.data_df.at[long_start_ids[i], 'macd_long_enter'] = False
                     continue
                 else:
@@ -3151,6 +3158,9 @@ class CurrencyTrader(threading.Thread):
 
         short_start_ids = which(self.data_df['macd_short_enter'])
 
+        #print("short_start_ids:")
+        #print(short_start_ids[-5:])
+
         is_effective = [1] * len(short_start_ids)
 
         short_trade_id = 0
@@ -3162,6 +3172,8 @@ class CurrencyTrader(threading.Thread):
 
             if is_effective[i] == 0:
                 self.data_df.at[short_start_ids[i], 'macd_short_enter'] = False
+                # print("Here critical 1:")
+                # print("short_start_id = " + str(short_start_ids[i]))
                 continue
 
             temp_i = i
@@ -3169,8 +3181,10 @@ class CurrencyTrader(threading.Thread):
             short_fire_data = self.data_df.iloc[short_start_id]
 
             if self.use_rsi_to_exit and exit_by_rsi:
-                if short_fire_data['long_macd_short_enter_too_late']:
+                if short_fire_data['long_macd_short_enter_too_late'] and short_start_id > 0 and not self.data_df.iloc[short_start_id-1]['guppy_all_strong_aligned_long']:
                     self.data_df.at[short_start_ids[i], 'macd_short_enter'] = False
+                    # print("Here critical 2:")
+                    # print("short_start_id = " + str(short_start_ids[i]))
                     continue
                 else:
                     exit_by_rsi = False

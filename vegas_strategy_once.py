@@ -738,7 +738,8 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prodction_updated"  #_final_prod  _UATTest
+    current_date = "_final_prodction_0621_noForceOut"  #_final_prod  _UATTest
+    #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
 
@@ -1865,11 +1866,17 @@ def start_do_trading(wakeup = 0):
         perf_df = pd.concat(perf_dfs)
 
         trade_df = pd.concat(trade_dfs)
-        trade_df = trade_df.sort_values(by = ['entry_time'])
+        trade_df = trade_df.sort_values(by = ['exit_time']) #entry_time
+        print("entry_time type: " + str(type(trade_df.iloc[0]['entry_time'])))
+        print("exit_time type: " + str(type(trade_df.iloc[0]['exit_time'])))
 
         if do_real_money_trading and production_running:
             prod_trade_df = pd.concat(prod_trade_dfs)
-            prod_trade_df = prod_trade_df.sort_values(by=['entry_time'])
+            prod_trade_df = prod_trade_df.sort_values(by=['exit_time']) #entry_time
+
+            print("prod entry_time type: " + str(type(prod_trade_df.iloc[0]['entry_time'])))
+            print("prod exit_time type: " + str(type(prod_trade_df.iloc[0]['exit_time'])))
+
 
         log_msg("Final Performance Result:")
         perf_df.reset_index(inplace = True)
