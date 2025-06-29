@@ -767,7 +767,7 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prodction_0621_forceOut_execution_withExtra"  #_final_prod  _UATTest
+    current_date = "_final_prodction_0621_noforceOut_execution_withExtra"  #_final_prod  _UATTest
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
