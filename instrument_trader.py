@@ -70,7 +70,7 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 500   #1000
+initial_bar_number = 50 if data_source == 1 else 5000   #1000
 
 initial_bar_number_5min = 5000  #3000
 
@@ -81,6 +81,7 @@ is_production = False
 
 plot_rsi = True
 
+print_execution_details = True
 
 #until_date_5min = "2024-09-24"
 #until_date_5min = "2024-10-10"
@@ -97,9 +98,29 @@ plot_rsi = True
 #until_date_5min = "2025-04-03"
 #until_date_5min = "2025-04-18"
 
-#until_date_5min = "2025-04-30"
+#until_date_5min = "2025-05-26"
+#until_date_5min = "2025-06-11"
+#until_date_5min = "2025-06-27"
 
-#until_date = "2025-04-04"
+#until_date_5min = "2024-09-23"
+#until_date_5min = "2024-10-09"
+#until_date_5min = "2024-10-25"
+#until_date_5min = "2024-11-10"
+#until_date_5min = "2024-11-26"
+#until_date_5min = "2024-12-12"
+#until_date_5min = "2024-12-28"
+#until_date_5min = "2025-01-13"
+#until_date_5min = "2025-01-29"
+#until_date_5min = "2025-02-14"
+#until_date_5min = "2025-03-02"
+#until_date_5min = "2025-03-18"
+#until_date_5min = "2025-04-03"
+#until_date_5min = "2025-04-19"
+#until_date_5min = "2025-05-05"
+#until_date_5min = "2025-05-21"
+#until_date_5min = "2025-06-06"
+#until_date_5min = "2025-06-22"
+
 
 distance_to_vegas_threshold = 0.20
 tight_distance_to_vegas_threshold = 0.05
@@ -294,8 +315,10 @@ default_leverage = 10
 
 enable_short_macd_signal = False
 
-do_smart_execution = False
-use_5min_in_smart_execution = False
+do_smart_execution = True
+use_5min_in_smart_execution = True
+
+use_extra_execution = True
 
 
 do_message_printing = True
@@ -323,8 +346,8 @@ global_use_guppy_condition = False
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = False
+do_real_money_trading = False
 
 if do_smart_execution:
 
@@ -438,6 +461,9 @@ class CurrencyTrader(threading.Thread):
         self.use_guppy_condition = global_use_guppy_condition if use_global else use_guppy_condition
         self.init_entry_value = initial_entry_value if use_global else init_entry_value
         self.coinbase_decimal = coinbase_decimal
+
+        if do_smart_execution and use_extra_execution:
+            self.init_entry_value = self.init_entry_value/2.0
 
         print("currency " + self.currency + " initial entry value = " + str(self.init_entry_value))
         print("guppy_force_out = " + str(self.guppy_force_out))
@@ -714,11 +740,35 @@ class CurrencyTrader(threading.Thread):
             for col in ['open', 'high', 'low', 'close']:
                 self.data_df_5min[col] = self.data_df_5min[col].apply(lambda x: round(x, self.decimal))
 
-        if self.data_df_5min is not None and use_5min_in_smart_execution:
+        if self.data_df_5min is not None and use_5min_in_smart_execution:   #Darren
 
             self.data_df_5min['location'] = list(range(self.data_df_5min.shape[0]))
 
+            print("set location to data_df_5min")
+
+            print("Before data_df row_num = " + str(self.data_df.shape[0]))
+            before_num = self.data_df.shape[0]
+            print("Before data_df_5min row_num = " + str(self.data_df_5min.shape[0]))
+
             self.data_df = pd.merge(self.data_df, self.data_df_5min[['time', 'location']], on = ['time'], how = 'left')
+
+            print("After data_df row_num = " + str(self.data_df.shape[0]))
+            after_num = self.data_df.shape[0]
+            print("After data_df_5min row_num = " + str(self.data_df_5min.shape[0]))
+
+            if before_num != after_num:
+                print("before_num = " + str(before_num) + ", after_num = " + str(after_num))
+                print("currency = " + self.currency)
+                sys.exit(1)
+
+
+
+            #self.data_df_5min.to_csv(self.data_file_5min, index=False)  #Darren
+
+            #return #Darren
+            #sys.exit(0)
+
+
 
 
         if os.path.exists(self.trade_file):
@@ -2634,6 +2684,11 @@ class CurrencyTrader(threading.Thread):
             long_start_id = long_start_ids[i]
             long_fire_data = self.data_df.iloc[long_start_id]
 
+            # if print_execution_details:
+            #     print("i = " + str(i) + "/" + str(len(long_start_ids)))
+            #     print("long_start_id = " + str(long_start_id))
+
+
             if self.use_rsi_to_exit and exit_by_rsi:
                 if long_fire_data['long_macd_long_enter_too_late'] and long_start_id > 0 and not self.data_df.iloc[long_start_id-1]['guppy_all_strong_aligned_short']:
                     self.data_df.at[long_start_ids[i], 'macd_long_enter'] = False
@@ -2793,12 +2848,14 @@ class CurrencyTrader(threading.Thread):
                     strategy_executions += [strategy_execution]
 
                 #This is the extra one
-                strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
-                                                           strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
-                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                           strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
 
-                strategy_executions += [strategy_execution]
+                if use_extra_execution:
+                    strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
+                                                               strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                               execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                               strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
+
+                    strategy_executions += [strategy_execution]
 
 
                 total_strategy_pnl = 0
@@ -2918,7 +2975,7 @@ class CurrencyTrader(threading.Thread):
                                                                 execution.execution_exit_time, execution.execution_exit_price, execution.execution_exit_value,
                                                                 execution.pnl]]
 
-                                if k < len(strategy_executions) - 1:
+                                if k < len(strategy_executions) - 1 if use_extra_execution else len(strategy_executions):
                                     next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
                                                                    take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                    strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
@@ -3335,12 +3392,13 @@ class CurrencyTrader(threading.Thread):
                     strategy_executions += [strategy_execution]
 
                 #This is the extra one
-                strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
-                                                           strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
-                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                           strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
+                if use_extra_execution:
+                    strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
+                                                               strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                               execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                               strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
 
-                strategy_executions += [strategy_execution]
+                    strategy_executions += [strategy_execution]
 
 
                 total_strategy_pnl = 0
@@ -3475,7 +3533,7 @@ class CurrencyTrader(threading.Thread):
                                 #     self.log_msg(short_strategy_execution_records[-1])
 
 
-                                if k < len(strategy_executions) - 1:
+                                if k < len(strategy_executions) - 1 if use_extra_execution else len(strategy_executions):
                                     next_execution = StrategyExecution(side=execution.side, leverage=execution.leverage, take_profit_pct=execution.take_profit_pct,
                                                                    take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                    strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
@@ -4016,6 +4074,7 @@ class CurrencyTrader(threading.Thread):
         self.data_df.to_csv(self.data_file, index = False)
 
         if self.data_df_5min is not None and self.data_file_5min is not None:
+            print("Final data_df_5min row_num = " + str(self.data_df_5min.shape[0]))
             self.data_df_5min.to_csv(self.data_file_5min, index = False)
 
         self.data_df.iloc[-1:][['currency','time', 'open', 'high', 'low', 'close']].to_csv(self.data_file[:-len('.csv')] + '_lastRow.csv', index = False)
