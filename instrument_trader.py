@@ -462,8 +462,8 @@ class CurrencyTrader(threading.Thread):
         self.init_entry_value = initial_entry_value if use_global else init_entry_value
         self.coinbase_decimal = coinbase_decimal
 
-        if do_smart_execution and use_extra_execution:
-            self.init_entry_value = self.init_entry_value/2.0
+        #if do_smart_execution and use_extra_execution:
+        #    self.init_entry_value = self.init_entry_value/2.0
 
         print("currency " + self.currency + " initial entry value = " + str(self.init_entry_value))
         print("guppy_force_out = " + str(self.guppy_force_out))
@@ -628,6 +628,11 @@ class CurrencyTrader(threading.Thread):
             self.take_loss_pct = self.loss_rates / self.leverage
 
             self.each_strategy_entry_value = self.init_entry_value / len(self.leverage)
+
+            if use_extra_execution:
+                self.each_strategy_entry_value = self.each_strategy_entry_value / 2.0
+
+
 
         self.is_alternative = is_alternative
 
@@ -2853,7 +2858,7 @@ class CurrencyTrader(threading.Thread):
                     strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                               strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
+                                                               strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0)
 
                     strategy_executions += [strategy_execution]
 
@@ -3396,7 +3401,7 @@ class CurrencyTrader(threading.Thread):
                     strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                               strategy_entry_value = self.init_entry_value, execution_entry_value = self.init_entry_value)
+                                                               strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0)
 
                     strategy_executions += [strategy_execution]
 
