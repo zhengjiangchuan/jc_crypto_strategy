@@ -59,36 +59,36 @@ btc_usd_price = float(product["price"])
 
 print("XRP_usd_price: " + str(btc_usd_price))
 
-# client_order_id = f"order_{uuid.uuid4()}"
-#
-# print("client_order_id = " + client_order_id)
-#
-# symbol = "XRP-PERP-INTX"
-# try:
-#     response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
-#                                    client_order_id=client_order_id,
-#                                    side="BUY",
-#                                    order_configuration={
-#                                        "limit_limit_gtc":{
-#                                            "base_size" : "20", #20
-#                                            "limit_price" : "0.65"#"0.725"
-#
-#                                        }
-#                                    },
-#                                    leverage="10",
-#                                    margin_type = "CROSS",
-#                                    retail_portfolio_id=portfolio_id
-#                                    )
-#     print(f"Order placed: {response}")
-# except Exception as e:
-#     print(f"Order failed: {e}")
-#
-#
-# print("order is")
-#
-# order_id = response['success_response']['order_id']
-#
-# print(order_id)
+client_order_id = f"order_{uuid.uuid4()}"
+
+print("client_order_id = " + client_order_id)
+
+symbol = "ADA-PERP-INTX"
+try:
+    response = client.create_order(product_id="ADA-PERP-INTX",     #BTC-USDC is the correct product id
+                                   client_order_id=client_order_id,
+                                   side="BUY",
+                                   order_configuration={
+                                       "limit_limit_gtc":{
+                                           "base_size" : "20", #20
+                                           "limit_price" : "0.5"#"0.725"
+
+                                       }
+                                   },
+                                   leverage="10",
+                                   margin_type = "CROSS",
+                                   retail_portfolio_id=portfolio_id
+                                   )
+    print(f"Order placed: {response}")
+except Exception as e:
+    print(f"Order failed: {e}")
+
+
+print("order is")
+
+order_id = response['success_response']['order_id']
+
+print(order_id)
 #
 #
 # order = client.get_order(order_id = order_id).order
