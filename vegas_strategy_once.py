@@ -153,7 +153,7 @@ class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
                  use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, use_rsi_to_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
-                 init_entry_value, coinbase_decimal):
+                 init_entry_value, coinbase_decimal, check_data):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -174,6 +174,7 @@ class CurrencyPair:
         self.use_guppy_condition = True if use_guppy_condition == 1 else False
         self.init_entry_value = init_entry_value
         self.coinbase_decimal = coinbase_decimal
+        self.check_data = check_data
 
         print("slow_macd = " + str(self.use_slow_macd))
         print("use_guppy_filter = " + str(self.use_guppy_filter))
@@ -782,7 +783,7 @@ def start_do_trading(wakeup = 0):
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
                                         row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['use_rsi_to_exit'], row['do_stop_loss'],
-        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'])]
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['check_data'])]
 
     log_msg("currencies:")
     log_msg([currencyPair.currency for currencyPair in currency_pairs])
@@ -1195,6 +1196,7 @@ def start_do_trading(wakeup = 0):
         use_guppy_condition = currency_pair.use_guppy_condition
         init_entry_value = currency_pair.init_entry_value
         coinbase_decimal = currency_pair.coinbase_decimal
+        check_data = currency_pair.check_data
 
         data_file_5min = None
         if read_5min_data:
@@ -1218,7 +1220,7 @@ def start_do_trading(wakeup = 0):
                                          guppy_force_out = guppy_force_out, use_rsi_to_exit = use_rsi_to_exit,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
-                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal,
+                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data,
                                          is_alternative=True if alternative == 'y' else False)
         currency_trader.daemon = True
 
@@ -1287,22 +1289,23 @@ def start_do_trading(wakeup = 0):
 
                         #data_df = data_df[data_df['time'] <= datetime(2025, 2, 10, 5, 0, 0)]  # Temp
 
-                        final_time = data_df.iloc[-1]['time']
-                        begin_time = data_df.iloc[0]['time']
-                        expected_bar_num = calc_bar_num(begin_time, final_time)
-                        actual_bar_num = data_df.shape[0]
+                        if currency_trader.check_data:
+                            final_time = data_df.iloc[-1]['time']
+                            begin_time = data_df.iloc[0]['time']
+                            expected_bar_num = calc_bar_num(begin_time, final_time)
+                            actual_bar_num = data_df.shape[0]
 
-                        if expected_bar_num != actual_bar_num:
-                            print("expected_bar_num = " + str(expected_bar_num))
-                            print("actual_bar_num = " + str(actual_bar_num))
+                            if expected_bar_num != actual_bar_num:
+                                print("expected_bar_num = " + str(expected_bar_num))
+                                print("actual_bar_num = " + str(actual_bar_num))
 
-                            data_df['expected_bar_id'] = data_df['time'].apply(lambda x: calc_bar_num(begin_time, x) - 1)
-                            data_df['actual_bar_id'] = list(range(data_df.shape[0]))
-                            unequal_ids = which(data_df['expected_bar_id'] != data_df['actual_bar_id'])
-                            if len(unequal_ids) > 0:
-                                start_wrong_time = data_df.iloc[unequal_ids[0]]['time']
-                                print("start_wrong_time = " + str(start_wrong_time))
-                                sys.exit(1)
+                                data_df['expected_bar_id'] = data_df['time'].apply(lambda x: calc_bar_num(begin_time, x) - 1)
+                                data_df['actual_bar_id'] = list(range(data_df.shape[0]))
+                                unequal_ids = which(data_df['expected_bar_id'] != data_df['actual_bar_id'])
+                                if len(unequal_ids) > 0:
+                                    start_wrong_time = data_df.iloc[unequal_ids[0]]['time']
+                                    print("start_wrong_time = " + str(start_wrong_time))
+                                    sys.exit(1)
 
 
 
