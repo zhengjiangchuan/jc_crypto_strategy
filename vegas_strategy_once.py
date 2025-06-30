@@ -1285,7 +1285,7 @@ def start_do_trading(wakeup = 0):
 
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
-                        data_df = data_df[data_df['time'] <= datetime(2025, 2, 10, 5, 0, 0)]  # Temp
+                        #data_df = data_df[data_df['time'] <= datetime(2025, 2, 10, 5, 0, 0)]  # Temp
 
                         final_time = data_df.iloc[-1]['time']
                         begin_time = data_df.iloc[0]['time']
