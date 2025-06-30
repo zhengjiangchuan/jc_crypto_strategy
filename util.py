@@ -901,27 +901,29 @@ receivers = ['glzxely123@163.com']
 
 def sendEmail(title, content, is_alternative = False):
 
-    message = MIMEText(content, 'plain', 'utf-8')
-    message['From'] = "{}".format(sender)
-    message['To'] = ",".join(receivers)
+    # message = MIMEText(content, 'plain', 'utf-8')
+    # message['From'] = "{}".format(sender)
+    # message['To'] = ",".join(receivers)
+    #
+    # if is_alternative:
+    #     message['Subject'] = "[Alternative] " + title
+    # else:
+    #     message['Subject'] = title
+    #
+    # try:
+    #     smtpObj = smtplib.SMTP_SSL(mail_host, 465)
+    #     smtpObj.login(mail_user, mail_pass)
+    #     print("Sending Email....")
+    #     smtpObj.sendmail(sender, receivers, message.as_string())
+    #     print("mail has been send successfully.")
+    #
+    #     print("Send email: " + title + " " + content)
+    #     print("")
+    # except smtplib.SMTPException as e:
+    #     print(e)
 
-    if is_alternative:
-        message['Subject'] = "[Alternative] " + title
-    else:
-        message['Subject'] = title
 
-    try:
-        smtpObj = smtplib.SMTP_SSL(mail_host, 465)
-        smtpObj.login(mail_user, mail_pass)
-        print("Sending Email....")
-        smtpObj.sendmail(sender, receivers, message.as_string())
-        print("mail has been send successfully.")
-
-        print("Send email: " + title + " " + content)
-        print("")
-    except smtplib.SMTPException as e:
-        print(e)
-    #pass
+    pass
 
 
 

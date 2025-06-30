@@ -127,25 +127,39 @@ if use_dynamic_TP:
 
 
 client = None
-while True:
-    try:
-        if do_real_money_trading:
-            api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
-            client = RESTClient(api_key=api_key,
-                                api_secret=api_secret)
 
-        td = TDClient(apikey=get_twelvedata_api_keys())
-        break
-    except Exception as e:
+is_real_time_trading = False
+#is_weekend = False
 
-        emsg = str(e)
-        log_msg("Exception: " + emsg)
+is_real_time_trading_5min = False
+#is_weekend_5min = False
 
-        if 'HTTPSConnection' in emsg:
-            log_msg("Probably network connection exception, trying again after 10 seconds.")
-            time.sleep(10)
-        else:
-            raise
+manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
+
+if not is_real_time_trading:
+    manual_delay = 0
+
+
+if is_real_time_trading:
+    while True:
+        try:
+            if do_real_money_trading:
+                api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+                client = RESTClient(api_key=api_key,
+                                    api_secret=api_secret)
+
+            td = TDClient(apikey=get_twelvedata_api_keys())
+            break
+        except Exception as e:
+
+            emsg = str(e)
+            log_msg("Exception: " + emsg)
+
+            if 'HTTPSConnection' in emsg:
+                log_msg("Probably network connection exception, trying again after 10 seconds.")
+                time.sleep(10)
+            else:
+                raise
 
 
 
@@ -541,13 +555,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = True
-    #is_weekend = False
 
-    is_real_time_trading_5min = False
-    #is_weekend_5min = False
-
-    manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
 
     is_do_portfolio_trading = False
 
@@ -830,7 +838,7 @@ def start_do_trading(wakeup = 0):
     #current_date = "_realtime_0523"  #0521
     #current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
 
-    current_date = "_final_prodction_0621_noforceOut_checkData"
+    current_date = "_final_prodction_0621_noforceOut_checkData_slow_all"
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
