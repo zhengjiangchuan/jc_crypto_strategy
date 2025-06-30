@@ -250,7 +250,8 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
                 print("product_id = " + str(currency[:-3]+'-USDC'))
                 print("start_time = " + str(start_time))
                 print("end_time = " + str(end_time))
-                response = client.get_candles(product_id=currency[:-3]+'-USDC', start=start_time, end=end_time, granularity="ONE_HOUR")
+                coinbase_interval = 'ONE_HOUR' if interval == '1h' else 'FIVE_MINUTE'
+                response = client.get_candles(product_id=currency[:-3]+'-USDC', start=start_time, end=end_time, granularity=coinbase_interval)
 
                 break
 
@@ -1279,9 +1280,12 @@ def start_do_trading(wakeup = 0):
                     if os.path.exists(data_file):
 
                         data_df = pd.read_csv(data_file)
+
                         #data_df100 = data_df100.iloc[0:-20]
 
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
+
+                        data_df = data_df[data_df['time'] <= datetime(2025, 2, 10, 5, 0, 0)]  # Temp
 
                         final_time = data_df.iloc[-1]['time']
                         begin_time = data_df.iloc[0]['time']
@@ -1305,7 +1309,7 @@ def start_do_trading(wakeup = 0):
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2025, 5, 29, 17, 0, 0)]  #Temp
+
 
                         if use_short_data_for_prod:
                             data_df = data_df[data_df['time'] >= datetime(2023, 11, 30, 2, 0, 0)]

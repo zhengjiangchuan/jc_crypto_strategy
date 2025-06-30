@@ -44,7 +44,7 @@ permission = client.get_api_key_permissions()
 print("permissions:")
 print(permission.to_dict())
 
-start_time = datetime.now() - timedelta(hours = 300)
+start_time = datetime.now() - timedelta(hours = 30)
 print("start_time = " + str(start_time.isoformat()))
 end_time = datetime.now()
 print("end_time = " + str(end_time.isoformat()))
@@ -56,7 +56,7 @@ print("final start_time = " + str(start_time))
 print("final end_time = " + str(end_time))
 
 try:
-    response = client.get_candles(product_id = 'AVAX-USDC', start=start_time, end=end_time, granularity="ONE_HOUR")
+    response = client.get_candles(product_id = 'DOT-USDC', start=start_time, end=end_time, granularity="ONE_HOUR")
 
 except Exception as e:
     print(f"Order failed: {e}")

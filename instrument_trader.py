@@ -70,7 +70,7 @@ vegas_bar_percentile = 0.2
 data_source = 2
 
 #initial_bar_number = 1000 #3555  50
-initial_bar_number = 50 if data_source == 1 else 1000   #1000
+initial_bar_number = 50 if data_source == 1 else 5000   #1000
 
 
 initial_bar_number_5min = 5000  #3000
