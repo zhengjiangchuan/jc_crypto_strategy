@@ -117,13 +117,16 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = True
+read_5min_data = False #True
+
+use_coinbase_data_source = True
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
 
 
 
+client = None
 while True:
     try:
         if do_real_money_trading:
@@ -213,43 +216,99 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     # Initialize client - apikey parameter is requiered
     global td
 
+    global client
+
+    if client is None:
+        api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+        client = RESTClient(api_key=api_key,
+                            api_secret=api_secret)
 
     log_msg("")
     log_msg("Now = " + str(datetime.now()))
     log_msg("initial_bar_number = " + str(initial_bar_number))
     # Construct the necessary time series
 
-    while True:
-        try:
-            ts = td.time_series(
-                symbol=currency[:-3] + '/' + currency[-3:],
-                interval=interval,
-                outputsize=bar_number, #initial_bar_number
-                end_date=end_date,
-                timezone="Asia/Singapore",
-            )
 
-            data_df = ts.as_pandas()
+    if use_coinbase_data_source:
 
-            break
-        except Exception as e:
-            print("Enter exception processing here:")
-            emsg = str(e)
-            log_msg("Exception: " + emsg)
+        coinbase_bar_num = min(300, initial_bar_number)
 
-            if 'API credits' in emsg or 'Connection aborted' in emsg:
-                wait_seconds = 80
-                log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
-                time.sleep(wait_seconds)
-            else:
-                raise
+        start_time = datetime.now() - timedelta(hours=coinbase_bar_num)
+        end_time = datetime.now()
+        print("end_time = " + str(end_time.isoformat()))
+
+        print("final start_time = " + str(start_time))
+        print("final end_time = " + str(end_time))
+
+        start_time = int(start_time.timestamp())
+        end_time = int(end_time.timestamp())
 
 
-    # ts = td.price(symbol='ADA/USD')
-    # ts.as_json()
+        while True:
+            try:
+
+                print("product_id = " + str(currency[:-3]+'-USDC'))
+                print("start_time = " + str(start_time))
+                print("end_time = " + str(end_time))
+                response = client.get_candles(product_id=currency[:-3]+'-USDC', start=start_time, end=end_time, granularity="ONE_HOUR")
+
+                break
+
+            except Exception as e:
+                print(f"Order failed: {e}")
+
+                print("Enter exception processing here:")
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                if 'API credits' in emsg or 'Connection aborted' in emsg:
+                    wait_seconds = 80
+                    log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                    time.sleep(wait_seconds)
+                else:
+                    raise
 
 
-    # Returns pandas.DataFrame
+
+        candles = response['candles']
+
+        columns = ['datetime', 'open', 'high', 'low', 'close']
+        data = []
+
+        for candle in candles:
+            data += [[datetime.fromtimestamp(int(candle['start'])), float(candle['open']), float(candle['high']),
+                      float(candle['low']), float(candle['close'])]]
+
+        data_df = pd.DataFrame(data=data, columns=columns)
+
+    else:
+
+        while True:
+            try:
+                ts = td.time_series(
+                    symbol=currency[:-3] + '/' + currency[-3:],
+                    interval=interval,
+                    outputsize=bar_number, #initial_bar_number
+                    end_date=end_date,
+                    timezone="Asia/Singapore",
+                )
+
+                data_df = ts.as_pandas()
+
+                break
+            except Exception as e:
+                print("Enter exception processing here:")
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                if 'API credits' in emsg or 'Connection aborted' in emsg:
+                    wait_seconds = 80
+                    log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                    time.sleep(wait_seconds)
+                else:
+                    raise
+
+
 
     data_df = data_df.iloc[::-1]
 
@@ -265,7 +324,7 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     #
     log_msg("here printing")
 
-    log_msg(data_df.iloc[0:20])
+    #log_msg(data_df.iloc[0:20])
 
     log_msg(data_df.iloc[-20:])
 
@@ -480,7 +539,7 @@ def start_do_trading(wakeup = 0):
     log_msg("start do trading!")
     #log_msg("Child process starts")
 
-    is_real_time_trading = False
+    is_real_time_trading = True
     #is_weekend = False
 
     is_real_time_trading_5min = False
@@ -767,7 +826,9 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
+    #current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
+
+    current_date = "_final_prodction_0621_noforceOut_coinbaseSource"
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
