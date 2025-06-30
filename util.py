@@ -836,6 +836,10 @@ def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_do
         fig.savefig(os.path.join(out_folder, currency + '_pnl.png'))
         plt.close(fig)
 
+def calc_bar_num(start_time, end_time):
+    delta = end_time - start_time
+
+    return (delta.days*24*3600 + delta.seconds)/3600 + 1
 
 
 def convert_to_5min(t):

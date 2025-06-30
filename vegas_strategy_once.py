@@ -119,7 +119,7 @@ profit_loss_ratio = 1
 
 read_5min_data = False #True
 
-use_coinbase_data_source = True
+use_coinbase_data_source = False
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
@@ -828,7 +828,7 @@ def start_do_trading(wakeup = 0):
     #current_date = "_realtime_0523"  #0521
     #current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
 
-    current_date = "_final_prodction_0621_noforceOut_coinbaseSource"
+    current_date = "_final_prodction_0621_noforceOut_checkData"
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
@@ -1283,10 +1283,29 @@ def start_do_trading(wakeup = 0):
 
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
+                        final_time = data_df.iloc[-1]['time']
+                        begin_time = data_df.iloc[0]['time']
+                        expected_bar_num = calc_bar_num(begin_time, final_time)
+                        actual_bar_num = data_df.shape[0]
+
+                        if expected_bar_num != actual_bar_num:
+                            print("expected_bar_num = " + str(expected_bar_num))
+                            print("actual_bar_num = " + str(actual_bar_num))
+
+                            data_df['expected_bar_id'] = data_df['time'].apply(lambda x: calc_bar_num(begin_time, x) - 1)
+                            data_df['actual_bar_id'] = list(range(data_df.shape[0]))
+                            unequal_ids = which(data_df['expected_bar_id'] != data_df['actual_bar_id'])
+                            if len(unequal_ids) > 0:
+                                start_wrong_time = data_df.iloc[unequal_ids[0]]['time']
+                                print("start_wrong_time = " + str(start_wrong_time))
+                                sys.exit(1)
+
+
+
 
                         data_df = data_df[['currency', 'time', 'open', 'high', 'low', 'close']]
 
-                        #data_df = data_df[data_df['time'] <= datetime(2025, 5, 20, 0, 0, 0)]
+                        #data_df = data_df[data_df['time'] <= datetime(2025, 5, 29, 17, 0, 0)]  #Temp
 
                         if use_short_data_for_prod:
                             data_df = data_df[data_df['time'] >= datetime(2023, 11, 30, 2, 0, 0)]
@@ -1513,6 +1532,8 @@ def start_do_trading(wakeup = 0):
                         if data_df is not None:
 
                             is_new_data_received[i] = True
+
+                            #data_df = data_df.iloc[0:-1] #Temp
 
                             log_msg("Start trading without checking if data up-to-date as not necessary")
                             if read_5min_data:
