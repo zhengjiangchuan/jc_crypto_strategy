@@ -71,6 +71,9 @@ root_folder = os.getenv("CRYPTO_PROD")
 if alternative == 'y':
     root_folder += "_alternative"
 
+if alternative != 'y':
+    alternative_root_folder = root_folder + '_alternative'
+
 #if currency_to_run != "all":
 #    root_folder += "_" + currency_to_run
 
@@ -114,13 +117,16 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = False
+read_5min_data = False #True
+
+use_coinbase_data_source = True
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
 
 
 
+client = None
 while True:
     try:
         if do_real_money_trading:
@@ -210,43 +216,99 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     # Initialize client - apikey parameter is requiered
     global td
 
+    global client
+
+    if client is None:
+        api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+        client = RESTClient(api_key=api_key,
+                            api_secret=api_secret)
 
     log_msg("")
     log_msg("Now = " + str(datetime.now()))
     log_msg("initial_bar_number = " + str(initial_bar_number))
     # Construct the necessary time series
 
-    while True:
-        try:
-            ts = td.time_series(
-                symbol=currency[:-3] + '/' + currency[-3:],
-                interval=interval,
-                outputsize=bar_number, #initial_bar_number
-                end_date=end_date,
-                timezone="Asia/Singapore",
-            )
 
-            data_df = ts.as_pandas()
+    if use_coinbase_data_source:
 
-            break
-        except Exception as e:
-            print("Enter exception processing here:")
-            emsg = str(e)
-            log_msg("Exception: " + emsg)
+        coinbase_bar_num = min(300, initial_bar_number)
 
-            if 'API credits' in emsg or 'Connection aborted' in emsg:
-                wait_seconds = 80
-                log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
-                time.sleep(wait_seconds)
-            else:
-                raise
+        start_time = datetime.now() - timedelta(hours=coinbase_bar_num)
+        end_time = datetime.now()
+        print("end_time = " + str(end_time.isoformat()))
+
+        print("final start_time = " + str(start_time))
+        print("final end_time = " + str(end_time))
+
+        start_time = int(start_time.timestamp())
+        end_time = int(end_time.timestamp())
 
 
-    # ts = td.price(symbol='ADA/USD')
-    # ts.as_json()
+        while True:
+            try:
+
+                print("product_id = " + str(currency[:-3]+'-USDC'))
+                print("start_time = " + str(start_time))
+                print("end_time = " + str(end_time))
+                response = client.get_candles(product_id=currency[:-3]+'-USDC', start=start_time, end=end_time, granularity="ONE_HOUR")
+
+                break
+
+            except Exception as e:
+                print(f"Order failed: {e}")
+
+                print("Enter exception processing here:")
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                if 'API credits' in emsg or 'Connection aborted' in emsg:
+                    wait_seconds = 80
+                    log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                    time.sleep(wait_seconds)
+                else:
+                    raise
 
 
-    # Returns pandas.DataFrame
+
+        candles = response['candles']
+
+        columns = ['datetime', 'open', 'high', 'low', 'close']
+        data = []
+
+        for candle in candles:
+            data += [[datetime.fromtimestamp(int(candle['start'])), float(candle['open']), float(candle['high']),
+                      float(candle['low']), float(candle['close'])]]
+
+        data_df = pd.DataFrame(data=data, columns=columns)
+
+    else:
+
+        while True:
+            try:
+                ts = td.time_series(
+                    symbol=currency[:-3] + '/' + currency[-3:],
+                    interval=interval,
+                    outputsize=bar_number, #initial_bar_number
+                    end_date=end_date,
+                    timezone="Asia/Singapore",
+                )
+
+                data_df = ts.as_pandas()
+
+                break
+            except Exception as e:
+                print("Enter exception processing here:")
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                if 'API credits' in emsg or 'Connection aborted' in emsg:
+                    wait_seconds = 80
+                    log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                    time.sleep(wait_seconds)
+                else:
+                    raise
+
+
 
     data_df = data_df.iloc[::-1]
 
@@ -261,6 +323,9 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     log_msg("Row number = " + str(data_df.shape[0]) + " &&")
     #
     log_msg("here printing")
+
+    #log_msg(data_df.iloc[0:20])
+
     log_msg(data_df.iloc[-20:])
 
     return data_df
@@ -480,19 +545,19 @@ def start_do_trading(wakeup = 0):
     is_real_time_trading_5min = False
     #is_weekend_5min = False
 
-    manual_delay = 10 if is_real_time_trading else 0  #manual_delay = 10
+    manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
 
     is_do_portfolio_trading = False
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
 
     currency_df = pd.read_csv(currency_file)
 
-    print("currency_df:")
-    print(currency_df)
-    #sys.exit(0)
+    # print("currency_df:")
+    # print(currency_df)
+    # sys.exit(0)
 
 
     raw_currencies = currency_df['instrument'].tolist()
@@ -627,6 +692,29 @@ def start_do_trading(wakeup = 0):
     ################### Temp Copy Currency data outside ##################
     # log_msg("root_folder: ")
     # log_msg(root_folder)
+    # # temp_data_folder = os.path.join(root_folder, "all_data")
+    # # if not os.path.exists(temp_data_folder):
+    # #     os.makedirs(temp_data_folder)
+    # for currency in currency_list:
+    #     log_msg("Copy data of " + currency)
+    #     #file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
+    #     #file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
+    #     file_path3 = os.path.join(root_folder, currency, "data", currency + "_5min.csv")
+    #     out_folder = os.path.join(alternative_root_folder, currency, "data")
+    #     if not os.path.exists(out_folder):
+    #         os.makedirs(out_folder)
+    #
+    #     log_msg("Copy from " + file_path3 + " to " + out_folder)
+    #     #shutil.copy2(file_path, out_folder)
+    #     #shutil.copy2(file_path2, out_folder)
+    #     shutil.copy2(file_path3, out_folder)
+    #
+    # sys.exit(0)
+
+
+
+    # log_msg("root_folder: ")
+    # log_msg(root_folder)
     # temp_data_folder = os.path.join(root_folder, "all_data")
     # if not os.path.exists(temp_data_folder):
     #     os.makedirs(temp_data_folder)
@@ -640,8 +728,8 @@ def start_do_trading(wakeup = 0):
     #         os.makedirs(out_folder)
     #
     #     log_msg("Copy from " + file_path + " to " + out_folder)
-    #     shutil.copy2(file_path, out_folder)
-    #     shutil.copy2(file_path2, out_folder)
+    #     #shutil.copy2(file_path, out_folder)
+    #     #shutil.copy2(file_path2, out_folder)
     #     shutil.copy2(file_path3, out_folder)
     #
     # sys.exit(0)
@@ -738,7 +826,9 @@ def start_do_trading(wakeup = 0):
     #general_chart_folder_name = "n_gradients_entry_n_gradients_exit_execution_xpctDrawDown"
 
     #current_date = "_realtime_0523"  #0521
-    current_date = "_final_prodction_0621_noForceOut"  #_final_prod  _UATTest
+    #current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
+
+    current_date = "_final_prodction_0621_noforceOut_coinbaseSource"
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
@@ -1220,7 +1310,7 @@ def start_do_trading(wakeup = 0):
                             incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
 
                             if incremental_data_df.iloc[0]['time'] > last_time:
-                                log_msg("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']), file = sys.stderr)
+                                log_msg("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']))
 
                             #if is_weekend:
                             incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
@@ -1255,6 +1345,8 @@ def start_do_trading(wakeup = 0):
 
                             data_df_5min['time'] = data_df_5min['time'].apply(lambda x: preprocess_time(x))
 
+                            #data_df_5min = data_df_5min[data_df_5min['time'] <= datetime(2024,9,7,0,0,0)]  #Darren
+
                             data_df_5min = data_df_5min[['currency', 'time', 'open', 'high', 'low', 'close']]
 
 
@@ -1275,14 +1367,16 @@ def start_do_trading(wakeup = 0):
 
 
                                 if incremental_data_df_5min.iloc[0]['time'] > last_time:
-                                    log_msg("5min bar: last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df_5min.iloc[0]['time']), file = sys.stderr)
+                                    print("5min bar: last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df_5min.iloc[0]['time']), file = sys.stderr)
 
                                 #if is_weekend_5min:
-                                #    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time]
+                                incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time]  #Stupid Fucking Bug, wasting my whole night!!!
                                 #else:
 
                                 if until_date_5min is None or datetime.today() < preprocess_date(until_date_5min):
-                                    incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time].iloc[0:-1]
+                                    #incremental_data_df_5min = incremental_data_df_5min[incremental_data_df_5min['time'] > last_time].iloc[0:-1]
+
+                                    incremental_data_df_5min = incremental_data_df_5min.iloc[0:-1]
 
 
                             if is_real_time_trading_5min and incremental_data_df_5min.shape[0] > 0:
@@ -1370,7 +1464,7 @@ def start_do_trading(wakeup = 0):
                                     log_msg("difference = " + str(difference))
 
 
-                                currency_trader.trade()
+                                currency_trader.trade()  #Darren
                             else:
 
                                 log_msg("Not received finalized data for " + currency + ", wait 1 minute to try again")
@@ -1395,7 +1489,7 @@ def start_do_trading(wakeup = 0):
                                         else:
                                             currency_trader.feed_data(data_df)
 
-                                        currency_trader.trade(print_ready=False, temporary_decision=True)
+                                        currency_trader.trade(print_ready=False, temporary_decision=True)  #Darren
 
 
                                 if trial_numbers[i] <= maximum_trial_number:
@@ -1427,7 +1521,7 @@ def start_do_trading(wakeup = 0):
                                 currency_trader.feed_data(data_df)
 
 
-                            currency_trader.trade()
+                            currency_trader.trade()  #Darren
 
                     if manual_delay > 0 and len(currency_pairs) > 4:
                         log_msg("Sleep " + str(manual_delay) + " seconds ")
@@ -1826,13 +1920,13 @@ def start_do_trading(wakeup = 0):
                     log_msg("")
                     log_msg("All cryptos have their open orders fully filled, bye bye!")
 
-
+        #Darren
         for i in range(len(currency_traders)):
             if is_new_data_received[i]:
                 currency_trader = currency_traders[i]
                 currency_trader.post_processing()
 
-        #sendEmail("Trader process ends", "")
+        sendEmail("Trader process ends", "")
 
         log_msg("Finished trading *********************************")
 
@@ -1843,6 +1937,7 @@ def start_do_trading(wakeup = 0):
         trade_dfs = []
         prod_trade_dfs = []
         i = 0
+        #sys.exit(0)  #Darren
         for currency in currency_list:
             #perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
             chart_folder_name = chart_folder_names[i]
