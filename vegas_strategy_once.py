@@ -1527,7 +1527,8 @@ def start_do_trading(wakeup = 0):
                                         #waiting_next_time = data_df.iloc[-1]['time'] + timedelta(seconds = 3600 + running_round * 60 + 10)  #-1
                                         now_time = datetime.now()
                                         log_msg("now is " + str(now_time))
-                                        waiting_next_time = datetime(now_time.year, now_time.month, now_time.day, now_time.hour, now_time.minute, now_time.second, 0) + timedelta(seconds = 120)
+                                        waiting_seconds = 60 if use_coinbase_data_source else 120
+                                        waiting_next_time = datetime(now_time.year, now_time.month, now_time.day, now_time.hour, now_time.minute, now_time.second, 0) + timedelta(seconds = waiting_seconds)
                                         log_msg("waiting_next_time = " + str(waiting_next_time))
                                         waiting_round += 1
                                         log_msg("running_round = " + str(running_round) + ", waiting_round = " + str(waiting_round))
