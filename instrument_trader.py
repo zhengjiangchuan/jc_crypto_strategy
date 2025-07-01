@@ -414,7 +414,7 @@ class CurrencyTrader(threading.Thread):
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
                  use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, use_rsi_to_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, is_alternative = False):
+                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, over_bought_logic = False, is_alternative = False):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -462,6 +462,7 @@ class CurrencyTrader(threading.Thread):
         self.init_entry_value = initial_entry_value if use_global else init_entry_value
         self.coinbase_decimal = coinbase_decimal
         self.check_data = check_data
+        self.over_bought_logic = over_bought_logic
 
         #if do_smart_execution and use_extra_execution:
         #    self.init_entry_value = self.init_entry_value/2.0
@@ -861,8 +862,9 @@ class CurrencyTrader(threading.Thread):
         calc_macd(self.data_df, "close")
         calc_rsi(self.data_df, "close")
 
-        self.data_df['over_bought'] = False #self.data_df['rsi'] >= 80
-        self.data_df['over_sold'] = self.data_df['rsi'] <= 20
+
+
+
 
         self.data_df['upper_vegas'] = self.data_df[['ma_close144', 'ma_close169']].max(axis=1)
         self.data_df['lower_vegas'] = self.data_df[['ma_close144', 'ma_close169']].min(axis=1)
@@ -908,6 +910,24 @@ class CurrencyTrader(threading.Thread):
 
         self.data_df['macd_gradient'] = self.data_df['macd'].diff()
         self.data_df['macd2_gradient'] = self.data_df['macd2'].diff()
+
+        self.data_df['body_length'] = self.data_df['max_price'] - self.data_df['min_price']
+        self.data_df['recent_body_length_median'] = self.data_df['body_length'].rolling(5, min_periods=5).median()
+        self.data_df['prev_recent_body_length_median'] = self.data_df['recent_body_length_median'].shift(1)
+
+        self.data_df['recent_body_length_mean'] = self.data_df['body_length'].rolling(5, min_periods=5).mean()
+        self.data_df['prev_recent_body_length_mean'] = self.data_df['recent_body_length_mean'].shift(1)
+
+        self.data_df['is_big_body'] = (self.data_df['body_length'] - self.data_df['prev_recent_body_length_mean'])/self.data_df['prev_recent_body_length_mean'] > 2
+
+
+        if self.over_bought_logic:
+            self.data_df['over_bought'] = (self.data_df['rsi'] >= 79) & (self.data_df['is_big_body'])
+        else:
+            self.data_df['over_bought'] = False  # self.data_df['rsi'] >= 80
+
+
+        self.data_df['over_sold'] = self.data_df['rsi'] <= 20
 
         # self.data_df['prev_macd_gradient'] = self.data_df['macd_gradient'].shift(1)
         # self.data_df['prev_macd2_gradient'] = self.data_df['macd2_gradient'].shift(1)
@@ -2679,6 +2699,7 @@ class CurrencyTrader(threading.Thread):
 
         if self.use_rsi_to_exit:
             exit_by_rsi = False
+            id_when_exit_by_rsi = -1
 
         for i in range(len(long_start_ids)):
 
@@ -2696,11 +2717,12 @@ class CurrencyTrader(threading.Thread):
 
 
             if self.use_rsi_to_exit and exit_by_rsi:
-                if long_fire_data['long_macd_long_enter_too_late'] and long_start_id > 0 and not self.data_df.iloc[long_start_id-1]['guppy_all_strong_aligned_short']:
+                if (long_fire_data['long_macd_long_enter_too_late'] and long_start_id > 0 and not self.data_df.iloc[long_start_id-1]['guppy_all_strong_aligned_short']) or (long_start_id - id_when_exit_by_rsi <= 10):
                     self.data_df.at[long_start_ids[i], 'macd_long_enter'] = False
                     continue
                 else:
                     exit_by_rsi = False
+                    id_when_exit_by_rsi = -1
 
 
             instrument = long_fire_data['currency']
@@ -3026,11 +3048,21 @@ class CurrencyTrader(threading.Thread):
                 #     if not cur_data['long_macd_long_enter_too_late']:
                 #         is_exit = False #If it exits now, it will re-enter immediately, which does not make sense
 
+                if is_exit:
+                    if self.use_rsi_to_exit and cur_data['over_bought'] and not cur_data['long_macd_long_exit_without_rsi']:
+                        #if j >= 5 and (cur_data['close'] - cur_data['open'])/(cur_data['open'] - long_fire_data['open']) < 0.9:
+                        #    is_exit = False
+
+                        if (cur_data['open'] - long_fire_data['close'] > 0) and (cur_data['close'] - cur_data['open'])/(cur_data['open'] - long_fire_data['close']) < 0.9:
+                            is_exit = False
+
+
 
                 if is_exit:
 
                     if self.use_rsi_to_exit and cur_data['over_bought'] and not cur_data['long_macd_long_exit_without_rsi']:
                         exit_by_rsi = True
+                        id_when_exit_by_rsi = long_start_id + j
 
                     if self.do_stop_loss and is_stop_loss:
                         exit_id = stop_loss_exit_id
