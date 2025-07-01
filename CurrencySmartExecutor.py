@@ -126,7 +126,7 @@ class CurrencySmartExecutor:
                 self.entry_time = None
                 self.target_side = None
 
-        elif self.old_position_closed:
+        if self.old_position_closed:
 
             if self.close_position_fill_price > 0:
 
@@ -136,9 +136,9 @@ class CurrencySmartExecutor:
 
             pass
 
-        else:
-            # Manage each execution
-            pass
+
+        # Manage each execution
+        pass
 
     def calc_never_reached_stop_price(self, entry_price, side, is_stop_loss):
         if (side == 'BUY' and is_stop_loss) or (side == 'SELL' and not is_stop_loss):

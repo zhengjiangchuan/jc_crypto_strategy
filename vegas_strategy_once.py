@@ -128,7 +128,7 @@ if use_dynamic_TP:
 
 client = None
 
-is_real_time_trading = False
+is_real_time_trading = True
 #is_weekend = False
 
 is_real_time_trading_5min = False
@@ -140,26 +140,26 @@ if not is_real_time_trading:
     manual_delay = 0
 
 
-if is_real_time_trading:
-    while True:
-        try:
-            if do_real_money_trading:
-                api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
-                client = RESTClient(api_key=api_key,
-                                    api_secret=api_secret)
 
-            td = TDClient(apikey=get_twelvedata_api_keys())
-            break
-        except Exception as e:
+while True:
+    try:
+        if is_real_time_trading and do_real_money_trading:
+            api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+            client = RESTClient(api_key=api_key,
+                                api_secret=api_secret)
 
-            emsg = str(e)
-            log_msg("Exception: " + emsg)
+        td = TDClient(apikey=get_twelvedata_api_keys())
+        break
+    except Exception as e:
 
-            if 'HTTPSConnection' in emsg:
-                log_msg("Probably network connection exception, trying again after 10 seconds.")
-                time.sleep(10)
-            else:
-                raise
+        emsg = str(e)
+        log_msg("Exception: " + emsg)
+
+        if 'HTTPSConnection' in emsg:
+            log_msg("Probably network connection exception, trying again after 10 seconds.")
+            time.sleep(10)
+        else:
+            raise
 
 
 
@@ -167,7 +167,7 @@ class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
                  use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, use_rsi_to_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
-                 init_entry_value, coinbase_decimal, check_data):
+                 init_entry_value, coinbase_decimal, check_data, over_bought_logic):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -189,6 +189,7 @@ class CurrencyPair:
         self.init_entry_value = init_entry_value
         self.coinbase_decimal = coinbase_decimal
         self.check_data = check_data
+        self.over_bought_logic = over_bought_logic
 
         print("slow_macd = " + str(self.use_slow_macd))
         print("use_guppy_filter = " + str(self.use_guppy_filter))
@@ -791,7 +792,7 @@ def start_do_trading(wakeup = 0):
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
                                         row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['use_rsi_to_exit'], row['do_stop_loss'],
-        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['check_data'])]
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['check_data'],row['over_bought_logic'])]
 
     log_msg("currencies:")
     log_msg([currencyPair.currency for currencyPair in currency_pairs])
@@ -838,7 +839,7 @@ def start_do_trading(wakeup = 0):
     #current_date = "_realtime_0523"  #0521
     #current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
 
-    current_date = "_final_prodction_0621_noforceOut_checkData_slow_all"
+    current_date = "_final_prodction_0621_noforceOut_mixed_bigbody_improve_final_79_80_realtime"
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
@@ -1205,6 +1206,7 @@ def start_do_trading(wakeup = 0):
         init_entry_value = currency_pair.init_entry_value
         coinbase_decimal = currency_pair.coinbase_decimal
         check_data = currency_pair.check_data
+        over_bought_logic = currency_pair.over_bought_logic
 
         data_file_5min = None
         if read_5min_data:
@@ -1228,7 +1230,7 @@ def start_do_trading(wakeup = 0):
                                          guppy_force_out = guppy_force_out, use_rsi_to_exit = use_rsi_to_exit,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
-                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data,
+                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data, over_bought_logic = over_bought_logic,
                                          is_alternative=True if alternative == 'y' else False)
         currency_trader.daemon = True
 

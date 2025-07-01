@@ -826,7 +826,10 @@ def plot_pnl_figure(trade_df, out_folder, currency, start_draw_down, end_draw_do
 
         sns.lineplot(x = 'id', y = 'cum_pnl', markers = 'o', color = 'red', data = trade_df, ax = axes)
         axes.set_title(currency + " Cum Pnl Curve")
-        #axes[0].yaxis.set_major_locator(plticker.MultipleLocator(1))
+
+        axes.yaxis.set_major_locator(plticker.MultipleLocator(100))
+
+
         axes.axhline(0, ls='--', color='blue', linewidth=1)
 
         axes.axvline(start_draw_down + 1, ls='--', color='red', linewidth=1)
