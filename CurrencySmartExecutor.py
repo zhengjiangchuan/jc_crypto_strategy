@@ -22,6 +22,19 @@ class OrderType(Enum):
     STOP_LOSS_EXIT = auto()
     STOP_ENTER = auto()
 
+class Order:
+
+    def __init__(self, coinbase_order_id, order_type : OrderType):
+
+        self.coinbase_order_id = coinbase_order_id
+        self.order_type = order_type
+
+    def order_id(self):
+        return self.coinbase_order_id
+
+    def order_type(self):
+        return self.order_type
+
 class CurrencySmartExecutor:
 
     def __init__(self, currency, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file,
@@ -57,6 +70,8 @@ class CurrencySmartExecutor:
         self.open_position_fill_price = 0
         self.close_position_fill_price = 0
 
+        self.execution2order = {}
+
 
 
     def get_current_position(self):
@@ -82,6 +97,11 @@ class CurrencySmartExecutor:
 
         return 'BUY' if side == 'SELL' else 'SELL'
 
+    def generate_client_order_id(self):
+
+        return f"order_{uuid.uuid4()}"
+
+
     def manage_executions(self):
 
         self.current_position = self.get_current_position()
@@ -91,16 +111,17 @@ class CurrencySmartExecutor:
                 #TODO: APPEND the new opened position open price, entry_time etc to strategy_prod_file and strategy_execution_prod_file
 
                 for i in range(len(self.strategy_executions)):
-                    strategy_execution: Optional[StrategyExecution] = self.strategy_executions[i]
+                    strategy_execution: StrategyExecution = self.strategy_executions[i]
 
-                    if i == len(self.strategy_executions) and use_extra_execution:
+                    if i == len(self.strategy_executions)-1 and use_extra_execution:
                         try:
-                            client_order_id = f"order_{uuid.uuid4()}"
+                            client_order_id = self.generate_client_order_id()
 
-                            stop_price = self.open_position_fill_price * 0.5 if self.target_side == 'BUY' else self.open_position_fill_price * 1.5
+                            #stop_price = self.open_position_fill_price * 0.5 if self.target_side == 'BUY' else self.open_position_fill_price * 1.5
+
+                            stop_price = self.calc_never_reached_stop_price(self.open_position_fill_price, self.target_side, is_stop_loss = True)
 
                             response = self.coinbaseclient.create_order(product_id=self.currency_coinbase,
-                                                           # BTC-USDC is the correct product id
                                                            client_order_id=client_order_id,
                                                            side=self.opposite_side(self.target_side),
                                                            order_configuration={
@@ -111,14 +132,45 @@ class CurrencySmartExecutor:
                                                                }
                                                            },
                                                            leverage="10",
-                                                           margin_type="CROSS"
-                                                           # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
+                                                           margin_type="CROSS",
+                                                           retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
 
                         except Exception as e:
                             self.log_msg(f"Order failed: {e}")
 
-                        response['success_response']['order_id']
+                        stop_profit_order_id = response['success_response']['order_id']
+
+                        self.execution2order[i+1] = OrderType(stop_profit_order_id, OrderType.TAKE_PROFIT_EXIT)
+
+                    else:
+
+                        try:
+                            client_order_id = self.generate_client_order_id()
+
+                            stop_price = self.calc_never_reached_stop_price(self.open_position_fill_price, self.target_side, is_stop_loss = True)
+
+                            response = self.coinbaseclient.create_order(product_id=self.currency_coinbase,
+                                                           client_order_id=client_order_id,
+                                                           side=self.opposite_side(self.target_side),
+                                                                        order_configuration={
+                                                                            "stop_limit_stop_limit_gtc": {
+                                                                                "base_size": "200",
+                                                                                "limit_price": "0.71",
+                                                                                "stop_price": "0.7"
+                                                                            }
+                                                                        },
+                                                           leverage="10",
+                                                           margin_type="CROSS",
+                                                           retail_portfolio_id=self.coinbase_portfolio_id
+                                                           )
+
+                        except Exception as e:
+                            self.log_msg(f"Order failed: {e}")
+
+                        stop_profit_order_id = response['success_response']['order_id']
+
+                        self.execution2order[i+1] = OrderType(stop_profit_order_id, OrderType.TAKE_PROFIT_EXIT)
 
 
                 self.new_position_opened = False
@@ -131,6 +183,12 @@ class CurrencySmartExecutor:
             if self.close_position_fill_price > 0:
 
                 # TODO: APPEND the new closed position close price, exit_time etc to strategy_prod_file and strategy_execution_prod_file
+
+                self.old_position_closed = False
+                self.position_to_close = 0
+                self.exit_time = None
+                self.side_to_close = None
+
                 pass
 
 
@@ -155,8 +213,8 @@ class CurrencySmartExecutor:
 
         self.new_position_opened = True
 
-    def set_open_position_price(self, open_price):
-        self.open_position_fill_price = open_price
+    def set_open_position_price(self, entry_price):
+        self.open_position_fill_price = entry_price
 
 
 
@@ -170,6 +228,6 @@ class CurrencySmartExecutor:
         self.old_position_closed = True
 
 
-    def set_close_position_price(self, close_price):
-        self.close_position_fill_price = close_price
+    def set_close_position_price(self, exit_price):
+        self.close_position_fill_price = exit_price
 

@@ -205,22 +205,46 @@ def get_close_price(currency):
 
     global td
 
-    while True:
-        try:
-            ts = td.price(symbol = currency[:-3] + '/' + currency[-3:])
-            close_price = float(ts.as_json()['price'])
-            break
-        except Exception as e:
+    if use_coinbase_data_source:
 
-            emsg = str(e)
-            log_msg("Exception: " + emsg)
+        while True:
+            try:
 
-            if 'API credits' in emsg:
-                wait_seconds = 80
-                log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
-                time.sleep(wait_seconds)
-            else:
-                raise
+                coinbase_currency = currency[:-3] + '-USDC'
+                log_msg("Get last price for " + coinbase_currency)
+                product = client.get_product(coinbase_currency)
+                close_price = float(product['price'])
+                log_msg("Last price = " + str(close_price))
+                break
+            except Exception as e:
+                print("Enter exception processing here:")
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                if 'Remote end closed connection' in emsg:
+                    wait_seconds = 80
+                    log_msg("Remote end connection closed, waiting " + str(wait_seconds) + " seconds to proceed")
+                    time.sleep(wait_seconds)
+                else:
+                    raise
+
+    else:
+        while True:
+            try:
+                ts = td.price(symbol = currency[:-3] + '/' + currency[-3:])
+                close_price = float(ts.as_json()['price'])
+                break
+            except Exception as e:
+
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                if 'API credits' in emsg:
+                    wait_seconds = 80
+                    log_msg("Running out of API credits, waiting " + str(wait_seconds) + " seconds to proceed")
+                    time.sleep(wait_seconds)
+                else:
+                    raise
 
 
 
@@ -839,7 +863,15 @@ def start_do_trading(wakeup = 0):
     #current_date = "_realtime_0523"  #0521
     #current_date = "_final_prodction_0621_noforceOut_execution_withExtra_refactorTest"  #_final_prod  _UATTest
 
-    current_date = "_final_prodction_0621_noforceOut_mixed_bigbody_improve_final_79_80_realtime"
+    #current_date = "_final_prodction_0621_noforceOut_mixed_bigbody_improve_final_79_80_realtime"
+
+    #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
+
+    current_date = "_final_production_noforceOut_overbought"
+
+    #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
+
+
     #current_date = "_final_prodction_mytest"
 
     general_chart_folder_name = "n_gradients_entry_n_gradients_exit"
