@@ -179,6 +179,8 @@ class CurrencySmartExecutor:
                                              is_signal_exit=True,
                                              is_extra_execution=is_extra)
 
+                    del self.execution2order[i+1]
+
                 # TODO: APPEND the new closed position close price, exit_time etc to strategy_prod_file and strategy_execution_prod_file (Write closed executions to persistence)
 
                 self.old_position_closed = False
@@ -202,74 +204,91 @@ class CurrencySmartExecutor:
 
         # Manage each execution
         for i in range(len(self.strategy_executions)):
+
             strategy_execution: StrategyExecution = self.strategy_executions[i]
 
             if not strategy_execution.is_active:
                 continue
 
+            if i+1 in self.execution2order:
 
-            order_list = self.execution2order[i+1]
-            has_order_filled = False
-            filled_order: Order = None
-            for order in order_list:
-                is_filled, filled_price = self.check_order_fully_filled(order)
-                if is_filled:
-                    has_order_filled = True
-                    filled_order = order
-                    break
+                order_list = self.execution2order[i+1]
+                has_order_filled = False
+                filled_order: Order = None
+                for order in order_list:
+                    is_filled, filled_price = self.check_order_fully_filled(order)
+                    if is_filled:
+                        has_order_filled = True
+                        filled_order = order
+                        break
 
-            if has_order_filled:
+                if has_order_filled:
 
-                is_extra = use_extra_execution and i == len(self.strategy_executions)-1
+                    is_extra = use_extra_execution and i == len(self.strategy_executions)-1
 
-                time_now = self.current_time()
+                    time_now = self.current_time()
 
-                if is_extra:
-                    assert(filled_order.order_type() == OrderType.TAKE_PROFIT_EXIT)
+                    if is_extra:
+                        assert(filled_order.order_type() == OrderType.TAKE_PROFIT_EXIT)
 
-                    strategy_execution.exit_execution(execution_exit_time=time_now,
-                                                      execution_exit_price=filled_price,
-                                                      is_signal_exit=False,
-                                                      is_extra_execution=True)
+                        strategy_execution.exit_execution(execution_exit_time=time_now,
+                                                          execution_exit_price=filled_price,
+                                                          is_signal_exit=False,
+                                                          is_extra_execution=True)
 
-                    #TODO: Write finished execution to persistence
-                else:
+                        del self.execution2order[i+1]
 
-                    assert(filled_order.order_type() in [OrderType.STOP_ENTER, OrderType.STOP_LOSS_EXIT])
+                        #TODO: Write finished execution to persistence
+                    else:
 
-                    strategy_execution.exit_execution(execution_exit_time=time_now,
-                                                      execution_exit_price=filled_price,
-                                                      is_signal_exit=False,
-                                                      is_extra_execution=False)
+                        assert(filled_order.order_type() in [OrderType.STOP_ENTER, OrderType.STOP_LOSS_EXIT])
 
-                    # TODO: Write finished execution to persistence
+                        strategy_execution.exit_execution(execution_exit_time=time_now,
+                                                          execution_exit_price=filled_price,
+                                                          is_signal_exit=False,
+                                                          is_extra_execution=False)
 
-                    if filled_order.order_type() == OrderType.STOP_ENTER:
+                        # TODO: Write finished execution to persistence
 
-
-                        strategy_execution.update_to_next_execution(entry_time=time_now, increased_size=filled_order.order_size())
-
-
-                        for order in order_list:
-                            if order.order_type() == OrderType.STOP_LOSS_EXIT:
-                                #Cancel this stop loss order because we have reached take profit and re-entered
-                                try:
-                                    cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
-                                    print(cancel_response)
-                                except Exception as e:
-                                    print("Error:", e)
+                        if filled_order.order_type() == OrderType.STOP_ENTER:
 
 
-
-                        stop_entry_order_id, stop_entry_order_size = self.place_stop_entry_order(strategy_execution)
-
-                        stop_loss_order_id, stop_loss_order_size = self.place_stop_loss_order(strategy_execution)
-
-                        self.execution2order[i + 1] = [Order(stop_entry_order_id, stop_entry_order_size, OrderType.STOP_ENTER),
-                                                       Order(stop_loss_order_id, stop_loss_order_size, OrderType.STOP_LOSS_EXIT)]
+                            strategy_execution.update_to_next_execution(entry_time=time_now, increased_size=filled_order.order_size())
 
 
-       
+                            for order in order_list:
+                                if order.order_type() == OrderType.STOP_LOSS_EXIT:
+                                    #Cancel this stop loss order because we have reached take profit and re-entered
+                                    try:
+                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
+                                        print(cancel_response)
+                                    except Exception as e:
+                                        print("Error:", e)
+
+
+
+                            stop_entry_order_id, stop_entry_order_size = self.place_stop_entry_order(strategy_execution)
+
+                            stop_loss_order_id, stop_loss_order_size = self.place_stop_loss_order(strategy_execution)
+
+                            self.execution2order[i + 1] = [Order(stop_entry_order_id, stop_entry_order_size, OrderType.STOP_ENTER),
+                                                           Order(stop_loss_order_id, stop_loss_order_size, OrderType.STOP_LOSS_EXIT)]
+
+                        elif filled_order.order_type() == OrderType.STOP_LOSS_EXIT:
+
+                            for order in order_list:
+                                if order.order_type() == OrderType.STOP_ENTER:
+                                    #Cancel this stop loss order because we have reached take profit and re-entered
+                                    try:
+                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
+                                        print(cancel_response)
+                                    except Exception as e:
+                                        print("Error:", e)
+
+                            del self.execution2order[i+1]
+
+
+
 
     def place_stop_loss_order(self, strategy_execution: StrategyExecution):
 

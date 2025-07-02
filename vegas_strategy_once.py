@@ -128,7 +128,7 @@ if use_dynamic_TP:
 
 client = None
 
-is_real_time_trading = True
+is_real_time_trading = False
 #is_weekend = False
 
 is_real_time_trading_5min = False
@@ -867,7 +867,7 @@ def start_do_trading(wakeup = 0):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_final_production_noforceOut_overbought"
+    current_date = "_final_production_noforceOut_overbought_allcurrency"
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
