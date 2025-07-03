@@ -41,16 +41,14 @@ class Order:
 
 class CurrencySmartExecutor:
 
-    def __init__(self, currency, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file,
-                 coinbase_client: Optional[RESTClient] = None, coinbase_decimal = 0):
-        self.currency = currency
+    def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file,
+                 coinbase_client: Optional[RESTClient] = None):
         self.currency_coinbase = currency_coinbase
         self.coinbase_portfolio_id = coinbase_portfolio_id
         self.strategy_prod_file = strategy_prod_file
         self.strategy_execution_prod_file = strategy_execution_prod_file
 
         self.coinbase_client = coinbase_client
-        self.coinbase_decimal = coinbase_decimal
 
         self.target_position = 0
         self.target_side = None

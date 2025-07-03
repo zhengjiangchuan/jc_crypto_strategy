@@ -43,6 +43,8 @@ from coinbase.rest import RESTClient
 from json import dumps
 import uuid
 
+from CurrencySmartExecutionManager import *
+
 
 
 pd.set_option('display.max_rows', 10000)
@@ -288,7 +290,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = 2
 
 plot_day_line = True
 plot_cross_point = True
@@ -439,7 +441,8 @@ class CurrencyTrader(threading.Thread):
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
                  use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, use_rsi_to_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, over_bought_logic = False, is_alternative = False):
+                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, over_bought_logic = False, is_alternative = False,
+                 smart_executor_manager: CurrencySmartExecutionManager = None):
         super().__init__(name = currency)
         self.condition = condition
         self.currency = currency
@@ -658,6 +661,9 @@ class CurrencyTrader(threading.Thread):
 
             if use_extra_execution:
                 self.each_strategy_entry_value = self.each_strategy_entry_value / 2.0
+
+            if do_real_money_trading and do_smart_execution:
+                self.smart_executor_manager = smart_executor_manager
 
 
 
@@ -2893,25 +2899,67 @@ class CurrencyTrader(threading.Thread):
 
             if do_smart_execution:
                 strategy_executions = []
-                for k in range(len(self.leverage)):
-                    strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
-                                                           strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
-                                                           execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                           strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value)
-                    strategy_executions += [strategy_execution]
 
-                #This is the extra one
+                if do_real_money_trading:
+                    if self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1 and self.current_real_position <= 0 and self.long_order_id is not None:
 
-                if use_extra_execution:
-                    strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
-                                                               strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                        prod_size = real_delta_position/len(self.leverage)
+                        if use_extra_execution:
+                            prod_size = prod_size/2.0
+
+                        prod_size = round(prod_size, self.coinbase_decimal)
+
+                        entry_value = self.crypto_last_price * prod_size / default_leverage
+
+                        for k in range(len(self.leverage)):
+                            strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
+                                                                   strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
+                                                                   execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
+                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, prod_size = prod_size)
+                            strategy_executions += [strategy_execution]
+
+
+                        if use_extra_execution:
+                            extra_prod_size = real_delta_position / 2.0
+                            extra_prod_size = round(extra_prod_size, self.coinbase_decimal)
+
+                            extra_entry_value = self.crypto_last_price * extra_prod_size / default_leverage
+
+                            strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
+                                                                       strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                                       execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
+                                                                       strategy_entry_value = extra_entry_value, execution_entry_value = extra_entry_value,
+                                                                       prod_size = extra_prod_size)
+
+                            strategy_executions += [strategy_execution]
+
+                        self.smart_executor_manager.open_executions(currency = self.currency, target_position = real_delta_position,
+                                                                    entry_time = entry_time, strategy_executions = strategy_executions
+                                                                    )
+
+
+
+                else:
+
+                    for k in range(len(self.leverage)):
+                        strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
+                                                               strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                               strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0)
+                                                               strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value)
+                        strategy_executions += [strategy_execution]
 
-                    strategy_executions += [strategy_execution]
+                    #This is the extra one
+
+                    if use_extra_execution:
+                        strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
+                                                                   strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
+                                                                   execution_entry_time = entry_time, execution_entry_price = entry_price,
+                                                                   strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0)
+
+                        strategy_executions += [strategy_execution]
 
 
-                total_strategy_pnl = 0
+                    total_strategy_pnl = 0
 
             if self.do_stop_loss:
                 exit_long_by_stop_loss = False

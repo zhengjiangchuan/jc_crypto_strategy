@@ -28,6 +28,7 @@ import matplotlib.ticker as ticker
 
 from twelvedata import TDClient
 
+#from CurrencySmartExecutionManager import *
 
 import urllib.request
 
@@ -128,7 +129,7 @@ if use_dynamic_TP:
 
 client = None
 
-is_real_time_trading = False
+is_real_time_trading = True
 #is_weekend = False
 
 is_real_time_trading_5min = False
@@ -867,7 +868,7 @@ def start_do_trading(wakeup = 0):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_final_production_noforceOut_overbought_allcurrency"
+    current_date = "_final_production_noforceOut_overbought_simulate_production"
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
@@ -1213,6 +1214,12 @@ def start_do_trading(wakeup = 0):
     ##############
 
 
+    if do_smart_execution and do_real_money_trading:
+        smart_executor_manager: CurrencySmartExecutionManager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300)
+    else:
+        smart_executor_manager = None
+
+
 
     i = 0
     for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx, email_message_file in list(
@@ -1249,13 +1256,13 @@ def start_do_trading(wakeup = 0):
 
         #log_msg("Here performance_file = " + performance_file)
 
-
+        currency_coinbase = currency[:-len('USD')] + '-PERP-INTX'
 
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, data_folder,
                                          chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx,
                                          email_message_file, currency in currencies_to_notify, data_file_5min if read_5min_data else None, decimal, reverse_strategy, wakeup,
                                          coinbase_client = client if do_real_money_trading else None,
-                                         currency_coinbase = currency[:-len('USD')] + '-PERP-INTX' if do_real_money_trading else None,
+                                         currency_coinbase = currency_coinbase if do_real_money_trading else None,
                                          coinbase_portfolio_id = portfolio_id,
                                          crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading and currency in currency_coinbase_close_prices else 0,
                                          use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter, use_guppy_filter_for_exit = use_guppy_filter_for_exit,
@@ -1263,10 +1270,23 @@ def start_do_trading(wakeup = 0):
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
                                          use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data, over_bought_logic = over_bought_logic,
-                                         is_alternative=True if alternative == 'y' else False)
+                                         is_alternative=True if alternative == 'y' else False,
+                                         smart_executor_manager = smart_executor_manager)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
+
+        if do_smart_execution and do_real_money_trading:
+            smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
+                                                                strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
+                                                                strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
+                                                                coinbase_decimal = coinbase_decimal
+                                                                )
+
+    if do_smart_execution and do_real_money_trading:
+        log_msg("Start CurrencySmartExecutionManager......")
+        smart_executor_manager.start()
+
 
     log_msg("data_folders:")
     log_msg(data_folders)
