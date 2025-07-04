@@ -61,6 +61,7 @@ class CurrencySmartExecutor:
 
         self.entry_time = None
         self.exit_time = None
+        self.signal_exit_price = 0
 
         self.strategy_executions = [] #TODO: Need to implement persistency logic (load from persistency at startup)
         self.new_strategy_executions = []
@@ -116,6 +117,8 @@ class CurrencySmartExecutor:
                 for i in range(len(self.new_strategy_executions)):
                     strategy_execution: StrategyExecution = self.new_strategy_executions[i]
 
+                    strategy_execution.set_prod_strategy_entry_price(self.open_position_fill_price)
+
                     if use_extra_execution and i == len(self.strategy_executions)-1:
                         try:
                             client_order_id = self.generate_client_order_id()
@@ -156,6 +159,7 @@ class CurrencySmartExecutor:
                 self.target_position = 0
                 self.entry_time = None
                 self.target_side = None
+                self.open_position_fill_price = 0
 
                 if len(self.strategy_executions) == 0 and len(self.new_strategy_executions) > 0:
                     self.strategy_executions = self.new_strategy_executions
@@ -173,9 +177,12 @@ class CurrencySmartExecutor:
 
                     is_extra = use_extra_execution and i == len(self.strategy_executions) - 1
 
-                    strategy_execution.exit_execution(execution_exit_time=self.exit_time, execution_exit_price=self.close_position_fill_price,
+                    strategy_execution.exit_execution(execution_exit_time=self.exit_time, execution_exit_price=self.signal_exit_price,
                                              is_signal_exit=True,
                                              is_extra_execution=is_extra)
+
+                    strategy_execution.exit_execution_prod(prod_execution_exit_price=self.close_position_fill_price)
+
 
                     del self.execution2order[i+1]
 
@@ -185,6 +192,8 @@ class CurrencySmartExecutor:
                 self.position_to_close = 0
                 self.exit_time = None
                 self.side_to_close = None
+                self.close_position_fill_price = 0
+                self.signal_exit_price = 0
 
                 if len(self.new_strategy_executions) > 0:
                     self.strategy_executions = self.new_strategy_executions
@@ -192,12 +201,6 @@ class CurrencySmartExecutor:
                 else:
                     self.strategy_executions = []
 
-
-
-                pass
-
-
-            pass
 
 
         # Manage each execution
@@ -230,9 +233,11 @@ class CurrencySmartExecutor:
                         assert(filled_order.order_type() == OrderType.TAKE_PROFIT_EXIT)
 
                         strategy_execution.exit_execution(execution_exit_time=time_now,
-                                                          execution_exit_price=filled_price,
+                                                          execution_exit_price=strategy_execution.take_profit_price,
                                                           is_signal_exit=False,
                                                           is_extra_execution=True)
+
+                        strategy_execution.exit_execution_prod(prod_execution_exit_price=filled_price)
 
                         del self.execution2order[i+1]
 
@@ -241,14 +246,16 @@ class CurrencySmartExecutor:
 
                         assert(filled_order.order_type() in [OrderType.STOP_ENTER, OrderType.STOP_LOSS_EXIT])
 
-                        strategy_execution.exit_execution(execution_exit_time=time_now,
-                                                          execution_exit_price=filled_price,
-                                                          is_signal_exit=False,
-                                                          is_extra_execution=False)
-
-                        # TODO: Write finished execution to persistence
-
                         if filled_order.order_type() == OrderType.STOP_ENTER:
+
+                            strategy_execution.exit_execution(execution_exit_time=time_now,
+                                                              execution_exit_price=strategy_execution.take_profit_price,
+                                                              is_signal_exit=False,
+                                                              is_extra_execution=False)
+
+                            strategy_execution.exit_execution_prod(prod_execution_exit_price=filled_price)
+
+                            # TODO: Write finished execution to persistence
 
 
                             strategy_execution.update_to_next_execution(entry_time=time_now, increased_size=filled_order.order_size())
@@ -274,9 +281,18 @@ class CurrencySmartExecutor:
 
                         elif filled_order.order_type() == OrderType.STOP_LOSS_EXIT:
 
+                            strategy_execution.exit_execution(execution_exit_time=time_now,
+                                                              execution_exit_price=strategy_execution.take_loss_price,
+                                                              is_signal_exit=False,
+                                                              is_extra_execution=False)
+
+                            strategy_execution.exit_execution_prod(prod_execution_exit_price=filled_price)
+
+                            # TODO: Write finished execution to persistence
+
                             for order in order_list:
                                 if order.order_type() == OrderType.STOP_ENTER:
-                                    #Cancel this stop loss order because we have reached take profit and re-entered
+                                    #Cancel this stop enter order because we have reached take profit and re-entered
                                     try:
                                         cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
                                         print(cancel_response)
@@ -403,12 +419,12 @@ class CurrencySmartExecutor:
 
 
 
-    def close_executions(self, position_to_close, exit_time):
+    def close_executions(self, position_to_close, exit_time, signal_exit_price):
 
         self.position_to_close = position_to_close
         self.side_to_close = 'BUY' if self.position_to_close > 0 else 'SELL'
         self.exit_time = exit_time
-        #self.strategy_executions = []
+        self.signal_exit_price = signal_exit_price
 
         self.old_position_closed = True
 

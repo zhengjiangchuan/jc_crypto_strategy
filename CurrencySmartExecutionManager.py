@@ -76,12 +76,12 @@ class CurrencySmartExecutionManager(threading.Thread):
             self.thread_condition.notifyAll()
 
 
-    def close_executions(self, currency, position_to_close, exit_time):
+    def close_executions(self, currency, position_to_close, exit_time, signal_exit_price):
 
         with self.thread_condition:
 
             smart_executor: CurrencySmartExecutor = self.currency2executor[currency]
-            smart_executor.close_executions(position_to_close, exit_time)
+            smart_executor.close_executions(position_to_close, exit_time, signal_exit_price)
 
             self.thread_condition.notifyAll()
 

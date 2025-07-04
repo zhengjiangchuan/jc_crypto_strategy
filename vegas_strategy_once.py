@@ -118,9 +118,7 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = False #True
 
-use_coinbase_data_source = False
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
@@ -129,11 +127,7 @@ if use_dynamic_TP:
 
 client = None
 
-is_real_time_trading = True
-#is_weekend = False
 
-is_real_time_trading_5min = False
-#is_weekend_5min = False
 
 manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
 
@@ -1705,9 +1699,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (long_filled_sizes[i] * long_filled_prices[i] + filled_size * filled_price)/(long_filled_sizes[i] + filled_size)
                                         currency_trader.set_long_fill(average_fill_price, long_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(long_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_long_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
                                 else:
                                     log_msg("long order not fully filled.")
@@ -1749,9 +1748,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (short_filled_sizes[i] * short_filled_prices[i] + filled_size * filled_price)/(short_filled_sizes[i] + filled_size)
                                         currency_trader.set_short_fill(average_fill_price, short_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(short_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_short_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
                                 else:
@@ -1794,9 +1798,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (close_long_filled_sizes[i] * close_long_filled_prices[i] + filled_size * filled_price)/(close_long_filled_sizes[i] + filled_size)
                                         currency_trader.set_close_long_fill(average_fill_price, close_long_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_close_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(close_long_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_close_long_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_close_position_price(filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
 
@@ -1841,9 +1850,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (close_short_filled_sizes[i] * close_short_filled_prices[i] + filled_size * filled_price)/(close_short_filled_sizes[i] + filled_size)
                                         currency_trader.set_close_short_fill(average_fill_price, close_short_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_close_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(close_short_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_close_short_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_close_position_price(filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
 
