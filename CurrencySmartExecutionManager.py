@@ -29,13 +29,16 @@ class CurrencySmartExecutionManager(threading.Thread):
 
         self.currency2executor = {}
 
-    def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, coinbase_decimal = 0):
+        self.prod_files_written = False
+
+    def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, strategy_number):
 
         #This should be called before this thread starts (i.e., run() is executed)
         self.currency2execution[currency] = CurrencySmartExecutor(currency_conbase = currency_coinbase,
                                                                   coinbase_portfolio_id=self.coinbase_portfolio_id,
                                                                   strategy_prod_file = strategy_prod_file,
                                                                   strategy_execution_prod_file = strategy_execution_prod_file,
+                                                                  strategy_number = strategy_number,
                                                                   coinbase_client = self.coinbase_client)
 
 
@@ -46,15 +49,38 @@ class CurrencySmartExecutionManager(threading.Thread):
                 while len(self.currency2executor) == 0:
                     self.thread_condition.wait()
 
+                some_closed_position = False
                 for currency, v in self.currency2executor.items():
                     executor: CurrencySmartExecutor = v
                     print("Manage executinos for currency " + currency)
                     executor.manage_executions()
 
+                    if executor.waiting_to_finalize_pnl:
+                        some_closed_position
+
+                if some_closed_position:
+                    while not self.prod_files_written:
+                        self.thread_condition.wait()
+
+                    for currency, v in self.currency2executor.items():
+                        executor: CurrencySmartExecutor = v
+                        if executor.waiting_to_finalize_pnl:
+                            executor.finalize_pnl_to_prod_file()
+
+                    self.prod_files_written = False
+
+
+
+
             print("Sleep " + str(self.heart_beat) + " seconds before next checking")
             time.sleep(self.heart_beat)
 
 
+    def write_to_prod_files_finished(self):
+
+        with self.thread_condition:
+            self.prod_files_written = True;
+            self.thread_condition.notifyAll()
 
 
     def open_executions(self, currency, target_position, entry_time, strategy_executions):

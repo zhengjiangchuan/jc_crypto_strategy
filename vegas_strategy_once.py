@@ -1274,7 +1274,8 @@ def start_do_trading(wakeup = 0):
             smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
                                                                 strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
                                                                 strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
-                                                                coinbase_decimal = coinbase_decimal
+                                                                coinbase_decimal = coinbase_decimal,
+                                                                strategy_number = len(currency_trader.leverage)
                                                                 )
 
     if do_smart_execution and do_real_money_trading:
@@ -2032,6 +2033,9 @@ def start_do_trading(wakeup = 0):
                 currency_trader.post_processing()
 
         sendEmail("Trader process ends", "")
+
+        if do_smart_execution and do_real_money_trading:
+            smart_executor_manager.write_to_prod_files_finished()
 
         log_msg("Finished trading *********************************")
 

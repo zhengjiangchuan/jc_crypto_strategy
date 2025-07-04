@@ -2427,8 +2427,8 @@ class CurrencyTrader(threading.Thread):
 
         if do_smart_execution:
 
-            if do_smart_execution:
-                result_columns += ['pnl']
+
+            result_columns += ['pnl']
 
             strategy_record_columns = ['side', 'long_trade_id', 'short_trade_id', 'strategy_id', 'leverage', 'entry_time', 'entry_price', 'entry_value', 'exit_time', 'exit_price', 'exit_value', 'pnl']
             strategy_execution_record_columns = ['side', 'long_trade_id', 'short_trade_id', 'strategy_id', 'execution_id', 'leverage', 'take_profit_pct', 'take_profit_price', 'take_loss_pct', 'take_loss_price',
@@ -3146,7 +3146,7 @@ class CurrencyTrader(threading.Thread):
                                     break
 
 
-                if (not do_smart_execution) or can_use_5min:
+                if (not (do_smart_execution and not do_real_money_trading)) or can_use_5min:
                     cur_data = self.data_df.iloc[long_start_id + j]
 
 
@@ -3335,16 +3335,16 @@ class CurrencyTrader(threading.Thread):
 
 
             result_data += [[long_trade_id, 0, instrument, 'long', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]
-                            + ([total_strategy_pnl] if do_smart_execution else [])]
+                            + ([total_strategy_pnl] if do_smart_execution and not do_real_money_trading else [])]
 
 
-        if do_smart_execution:
+        if do_smart_execution and not do_real_money_trading:
             self.long_strategy_df = pd.DataFrame(data = long_strategy_records, columns = strategy_record_columns)
             self.long_strategy_execution_df = pd.DataFrame(data = long_strategy_execution_records, columns = strategy_execution_record_columns)
 
         long_df = pd.DataFrame(data = result_data, columns = result_columns)
 
-        if not do_smart_execution:
+        if not (do_smart_execution and not do_real_money_trading):
             long_df['pnl'] = np.where(
                 long_df['entry_time'].notnull() & long_df['exit_time'].notnull(),
                 (long_df['exit_price'] - long_df['entry_price']) / long_df['entry_price'] * self.init_entry_value * default_leverage,
@@ -3760,7 +3760,7 @@ class CurrencyTrader(threading.Thread):
                                     break
 
 
-                if (not do_smart_execution) or can_use_5min:
+                if (not (do_smart_execution and not do_real_money_trading)) or can_use_5min:
                     cur_data = self.data_df.iloc[short_start_id + j]
 
                 is_exit = False
@@ -3932,17 +3932,17 @@ class CurrencyTrader(threading.Thread):
 
 
             result_data += [[0, short_trade_id, instrument, 'short', entry_id, entry_time, entry_price, exit_id, exit_time, exit_price, is_win]
-                            + ([total_strategy_pnl] if do_smart_execution else [])]
+                            + ([total_strategy_pnl] if do_smart_execution and not do_real_money_trading else [])]
 
 
-        if do_smart_execution:
+        if do_smart_execution and not do_real_money_trading:
             self.short_strategy_df = pd.DataFrame(data = short_strategy_records, columns = strategy_record_columns)
             self.short_strategy_execution_df = pd.DataFrame(data = short_strategy_execution_records, columns = strategy_execution_record_columns)
 
 
         short_df = pd.DataFrame(data=result_data, columns=result_columns)
 
-        if not do_smart_execution:
+        if not (do_smart_execution and not do_real_money_trading):
             short_df['pnl'] = np.where(
                 short_df['entry_time'].notnull() & short_df['exit_time'].notnull(),
                 -(short_df['exit_price'] - short_df['entry_price']) / short_df['entry_price'] * self.init_entry_value * default_leverage,
@@ -4050,7 +4050,7 @@ class CurrencyTrader(threading.Thread):
             self.email_message_fd.close()
 
 
-        if do_smart_execution:
+        if do_smart_execution and not do_real_money_trading:
 
             strategy_df = pd.concat([self.long_strategy_df, self.short_strategy_df])
             strategy_execution_df = pd.concat([self.long_strategy_execution_df, self.short_strategy_execution_df])
@@ -4059,7 +4059,7 @@ class CurrencyTrader(threading.Thread):
             strategy_execution_df = strategy_execution_df.sort_values(by = ['entry_time', 'exit_time'], ascending = True)
 
 
-        if production_running and not do_smart_execution:
+        if production_running and not (do_smart_execution and not do_real_money_trading):
             if self.long_existing_df is not None and 'prod_entry_price' in self.long_existing_df.columns and 'prod_exit_price' in self.long_existing_df.columns:
 
                 # print("Fuck 1:")
@@ -4316,7 +4316,7 @@ class CurrencyTrader(threading.Thread):
         write_df['exit_price'] = write_df['exit_price'].apply(lambda x: round(x, self.decimal))
         write_df['cum_pnl'] = write_df['cum_pnl'].apply(lambda x: round(x, 2))
 
-        if do_smart_execution:
+        if do_smart_execution and not do_real_money_trading:
             for col in ['entry_price', 'exit_price']:
                 strategy_df[col] = strategy_df[col].apply(lambda x: round(x, self.decimal))
 
@@ -4362,7 +4362,7 @@ class CurrencyTrader(threading.Thread):
             self.log_msg("performance_file: " + str(self.performance_file))
             self.full_summary_df.to_csv(self.performance_file, index = False)
 
-            if do_smart_execution:
+            if do_smart_execution and not do_real_money_trading:
                 strategy_df.to_csv(self.trade_file[:-len('all_trades.csv')] + 'strategies.csv', index = False)
                 strategy_execution_df.to_csv(self.trade_file[:-len('all_trades.csv')] + 'strategy_execution.csv', index = False)
 
