@@ -76,6 +76,12 @@ class CurrencySmartExecutionManager(threading.Thread):
             time.sleep(self.heart_beat)
 
 
+    def reset_prod_files_written(self):
+
+        with self.thread_condition:
+            self.prod_files_written = False
+            self.thread_condition.notifyAll()
+
     def write_to_prod_files_finished(self):
 
         with self.thread_condition:

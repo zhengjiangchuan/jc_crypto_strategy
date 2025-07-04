@@ -127,6 +127,8 @@ if use_dynamic_TP:
 
 client = None
 
+smart_executor_manager: CurrencySmartExecutionManager = None
+executor_manager_started = False
 
 
 manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
@@ -568,6 +570,8 @@ def preprocess_data(data_df):
 def start_do_trading(wakeup = 0):
 
     global my_log_file
+    global smart_executor_manager
+    global executor_manager_started
 
     log_msg("")
     log_msg("")
@@ -1209,7 +1213,8 @@ def start_do_trading(wakeup = 0):
 
 
     if do_smart_execution and do_real_money_trading:
-        smart_executor_manager: CurrencySmartExecutionManager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300)
+        if smart_executor_manager is None:
+            smart_executor_manager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300)
     else:
         smart_executor_manager = None
 
@@ -1279,8 +1284,14 @@ def start_do_trading(wakeup = 0):
                                                                 )
 
     if do_smart_execution and do_real_money_trading:
-        log_msg("Start CurrencySmartExecutionManager......")
-        smart_executor_manager.start()
+
+        if not executor_manager_started:
+            log_msg("Start CurrencySmartExecutionManager......")
+            smart_executor_manager.start()
+
+            executor_manager_started = True
+
+        smart_executor_manager.reset_prod_files_written()
 
 
     log_msg("data_folders:")
