@@ -41,12 +41,14 @@ class Order:
 
 class CurrencySmartExecutor:
 
-    def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file, strategy_number,
+    def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file,  strategy_number,
                  coinbase_client: Optional[RESTClient] = None):
         self.currency_coinbase = currency_coinbase
         self.coinbase_portfolio_id = coinbase_portfolio_id
         self.strategy_prod_file = strategy_prod_file
         self.strategy_execution_prod_file = strategy_execution_prod_file
+        self.trade_file = trade_file
+        self.trade_prod_file = trade_prod_file
 
         self.strategy_number = strategy_number
 
@@ -214,15 +216,81 @@ class CurrencySmartExecutor:
 
     def finalize_pnl_to_prod_file(self):
 
+        if os.path.exists(self.trade_file) and os.path.exists(self.trade_prod_file):
+            trade_df = pd.read_csv(self.trade_file)
+            trade_prod_df = pd.read_csv(self.trade_prod_file)
+
+            long_trade_df = self.strategy_data_df[self.strategy_data_df['long_trade_id'] > 0]
+            short_trade_df = self.strategy_data_df[self.strategy_data_df['short_trade_id'] > 0]
+
+            long_trade_agg_df = long_trade_df[['long_trade_id', 'pnl', 'prod_pnl']]
+            long_trade_agg_df = long_trade_agg_df.groupby(by = ['long_trade_id']).agg({'pnl' : 'sum', 'prod_pnl' : 'sum'})
+            long_trade_agg_df.reset_index(inplace = True)
+            long_trade_agg_df = long_trade_agg_df.rename(columns = {'pnl' : 'long_trade_pnl', 'prod_pnl' : 'long_trade_prod_pnl'})
+
+            short_trade_agg_df = short_trade_df[['short_trade_id', 'pnl', 'prod_pnl']]
+            short_trade_agg_df = short_trade_agg_df.groupby(by=['short_trade_id']).agg({'pnl': 'sum', 'prod_pnl': 'sum'})
+            short_trade_agg_df.reset_index(inplace=True)
+            short_trade_agg_df = short_trade_agg_df.rename(columns={'pnl': 'short_trade_pnl', 'prod_pnl': 'short_trade_prod_pnl'})
+
+            trade_df = pd.merge(trade_df, long_trade_agg_df, on = ['long_trade_id'], how = 'left')
+            trade_df = pd.merge(trade_df, short_trade_agg_df, on = ['short_trade_id'], how = 'left')
+
+            trade_df['pnl'] = np.where(
+                trade_df['long_trade_id'] > 0,
+                trade_df['long_trade_pnl'],
+                trade_df['short_trade_pnl']
+            )
+
+            trade_df = trade_df.drop(columns = ['long_trade_pnl', 'short_trade_pnl', 'long_trade_prod_pnl', 'short_trade_prod_pnl'])
+
+            trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
+
+            trade_df['pnl'] = trade_df['pnl'].apply(lambda x: round(x, 2))
+            trade_df['cum_pnl'] = trade_df['cum_pnl'].apply(lambda x: round(x, 2))
+
+            trade_prod_df = pd.merge(trade_prod_df, long_trade_agg_df, on=['long_trade_id'], how='left')
+            trade_prod_df = pd.merge(trade_prod_df, short_trade_agg_df, on=['short_trade_id'], how='left')
+
+            trade_prod_df['pnl'] = np.where(
+                trade_prod_df['long_trade_id'] > 0,
+                trade_prod_df['long_trade_pnl'],
+                trade_prod_df['short_trade_pnl']
+            )
+
+            trade_prod_df['prod_pnl'] = np.where(
+                trade_prod_df['long_trade_id'] > 0,
+                trade_prod_df['long_trade_prod_pnl'],
+                trade_prod_df['short_trade_prod_pnl']
+            )
+
+            trade_prod_df = trade_prod_df.drop(
+                columns=['long_trade_pnl', 'short_trade_pnl', 'long_trade_prod_pnl', 'short_trade_prod_pnl'])
+
+            trade_prod_df['cum_pnl'] = trade_prod_df['pnl'].cumsum()
+            trade_prod_df['pnl'] = trade_prod_df['pnl'].apply(lambda x: round(x, 2))
+            trade_prod_df['cum_pnl'] = trade_prod_df['cum_pnl'].apply(lambda x: round(x, 2))
+
+            trade_prod_df['prod_cum_pnl'] = trade_prod_df['prod_pnl'].cumsum()
+            trade_prod_df['prod_pnl'] = trade_prod_df['prod_pnl'].apply(lambda x: round(x, 2))
+            trade_prod_df['prod_cum_pnl'] = trade_prod_df['prod_cum_pnl'].apply(lambda x: round(x, 2))
+
+
+            trade_df.to_csv(self.trade_file, index = False)
+            trade_prod_df.to_csv(self.trade_prod_file, index = False)
+
+
+
+
 
         self.waiting_to_finalize_pnl = False
         pass
 
 
+
     def append_strategy_row(self, strategy_row):
 
         delta_data_df = pd.DataFrame(data=[strategy_row], columns=self.strategy_data_columns)
-        new_strategy_row = delta_data_df.iloc[0]
         if self.strategy_data_df is None:
             self.strategy_data_df = delta_data_df
         else:

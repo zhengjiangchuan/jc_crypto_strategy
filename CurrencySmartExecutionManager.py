@@ -31,13 +31,15 @@ class CurrencySmartExecutionManager(threading.Thread):
 
         self.prod_files_written = False
 
-    def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, strategy_number):
+    def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, strategy_number):
 
         #This should be called before this thread starts (i.e., run() is executed)
         self.currency2execution[currency] = CurrencySmartExecutor(currency_conbase = currency_coinbase,
                                                                   coinbase_portfolio_id=self.coinbase_portfolio_id,
                                                                   strategy_prod_file = strategy_prod_file,
                                                                   strategy_execution_prod_file = strategy_execution_prod_file,
+                                                                  trade_file = trade_file,
+                                                                  trade_prod_file = trade_prod_file,
                                                                   strategy_number = strategy_number,
                                                                   coinbase_client = self.coinbase_client)
 

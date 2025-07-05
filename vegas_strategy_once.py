@@ -1280,6 +1280,8 @@ def start_do_trading(wakeup = 0):
                                                                 strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
                                                                 strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
                                                                 coinbase_decimal = coinbase_decimal,
+                                                                trade_file = trade_file,
+                                                                trade_prod_file = trade_prod_file,
                                                                 strategy_number = len(currency_trader.leverage)
                                                                 )
 
