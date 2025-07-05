@@ -482,6 +482,16 @@ class CurrencySmartExecutor:
                     if not strategy_execution.active:
                         continue
 
+                    order_list = self.execution2order[i + 1]
+                    for order in order_list:
+                        try:
+                            print("Cancel pending orders because closing signal fires")
+                            cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
+                            print(cancel_response)
+                        except Exception as e:
+                            print("Error:", e)
+
+
                     is_extra = use_extra_execution and i == len(self.strategy_executions) - 1
 
                     strategy_execution.exit_execution(execution_exit_time=self.exit_time, execution_exit_price=self.signal_exit_price,
