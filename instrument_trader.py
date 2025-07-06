@@ -13,7 +13,7 @@ import time
 
 import math
 import matplotlib.lines as mlines
-import datetime
+#import datetime
 import pandas as pd
 import math
 import copy
@@ -44,7 +44,7 @@ from json import dumps
 import uuid
 
 from CurrencySmartExecutionManager import *
-
+from StrategyExecution import *
 
 
 pd.set_option('display.max_rows', 10000)
@@ -318,9 +318,7 @@ default_leverage = 10
 
 enable_short_macd_signal = False
 
-do_smart_execution = False
-use_5min_in_smart_execution = False
-use_extra_execution = False
+
 
 
 do_message_printing = True
@@ -343,15 +341,17 @@ global_reentry_after_stop_loss = False
 global_also_filter_too_late = False
 global_use_guppy_condition = False
 
+####################################
+do_smart_execution = True
+use_5min_in_smart_execution = True
+use_extra_execution = False
 
 is_real_time_trading = True
-#is_weekend = False
-
-is_real_time_trading_5min = False
-#is_weekend_5min = False
+is_real_time_trading_5min = True
 
 
-read_5min_data = False #True
+
+read_5min_data = True #True
 
 use_coinbase_data_source = False
 
@@ -376,115 +376,115 @@ if not do_real_money_trading:
 
 
 
-if do_smart_execution:
-
-    class StrategyExecution:
-
-        def __init__(self, side, leverage, take_profit_pct, take_loss_pct, strategy_id, execution_id, strategy_entry_time, strategy_entry_price,
-                      execution_entry_time, execution_entry_price, strategy_entry_value, execution_entry_value, prod_size = 0):
-
-            self.active = True
-            self.side = side #1 means long  -1 means short
-            self.leverage = leverage
-            self.take_profit_pct = take_profit_pct
-            self.take_loss_pct = take_loss_pct
-            self.strategy_id = strategy_id
-            self.execution_id = execution_id
-            self.strategy_entry_time = strategy_entry_time
-            self.strategy_entry_price = strategy_entry_price
-            self.execution_entry_time = execution_entry_time
-            self.execution_entry_price = execution_entry_price
-            self.strategy_entry_value = strategy_entry_value #This is actual notioanl value (margin value, not leveraged)
-            self.execution_entry_value = execution_entry_value
-
-            self.execution_exit_time = None
-            self.execution_exit_price = -1
-            self.execution_exit_value = -1
-
-            self.prod_size = prod_size  #This is leveraged size (enlarged size)
-
-            self.pnl_rate = 0
-            self.pnl = 0
-
-            self.prod_strategy_entry_price = 0
-            self.prod_execution_entry_price = 0
-            self.prod_strategy_entry_value = 0
-            self.prod_execution_entry_value = 0
-
-            self.prod_execution_exit_price = -1
-            self.prod_execution_exit_value = -1
-
-            self.prod_pnl_rate = 0
-            self.prod_pnl = 0
-
-
-            self.initialize()
-
-
-
-
-
-        def initialize(self):
-
-            self.pnl_rate = 0
-            self.pnl = 0
-
-            self.take_profit_price = self.execution_entry_price * (1 + self.side * self.take_profit_pct)
-            self.take_loss_price = self.execution_entry_price * (1 - self.side * self.take_loss_pct)
-
-
-        def set_prod_strategy_entry_price(self, prod_entry_price):
-
-            self.prod_strategy_entry_price = prod_entry_price
-            self.prod_execution_entry_price = prod_entry_price
-
-            self.prod_strategy_entry_value = prod_entry_price * self.prod_size / default_leverage
-            self.prod_execution_entry_value = self.prod_strategy_entry_value
-
-
-        def exit_execution(self, execution_exit_time, execution_exit_price, is_signal_exit, is_extra_execution):
-
-            return_rate = self.side * (execution_exit_price - self.execution_entry_price)/self.execution_entry_price
-
-            self.pnl_rate = return_rate * self.leverage
-            self.pnl = self.execution_entry_value * self.pnl_rate
-
-            self.execution_exit_price = execution_exit_price
-            self.execution_exit_value = self.execution_entry_value + self.pnl
-            self.execution_exit_time = execution_exit_time
-
-            self.active = (not is_signal_exit) and self.pnl > 0 and (not is_extra_execution)
-
-
-        def exit_execution_prod(self, prod_execution_exit_price):
-
-            prod_return_rate = self.side * (prod_execution_exit_price - self.prod_execution_entry_price)/self.prod_execution_entry_price
-
-            self.prod_pnl_rate = prod_return_rate * self.leverage
-            self.prod_pnl = self.prod_execution_entry_value * self.pnl_rate
-
-            self.prod_execution_exit_price = prod_execution_exit_price
-            self.prod_execution_exit_value =self.prod_execution_entry_value + self.prod_pnl
-
-
-
-        def calc_increased_size_when_take_profit(self):
-
-            return self.prod_size * self.take_profit_pct * self.leverage
-
-
-        def update_to_next_execution(self, entry_time, increased_size):
-
-            self.execution_id = self.execution_id + 1
-            self.execution_entry_time = entry_time
-            self.execution_entry_price = self.execution_exit_price
-            self.execution_entry_value = self.execution_exit_value
-            self.prod_size = self.prod_size + increased_size
-
-            self.prod_execution_entry_price = self.prod_execution_exit_price
-            self.prod_execution_entry_value = self.prod_execution_exit_value
-
-            self.initialize()
+# if do_smart_execution:
+#
+#     class StrategyExecution:
+#
+#         def __init__(self, side, leverage, take_profit_pct, take_loss_pct, strategy_id, execution_id, strategy_entry_time, strategy_entry_price,
+#                       execution_entry_time, execution_entry_price, strategy_entry_value, execution_entry_value, prod_size = 0):
+#
+#             self.active = True
+#             self.side = side #1 means long  -1 means short
+#             self.leverage = leverage
+#             self.take_profit_pct = take_profit_pct
+#             self.take_loss_pct = take_loss_pct
+#             self.strategy_id = strategy_id
+#             self.execution_id = execution_id
+#             self.strategy_entry_time = strategy_entry_time
+#             self.strategy_entry_price = strategy_entry_price
+#             self.execution_entry_time = execution_entry_time
+#             self.execution_entry_price = execution_entry_price
+#             self.strategy_entry_value = strategy_entry_value #This is actual notioanl value (margin value, not leveraged)
+#             self.execution_entry_value = execution_entry_value
+#
+#             self.execution_exit_time = None
+#             self.execution_exit_price = -1
+#             self.execution_exit_value = -1
+#
+#             self.prod_size = prod_size  #This is leveraged size (enlarged size)
+#
+#             self.pnl_rate = 0
+#             self.pnl = 0
+#
+#             self.prod_strategy_entry_price = 0
+#             self.prod_execution_entry_price = 0
+#             self.prod_strategy_entry_value = 0
+#             self.prod_execution_entry_value = 0
+#
+#             self.prod_execution_exit_price = -1
+#             self.prod_execution_exit_value = -1
+#
+#             self.prod_pnl_rate = 0
+#             self.prod_pnl = 0
+#
+#
+#             self.initialize()
+#
+#
+#
+#
+#
+#         def initialize(self):
+#
+#             self.pnl_rate = 0
+#             self.pnl = 0
+#
+#             self.take_profit_price = self.execution_entry_price * (1 + self.side * self.take_profit_pct)
+#             self.take_loss_price = self.execution_entry_price * (1 - self.side * self.take_loss_pct)
+#
+#
+#         def set_prod_strategy_entry_price(self, prod_entry_price):
+#
+#             self.prod_strategy_entry_price = prod_entry_price
+#             self.prod_execution_entry_price = prod_entry_price
+#
+#             self.prod_strategy_entry_value = prod_entry_price * self.prod_size / default_leverage
+#             self.prod_execution_entry_value = self.prod_strategy_entry_value
+#
+#
+#         def exit_execution(self, execution_exit_time, execution_exit_price, is_signal_exit, is_extra_execution):
+#
+#             return_rate = self.side * (execution_exit_price - self.execution_entry_price)/self.execution_entry_price
+#
+#             self.pnl_rate = return_rate * self.leverage
+#             self.pnl = self.execution_entry_value * self.pnl_rate
+#
+#             self.execution_exit_price = execution_exit_price
+#             self.execution_exit_value = self.execution_entry_value + self.pnl
+#             self.execution_exit_time = execution_exit_time
+#
+#             self.active = (not is_signal_exit) and self.pnl > 0 and (not is_extra_execution)
+#
+#
+#         def exit_execution_prod(self, prod_execution_exit_price):
+#
+#             prod_return_rate = self.side * (prod_execution_exit_price - self.prod_execution_entry_price)/self.prod_execution_entry_price
+#
+#             self.prod_pnl_rate = prod_return_rate * self.leverage
+#             self.prod_pnl = self.prod_execution_entry_value * self.pnl_rate
+#
+#             self.prod_execution_exit_price = prod_execution_exit_price
+#             self.prod_execution_exit_value =self.prod_execution_entry_value + self.prod_pnl
+#
+#
+#
+#         def calc_increased_size_when_take_profit(self):
+#
+#             return self.prod_size * self.take_profit_pct * self.leverage
+#
+#
+#         def update_to_next_execution(self, entry_time, increased_size):
+#
+#             self.execution_id = self.execution_id + 1
+#             self.execution_entry_time = entry_time
+#             self.execution_entry_price = self.execution_exit_price
+#             self.execution_entry_value = self.execution_exit_value
+#             self.prod_size = self.prod_size + increased_size
+#
+#             self.prod_execution_entry_price = self.prod_execution_exit_price
+#             self.prod_execution_entry_value = self.prod_execution_exit_value
+#
+#             self.initialize()
 
 
 
@@ -2971,7 +2971,7 @@ class CurrencyTrader(threading.Thread):
                             strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
                                                                    strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                    execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
-                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, prod_size = prod_size)
+                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, default_leverage=default_leverage, prod_size = prod_size)
                             strategy_executions += [strategy_execution]
 
 
@@ -2985,7 +2985,7 @@ class CurrencyTrader(threading.Thread):
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                        execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
                                                                        strategy_entry_value = extra_entry_value, execution_entry_value = extra_entry_value,
-                                                                       prod_size = extra_prod_size)
+                                                                       default_leverage=default_leverage,prod_size = extra_prod_size)
 
                             strategy_executions += [strategy_execution]
 
@@ -3001,7 +3001,7 @@ class CurrencyTrader(threading.Thread):
                         strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
                                                                strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                               strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value)
+                                                               strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value, default_leverage=default_leverage)
                         strategy_executions += [strategy_execution]
 
                     #This is the extra one
@@ -3010,7 +3010,7 @@ class CurrencyTrader(threading.Thread):
                         strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                    strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                    execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                                   strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0)
+                                                                   strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0, default_leverage=default_leverage)
 
                         strategy_executions += [strategy_execution]
 
@@ -3109,7 +3109,7 @@ class CurrencyTrader(threading.Thread):
                                                                        take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                        strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
                                                                        execution_entry_time=next_cur_data_1h['time'], execution_entry_price=next_cur_data_1h['open'],
-                                                                       strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                       strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value, default_leverage=default_leverage
                                                                        )
                                                  strategy_executions[k] = next_execution
                                     ###################################
@@ -3137,7 +3137,7 @@ class CurrencyTrader(threading.Thread):
                                                                    take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                    strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
                                                                    execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
-                                                                   strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                   strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value, default_leverage=default_leverage
                                                                    )
                                     strategy_executions[k] = next_execution
                                     execution = strategy_executions[k]
@@ -3573,7 +3573,7 @@ class CurrencyTrader(threading.Thread):
                             strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
                                                                    strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                    execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
-                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, prod_size = prod_size)
+                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, default_leverage=default_leverage, prod_size = prod_size)
                             strategy_executions += [strategy_execution]
 
 
@@ -3586,7 +3586,7 @@ class CurrencyTrader(threading.Thread):
                             strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                        execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
-                                                                       strategy_entry_value = extra_entry_value, execution_entry_value = extra_entry_value,
+                                                                       strategy_entry_value = extra_entry_value, execution_entry_value = extra_entry_value, default_leverage=default_leverage,
                                                                        prod_size = extra_prod_size)
 
                             strategy_executions += [strategy_execution]
@@ -3601,7 +3601,7 @@ class CurrencyTrader(threading.Thread):
                         strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
                                                                strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                               strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value)
+                                                               strategy_entry_value = self.each_strategy_entry_value, execution_entry_value = self.each_strategy_entry_value, default_leverage=default_leverage)
                         strategy_executions += [strategy_execution]
 
                     #This is the extra one
@@ -3609,7 +3609,7 @@ class CurrencyTrader(threading.Thread):
                         strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                    strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = entry_price,
                                                                    execution_entry_time = entry_time, execution_entry_price = entry_price,
-                                                                   strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0)
+                                                                   strategy_entry_value = self.init_entry_value/2.0, execution_entry_value = self.init_entry_value/2.0, default_leverage=default_leverage)
 
                         strategy_executions += [strategy_execution]
 
@@ -3721,7 +3721,7 @@ class CurrencyTrader(threading.Thread):
                                                                        take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                        strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
                                                                        execution_entry_time=next_cur_data_1h['time'], execution_entry_price=next_cur_data_1h['open'],
-                                                                       strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                       strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value, default_leverage=default_leverage
                                                                        )
                                                  strategy_executions[k] = next_execution
                                     ###################################
@@ -3751,7 +3751,7 @@ class CurrencyTrader(threading.Thread):
                                                                    take_loss_pct=execution.take_loss_pct, strategy_id=execution.strategy_id, execution_id=execution.execution_id+1,
                                                                    strategy_entry_time=execution.strategy_entry_time, strategy_entry_price=execution.strategy_entry_price,
                                                                    execution_entry_time=cur_data['time'], execution_entry_price=execution.execution_exit_price,
-                                                                   strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value
+                                                                   strategy_entry_value=execution.strategy_entry_value, execution_entry_value=execution.execution_exit_value, default_leverage=default_leverage
                                                                    )
                                     strategy_executions[k] = next_execution
                                     execution = strategy_executions[k]

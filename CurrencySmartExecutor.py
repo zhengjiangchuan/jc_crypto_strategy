@@ -13,8 +13,9 @@ import sys
 import os
 from typing import Any, Dict, List, Optional
 from coinbase.rest import RESTClient
-from instrument_trader import *
+#from instrument_trader import *
 
+from StrategyExecution import *
 from enum import Enum,auto
 
 class OrderType(Enum):

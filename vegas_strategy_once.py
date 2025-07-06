@@ -8,7 +8,7 @@ warnings.warn = warn
 #import talib
 
 import matplotlib.lines as mlines
-import datetime
+#import datetime
 import pandas as pd
 import math
 import copy
@@ -866,7 +866,7 @@ def start_do_trading(wakeup = 0):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_final_production_noforceOut_overbought_simulate_production"
+    current_date = "_final_production_noforceOut_overbought_execution_regression_test"
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
