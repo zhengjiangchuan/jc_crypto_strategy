@@ -290,7 +290,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -342,25 +342,25 @@ global_also_filter_too_late = False
 global_use_guppy_condition = False
 
 ####################################
-do_smart_execution = True
-use_5min_in_smart_execution = True
+do_smart_execution = False
+use_5min_in_smart_execution = False
 use_extra_execution = False
 
 is_real_time_trading = True
-is_real_time_trading_5min = True
+is_real_time_trading_5min = False
 
 
 
-read_5min_data = True #True
+read_5min_data = False #True
 
-use_coinbase_data_source = False
+use_coinbase_data_source = True
 
 
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = False
-do_real_money_trading = False
+production_running = True
+do_real_money_trading = True
 
 
 if not is_real_time_trading:
