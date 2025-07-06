@@ -19,7 +19,7 @@ import time
 
 class CurrencySmartExecutionManager(threading.Thread):
 
-    def __init__(self, coinbase_client: RESTClient, coinbase_portfolio_id, heart_beat = 60):
+    def __init__(self, coinbase_client: RESTClient, coinbase_portfolio_id, heart_beat = 60, use_extra_execution = False):
 
         self.thread_condition: threading.Condition = threading.Condition()
         self.thread_lock: threading.Lock = threading.Lock()
@@ -30,6 +30,8 @@ class CurrencySmartExecutionManager(threading.Thread):
         self.currency2executor = {}
 
         self.prod_files_written = False
+
+        self.use_extra_execution = use_extra_execution
 
     def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, strategy_number):
 

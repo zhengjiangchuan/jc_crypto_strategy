@@ -866,7 +866,7 @@ def start_do_trading(wakeup = 0):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_final_production_noforceOut_overbought_coinbase"
+    current_date = "_production_0701_noforceOut_overbought_coinbase"
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
@@ -1214,7 +1214,7 @@ def start_do_trading(wakeup = 0):
 
     if do_smart_execution and do_real_money_trading:
         if smart_executor_manager is None:
-            smart_executor_manager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300)
+            smart_executor_manager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300, use_extra_execution = use_extra_execution)
     else:
         smart_executor_manager = None
 

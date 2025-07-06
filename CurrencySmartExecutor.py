@@ -18,6 +18,8 @@ from coinbase.rest import RESTClient
 from StrategyExecution import *
 from enum import Enum,auto
 
+import uuid
+
 class OrderType(Enum):
     TAKE_PROFIT_EXIT = auto()
     STOP_LOSS_EXIT = auto()
@@ -43,7 +45,7 @@ class Order:
 class CurrencySmartExecutor:
 
     def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file,  strategy_number,
-                 coinbase_client: Optional[RESTClient] = None):
+                 coinbase_client: Optional[RESTClient] = None, use_extra_execution = False):
         self.currency_coinbase = currency_coinbase
         self.coinbase_portfolio_id = coinbase_portfolio_id
         self.strategy_prod_file = strategy_prod_file
@@ -89,6 +91,8 @@ class CurrencySmartExecutor:
 
         self.waiting_to_finalize_pnl = False
 
+        self.use_extra_execution = use_extra_execution
+
         self.strategy_data_columns = ['side', 'long_trade_id', 'short_trade_id', 'strategy_id', 'leverage',
                                       'entry_time', 'entry_price', 'prod_entry_price', 'entry_value', 'prod_entry_value',
                                       'exit_time', 'exit_price', 'prod_exit_price', 'exit_value', 'prod_exit_value', 'pnl', 'prod_pnl']
@@ -116,7 +120,7 @@ class CurrencySmartExecutor:
         if os.path.exists(self.strategy_execution_prod_file):
             self.execution_data_df = pd.read_csv(self.strategy_execution_prod_file)
 
-            self.strategy_executions = [None] * (strategy_number+1 if use_extra_execution else strategy_number)
+            self.strategy_executions = [None] * (strategy_number+1 if self.use_extra_execution else strategy_number)
 
             unfinished_execution_data_df = self.execution_data_df[self.execution_data_df['exit_price'] <= 0]
             for i in range(unfinished_execution_data_df.shape[0]):
@@ -413,7 +417,7 @@ class CurrencySmartExecutor:
 
                     strategy_execution.set_prod_strategy_entry_price(self.open_position_fill_price)
 
-                    if use_extra_execution and i == len(self.strategy_executions)-1:
+                    if self.use_extra_execution and i == len(self.strategy_executions)-1:
                         try:
                             client_order_id = self.generate_client_order_id()
 
@@ -493,7 +497,7 @@ class CurrencySmartExecutor:
                             print("Error:", e)
 
 
-                    is_extra = use_extra_execution and i == len(self.strategy_executions) - 1
+                    is_extra = self.use_extra_execution and i == len(self.strategy_executions) - 1
 
                     strategy_execution.exit_execution(execution_exit_time=self.exit_time, execution_exit_price=self.signal_exit_price,
                                              is_signal_exit=True,
@@ -553,7 +557,7 @@ class CurrencySmartExecutor:
 
                 if has_order_filled:
 
-                    is_extra = use_extra_execution and i == len(self.strategy_executions)-1
+                    is_extra = self.use_extra_execution and i == len(self.strategy_executions)-1
 
                     time_now = self.current_time()
 
