@@ -28,6 +28,7 @@ import matplotlib.ticker as ticker
 
 from twelvedata import TDClient
 
+#from CurrencySmartExecutionManager import *
 
 import urllib.request
 
@@ -117,9 +118,7 @@ is_run_aggregated_good_ones = False
 
 profit_loss_ratio = 1
 
-read_5min_data = False #True
 
-use_coinbase_data_source = False
 
 if use_dynamic_TP:
     profit_loss_ratio = 10
@@ -128,11 +127,9 @@ if use_dynamic_TP:
 
 client = None
 
-is_real_time_trading = True
-#is_weekend = False
+smart_executor_manager: CurrencySmartExecutionManager = None
+executor_manager_started = False
 
-is_real_time_trading_5min = False
-#is_weekend_5min = False
 
 manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
 
@@ -573,6 +570,8 @@ def preprocess_data(data_df):
 def start_do_trading(wakeup = 0):
 
     global my_log_file
+    global smart_executor_manager
+    global executor_manager_started
 
     log_msg("")
     log_msg("")
@@ -867,7 +866,7 @@ def start_do_trading(wakeup = 0):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_final_production_noforceOut_overbought"
+    current_date = "_final_production_noforceOut_overbought_simulate_production"
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
@@ -1213,6 +1212,13 @@ def start_do_trading(wakeup = 0):
     ##############
 
 
+    if do_smart_execution and do_real_money_trading:
+        if smart_executor_manager is None:
+            smart_executor_manager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300)
+    else:
+        smart_executor_manager = None
+
+
 
     i = 0
     for currency_pair, data_folder, chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx, email_message_file in list(
@@ -1249,13 +1255,13 @@ def start_do_trading(wakeup = 0):
 
         #log_msg("Here performance_file = " + performance_file)
 
-
+        currency_coinbase = currency[:-len('USD')] + '-PERP-INTX'
 
         currency_trader = CurrencyTrader(threading.Condition(), currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, data_folder,
                                          chart_folder, simple_chart_folder, log_file, data_file, trade_file, trade_prod_file, delay_cost_file, performance_file, usdfx,
                                          email_message_file, currency in currencies_to_notify, data_file_5min if read_5min_data else None, decimal, reverse_strategy, wakeup,
                                          coinbase_client = client if do_real_money_trading else None,
-                                         currency_coinbase = currency[:-len('USD')] + '-PERP-INTX' if do_real_money_trading else None,
+                                         currency_coinbase = currency_coinbase if do_real_money_trading else None,
                                          coinbase_portfolio_id = portfolio_id,
                                          crypto_last_price = currency_coinbase_close_prices[currency] if do_real_money_trading and currency in currency_coinbase_close_prices else 0,
                                          use_slow_macd = use_slow_macd, use_guppy_filter = use_guppy_filter, use_guppy_filter_for_exit = use_guppy_filter_for_exit,
@@ -1263,10 +1269,32 @@ def start_do_trading(wakeup = 0):
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
                                          use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data, over_bought_logic = over_bought_logic,
-                                         is_alternative=True if alternative == 'y' else False)
+                                         is_alternative=True if alternative == 'y' else False,
+                                         smart_executor_manager = smart_executor_manager)
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
+
+        if do_smart_execution and do_real_money_trading:
+            smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
+                                                                strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
+                                                                strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
+                                                                coinbase_decimal = coinbase_decimal,
+                                                                trade_file = trade_file,
+                                                                trade_prod_file = trade_prod_file,
+                                                                strategy_number = len(currency_trader.leverage)
+                                                                )
+
+    if do_smart_execution and do_real_money_trading:
+
+        if not executor_manager_started:
+            log_msg("Start CurrencySmartExecutionManager......")
+            smart_executor_manager.start()
+
+            executor_manager_started = True
+
+        smart_executor_manager.reset_prod_files_written()
+
 
     log_msg("data_folders:")
     log_msg(data_folders)
@@ -1685,9 +1713,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (long_filled_sizes[i] * long_filled_prices[i] + filled_size * filled_price)/(long_filled_sizes[i] + filled_size)
                                         currency_trader.set_long_fill(average_fill_price, long_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(long_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_long_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
                                 else:
                                     log_msg("long order not fully filled.")
@@ -1729,9 +1762,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (short_filled_sizes[i] * short_filled_prices[i] + filled_size * filled_price)/(short_filled_sizes[i] + filled_size)
                                         currency_trader.set_short_fill(average_fill_price, short_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(short_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_short_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_open_position_price(currency_trader.currency, filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
                                 else:
@@ -1774,9 +1812,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (close_long_filled_sizes[i] * close_long_filled_prices[i] + filled_size * filled_price)/(close_long_filled_sizes[i] + filled_size)
                                         currency_trader.set_close_long_fill(average_fill_price, close_long_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_close_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(close_long_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_close_long_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_close_position_price(filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
 
@@ -1821,9 +1864,14 @@ def start_do_trading(wakeup = 0):
                                         average_fill_price = (close_short_filled_sizes[i] * close_short_filled_prices[i] + filled_size * filled_price)/(close_short_filled_sizes[i] + filled_size)
                                         currency_trader.set_close_short_fill(average_fill_price, close_short_filled_sizes[i] + filled_size)
 
+                                        smart_executor_manager.set_close_position_price(currency_trader.currency, average_fill_price)
+
                                         log_msg("average_fill_price=" + str(average_fill_price) + ", total_fill_size=" + str(close_short_filled_sizes[i] + filled_size))
                                     else:
                                         currency_trader.set_close_short_fill(filled_price, filled_size)
+
+                                        smart_executor_manager.set_close_position_price(filled_price)
+
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
 
@@ -1998,6 +2046,9 @@ def start_do_trading(wakeup = 0):
                 currency_trader.post_processing()
 
         sendEmail("Trader process ends", "")
+
+        if do_smart_execution and do_real_money_trading:
+            smart_executor_manager.write_to_prod_files_finished()
 
         log_msg("Finished trading *********************************")
 
