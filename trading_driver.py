@@ -102,6 +102,10 @@ def wait_for_trigger():
 #     print("Parent starts child process")
 #     os.system("python vegas_strategy_once.py")
 
+#until_date = "2024-09-20"
+
+final_start_date = None #"2024-09-05"
+final_end_date = None #"2025-07-06"
 
 if __name__ == '__main__':
 
@@ -138,7 +142,36 @@ if __name__ == '__main__':
 
         #try:
         #if True:
-        start_do_trading(wakeup=wakeup)
+
+        if final_start_date is not None and final_end_date is not None:
+            start_date = datetime.strptime(final_start_date, "%Y-%m-%d")
+            end_date = datetime.strptime(final_end_date, "%Y-%m-%d")
+
+            reached_end = False
+            while True:
+                until_date = start_date + timedelta(seconds=350*3600)
+
+                print("start_date = " + str(start_date) + "**********************")
+                print("until_date = " + str(until_date) + "**********************")
+                print("")
+
+                if until_date > end_date:
+                    until_date = end_date
+                    reached_end = True
+
+                start_date = until_date - timedelta(seconds = 24*3600)
+
+                until_date = until_date.strftime("%Y-%m-%d")
+
+                start_do_trading(wakeup=wakeup, until_date=until_date)
+                time.sleep(2)
+
+                if reached_end:
+                    break
+
+
+        else:
+            start_do_trading(wakeup=wakeup)
 
         print("Going to enter wait_for_trigger")
         wakeup = wait_for_trigger()

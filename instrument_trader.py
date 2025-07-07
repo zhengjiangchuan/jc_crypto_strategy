@@ -78,7 +78,7 @@ initial_bar_number = 50 if data_source == 1 else 5000   #1000
 initial_bar_number_5min = 5000  #3000
 
 until_date_5min = None
-until_date = None
+#until_date = "2024-09-20"
 
 is_production = False
 
@@ -349,6 +349,8 @@ use_extra_execution = False
 is_real_time_trading = True
 is_real_time_trading_5min = False
 
+only_download_data = False
+
 
 
 read_5min_data = False #True
@@ -359,8 +361,8 @@ use_coinbase_data_source = True
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = False
+do_real_money_trading = False
 
 
 if not is_real_time_trading:
@@ -497,7 +499,7 @@ class CurrencyTrader(threading.Thread):
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
                  use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, use_rsi_to_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, over_bought_logic = False, is_alternative = False,
+                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, over_bought_logic = False, adjust_decimal = 1, is_alternative = False,
                  smart_executor_manager: CurrencySmartExecutionManager = None):
         super().__init__(name = currency)
         self.condition = condition
@@ -547,6 +549,7 @@ class CurrencyTrader(threading.Thread):
         self.coinbase_decimal = coinbase_decimal
         self.check_data = check_data
         self.over_bought_logic = over_bought_logic
+        self.adjust_decimal = adjust_decimal
 
         #if do_smart_execution and use_extra_execution:
         #    self.init_entry_value = self.init_entry_value/2.0

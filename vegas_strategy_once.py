@@ -164,7 +164,7 @@ class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
                  use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, use_rsi_to_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
-                 init_entry_value, coinbase_decimal, check_data, over_bought_logic):
+                 init_entry_value, coinbase_decimal, check_data, over_bought_logic, adjust_decimal):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -187,6 +187,7 @@ class CurrencyPair:
         self.coinbase_decimal = coinbase_decimal
         self.check_data = check_data
         self.over_bought_logic = over_bought_logic
+        self.adjust_decimal = adjust_decimal
 
         print("slow_macd = " + str(self.use_slow_macd))
         print("use_guppy_filter = " + str(self.use_guppy_filter))
@@ -249,7 +250,7 @@ def get_close_price(currency):
 
 
 
-def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, start_timestamp=-1, is_convert_to_time = True):
+def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, start_timestamp=-1, is_convert_to_time = True, adjust_decimal = 1):
     # Initialize client - apikey parameter is requiered
     global td
 
@@ -268,10 +269,19 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
 
     if use_coinbase_data_source:
 
-        coinbase_bar_num = min(300, initial_bar_number)
+        coinbase_bar_num = min(350, initial_bar_number)
 
-        start_time = datetime.now() - timedelta(hours=coinbase_bar_num)
-        end_time = datetime.now()
+        #start_time = datetime.now() - timedelta(hours=coinbase_bar_num)
+        #end_time = datetime.now()
+
+        if end_date is not None:
+            end_time = datetime.strptime(end_date, "%Y-%m-%d")
+        else:
+            end_time = datetime.now()
+
+        start_time = end_time - timedelta(hours=coinbase_bar_num)
+
+
         print("end_time = " + str(end_time.isoformat()))
 
         print("final start_time = " + str(start_time))
@@ -357,6 +367,13 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
     data_df['currency'] = currency
 
     data_df = data_df[['time', 'currency', 'open', 'high', 'low', 'close']]
+
+    print("adjsut_decimal = " + str(adjust_decimal))
+    if adjust_decimal > 1:
+        digits = int(math.log(adjust_decimal)/math.log(10))
+        for col in ['open', 'high', 'low', 'close']:
+            data_df[col] = data_df[col] * adjust_decimal
+            data_df[col] = data_df[col].apply(lambda x: round(x, digits))
 
     log_msg("Row number = " + str(data_df.shape[0]) + " &&")
     #
@@ -567,7 +584,7 @@ def preprocess_data(data_df):
     return new_data_df
 
 
-def start_do_trading(wakeup = 0):
+def start_do_trading(wakeup = 0, until_date = None):
 
     global my_log_file
     global smart_executor_manager
@@ -585,7 +602,7 @@ def start_do_trading(wakeup = 0):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -815,7 +832,7 @@ def start_do_trading(wakeup = 0):
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
                                         row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['use_rsi_to_exit'], row['do_stop_loss'],
-        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['check_data'],row['over_bought_logic'])]
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['check_data'],row['over_bought_logic'], row['adjust_decimal'])]
 
     log_msg("currencies:")
     log_msg([currencyPair.currency for currencyPair in currency_pairs])
@@ -866,7 +883,7 @@ def start_do_trading(wakeup = 0):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_production_0701_noforceOut_overbought_coinbase"
+    current_date = "_production_0701_noforceOut_overbought_coinbase_test_slow"
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
@@ -1245,6 +1262,9 @@ def start_do_trading(wakeup = 0):
         coinbase_decimal = currency_pair.coinbase_decimal
         check_data = currency_pair.check_data
         over_bought_logic = currency_pair.over_bought_logic
+        adjust_decimal = currency_pair.adjust_decimal
+
+        #print("currency_pair adjust_decimal = " + str(adjust_decimal))
 
         data_file_5min = None
         if read_5min_data:
@@ -1269,8 +1289,11 @@ def start_do_trading(wakeup = 0):
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
                                          use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data, over_bought_logic = over_bought_logic,
+                                         adjust_decimal = adjust_decimal,
                                          is_alternative=True if alternative == 'y' else False,
                                          smart_executor_manager = smart_executor_manager)
+
+        #print("currency_trader adjust_decimal = " + str(currency_trader.adjust_decimal))
         currency_trader.daemon = True
 
         currency_traders += [currency_trader]
@@ -1403,7 +1426,7 @@ def start_do_trading(wakeup = 0):
                         if is_real_time_trading:
 
 
-                            incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
+                            incremental_data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date, adjust_decimal = currency_trader.adjust_decimal)
 
                             if incremental_data_df.iloc[0]['time'] > last_time:
                                 log_msg("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']))
@@ -1426,7 +1449,7 @@ def start_do_trading(wakeup = 0):
                     else:
                         log_msg("Currency file does not exit, query initial data from web")
 
-                        data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date)
+                        data_df = get_bar_data2(currency, bar_number=initial_bar_number, end_date = until_date, adjust_decimal = currency_trader.adjust_decimal)
 
                         data_df = data_df.iloc[:-1]
 
@@ -1611,16 +1634,23 @@ def start_do_trading(wakeup = 0):
 
                             is_new_data_received[i] = True
 
-                            #data_df = data_df.iloc[0:-1] #Temp
+                            if only_download_data:
+                                print("Only write downloaded data to csv.")
+                                print("now df:")
+                                print(data_df.iloc[-20:])
+                                data_df.to_csv(currency_trader.data_file, index = False)
 
-                            log_msg("Start trading without checking if data up-to-date as not necessary")
-                            if read_5min_data:
-                                currency_trader.feed_data(data_df, data_df_5min)
                             else:
-                                currency_trader.feed_data(data_df)
+                                #data_df = data_df.iloc[0:-1] #Temp
+
+                                log_msg("Start trading without checking if data up-to-date as not necessary")
+                                if read_5min_data:
+                                    currency_trader.feed_data(data_df, data_df_5min)
+                                else:
+                                    currency_trader.feed_data(data_df)
 
 
-                            currency_trader.trade()  #Darren
+                                currency_trader.trade()  #Darren
 
                     if manual_delay > 0 and len(currency_pairs) > 4:
                         log_msg("Sleep " + str(manual_delay) + " seconds ")
@@ -2047,192 +2077,194 @@ def start_do_trading(wakeup = 0):
                     log_msg("")
                     log_msg("All cryptos have their open orders fully filled, bye bye!")
 
-        #Darren
-        for i in range(len(currency_traders)):
-            if is_new_data_received[i]:
-                currency_trader = currency_traders[i]
-                currency_trader.post_processing()
+        if not only_download_data:
 
-        sendEmail("Trader process ends", "")
+            #Darren
+            for i in range(len(currency_traders)):
+                if is_new_data_received[i]:
+                    currency_trader = currency_traders[i]
+                    currency_trader.post_processing()
 
-        if do_smart_execution and do_real_money_trading:
-            smart_executor_manager.write_to_prod_files_finished()
+            sendEmail("Trader process ends", "")
 
-        log_msg("Finished trading *********************************")
+            if do_smart_execution and do_real_money_trading:
+                smart_executor_manager.write_to_prod_files_finished()
+
+            log_msg("Finished trading *********************************")
 
 
-        log_msg("Collecting Results....")
+            log_msg("Collecting Results....")
 
-        perf_dfs = []
-        trade_dfs = []
-        prod_trade_dfs = []
-        i = 0
-        #sys.exit(0)  #Darren
-        for currency in currency_list:
-            #perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
-            chart_folder_name = chart_folder_names[i]
-            i += 1
-            perf_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_performance.csv")
-            perf_dfs += [pd.read_csv(perf_file)]
+            perf_dfs = []
+            trade_dfs = []
+            prod_trade_dfs = []
+            i = 0
+            #sys.exit(0)  #Darren
+            for currency in currency_list:
+                #perf_file = os.path.join(root_folder, currency, currency + "_performance_" + str(profit_loss_ratio) + ".csv")
+                chart_folder_name = chart_folder_names[i]
+                i += 1
+                perf_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_performance.csv")
+                perf_dfs += [pd.read_csv(perf_file)]
 
-            #trade_file = os.path.join(root_folder, currency, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
-            trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades.csv")
+                #trade_file = os.path.join(root_folder, currency, currency + "_all_trades_" + str(profit_loss_ratio) + ".csv")
+                trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades.csv")
+
+                if do_real_money_trading and production_running:
+                    prod_trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades_prod.csv")
+
+                trade_df = pd.read_csv(trade_file)
+                trade_dfs += [trade_df]
+
+                if do_real_money_trading and production_running:
+                    prod_trade_df = pd.read_csv(prod_trade_file)
+                    prod_trade_dfs += [prod_trade_df]
+
+            perf_df = pd.concat(perf_dfs)
+
+            trade_df = pd.concat(trade_dfs)
+            trade_df = trade_df.sort_values(by = ['exit_time']) #entry_time
+            print("entry_time type: " + str(type(trade_df.iloc[0]['entry_time'])))
+            print("exit_time type: " + str(type(trade_df.iloc[0]['exit_time'])))
 
             if do_real_money_trading and production_running:
-                prod_trade_file = os.path.join(root_folder, currency, currency + "_" + chart_folder_name + "_all_trades_prod.csv")
+                prod_trade_df = pd.concat(prod_trade_dfs)
+                prod_trade_df = prod_trade_df.sort_values(by=['exit_time']) #entry_time
 
-            trade_df = pd.read_csv(trade_file)
-            trade_dfs += [trade_df]
+                print("prod entry_time type: " + str(type(prod_trade_df.iloc[0]['entry_time'])))
+                print("prod exit_time type: " + str(type(prod_trade_df.iloc[0]['exit_time'])))
+
+
+            log_msg("Final Performance Result:")
+            perf_df.reset_index(inplace = True)
+            perf_df = perf_df.drop(columns = ['index'])
+            log_msg(perf_df)
+
+            # log_msg("")
+            # log_msg("Selected currencies Performance Result:")
+            # selected_perf_df = perf_df[perf_df['Currency'].isin(selected_currencies)]
+            # log_msg(selected_perf_df)
+
+            perf_df.to_csv(os.path.join(root_folder, general_chart_folder_name + ".csv"), index = False)
+
+            des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + general_chart_folder_name)
+            if not os.path.exists(des_pnl_folder):
+                os.makedirs(des_pnl_folder)
+
+
+            old_pnl_files = os.listdir(des_pnl_folder)
+            for file in old_pnl_files:
+                target_file = os.path.join(des_pnl_folder, file)
+                if os.path.isdir(target_file):
+                    shutil.rmtree(target_file)
+                else:
+                    os.remove(target_file)
+
+            des_selected_pnl_folder = os.path.join(des_pnl_folder, 'selected')
+            if not os.path.exists(des_selected_pnl_folder):
+                os.makedirs(des_selected_pnl_folder)
+
+
+
+            des_bar_folder = os.path.join(root_folder, 'all_bars_' + general_chart_folder_name)
+            if not os.path.exists(des_bar_folder):
+                os.makedirs(des_bar_folder)
+
+
+
+            old_bar_files = os.listdir(des_bar_folder)
+            for file in old_bar_files:
+                target_file = os.path.join(des_bar_folder, file)
+                if os.path.isdir(target_file):
+                    shutil.rmtree(target_file)
+                else:
+                    os.remove(target_file)
+
+            des_selected_bar_folder = os.path.join(des_bar_folder, 'selected')
+            # log_msg("des_selected_bar_folder")
+            # log_msg(des_selected_bar_folder)
+            if not os.path.exists(des_selected_bar_folder):
+                os.makedirs(des_selected_bar_folder)
+
+
+
+            log_msg("Copying bar charts and pnl charts...")
+            #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
+
+            trade_df = trade_df.drop(columns=['trade_id', 'long_trade_id', 'short_trade_id', 'cum_pnl'])
+            trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
+            trade_df['cum_pnl'] = trade_df['cum_pnl'].apply(lambda x: round(x, 2))
+            trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
 
             if do_real_money_trading and production_running:
-                prod_trade_df = pd.read_csv(prod_trade_file)
-                prod_trade_dfs += [prod_trade_df]
+                prod_trade_df = prod_trade_df.drop(columns=['long_trade_id', 'short_trade_id', 'cum_pnl', 'prod_cum_pnl'])
+                prod_trade_df['cum_pnl'] = prod_trade_df['pnl'].cumsum()
+                prod_trade_df['cum_pnl'] = prod_trade_df['cum_pnl'].apply(lambda x: round(x, 2))
+                prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_pnl'].cumsum()
+                prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_cum_pnl'].apply(lambda x: round(x, 2))
 
-        perf_df = pd.concat(perf_dfs)
+                prod_trade_df['execution_cost'] = prod_trade_df['prod_pnl'] - prod_trade_df['pnl']
+                prod_trade_df['cum_execution_cost'] = prod_trade_df['execution_cost'].cumsum()
 
-        trade_df = pd.concat(trade_dfs)
-        trade_df = trade_df.sort_values(by = ['exit_time']) #entry_time
-        print("entry_time type: " + str(type(trade_df.iloc[0]['entry_time'])))
-        print("exit_time type: " + str(type(trade_df.iloc[0]['exit_time'])))
-
-        if do_real_money_trading and production_running:
-            prod_trade_df = pd.concat(prod_trade_dfs)
-            prod_trade_df = prod_trade_df.sort_values(by=['exit_time']) #entry_time
-
-            print("prod entry_time type: " + str(type(prod_trade_df.iloc[0]['entry_time'])))
-            print("prod exit_time type: " + str(type(prod_trade_df.iloc[0]['exit_time'])))
+                prod_trade_df['execution_cost'] = prod_trade_df['execution_cost'].apply(lambda x: round(x, 2))
+                prod_trade_df['cum_execution_cost'] = prod_trade_df['cum_execution_cost'].apply(lambda x: round(x, 2))
 
 
-        log_msg("Final Performance Result:")
-        perf_df.reset_index(inplace = True)
-        perf_df = perf_df.drop(columns = ['index'])
-        log_msg(perf_df)
-
-        # log_msg("")
-        # log_msg("Selected currencies Performance Result:")
-        # selected_perf_df = perf_df[perf_df['Currency'].isin(selected_currencies)]
-        # log_msg(selected_perf_df)
-
-        perf_df.to_csv(os.path.join(root_folder, general_chart_folder_name + ".csv"), index = False)
-
-        des_pnl_folder = os.path.join(root_folder, 'all_pnl_' + general_chart_folder_name)
-        if not os.path.exists(des_pnl_folder):
-            os.makedirs(des_pnl_folder)
+                prod_trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades_prod.csv"), index=False)
 
 
-        old_pnl_files = os.listdir(des_pnl_folder)
-        for file in old_pnl_files:
-            target_file = os.path.join(des_pnl_folder, file)
-            if os.path.isdir(target_file):
-                shutil.rmtree(target_file)
-            else:
-                os.remove(target_file)
+            i = 0
+            for currency in currency_list:
 
-        des_selected_pnl_folder = os.path.join(des_pnl_folder, 'selected')
-        if not os.path.exists(des_selected_pnl_folder):
-            os.makedirs(des_selected_pnl_folder)
+                chart_folder_name = chart_folder_names[i]
+                i += 1
 
-
-
-        des_bar_folder = os.path.join(root_folder, 'all_bars_' + general_chart_folder_name)
-        if not os.path.exists(des_bar_folder):
-            os.makedirs(des_bar_folder)
-
-
-
-        old_bar_files = os.listdir(des_bar_folder)
-        for file in old_bar_files:
-            target_file = os.path.join(des_bar_folder, file)
-            if os.path.isdir(target_file):
-                shutil.rmtree(target_file)
-            else:
-                os.remove(target_file)
-
-        des_selected_bar_folder = os.path.join(des_bar_folder, 'selected')
-        # log_msg("des_selected_bar_folder")
-        # log_msg(des_selected_bar_folder)
-        if not os.path.exists(des_selected_bar_folder):
-            os.makedirs(des_selected_bar_folder)
-
-
-
-        log_msg("Copying bar charts and pnl charts...")
-        #trade_df = trade_df.drop(columns = ['id', 'pnl', 'cum_pnl', 'reverse_pnl', 'cum_reverse_pnl'])
-
-        trade_df = trade_df.drop(columns=['trade_id', 'long_trade_id', 'short_trade_id', 'cum_pnl'])
-        trade_df['cum_pnl'] = trade_df['pnl'].cumsum()
-        trade_df['cum_pnl'] = trade_df['cum_pnl'].apply(lambda x: round(x, 2))
-        trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades.csv"), index = False)
-
-        if do_real_money_trading and production_running:
-            prod_trade_df = prod_trade_df.drop(columns=['long_trade_id', 'short_trade_id', 'cum_pnl', 'prod_cum_pnl'])
-            prod_trade_df['cum_pnl'] = prod_trade_df['pnl'].cumsum()
-            prod_trade_df['cum_pnl'] = prod_trade_df['cum_pnl'].apply(lambda x: round(x, 2))
-            prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_pnl'].cumsum()
-            prod_trade_df['prod_cum_pnl'] = prod_trade_df['prod_cum_pnl'].apply(lambda x: round(x, 2))
-
-            prod_trade_df['execution_cost'] = prod_trade_df['prod_pnl'] - prod_trade_df['pnl']
-            prod_trade_df['cum_execution_cost'] = prod_trade_df['execution_cost'].cumsum()
-
-            prod_trade_df['execution_cost'] = prod_trade_df['execution_cost'].apply(lambda x: round(x, 2))
-            prod_trade_df['cum_execution_cost'] = prod_trade_df['cum_execution_cost'].apply(lambda x: round(x, 2))
-
-
-            prod_trade_df.to_csv(os.path.join(des_pnl_folder, "all_trades_prod.csv"), index=False)
-
-
-        i = 0
-        for currency in currency_list:
-
-            chart_folder_name = chart_folder_names[i]
-            i += 1
-
-            #log_msg("currency = " + str(currency))
-            pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
-            if os.path.exists(pic_path):
-                shutil.copy2(pic_path, des_pnl_folder)
-
-                if currency in selected_currencies:
-                    shutil.copy2(pic_path, des_selected_pnl_folder)
-
-
-            currency_chart_folder = os.path.join(root_folder, currency, chart_folder_name)
-            chart_files = os.listdir(currency_chart_folder)
-            for chart_file in chart_files:
-                if 'pnl' not in chart_file:
-
-                    #log_msg(os.path.join(currency_chart_folder, chart_file))
-                    #log_msg(des_bar_folder)
-
-                    shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
-
-                    #log_msg("des_bar_folder:")
-                    #log_msg(des_bar_folder)
+                #log_msg("currency = " + str(currency))
+                pic_path = os.path.join(root_folder, currency, chart_folder_name, currency + '_pnl.png')
+                if os.path.exists(pic_path):
+                    shutil.copy2(pic_path, des_pnl_folder)
 
                     if currency in selected_currencies:
-                        # log_msg("currency_chart_folder:")
-                        # log_msg(currency_chart_folder)
-                        # log_msg("source file:")
-                        # log_msg(os.path.join(currency_chart_folder, chart_file))
-                        # log_msg("des folder:")
-                        # log_msg(des_selected_bar_folder)
-
-                        source_exists = os.path.exists(os.path.join(currency_chart_folder, chart_file))
-                        des_exists = os.path.exists(des_selected_bar_folder)
-
-                        # log_msg("source_exist = " + str(source_exists))
-                        # log_msg("des_exist = " + str(des_exists))
-
-                        shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_selected_bar_folder)
+                        shutil.copy2(pic_path, des_selected_pnl_folder)
 
 
-        #shutil.copy2(file_path, dest_folder)
+                currency_chart_folder = os.path.join(root_folder, currency, chart_folder_name)
+                chart_files = os.listdir(currency_chart_folder)
+                for chart_file in chart_files:
+                    if 'pnl' not in chart_file:
 
-    # if is_do_portfolio_trading:
-    #     log_msg("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
-    #     os.system('python plot_pnl_curve.py')
-    # else:
-    #     log_msg("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+                        #log_msg(os.path.join(currency_chart_folder, chart_file))
+                        #log_msg(des_bar_folder)
+
+                        shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_bar_folder)
+
+                        #log_msg("des_bar_folder:")
+                        #log_msg(des_bar_folder)
+
+                        if currency in selected_currencies:
+                            # log_msg("currency_chart_folder:")
+                            # log_msg(currency_chart_folder)
+                            # log_msg("source file:")
+                            # log_msg(os.path.join(currency_chart_folder, chart_file))
+                            # log_msg("des folder:")
+                            # log_msg(des_selected_bar_folder)
+
+                            source_exists = os.path.exists(os.path.join(currency_chart_folder, chart_file))
+                            des_exists = os.path.exists(des_selected_bar_folder)
+
+                            # log_msg("source_exist = " + str(source_exists))
+                            # log_msg("des_exist = " + str(des_exists))
+
+                            shutil.copy2(os.path.join(currency_chart_folder, chart_file), des_selected_bar_folder)
+
+
+            #shutil.copy2(file_path, dest_folder)
+
+        # if is_do_portfolio_trading:
+        #     log_msg("1 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
+        #     os.system('python plot_pnl_curve.py')
+        # else:
+        #     log_msg("2 is_do_portfolio_trading = " + str(is_do_portfolio_trading))
 
     log_msg("All finished")
     #sys.exit(0)
