@@ -44,7 +44,7 @@ class Order:
 
 class CurrencySmartExecutor:
 
-    def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file,  strategy_number,
+    def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, log_file,  strategy_number,
                  coinbase_client: Optional[RESTClient] = None, use_extra_execution = False):
         self.currency_coinbase = currency_coinbase
         self.coinbase_portfolio_id = coinbase_portfolio_id
@@ -52,6 +52,9 @@ class CurrencySmartExecutor:
         self.strategy_execution_prod_file = strategy_execution_prod_file
         self.trade_file = trade_file
         self.trade_prod_file = trade_prod_file
+        self.log_file = log_file
+
+        self.log_fd = open(self.log_file, 'a')
 
         self.strategy_number = strategy_number
 
@@ -120,7 +123,7 @@ class CurrencySmartExecutor:
         if os.path.exists(self.strategy_execution_prod_file):
             self.execution_data_df = pd.read_csv(self.strategy_execution_prod_file)
 
-            self.strategy_executions = [None] * (strategy_number+1 if self.use_extra_execution else strategy_number)
+            self.strategy_executions = [None] * (self.strategy_number+1 if self.use_extra_execution else self.strategy_number)
 
             unfinished_execution_data_df = self.execution_data_df[self.execution_data_df['exit_price'] <= 0]
             for i in range(unfinished_execution_data_df.shape[0]):
@@ -775,4 +778,16 @@ class CurrencySmartExecutor:
 
     def set_close_position_price(self, exit_price):
         self.close_position_fill_price = exit_price
+
+
+    def log_msg(self, msg):
+
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        #current_time = (datetime.now() + timedelta(seconds = 28800)).strftime("%Y-%m-%d %H:%M:%S")
+        if isinstance(msg, pd.DataFrame):
+            print('[' + current_time + ' ' + self.currency + ']  \n' + str(msg), file = self.log_fd)
+        else:
+            print('[' + current_time + ' ' + self.currency + ']  ' + str(msg), file=self.log_fd)
+
+        self.log_fd.flush()
 

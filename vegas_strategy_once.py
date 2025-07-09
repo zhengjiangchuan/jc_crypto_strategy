@@ -602,7 +602,7 @@ def start_do_trading(wakeup = 0, until_date = None):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -883,7 +883,10 @@ def start_do_trading(wakeup = 0, until_date = None):
 
     #current_date = "_final_prodction_noforceOut_execution_noExtra_overbought_regression"
 
-    current_date = "_production_0701_noforceOut_overbought_coinbase_test_slow"
+    #current_date = "_production_0701_noforceOut_overbought_coinbase_test_slow"
+
+    current_date = "_production_0701_noforceOut_overbought_coinbase"
+
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
 
@@ -1231,7 +1234,15 @@ def start_do_trading(wakeup = 0, until_date = None):
 
     if do_smart_execution and do_real_money_trading:
         if smart_executor_manager is None:
-            smart_executor_manager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300, use_extra_execution = use_extra_execution)
+
+            global_executor_log_file = "algo_executor_log.txt"
+            if currency_to_run != "all":
+                global_executor_log_file = currency_to_run + "_algo_executor_log.txt"
+
+            global_executor_log_path = os.path.join(root_folder, global_executor_log_file)
+
+            smart_executor_manager = CurrencySmartExecutionManager(coinbase_client = client, coinbase_portfolio_id=portfolio_id, heart_beat=300,
+                                                                   use_extra_execution = use_extra_execution, global_executor_log_path = global_executor_log_path)
     else:
         smart_executor_manager = None
 
@@ -1299,14 +1310,19 @@ def start_do_trading(wakeup = 0, until_date = None):
         currency_traders += [currency_trader]
 
         if do_smart_execution and do_real_money_trading:
+
+            executor_log_file = os.path.join(root_folder, currency, currency + "_executor_log.txt")
+
             smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
                                                                 strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
                                                                 strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
                                                                 coinbase_decimal = coinbase_decimal,
                                                                 trade_file = trade_file,
                                                                 trade_prod_file = trade_prod_file,
+                                                                log_file = executor_log_file,
                                                                 strategy_number = len(currency_trader.leverage)
                                                                 )
+
 
     if do_smart_execution and do_real_money_trading:
 
@@ -1854,7 +1870,7 @@ def start_do_trading(wakeup = 0, until_date = None):
                                         currency_trader.set_close_long_fill(filled_price, filled_size)
 
                                         if do_smart_execution and do_real_money_trading:
-                                            smart_executor_manager.set_close_position_price(filled_price)
+                                            smart_executor_manager.set_close_position_price(currency_trader.currency, filled_price)
 
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 
@@ -1908,7 +1924,7 @@ def start_do_trading(wakeup = 0, until_date = None):
                                         currency_trader.set_close_short_fill(filled_price, filled_size)
 
                                         if do_smart_execution and do_real_money_trading:
-                                            smart_executor_manager.set_close_position_price(filled_price)
+                                            smart_executor_manager.set_close_position_price(currency_trader.currency, filled_price)
 
                                         log_msg("average fill price=" + str(filled_price) + ", filled_size=" + str(filled_size))
 

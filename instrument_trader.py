@@ -361,8 +361,8 @@ use_coinbase_data_source = True
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = False
-do_real_money_trading = False
+production_running = True
+do_real_money_trading = True
 
 
 if not is_real_time_trading:
