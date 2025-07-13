@@ -80,7 +80,7 @@ initial_bar_number_5min = 5000  #3000
 until_date_5min = None
 #until_date = "2024-09-20"
 
-is_production = False
+is_production = True
 
 plot_rsi = True
 
