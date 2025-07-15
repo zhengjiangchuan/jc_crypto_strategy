@@ -47,21 +47,25 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-use_coinbase_data_source = False
+use_coinbase_data_source = True
 
 parser = OptionParser()
 parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
                    help="Currency Pair to run")
 parser.add_option("-a", "--alternative", dest="alternative", default = "n",
                  help="Use alternative account")
+parser.add_option("-e", "--execution", dest="execution", default = "n",
+                 help="For smart execution")
 
 (options, args) = parser.parse_args()
 
 currency_to_run = options.currency_pair
 alternative = options.alternative
+is_execution = options.execution
 
 print("currency_to_run = " + currency_to_run)
 print("alternative = " + alternative)
+print("is_execution = " + is_execution)
 
 global_log_file = "algo_log.txt"
 
@@ -74,8 +78,11 @@ root_folder = os.getenv("CRYPTO_PROD")
 if alternative == 'y':
     root_folder += "_alternative"
 
-if alternative != 'y':
-    alternative_root_folder = root_folder + '_alternative'
+if is_execution == 'y':
+    root_folder += "_execution"
+
+#if alternative != 'y':
+#    alternative_root_folder = root_folder + '_alternative'
 
 #if currency_to_run != "all":
 #    root_folder += "_" + currency_to_run
@@ -889,7 +896,9 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_test_slow"
 
-    current_date = "_production_0715_noforceOut_overbought_coinbase_execution"
+    #current_date = "_production_0715_noforceOut_overbought_coinbase_execution"
+
+    current_date = "_production_0701_noforceOut_overbought_coinbase_tt"
 
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
