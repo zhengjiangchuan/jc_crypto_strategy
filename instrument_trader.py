@@ -80,7 +80,7 @@ initial_bar_number_5min = 5000  #3000
 until_date_5min = None
 #until_date = "2024-09-20"
 
-is_production = True
+is_production = False
 
 plot_rsi = True
 
@@ -342,27 +342,27 @@ global_also_filter_too_late = False
 global_use_guppy_condition = False
 
 ####################################
-do_smart_execution = False
-use_5min_in_smart_execution = False
+do_smart_execution = True
+use_5min_in_smart_execution = True
 use_extra_execution = False
 
 is_real_time_trading = True
-is_real_time_trading_5min = False
+is_real_time_trading_5min = True
 
 only_download_data = False
 
 
 
-read_5min_data = False #True
+read_5min_data = True #True
 
-use_coinbase_data_source = True
+#use_coinbase_data_source = False
 
 
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = False
+do_real_money_trading = False
 
 
 if not is_real_time_trading:

@@ -35,7 +35,8 @@ import sys
 #     else:
 #         raise
 
-from vegas_strategy_once import log_msg, alternative, start_do_trading
+from vegas_strategy_once import log_msg, alternative, start_do_trading, use_coinbase_data_source
+
 
 # while True:
 #     try:
@@ -104,8 +105,10 @@ def wait_for_trigger():
 
 #until_date = "2024-09-20"
 
-final_start_date = None #"2024-09-05"
-final_end_date = None #"2025-07-06"
+auto_download_5min_data = True #If false, then if final_start_date and final_end_date not None, auto download hourly data iteratively
+
+final_start_date = None #"2025-07-04"  #"2024-09-05"
+final_end_date = None #"2025-07-14" #"2025-07-06"
 
 if __name__ == '__main__':
 
@@ -144,12 +147,16 @@ if __name__ == '__main__':
         #if True:
 
         if final_start_date is not None and final_end_date is not None:
+
+            interval = 300 if auto_download_5min_data else 3600
+            max_bar_num = 350 if use_coinbase_data_source else 1000 #5000
+
             start_date = datetime.strptime(final_start_date, "%Y-%m-%d")
             end_date = datetime.strptime(final_end_date, "%Y-%m-%d")
 
             reached_end = False
             while True:
-                until_date = start_date + timedelta(seconds=350*3600)
+                until_date = start_date + timedelta(seconds=interval * max_bar_num)
 
                 print("start_date = " + str(start_date) + "**********************")
                 print("until_date = " + str(until_date) + "**********************")
@@ -163,7 +170,11 @@ if __name__ == '__main__':
 
                 until_date = until_date.strftime("%Y-%m-%d")
 
-                start_do_trading(wakeup=wakeup, until_date=until_date)
+                if auto_download_5min_data:
+                    start_do_trading(wakeup=wakeup, until_date=None, until_date_5min=until_date)
+                else:
+                    start_do_trading(wakeup=wakeup, until_date=until_date, until_date_5min=None)
+
                 time.sleep(2)
 
                 if reached_end:

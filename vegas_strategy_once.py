@@ -47,6 +47,8 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+use_coinbase_data_source = False
+
 parser = OptionParser()
 parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
                    help="Currency Pair to run")
@@ -584,7 +586,7 @@ def preprocess_data(data_df):
     return new_data_df
 
 
-def start_do_trading(wakeup = 0, until_date = None):
+def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     global my_log_file
     global smart_executor_manager
@@ -602,7 +604,7 @@ def start_do_trading(wakeup = 0, until_date = None):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -743,21 +745,23 @@ def start_do_trading(wakeup = 0, until_date = None):
     ################### Temp Copy Currency data outside ##################
     # log_msg("root_folder: ")
     # log_msg(root_folder)
-    # # temp_data_folder = os.path.join(root_folder, "all_data")
-    # # if not os.path.exists(temp_data_folder):
-    # #     os.makedirs(temp_data_folder)
+    # temp_data_folder = os.path.join(root_folder, "all_data")
+    # if not os.path.exists(temp_data_folder):
+    #     os.makedirs(temp_data_folder)
     # for currency in currency_list:
     #     log_msg("Copy data of " + currency)
-    #     #file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
-    #     #file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
+    #     file_path = os.path.join(root_folder, currency, "data", currency + ".csv")
+    #     file_path2 = os.path.join(root_folder, currency, "data", currency + "_lastRow.csv")
     #     file_path3 = os.path.join(root_folder, currency, "data", currency + "_5min.csv")
-    #     out_folder = os.path.join(alternative_root_folder, currency, "data")
+    #     out_folder = os.path.join(temp_data_folder, currency, "data")
     #     if not os.path.exists(out_folder):
     #         os.makedirs(out_folder)
     #
+    #     log_msg("Copy from " + file_path + " to " + out_folder)
+    #     shutil.copy2(file_path, out_folder)
+    #     log_msg("Copy from " + file_path2 + " to " + out_folder)
+    #     shutil.copy2(file_path2, out_folder)
     #     log_msg("Copy from " + file_path3 + " to " + out_folder)
-    #     #shutil.copy2(file_path, out_folder)
-    #     #shutil.copy2(file_path2, out_folder)
     #     shutil.copy2(file_path3, out_folder)
     #
     # sys.exit(0)
@@ -885,7 +889,7 @@ def start_do_trading(wakeup = 0, until_date = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_test_slow"
 
-    current_date = "_production_0701_noforceOut_overbought_coinbase"
+    current_date = "_production_0715_noforceOut_overbought_coinbase_execution"
 
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
@@ -1516,6 +1520,9 @@ def start_do_trading(wakeup = 0, until_date = None):
 
                             if is_real_time_trading_5min and incremental_data_df_5min.shape[0] > 0:
 
+                                print("data_df_5min row num = " + str(data_df_5min.shape[0]))
+                                print("incremental row num = " + str(incremental_data_df_5min.shape[0]))
+                                #sys.exit(0)
 
                                 data_df_5min = pd.concat([data_df_5min, incremental_data_df_5min])
 
@@ -1540,7 +1547,7 @@ def start_do_trading(wakeup = 0, until_date = None):
 
 
                     #if is_real_time_trading and not is_weekend:
-                    if is_real_time_trading and (until_date is None or datetime.today() < preprocess_date(until_date)):
+                    if is_real_time_trading and (until_date is None or datetime.today() < preprocess_date(until_date)) and not only_download_data:
 
                         if data_df is not None and data_df.shape[0] > 1:
                             #last_time = data_df.iloc[-1]['time']
@@ -1651,10 +1658,18 @@ def start_do_trading(wakeup = 0, until_date = None):
                             is_new_data_received[i] = True
 
                             if only_download_data:
-                                print("Only write downloaded data to csv.")
-                                print("now df:")
-                                print(data_df.iloc[-20:])
-                                data_df.to_csv(currency_trader.data_file, index = False)
+
+                                if until_date is not None:
+                                    print("Only write downloaded data to csv.")
+                                    print("now df:")
+                                    print(data_df.iloc[-20:])
+                                    data_df.to_csv(currency_trader.data_file, index = False)
+                                elif until_date_5min is not None:
+                                    print("Only write downloaded data 5min to csv.")
+                                    print("now df 5min:")
+                                    print(data_df_5min.iloc[-20:])
+                                    data_df_5min.to_csv(currency_trader.data_file_5min, index=False)
+                                    #time.sleep(20)
 
                             else:
                                 #data_df = data_df.iloc[0:-1] #Temp
