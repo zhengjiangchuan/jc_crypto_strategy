@@ -161,7 +161,7 @@ while True:
         emsg = str(e)
         log_msg("Exception: " + emsg)
 
-        if 'HTTPSConnection' in emsg:
+        if 'HTTPSConnection' in emsg or "getaddrinfo" in emsg:
             log_msg("Probably network connection exception, trying again after 10 seconds.")
             time.sleep(10)
         else:
@@ -265,10 +265,10 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
 
     global client
 
-    if client is None:
-        api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
-        client = RESTClient(api_key=api_key,
-                            api_secret=api_secret)
+    # if client is None:
+    #     api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+    #     client = RESTClient(api_key=api_key,
+    #                         api_secret=api_secret)
 
     log_msg("")
     log_msg("Now = " + str(datetime.now()))
@@ -611,7 +611,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -898,7 +898,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0715_noforceOut_overbought_coinbase_execution"
 
-    current_date = "_production_0701_noforceOut_overbought_coinbase_tt"
+    current_date = "_production_0701_noforceOut_overbought_coinbase"
 
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"

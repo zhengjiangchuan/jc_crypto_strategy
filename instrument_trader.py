@@ -80,7 +80,7 @@ initial_bar_number_5min = 5000  #3000
 until_date_5min = None
 #until_date = "2024-09-20"
 
-is_production = False
+is_production = True
 
 plot_rsi = True
 
@@ -371,6 +371,7 @@ if not is_real_time_trading:
 if do_real_money_trading:
     read_5min_data = False
     use_5min_in_smart_execution = False
+    is_real_time_trading_5min = False
 
 if not do_real_money_trading:
     production_running = False
@@ -713,6 +714,10 @@ class CurrencyTrader(threading.Thread):
             self.half_optimal_leverage = round(self.optimal_leverage / 2, 1)
             self.leverage = np.array([self.optimal_leverage, self.optimal_leverage, self.half_optimal_leverage, self.half_optimal_leverage])
 
+            if do_real_money_trading:
+                self.average_leverage = self.leverage.sum()/len(self.leverage)
+                self.distribution = self.leverage/self.leverage.sum()
+
             self.take_profit_pct = self.profit_rates / self.leverage
             self.take_loss_pct = self.loss_rates / self.leverage
 
@@ -720,6 +725,12 @@ class CurrencyTrader(threading.Thread):
 
             if use_extra_execution:
                 self.each_strategy_entry_value = self.each_strategy_entry_value / 2.0
+                if do_real_money_trading:
+                    self.average_leverage = self.average_leverage / 2.0 + self.optimal_leverage / 2.0
+                    temp_distribution = np.array(list(self.leverage) + [len(self.leverage) * self.optimal_leverage])
+                    temp_distribution = temp_distribution/temp_distribution.sum()
+                    self.distribution = temp_distribution[0:len(self.leverage)]
+                    self.extra_distribution = temp_distribution[len(self.leverage)]
 
             if do_real_money_trading and do_smart_execution:
                 self.smart_executor_manager = smart_executor_manager
@@ -2886,7 +2897,13 @@ class CurrencyTrader(threading.Thread):
 
                     if do_real_money_trading and self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1:
                         if self.current_real_position <= 0 and self.long_order_id is None:
-                            real_position = self.init_entry_value/self.crypto_last_price * default_leverage
+
+                            if do_smart_execution:
+                                real_position = self.init_entry_value/self.crypto_last_price * self.average_leverage
+                            else:
+                                real_position = self.init_entry_value/self.crypto_last_price * default_leverage
+
+
                             # if self.crypto_last_price >= 1:
                             #     real_position = round(real_position, 3)
                             # else:
@@ -2962,27 +2979,24 @@ class CurrencyTrader(threading.Thread):
                 if do_real_money_trading:
                     if self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1 and self.current_real_position <= 0 and self.long_order_id is not None:
 
-                        prod_size = real_delta_position/len(self.leverage)
-                        if use_extra_execution:
-                            prod_size = prod_size/2.0
+                        prod_sizes = real_delta_position * self.distribution
 
-                        prod_size = round(prod_size, self.coinbase_decimal)
-
-                        entry_value = self.crypto_last_price * prod_size / default_leverage
+                        entry_value = self.init_entry_value/(len(self.leverage) * 2) if use_extra_execution else self.init_entry_value/len(self.leverage)
 
                         for k in range(len(self.leverage)):
                             strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
                                                                    strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                    execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
-                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, default_leverage=default_leverage, prod_size = prod_size)
+                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value,
+                                                                   default_leverage=default_leverage, prod_size = round(prod_sizes[k], self.coinbase_decimal))
                             strategy_executions += [strategy_execution]
 
 
                         if use_extra_execution:
-                            extra_prod_size = real_delta_position / 2.0
-                            extra_prod_size = round(extra_prod_size, self.coinbase_decimal)
 
-                            extra_entry_value = self.crypto_last_price * extra_prod_size / default_leverage
+                            extra_prod_size = real_delta_position * self.extra_distribution
+
+                            extra_entry_value = self.init_entry_value / 2.0
 
                             strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
@@ -3487,7 +3501,12 @@ class CurrencyTrader(threading.Thread):
 
                     if do_real_money_trading and self.wakeup == 1 and short_start_id == self.data_df.shape[0] - 1:
                         if self.current_real_position >= 0 and self.short_order_id is None:
-                            real_position = -self.init_entry_value/self.crypto_last_price * default_leverage
+
+                            if do_smart_execution:
+                                real_position = -self.init_entry_value/self.crypto_last_price * self.average_leverage
+                            else:
+                                real_position = -self.init_entry_value/self.crypto_last_price * default_leverage
+
                             # if self.crypto_last_price >= 1:
                             #     real_position = round(real_position, 3)
                             # else:
@@ -3564,27 +3583,25 @@ class CurrencyTrader(threading.Thread):
                 if do_real_money_trading:
                     if self.wakeup == 1 and short_start_id == self.data_df.shape[0] - 1 and self.current_real_position >= 0 and self.short_order_id is not None:
 
-                        prod_size = -real_delta_position/len(self.leverage)
-                        if use_extra_execution:
-                            prod_size = prod_size/2.0
+                        prod_sizes = -real_delta_position * self.distribution
 
-                        prod_size = round(prod_size, self.coinbase_decimal)
+                        entry_value = self.init_entry_value/(len(self.leverage) * 2) if use_extra_execution else self.init_entry_value/len(self.leverage)
 
-                        entry_value = self.crypto_last_price * prod_size / default_leverage
 
                         for k in range(len(self.leverage)):
                             strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
                                                                    strategy_id = k+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                    execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
-                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value, default_leverage=default_leverage, prod_size = prod_size)
+                                                                   strategy_entry_value = entry_value, execution_entry_value = entry_value,
+                                                                   default_leverage=default_leverage, prod_size = round(prod_sizes[k], self.coinbase_decimal))
                             strategy_executions += [strategy_execution]
 
 
                         if use_extra_execution:
-                            extra_prod_size = -real_delta_position / 2.0
-                            extra_prod_size = round(extra_prod_size, self.coinbase_decimal)
 
-                            extra_entry_value = self.crypto_last_price * extra_prod_size / default_leverage
+                            extra_prod_size = -real_delta_position * self.extra_distribution
+
+                            extra_entry_value = self.init_entry_value / 2.0
 
                             strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,

@@ -41,6 +41,9 @@ class StrategyExecution:
 
         self.initialize()
 
+    #def __str__(self):
+
+
     def initialize(self):
         self.pnl_rate = 0
         self.pnl = 0

@@ -754,6 +754,9 @@ class CurrencySmartExecutor:
 
 
     def open_executions(self, target_position, entry_time, strategy_executions = []):
+
+        self.log_msg("Open ")
+
         self.target_position = target_position #This is sided
         self.target_side = 'BUY' if self.target_position > 0 else 'SELL'
         self.entry_time = entry_time

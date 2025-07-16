@@ -149,7 +149,7 @@ if __name__ == '__main__':
         if final_start_date is not None and final_end_date is not None:
 
             interval = 300 if auto_download_5min_data else 3600
-            max_bar_num = 350 if use_coinbase_data_source else 1000 #5000
+            max_bar_num = 350 if use_coinbase_data_source else 5000 #5000
 
             start_date = datetime.strptime(final_start_date, "%Y-%m-%d")
             end_date = datetime.strptime(final_end_date, "%Y-%m-%d")
