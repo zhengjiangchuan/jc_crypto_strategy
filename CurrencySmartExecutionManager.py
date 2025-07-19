@@ -54,16 +54,29 @@ class CurrencySmartExecutionManager(threading.Thread):
 
         while True:
             with self.thread_condition:
-                while len(self.currency2executor) == 0:
-                    self.thread_condition.wait()
+                #while len(self.currency2executor) == 0:
+                #    self.thread_condition.wait()
+
+                while True:
+                    has_executions = False
+                    for k,v in self.currency2executor.items():
+                        executor: CurrencySmartExecutor = v
+                        if executor.has_executions():
+                            has_executions = True
+                            break
+                    if not has_executions:
+                        self.log_msg("No crypto has active executions yet, waiting...")
+                        self.thread_condition.wait()
 
                 some_closed_position = False
                 for currency, v in self.currency2executor.items():
                     executor: CurrencySmartExecutor = v
-                    print("Manage executinos for currency " + currency)
-                    executor.manage_executions()
+                    if executor.has_executions():
+                        self.log_msg("Manage executions for crypto " + currency)
+                        executor.manage_executions()
 
                     if executor.waiting_to_finalize_pnl:
+                        self.log_msg("Crypto " + currency + " has closed position by signal, waiting to finalize pnl.")
                         some_closed_position = True
 
                 if some_closed_position:
@@ -73,6 +86,7 @@ class CurrencySmartExecutionManager(threading.Thread):
                     for currency, v in self.currency2executor.items():
                         executor: CurrencySmartExecutor = v
                         if executor.waiting_to_finalize_pnl:
+                            self.log_msg("Crypto " + currency + " finalizing pnl");
                             executor.finalize_pnl_to_prod_file()
 
                     self.prod_files_written = False

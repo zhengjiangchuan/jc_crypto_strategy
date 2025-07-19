@@ -41,7 +41,18 @@ class StrategyExecution:
 
         self.initialize()
 
-    #def __str__(self):
+    def __str__(self):
+
+        array = ["side="+str(self.side), "leverage="+str(self.leverage),
+                 "take_profit_pct="+str(self.take_profit_pct), "take_loss_pct="+str(self.take_loss_pct),
+                 "strategy_id="+str(self.strategy_id), "execution_id="+str(self.execution_id),
+                 "strategy_entry_time="+str(self.strategy_entry_time), "strategy_entry_price="+str(self.strategy_entry_price),
+                 "execution_entry_time="+str(self.execution_entry_time), "execution_entry_price="+str(self.execution_entry_price),
+                 "strategy_entry_value="+str(self.strategy_entry_value), "execution_entry_value="+str(self.execution_entry_value),
+                 "prod_size="+str(self.prod_size)
+                 ]
+
+        return "Execution [" + ','.join(array) + ']'
 
 
     def initialize(self):
@@ -81,7 +92,8 @@ class StrategyExecution:
         self.prod_execution_exit_value = self.prod_execution_entry_value + self.prod_pnl
 
     def calc_increased_size_when_take_profit(self):
-        return self.prod_size * self.take_profit_pct * self.leverage
+        #return self.prod_size * self.take_profit_pct * self.leverage
+        return self.prod_size * (self.prod_execution_entry_price/self.take_profit_price * (1 + self.take_profit_pct * self.leverage) - 1)
 
     def update_to_next_execution(self, entry_time, increased_size):
         self.execution_id = self.execution_id + 1

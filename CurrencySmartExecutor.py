@@ -20,6 +20,9 @@ from enum import Enum,auto
 
 import uuid
 
+from instrument_trader import print_email_message_to_file
+from util import sendEmail
+
 class OrderType(Enum):
     TAKE_PROFIT_EXIT = auto()
     STOP_LOSS_EXIT = auto()
@@ -129,7 +132,7 @@ class CurrencySmartExecutor:
             for i in range(unfinished_execution_data_df.shape[0]):
                 unfinished_execution_data = unfinished_execution_data_df.iloc[i]
                 unfinished_execution: StrategyExecution = self.recover_execution(unfinished_execution_data)
-                self.strategy_executions[unfinished_execution.execution_id-1] = unfinished_execution
+                self.strategy_executions[unfinished_execution.strategy_id-1] = unfinished_execution
 
                 order_list = []
                 for j in range(1,3):
@@ -287,12 +290,8 @@ class CurrencySmartExecutor:
             trade_df.to_csv(self.trade_file, index = False)
             trade_prod_df.to_csv(self.trade_prod_file, index = False)
 
-
-
-
-
         self.waiting_to_finalize_pnl = False
-        pass
+
 
 
 
@@ -402,6 +401,8 @@ class CurrencySmartExecutor:
 
         return new_execution_row
 
+    def has_executions(self):
+        return len(self.strategy_executions) > 0
 
     def manage_executions(self):
 
@@ -411,6 +412,8 @@ class CurrencySmartExecutor:
 
                 #TODO: APPEND the new opened position open price, entry_time etc to strategy_prod_file and strategy_execution_prod_file (Write the new opened executions to persistence)
 
+                self.log_msg("New position opened: " + str(self.current_position) + " units at filled price " + str(self.open_position_fill_price))
+
                 for i in range(len(self.new_strategy_executions)):
 
                     if self.new_strategy_executions[i] is None:
@@ -419,6 +422,8 @@ class CurrencySmartExecutor:
                     strategy_execution: StrategyExecution = self.new_strategy_executions[i]
 
                     strategy_execution.set_prod_strategy_entry_price(self.open_position_fill_price)
+
+                    self.log_msg("Process execution " + str(i+1) + ":")
 
                     if self.use_extra_execution and i == len(self.strategy_executions)-1:
                         try:
@@ -441,6 +446,16 @@ class CurrencySmartExecutor:
                                                            margin_type="CROSS",
                                                            retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
+
+                            message_title = "Place stop profit order for extra execution of crypto " + self.currency_coinbase
+                            message = "Place stop profit order of " + str(strategy_execution.prod_size) + " units at take profit price " +\
+                                str(strategy_execution.take_profit_price) + " for " + self.target_side + " order of extra execution of crypto " + self.currency_coinbase
+
+                            self.log_msg(message_title)
+                            self.log_msg(message)
+                            if not print_email_message_to_file:
+                                sendEmail(message_title, message, is_alternative=True)
+
 
                         except Exception as e:
                             print(f"Order failed: {e}")
@@ -705,6 +720,13 @@ class CurrencySmartExecutor:
                                                          retail_portfolio_id=self.coinbase_portfolio_id
                                                          )
 
+            message_title = "Place stop profit order for extra execution of crypto " + self.currency_coinbase
+            message = "Place stop profit order of " + str(
+                strategy_execution.prod_size) + " units at take profit price " + \
+                      str(strategy_execution.take_profit_price) + " for " + self.target_side + " order of extra execution of crypto " + self.currency_coinbase
+
+
+
         except Exception as e:
             print(f"Order failed: {e}")
 
@@ -755,16 +777,22 @@ class CurrencySmartExecutor:
 
     def open_executions(self, target_position, entry_time, strategy_executions = []):
 
-        self.log_msg("Open ")
+        self.log_msg("Open executions for " + ("long" if target_position > 0 else "short") + " position " + str(target_position) + " at time " + str(entry_time))
 
         self.target_position = target_position #This is sided
         self.target_side = 'BUY' if self.target_position > 0 else 'SELL'
         self.entry_time = entry_time
         self.new_strategy_executions = strategy_executions
 
+        self.log_msg("Executions opened are:")
+        for execution in strategy_executions:
+            self.log_msg(execution)
+
         self.new_position_opened = True
 
     def set_open_position_price(self, entry_price):
+
+        self.log_msg("Open position fill price = " + str(entry_price))
         self.open_position_fill_price = entry_price
 
 
@@ -776,10 +804,14 @@ class CurrencySmartExecutor:
         self.exit_time = exit_time
         self.signal_exit_price = signal_exit_price
 
+        self.log_msg("To close " + self.side_to_close + " position of " + str(abs(self.position_to_close)) + " units at time " + str(exit_time) + " at reference price " + str(signal_exit_price))
+
         self.old_position_closed = True
 
 
     def set_close_position_price(self, exit_price):
+
+        self.log_msg("Close position fill price = " + str(exit_price))
         self.close_position_fill_price = exit_price
 
 

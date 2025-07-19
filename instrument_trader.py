@@ -718,19 +718,33 @@ class CurrencyTrader(threading.Thread):
                 self.average_leverage = self.leverage.sum()/len(self.leverage)
                 self.distribution = self.leverage/self.leverage.sum()
 
+                self.log_msg("average_leverage = " + str(self.average_leverage))
+                self.log_msg("prod size distribution = " + str(self.distribution))
+
+
             self.take_profit_pct = self.profit_rates / self.leverage
             self.take_loss_pct = self.loss_rates / self.leverage
 
             self.each_strategy_entry_value = self.init_entry_value / len(self.leverage)
+            self.log_msg("each_strategy_entry_value = " + str(self.each_strategy_entry_value))
 
             if use_extra_execution:
                 self.each_strategy_entry_value = self.each_strategy_entry_value / 2.0
+                self.log_msg("With extra execution, each_strategy_entry_value = " + str(self.each_strategy_entry_value))
                 if do_real_money_trading:
                     self.average_leverage = self.average_leverage / 2.0 + self.optimal_leverage / 2.0
+
+                    self.log_msg("With extra execution, average_leverage = " + str(self.average_leverage))
+
                     temp_distribution = np.array(list(self.leverage) + [len(self.leverage) * self.optimal_leverage])
                     temp_distribution = temp_distribution/temp_distribution.sum()
                     self.distribution = temp_distribution[0:len(self.leverage)]
+
+                    self.log_msg("With extra execution, prod size distribution on basic strategies is: " + str(self.distribution))
+
                     self.extra_distribution = temp_distribution[len(self.leverage)]
+
+                    self.log_msg("Prod size distribution on extra strategy is: " + str(self.extra_distribution))
 
             if do_real_money_trading and do_smart_execution:
                 self.smart_executor_manager = smart_executor_manager
@@ -2981,7 +2995,12 @@ class CurrencyTrader(threading.Thread):
 
                         prod_sizes = real_delta_position * self.distribution
 
+                        self.log_msg('[Execution] Long position to open  = ' + str(real_delta_position))
+                        self.log_msg('[Execution] distribution = ' + str(self.distribution))
+                        self.log_msg('[Execution] prod sizes = ' + str(prod_sizes))
+
                         entry_value = self.init_entry_value/(len(self.leverage) * 2) if use_extra_execution else self.init_entry_value/len(self.leverage)
+                        self.log_msg('[Execution] entry_value = ' + str(entry_value))
 
                         for k in range(len(self.leverage)):
                             strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
@@ -2992,11 +3011,16 @@ class CurrencyTrader(threading.Thread):
                             strategy_executions += [strategy_execution]
 
 
+
                         if use_extra_execution:
 
                             extra_prod_size = real_delta_position * self.extra_distribution
 
                             extra_entry_value = self.init_entry_value / 2.0
+
+                            self.log_msg('[Execution] extra_distribution = ' + str(self.extra_distribution))
+                            self.log_msg('[Execution] extr_prod_size = ' + str(extra_prod_size))
+                            self.log_msg('[Execution] extra_entry_value = ' + str(extra_entry_value))
 
                             strategy_execution = StrategyExecution(side = 1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
@@ -3005,6 +3029,7 @@ class CurrencyTrader(threading.Thread):
                                                                        default_leverage=default_leverage,prod_size = extra_prod_size)
 
                             strategy_executions += [strategy_execution]
+
 
                         self.smart_executor_manager.open_executions(currency = self.currency, target_position = real_delta_position,
                                                                     entry_time = entry_time, strategy_executions = strategy_executions
@@ -3234,7 +3259,7 @@ class CurrencyTrader(threading.Thread):
                             if self.current_position > 0:
 
                                 message_title = "Long position of " + str(self.current_position) + " units of " + self.currency + " closed at stop loss price " + str(exit_price)
-                                message = "At current time" + str(exit_time) + " " + message_title
+                                message = "At current time" + str(exit_time + timedelta(hours = 1)) + " " + message_title
 
                                 self.log_msg("message_title = " + message_title)
                                 self.log_msg("message:")
@@ -3257,7 +3282,7 @@ class CurrencyTrader(threading.Thread):
                                     prefix = ""
 
                                 message_title = prefix + "Long position of " + str(self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
-                                message = "At current time" + str(exit_time) + " " + message_title
+                                message = "At current time" + str(exit_time + timedelta(hours=1)) + " " + message_title
 
                                 self.log_msg("message_title = " + message_title)
                                 self.log_msg("message:")
@@ -3585,8 +3610,12 @@ class CurrencyTrader(threading.Thread):
 
                         prod_sizes = -real_delta_position * self.distribution
 
-                        entry_value = self.init_entry_value/(len(self.leverage) * 2) if use_extra_execution else self.init_entry_value/len(self.leverage)
+                        self.log_msg('[Execution] Short position to open  = ' + str(real_delta_position))
+                        self.log_msg('[Execution] distribution = ' + str(self.distribution))
+                        self.log_msg('[Execution] prod sizes = ' + str(prod_sizes))
 
+                        entry_value = self.init_entry_value/(len(self.leverage) * 2) if use_extra_execution else self.init_entry_value/len(self.leverage)
+                        self.log_msg('[Execution] entry_value = ' + str(entry_value))
 
                         for k in range(len(self.leverage)):
                             strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[k], take_profit_pct = self.take_profit_pct[k], take_loss_pct = self.take_loss_pct[k],
@@ -3603,6 +3632,10 @@ class CurrencyTrader(threading.Thread):
 
                             extra_entry_value = self.init_entry_value / 2.0
 
+                            self.log_msg('[Execution] extra_distribution = ' + str(self.extra_distribution))
+                            self.log_msg('[Execution] extr_prod_size = ' + str(extra_prod_size))
+                            self.log_msg('[Execution] extra_entry_value = ' + str(extra_entry_value))
+
                             strategy_execution = StrategyExecution(side = -1, leverage = self.leverage[0], take_profit_pct = self.take_profit_pct[0], take_loss_pct = self.take_loss_pct[0],
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                        execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
@@ -3610,6 +3643,8 @@ class CurrencyTrader(threading.Thread):
                                                                        prod_size = extra_prod_size)
 
                             strategy_executions += [strategy_execution]
+
+
 
                         self.smart_executor_manager.open_executions(currency = self.currency, target_position = real_delta_position,
                                                                     entry_time = entry_time, strategy_executions = strategy_executions
@@ -3839,7 +3874,7 @@ class CurrencyTrader(threading.Thread):
                         if self.is_notify and (short_start_id + j == self.data_df.shape[0] - 1 or print_email_message_to_file):
                             if self.current_position < 0:
                                 message_title = "Short position of " + str(-self.current_position) + " units of " + self.currency + " closed at stop loss price " + str(exit_price)
-                                message = "At current time" + str(exit_time) + " " + message_title
+                                message = "At current time" + str(exit_time + timedelta(hours=1)) + " " + message_title
 
                                 self.log_msg("message_title = " + message_title)
                                 self.log_msg("message:")
@@ -3862,7 +3897,7 @@ class CurrencyTrader(threading.Thread):
                                     prefix = ""
 
                                 message_title = prefix + "Short position of " + str(-self.current_position) + " units of " + self.currency + " closed by signal at price " + str(exit_price)
-                                message = "At current time" + str(exit_time) + " " + message_title
+                                message = "At current time" + str(exit_time + timedelta(hours=1)) + " " + message_title
 
                                 self.log_msg("message_title = " + message_title)
                                 self.log_msg("message:")
@@ -4255,11 +4290,15 @@ class CurrencyTrader(threading.Thread):
             write_prod_df['entry_price'] = write_prod_df['entry_price'].apply(lambda x: round(x, self.decimal))
             write_prod_df['exit_price'] = write_prod_df['exit_price'].apply(lambda x: round(x, self.decimal))
 
-            write_prod_df['execution_cost'] = write_prod_df['prod_pnl'] - write_prod_df['pnl']
-            write_prod_df['cum_execution_cost'] = write_prod_df['execution_cost'].cumsum()
+            write_prod_df['execution_slippage'] = write_prod_df['prod_pnl'] - write_prod_df['pnl']
+            write_prod_df['cum_execution_slippage'] = write_prod_df['execution_slippage'].cumsum()
 
-            write_prod_df['execution_cost'] = write_prod_df['execution_cost'].apply(lambda x: round(x, 2))
-            write_prod_df['cum_execution_cost'] = write_prod_df['cum_execution_cost'].apply(lambda x: round(x, 2))
+            write_prod_df['execution_slippage'] = write_prod_df['execution_slippage'].apply(lambda x: round(x, 2))
+            write_prod_df['cum_execution_slippage'] = write_prod_df['cum_execution_slippage'].apply(lambda x: round(x, 2))
+
+
+            columns_to_delete = [col for col in ['execution_cost', 'cum_execution_cost'] if col in write_prod_df.columns]
+            write_prod_df = write_prod_df.drop(columns = columns_to_delete)
 
 
             write_prod_df.to_csv(self.trade_prod_file, index = False)
