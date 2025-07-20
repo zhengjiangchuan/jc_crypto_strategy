@@ -81,6 +81,9 @@ class StrategyExecution:
 
         self.active = (not is_signal_exit) and self.pnl > 0 and (not is_extra_execution)
 
+        return f"execution_exit_time={self.execution_exit_time}, execution_exit_price={self.execution_exit_price}, execution_entry_price={self.execution_entry_price}, " +\
+               f"return_rate={return_rate}, pnl_rate={self.pnl_rate}, pnl={self.pnl}, execution_exit_value={self.execution_exit_value}"
+
     def exit_execution_prod(self, prod_execution_exit_price):
         prod_return_rate = self.side * (
                     prod_execution_exit_price - self.prod_execution_entry_price) / self.prod_execution_entry_price
@@ -90,6 +93,9 @@ class StrategyExecution:
 
         self.prod_execution_exit_price = prod_execution_exit_price
         self.prod_execution_exit_value = self.prod_execution_entry_value + self.prod_pnl
+
+        return f"prod_execution_exit_price={self.prod_execution_exit_price}, prod_execution_entry_price={self.prod_execution_entry_price}, prod_size={self.prod_size}, " +\
+               f"prod_return_rate={prod_return_rate}, prod_pnl_rate={self.prod_pnl_rate}, prod_pnl={self.prod_pnl}, prod_execution_exit_value={self.prod_execution_exit_value}"
 
     def calc_increased_size_when_take_profit(self):
         #return self.prod_size * self.take_profit_pct * self.leverage
@@ -106,3 +112,7 @@ class StrategyExecution:
         self.prod_execution_entry_value = self.prod_execution_exit_value
 
         self.initialize()
+
+        return f"entry_time={self.execution_entry_time}, increased_size={increased_size}, new execution_id={self.execution_id}, execution_entry_price={self.execution_entry_price}, " +\
+            f"prod_execution_entry_price={self.prod_execution_entry_price}, new prod_size={self.prod_size}, execution_entry_value={self.execution_entry_value}, prod_execution_entry_value={self.prod_execution_entry_value} " +\
+            f"new take_profit_price={self.take_profit_price}, new take_loss_price={self.take_loss_price}"
