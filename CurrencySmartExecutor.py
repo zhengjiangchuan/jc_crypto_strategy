@@ -3,7 +3,9 @@ import time
 
 import math
 import matplotlib.lines as mlines
-import datetime
+
+from datetime import datetime
+
 import pandas as pd
 import math
 import copy
@@ -132,11 +134,17 @@ class CurrencySmartExecutor:
         self.execution_data_df = None
 
         if os.path.exists(self.strategy_execution_prod_file):
+
+            self.log_msg("Recovering executions from files")
+
             self.execution_data_df = pd.read_csv(self.strategy_execution_prod_file)
 
             self.strategy_executions = [None] * (self.strategy_number+1 if self.use_extra_execution else self.strategy_number)
 
             unfinished_execution_data_df = self.execution_data_df[self.execution_data_df['exit_price'] <= 0]
+
+            self.log_msg()
+
             for i in range(unfinished_execution_data_df.shape[0]):
                 unfinished_execution_data = unfinished_execution_data_df.iloc[i]
                 unfinished_execution: StrategyExecution = self.recover_execution(unfinished_execution_data)
@@ -208,7 +216,10 @@ class CurrencySmartExecutor:
 
     def get_current_position(self):
 
+        current_real_position = 0
         positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
+        self.log_msg(f"positions size = {len(positions)}")
+
         for position in positions:
 
             if position['symbol'] == self.currency_coinbase:
@@ -236,6 +247,9 @@ class CurrencySmartExecutor:
     def finalize_pnl_to_prod_file(self):
 
         if os.path.exists(self.trade_file) and os.path.exists(self.trade_prod_file):
+
+            self.log_msg("Finalize pnl to production file")
+
             trade_df = pd.read_csv(self.trade_file)
             trade_prod_df = pd.read_csv(self.trade_prod_file)
 
@@ -306,6 +320,10 @@ class CurrencySmartExecutor:
     def append_strategy_row(self, strategy_row):
 
         delta_data_df = pd.DataFrame(data=[strategy_row], columns=self.strategy_data_columns)
+
+        self.log_msg(f"Strategy row is:")
+        self.log_msg(delta_data_df)
+
         if self.strategy_data_df is None:
             self.strategy_data_df = delta_data_df
         else:
@@ -316,6 +334,7 @@ class CurrencySmartExecutor:
 
     def generate_strategy_row(self, strategy_id):
 
+        self.log_msg(f"Generate strategy row for {self.side_to_close} strategy {strategy_id} of crypto {self.currency_coinbase}")
         if self.side_to_close == 'BUY':
             target_df = self.execution_data_df[self.execution_data_df['long_trade_id'] == self.max_long_trade_id]
         else:
@@ -444,7 +463,7 @@ class CurrencySmartExecutor:
 
                 #TODO: APPEND the new opened position open price, entry_time etc to strategy_prod_file and strategy_execution_prod_file (Write the new opened executions to persistence)
 
-                self.log_msg("New position opened: " + str(self.current_position) + " units at filled price " + str(self.open_position_fill_price))
+                self.log_msg(f"New {'Long' if self.current_position > 0 else 'Short'} position of {abs(self.current_position)} units opened at filled price {self.open_position_fill_price}")
 
                 for i in range(len(self.new_strategy_executions)):
 
@@ -455,7 +474,7 @@ class CurrencySmartExecutor:
 
                     strategy_execution.set_prod_strategy_entry_price(self.open_position_fill_price)
 
-                    self.log_msg("Process execution " + str(i+1) + ":")
+                    self.log_msg("Process execution strategy " + str(i+1) + ":")
 
                     if self.use_extra_execution and i == len(self.strategy_executions)-1:
                         try:
@@ -528,6 +547,8 @@ class CurrencySmartExecutor:
 
             if self.close_position_fill_price > 0:
 
+                self.log_msg(f"Current {'Long' if self.position_to_close > 0 else 'Short'} position of {abs(self.position_to_close)} units get closed due to signal at price {self.close_position_fill_price}")
+
                 for i in range(len(self.strategy_executions)):
 
                     if self.strategy_executions[i] is None:
@@ -538,8 +559,20 @@ class CurrencySmartExecutor:
                     if not strategy_execution.active:
                         continue
 
-                    order_list = self.execution2order[i + 1]
+                    self.log_msg("Process execution strategy " + str(i + 1) + ":")
+
+                    order_list = self.execution2order[strategy_execution.strategy_id]
                     for order in order_list:
+
+                        message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its pending order of type {order.order_type()}"
+                        message = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its pending order of type {order.order_type()} of size {order.order_size()}"
+
+                        self.log_msg(message_title)
+                        self.log_msg(message)
+                        if not print_email_message_to_file:
+                            sendEmail(message_title, message, is_alternative=True)
+
+
                         try:
                             print("Cancel pending orders because closing signal fires")
                             cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
@@ -550,11 +583,17 @@ class CurrencySmartExecutor:
 
                     is_extra = self.use_extra_execution and i == len(self.strategy_executions) - 1
 
-                    strategy_execution.exit_execution(execution_exit_time=self.exit_time, execution_exit_price=self.signal_exit_price,
+                    self.log_msg("Exit this execution")
+                    ret_msg = strategy_execution.exit_execution(execution_exit_time=self.exit_time, execution_exit_price=self.signal_exit_price,
                                              is_signal_exit=True,
                                              is_extra_execution=is_extra)
 
-                    strategy_execution.exit_execution_prod(prod_execution_exit_price=self.close_position_fill_price)
+                    self.log_msg(ret_msg)
+
+                    self.log_msg("Exit this prod execution")
+                    ret_msg = strategy_execution.exit_execution_prod(prod_execution_exit_price=self.close_position_fill_price)
+
+                    self.log_msg(ret_msg)
 
                     self.finish_execution_row(i+1, strategy_execution)
 
@@ -562,7 +601,10 @@ class CurrencySmartExecutor:
                     self.append_strategy_row(strategy_row)
 
 
-                    del self.execution2order[i+1]
+                    del self.execution2order[strategy_execution.strategy_id]
+
+                    self.log_msg("execution2order now is:")
+                    self.log_msg(self.execution2order)
 
                 # TODO: APPEND the new closed position close price, exit_time etc to strategy_prod_file and strategy_execution_prod_file (Write closed executions to persistence)
 
@@ -817,7 +859,7 @@ class CurrencySmartExecutor:
 
         try:
             client_order_id = self.generate_client_order_id()
-            strategy_execution.strategy_id
+
             size = strategy_execution.calc_increased_size_when_take_profit()
             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                          client_order_id=client_order_id,
@@ -836,7 +878,7 @@ class CurrencySmartExecutor:
                                                          retail_portfolio_id=self.coinbase_portfolio_id
                                                          )
             message_title = f"Place stop entry order for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
-            message = f"Place stop entry {self.parse_side(strategy_execution.side)} order of {strategy_execution.prod_size} units at take profit price " + \
+            message = f"Place stop entry {self.parse_side(strategy_execution.side)} order of {size} units at take profit price " + \
                       f"{strategy_execution.take_profit_price} for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
 
             self.log_msg(message_title)
@@ -939,9 +981,9 @@ class CurrencySmartExecutor:
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         #current_time = (datetime.now() + timedelta(seconds = 28800)).strftime("%Y-%m-%d %H:%M:%S")
         if isinstance(msg, pd.DataFrame):
-            print('[' + current_time + ' ' + self.currency + ']  \n' + str(msg), file = self.log_fd)
+            print('[' + current_time + ' ' + self.currency_coinbase + ']  \n' + str(msg), file = self.log_fd)
         else:
-            print('[' + current_time + ' ' + self.currency + ']  ' + str(msg), file=self.log_fd)
+            print('[' + current_time + ' ' + self.currency_coinbase + ']  ' + str(msg), file=self.log_fd)
 
         self.log_fd.flush()
 

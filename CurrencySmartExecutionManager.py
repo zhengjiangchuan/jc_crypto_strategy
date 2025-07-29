@@ -21,6 +21,8 @@ class CurrencySmartExecutionManager(threading.Thread):
 
     def __init__(self, coinbase_client: RESTClient, coinbase_portfolio_id, heart_beat = 60, use_extra_execution = False, global_executor_log_path = None):
 
+        super().__init__(name = "CurrencySmartExecutionManager")
+
         self.thread_condition: threading.Condition = threading.Condition()
         self.thread_lock: threading.Lock = threading.Lock()
         self.coinbase_client = coinbase_client
@@ -39,7 +41,7 @@ class CurrencySmartExecutionManager(threading.Thread):
     def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, log_file, strategy_number):
 
         #This should be called before this thread starts (i.e., run() is executed)
-        self.currency2execution[currency] = CurrencySmartExecutor(currency_conbase = currency_coinbase,
+        self.currency2executor[currency] = CurrencySmartExecutor(currency_coinbase = currency_coinbase,
                                                                   coinbase_portfolio_id=self.coinbase_portfolio_id,
                                                                   strategy_prod_file = strategy_prod_file,
                                                                   strategy_execution_prod_file = strategy_execution_prod_file,
@@ -52,6 +54,7 @@ class CurrencySmartExecutionManager(threading.Thread):
 
     def run(self):
 
+        self.log_msg("SmartExecutionManager running...................")
         while True:
             with self.thread_condition:
                 #while len(self.currency2executor) == 0:
@@ -125,7 +128,7 @@ class CurrencySmartExecutionManager(threading.Thread):
         with self.thread_condition:
 
             smart_executor : CurrencySmartExecutor = self.currency2executor[currency]
-            smart_executor.open_executions(entry_price)
+            smart_executor.set_open_position_price(entry_price)
 
             self.thread_condition.notify_all()
 
@@ -141,7 +144,7 @@ class CurrencySmartExecutionManager(threading.Thread):
 
 
     def set_close_position_price(self, currency, exit_price):
-        self.global_executor_log_fd
+
         with self.thread_condition:
 
             smart_executor : CurrencySmartExecutor = self.currency2executor[currency]

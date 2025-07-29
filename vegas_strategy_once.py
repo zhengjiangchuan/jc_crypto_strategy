@@ -47,7 +47,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-use_coinbase_data_source = True
+use_coinbase_data_source = True #True
 
 parser = OptionParser()
 parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
@@ -149,10 +149,10 @@ if not is_real_time_trading:
 
 while True:
     try:
-        if is_real_time_trading and do_real_money_trading:
-            api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
-            client = RESTClient(api_key=api_key,
-                                api_secret=api_secret)
+        #if is_real_time_trading and do_real_money_trading:
+        api_key, api_secret = get_api_keys(is_alternative=True if alternative == 'y' else False)
+        client = RESTClient(api_key=api_key,
+                            api_secret=api_secret)
 
         td = TDClient(apikey=get_twelvedata_api_keys())
         break
@@ -611,7 +611,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -898,7 +898,10 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0715_noforceOut_overbought_coinbase_execution"
 
-    current_date = "_production_0701_noforceOut_overbought_coinbase"
+
+    #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
+
+    current_date = "_production_execution"
 
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"
@@ -1329,7 +1332,6 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
             smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
                                                                 strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
                                                                 strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
-                                                                coinbase_decimal = coinbase_decimal,
                                                                 trade_file = trade_file,
                                                                 trade_prod_file = trade_prod_file,
                                                                 log_file = executor_log_file,

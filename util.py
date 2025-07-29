@@ -878,13 +878,20 @@ from email.mime.text import MIMEText
 from optparse import OptionParser
 
 mail_host = "smtp.163.com"
+
 mail_user = "glzxely123"
 mail_pass = "10331861oO"
 
+#mail_user = "jcazheng198508"
+#mail_pass = "10331861oO!"
+
 sender = 'glzxely123@163.com'
+#sender = 'jcazheng198508@163.com'
+
 #receivers = ['jczheng198508@gmail.com']
 
-receivers = ['glzxely123@163.com']
+#receivers = ['glzxely123@163.com']
+receivers = ['jcazheng198508@163.com']
 
 # parser = OptionParser()
 # parser.add_option("-c", "--currency", dest="currency_pair", default = "all",
@@ -928,7 +935,7 @@ def sendEmail(title, content, is_alternative = False):
 
     #pass
 
-
+#sendEmail("Hello", "Hello")
 
 
 

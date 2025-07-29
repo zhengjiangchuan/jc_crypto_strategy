@@ -105,10 +105,13 @@ def wait_for_trigger():
 
 #until_date = "2024-09-20"
 
-auto_download_5min_data = True #If false, then if final_start_date and final_end_date not None, auto download hourly data iteratively
+auto_download_5min_data = False #If false, then if final_start_date and final_end_date not None, auto download hourly data iteratively
 
-final_start_date = None #"2025-07-04"  #"2024-09-05"
-final_end_date = None #"2025-07-14" #"2025-07-06"
+#final_start_date = "2025-07-14" #"2025-07-04"  #"2024-09-05"
+#final_end_date = "2025-07-27" #"2025-07-14" #"2025-07-06"
+
+final_start_date = None
+final_end_date = None
 
 if __name__ == '__main__':
 
