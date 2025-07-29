@@ -3620,7 +3620,7 @@ class CurrencyTrader(threading.Thread):
                 strategy_executions = []
 
                 if do_real_money_trading:
-                    if self.wakeup == 1 and short_start_id == self.data_df.shape[0] - 1 and self.current_real_position >= 0 and self.short_execution_order_id is not None:
+                    if self.wakeup == 1 and short_start_id == self.data_df.shape[0] - 1 and self.current_real_position >= 0 and self.short_execution_order_id is None:
 
                         prod_sizes = -real_delta_position * self.distribution
 
@@ -3960,7 +3960,7 @@ class CurrencyTrader(threading.Thread):
                     if do_smart_execution:
                         if do_real_money_trading:
 
-                            if self.wakeup == 1 and short_start_id + j == self.data_df.shape[0] - 1 and self.current_real_position < 0 and self.close_short_execution_order_id is not None:
+                            if self.wakeup == 1 and short_start_id + j == self.data_df.shape[0] - 1 and self.current_real_position < 0 and self.close_short_execution_order_id is None:
 
                                 self.smart_executor_manager.close_executions(self.currency, self.current_real_position, exit_time, self.crypto_last_price)
 
