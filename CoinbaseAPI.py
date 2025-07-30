@@ -70,8 +70,8 @@ try:
                                    side="BUY",
                                    order_configuration={
                                        "limit_limit_gtc":{
-                                           "base_size" : "20", #20
-                                           "limit_price" : "0.5"#"0.725"
+                                           "base_size" : "30", #20
+                                           "limit_price" : "0.6"#"0.725"
 
                                        }
                                    },

@@ -173,7 +173,7 @@ class CurrencyPair:
 
     def __init__(self, currency, lot_size, exchange_rate, coefficient, actual_maxdrawdown, optimal_gradient_num, optimal_gradient_num_execution, decimal, reverse_strategy,
                  use_slow_macd, use_guppy_filter, use_guppy_filter_for_exit, guppy_force_out, use_rsi_to_exit, do_stop_loss, reentry_after_stop_loss, also_filter_too_late, use_guppy_condition,
-                 init_entry_value, coinbase_decimal, check_data, over_bought_logic, adjust_decimal):
+                 init_entry_value, coinbase_decimal, price_decimal, check_data, over_bought_logic, adjust_decimal):
         self.currency = currency
         self.lot_size = lot_size
         self.exchange_rate = exchange_rate
@@ -194,6 +194,7 @@ class CurrencyPair:
         self.use_guppy_condition = True if use_guppy_condition == 1 else False
         self.init_entry_value = init_entry_value
         self.coinbase_decimal = coinbase_decimal
+        self.price_decimal = price_decimal
         self.check_data = check_data
         self.over_bought_logic = over_bought_logic
         self.adjust_decimal = adjust_decimal
@@ -843,7 +844,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
         currency_pairs += [CurrencyPair(row['instrument'], row['lot_size'], row['exchange_rate'], row['close_position_coefficient'],
                                         row['actual_maxdrawdown'], row['optimal_gradient_num'], row['optimal_gradient_num_execution'], row['decimal'],
                                         row['reverse_strategy'], row['use_slow_macd'], row['use_guppy_filter'], row['use_guppy_filter_for_exit'], row['guppy_force_out'], row['use_rsi_to_exit'], row['do_stop_loss'],
-        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['check_data'],row['over_bought_logic'], row['adjust_decimal'])]
+        row['reentry_after_stop_loss'],row['also_filter_too_late'],row['use_guppy_condition'], row['init_entry_value'], row['coinbase_decimal'], row['price_decimal'], row['check_data'],row['over_bought_logic'], row['adjust_decimal'])]
 
     log_msg("currencies:")
     log_msg([currencyPair.currency for currencyPair in currency_pairs])
@@ -1287,6 +1288,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
         use_guppy_condition = currency_pair.use_guppy_condition
         init_entry_value = currency_pair.init_entry_value
         coinbase_decimal = currency_pair.coinbase_decimal
+        price_decimal = currency_pair.price_decimal
         check_data = currency_pair.check_data
         over_bought_logic = currency_pair.over_bought_logic
         adjust_decimal = currency_pair.adjust_decimal
@@ -1315,7 +1317,9 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
                                          guppy_force_out = guppy_force_out, use_rsi_to_exit = use_rsi_to_exit,
                                          do_stop_loss = do_stop_loss, reentry_after_stop_loss = reentry_after_stop_loss,
                                          also_filter_too_late = also_filter_too_late,
-                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal, check_data = check_data, over_bought_logic = over_bought_logic,
+                                         use_guppy_condition = use_guppy_condition, init_entry_value = init_entry_value, coinbase_decimal = coinbase_decimal,
+                                         price_decimal = price_decimal,
+                                         check_data = check_data, over_bought_logic = over_bought_logic,
                                          adjust_decimal = adjust_decimal,
                                          is_alternative=True if alternative == 'y' else False,
                                          smart_executor_manager = smart_executor_manager)
@@ -1335,7 +1339,9 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
                                                                 trade_file = trade_file,
                                                                 trade_prod_file = trade_prod_file,
                                                                 log_file = executor_log_file,
-                                                                strategy_number = len(currency_trader.leverage)
+                                                                strategy_number = len(currency_trader.leverage),
+                                                                size_decimal = currency_trader.coinbase_decimal,
+                                                                price_decimal = currency_trader.price_decimal
                                                                 )
 
 

@@ -81,14 +81,14 @@ try:
     #                                # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
     #                                )
 
-    response = client.create_order(product_id="ADA-PERP-INTX",  # BTC-USDC is the correct product id
+    response = client.create_order(product_id="ETH-PERP-INTX",  # BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
-                                   side="BUY",
+                                   side="SELL",
                                    order_configuration={
                                        "stop_limit_stop_limit_gtc": {
-                                           "base_size": "200",
-                                           "limit_price": "0.71",
-                                           "stop_price": "0.7"
+                                           "base_size": "0.073", #200
+                                           "limit_price": "3226.012",
+                                           "stop_price": "3583.5"
                                        }
                                    },
                                    leverage="10",
@@ -99,6 +99,10 @@ try:
     print(f"Order placed: {response}")
 except Exception as e:
     print(f"Order failed: {e}")
+
+stop_profit_order_id = response['success_response']['order_id']
+
+print(f"stop order id = {stop_profit_order_id}")
 
 
 

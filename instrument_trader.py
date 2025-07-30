@@ -500,7 +500,7 @@ class CurrencyTrader(threading.Thread):
                  decimal = 5, reverse_strategy = False,
                  wakeup = 1, coinbase_client: Optional[RESTClient] = None, currency_coinbase = None, coinbase_portfolio_id = -1, crypto_last_price = 0,
                  use_slow_macd = True, use_guppy_filter = False, use_guppy_filter_for_exit = False, guppy_force_out = False, use_rsi_to_exit = False, do_stop_loss = False, reentry_after_stop_loss = False, also_filter_too_late = False,
-                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, check_data = False, over_bought_logic = False, adjust_decimal = 1, is_alternative = False,
+                 use_guppy_condition = False, init_entry_value = 0, coinbase_decimal = 0, price_decimal = 0, check_data = False, over_bought_logic = False, adjust_decimal = 1, is_alternative = False,
                  smart_executor_manager: CurrencySmartExecutionManager = None):
         super().__init__(name = currency)
         self.condition = condition
@@ -548,6 +548,7 @@ class CurrencyTrader(threading.Thread):
         self.use_guppy_condition = global_use_guppy_condition if use_global else use_guppy_condition
         self.init_entry_value = initial_entry_value if use_global else init_entry_value
         self.coinbase_decimal = coinbase_decimal
+        self.price_decimal = price_decimal
         self.check_data = check_data
         self.over_bought_logic = over_bought_logic
         self.adjust_decimal = adjust_decimal

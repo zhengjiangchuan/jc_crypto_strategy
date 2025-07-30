@@ -58,7 +58,7 @@ class Order:
 class CurrencySmartExecutor:
 
     def __init__(self, currency_coinbase, coinbase_portfolio_id, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, log_file,  strategy_number,
-                 coinbase_client: Optional[RESTClient] = None, use_extra_execution = False):
+                 size_decimal, price_decimal, coinbase_client: Optional[RESTClient] = None, use_extra_execution = False):
         self.currency_coinbase = currency_coinbase
         self.coinbase_portfolio_id = coinbase_portfolio_id
         self.strategy_prod_file = strategy_prod_file
@@ -71,6 +71,8 @@ class CurrencySmartExecutor:
 
         self.strategy_number = strategy_number
 
+        self.size_decimal = size_decimal
+        self.price_decimal = price_decimal
         self.coinbase_client = coinbase_client
 
         self.target_position = 0
@@ -132,6 +134,8 @@ class CurrencySmartExecutor:
 
 
         self.execution_data_df = None
+
+        self.log_msg(f"size_decimal = {self.size_decimal}, price_decimal = {self.price_decimal} for currency {self.currency_coinbase}")
 
         if os.path.exists(self.strategy_execution_prod_file):
 
@@ -489,15 +493,17 @@ class CurrencySmartExecutor:
                                                            side=self.opposite_side(self.target_side),
                                                            order_configuration={
                                                                "trigger_bracket_gtc": {
-                                                                   "base_size": str(strategy_execution.prod_size),
-                                                                   "limit_price": str(strategy_execution.take_profit_price),
-                                                                   "stop_trigger_price": str(stop_price)
+                                                                   "base_size": str(round(strategy_execution.prod_size, self.size_decimal)),
+                                                                   "limit_price": str(round(strategy_execution.take_profit_price, self.price_decimal)),
+                                                                   "stop_trigger_price": str(round(stop_price, self.price_decimal))
                                                                }
                                                            },
                                                            leverage="10",
                                                            margin_type="CROSS",
                                                            retail_portfolio_id=self.coinbase_portfolio_id
                                                            )
+
+                            self.log_msg(f"Order placed: {response}")
 
                             message_title = f"Place stop profit order for extra strategy of crypto {self.currency_coinbase}"
                             message = f"Place stop profit order of {strategy_execution.prod_size} units at take profit price " +\
@@ -510,7 +516,7 @@ class CurrencySmartExecutor:
 
 
                         except Exception as e:
-                            print(f"Order failed: {e}")
+                            self.log_msg(f"Order failed: {e}")
 
                         stop_profit_order_id = response['success_response']['order_id']
 
@@ -828,15 +834,17 @@ class CurrencySmartExecutor:
                                                          side=self.opposite_side(strategy_execution.side),
                                                          order_configuration={
                                                              "trigger_bracket_gtc": {
-                                                                 "base_size": str(strategy_execution.prod_size),
-                                                                 "limit_price": str(stop_price),
-                                                                 "stop_trigger_price": str(strategy_execution.take_loss_price)
+                                                                 "base_size": str(round(strategy_execution.prod_size, self.size_decimal)),
+                                                                 "limit_price": str(round(stop_price, self.price_decimal)),
+                                                                 "stop_trigger_price": str(round(strategy_execution.take_loss_price, self.price_decimal))
                                                              }
                                                          },
                                                          leverage="10",
                                                          margin_type="CROSS",
                                                          retail_portfolio_id=self.coinbase_portfolio_id
                                                          )
+
+            self.log_msg(f"Order placed: {response}")
 
             message_title = f"Place stop loss order for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
             message = f"Place stop loss order of {strategy_execution.prod_size} units at take profit price " + \
@@ -849,7 +857,7 @@ class CurrencySmartExecutor:
 
 
         except Exception as e:
-            print(f"Order failed: {e}")
+            self.log_msg(f"Order failed: {e}")
 
         stop_trigger_order_id = response['success_response']['order_id']
 
@@ -867,17 +875,20 @@ class CurrencySmartExecutor:
                                                          side=strategy_execution.side,
                                                          order_configuration={
                                                              "stop_limit_stop_limit_gtc": {
-                                                                 "base_size": str(size),
-                                                                 "limit_price": str(self.calc_buffer_limit_price(
+                                                                 "base_size": str(round(size, self.size_decimal)),
+                                                                 "limit_price": str((self.calc_buffer_limit_price(
                                                                      strategy_execution.take_profit_price,
-                                                                     self.target_side)),
-                                                                 "stop_price": str(strategy_execution.take_profit_price)
+                                                                     self.target_side), self.price_decimal)),
+                                                                 "stop_price": str(round(strategy_execution.take_profit_price, self.price_decimal))
                                                              }
                                                          },
                                                          leverage="10",
                                                          margin_type="CROSS",
                                                          retail_portfolio_id=self.coinbase_portfolio_id
                                                          )
+
+            self.log_msg(f"Order placed: {response}")
+
             message_title = f"Place stop entry order for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
             message = f"Place stop entry {self.parse_side(strategy_execution.side)} order of {size} units at take profit price " + \
                       f"{strategy_execution.take_profit_price} for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
@@ -889,7 +900,7 @@ class CurrencySmartExecutor:
 
 
         except Exception as e:
-            print(f"Order failed: {e}")
+            self.log_msg(f"Order failed: {e}")
 
         stop_entry_order_id = response['success_response']['order_id']
 

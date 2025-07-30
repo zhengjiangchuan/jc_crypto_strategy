@@ -38,7 +38,8 @@ class CurrencySmartExecutionManager(threading.Thread):
         self.global_executor_log_path = global_executor_log_path
         self.global_executor_log_fd = open(self.global_executor_log_path, 'a')
 
-    def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, log_file, strategy_number):
+    def add_currency_executor(self, currency, currency_coinbase, strategy_prod_file, strategy_execution_prod_file, trade_file, trade_prod_file, log_file,
+                              strategy_number, size_decimal, price_decimal):
 
         #This should be called before this thread starts (i.e., run() is executed)
         self.currency2executor[currency] = CurrencySmartExecutor(currency_coinbase = currency_coinbase,
@@ -49,6 +50,8 @@ class CurrencySmartExecutionManager(threading.Thread):
                                                                   trade_prod_file = trade_prod_file,
                                                                   log_file = log_file,
                                                                   strategy_number = strategy_number,
+                                                                  size_decimal = size_decimal,
+                                                                  price_decimal = price_decimal,
                                                                   coinbase_client = self.coinbase_client)
 
     def has_executions(self):
