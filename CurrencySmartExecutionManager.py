@@ -51,6 +51,15 @@ class CurrencySmartExecutionManager(threading.Thread):
                                                                   strategy_number = strategy_number,
                                                                   coinbase_client = self.coinbase_client)
 
+    def has_executions(self):
+        has = False
+        for k, v in self.currency2executor.items():
+            executor: CurrencySmartExecutor = v
+            if executor.has_executions():
+                has = True
+                break
+        return has
+
 
     def run(self):
 
@@ -60,16 +69,20 @@ class CurrencySmartExecutionManager(threading.Thread):
                 #while len(self.currency2executor) == 0:
                 #    self.thread_condition.wait()
 
-                while True:
-                    has_executions = False
-                    for k,v in self.currency2executor.items():
-                        executor: CurrencySmartExecutor = v
-                        if executor.has_executions():
-                            has_executions = True
-                            break
-                    if not has_executions:
-                        self.log_msg("No crypto has active executions yet, waiting...")
-                        self.thread_condition.wait()
+                while not self.has_executions():
+                    self.log_msg("No crypto has active executions yet, waiting...")
+                    self.thread_condition.wait()
+
+                # has_executions = False
+                # while not has_executions:
+                #     for k,v in self.currency2executor.items():
+                #         executor: CurrencySmartExecutor = v
+                #         if executor.has_executions():
+                #             has_executions = True
+                #             break
+                #     if not has_executions:
+                #         self.log_msg("No crypto has active executions yet, waiting...")
+                #         self.thread_condition.wait()
 
                 some_closed_position = False
                 for currency, v in self.currency2executor.items():

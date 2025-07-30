@@ -441,7 +441,8 @@ class CurrencySmartExecutor:
         return new_execution_row
 
     def has_executions(self):
-        return len(self.strategy_executions) > 0
+        self.log_msg(f"strategy_executions len = {len(self.strategy_executions)}, new_strategy_executions len = {len(self.new_strategy_executions)}")
+        return len(self.strategy_executions) > 0 or len(self.new_strategy_executions) > 0
 
     def parse_side(self, side):
         if side == 1:
