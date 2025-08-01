@@ -98,7 +98,7 @@ class StrategyExecution:
                f"prod_return_rate={prod_return_rate}, prod_pnl_rate={self.prod_pnl_rate}, prod_pnl={self.prod_pnl}, prod_execution_exit_value={self.prod_execution_exit_value}"
 
     def calc_increased_size_when_take_profit(self):
-        #return self.prod_size * self.take_profit_pct * self.leverage
+        #return self.prod_size * self.take_profit_pct * self.leverag
         return self.prod_size * (self.prod_execution_entry_price/self.take_profit_price * (1 + self.take_profit_pct * self.leverage) - 1)
 
     def update_to_next_execution(self, entry_time, increased_size):

@@ -290,7 +290,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 1
+printed_figure_num = 2
 
 plot_day_line = True
 plot_cross_point = True
@@ -342,7 +342,7 @@ global_also_filter_too_late = False
 global_use_guppy_condition = False
 
 ####################################
-do_smart_execution = True
+do_smart_execution = True #True
 use_5min_in_smart_execution = False
 use_extra_execution = False
 
@@ -353,7 +353,7 @@ only_download_data = False
 
 
 
-read_5min_data = False #True
+read_5min_data = False
 
 #use_coinbase_data_source = False
 
@@ -361,8 +361,8 @@ read_5min_data = False #True
 print_to_console = True
 #macd_gradient = 'macd2_gradient' if use_slow_macd else 'macd_gradient'
 
-production_running = True
-do_real_money_trading = True
+production_running = True #True
+do_real_money_trading = True #True
 
 
 if not is_real_time_trading:
@@ -939,8 +939,9 @@ class CurrencyTrader(threading.Thread):
             #     self.current_position = 0
 
             if do_real_money_trading:
-                print("portfolio_id = " + str(self.coinbase_portfolio_id))
+                self.log_msg("portfolio_id = " + str(self.coinbase_portfolio_id))
                 positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
+                self.log_msg(f"positions size = {len(positions)}")
                 for position in positions:
                     #print("position symbol = " + position['symbol'])
                     #print("currency_coinbase = " + self.currency_coinbase)

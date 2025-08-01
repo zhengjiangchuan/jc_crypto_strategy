@@ -47,7 +47,7 @@ class Order:
     def order_id(self):
         return self.coinbase_order_id
 
-    def order_type(self):
+    def aux_order_type(self):
         return self.order_type
 
     def order_size(self):
@@ -429,7 +429,7 @@ class CurrencySmartExecutor:
                              ]
 
         for order in order_list:
-            new_execution_row += [order.order_id(), order.order_size(), self.convert_order_type_to_str(order.order_type())]
+            new_execution_row += [order.order_id(), order.order_size(), self.convert_order_type_to_str(order.aux_order_type())]
 
         remaining = 2 - len(order_list)
         if remaining > 0:
@@ -490,7 +490,7 @@ class CurrencySmartExecutor:
 
                             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                            client_order_id=client_order_id,
-                                                           side=self.opposite_side(self.target_side),
+                                                           side=self.opposite_side(self.parse_side(self.target_side)),
                                                            order_configuration={
                                                                "trigger_bracket_gtc": {
                                                                    "base_size": str(round(strategy_execution.prod_size, self.size_decimal)),
@@ -506,8 +506,8 @@ class CurrencySmartExecutor:
                             self.log_msg(f"Order placed: {response}")
 
                             message_title = f"Place stop profit order for extra strategy of crypto {self.currency_coinbase}"
-                            message = f"Place stop profit order of {strategy_execution.prod_size} units at take profit price " +\
-                                f"{strategy_execution.take_profit_price}  for {self.parse_side(strategy_execution.side)} order of extra strategy of crypto {self.currency_coinbase}"
+                            message = f"Place stop profit order of {round(strategy_execution.prod_size, self.size_decimal)} units at take profit price " +\
+                                f"{round(strategy_execution.take_profit_price, self.price_decimal)}  for {self.parse_side(strategy_execution.side)} order of extra strategy of crypto {self.currency_coinbase}"
 
                             self.log_msg(message_title)
                             self.log_msg(message)
@@ -571,8 +571,8 @@ class CurrencySmartExecutor:
                     order_list = self.execution2order[strategy_execution.strategy_id]
                     for order in order_list:
 
-                        message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its pending order of type {order.order_type()}"
-                        message = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its pending order of type {order.order_type()} of size {order.order_size()}"
+                        message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its pending order of type {order.aux_order_type()}"
+                        message = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its pending order of type {order.aux_order_type()} of size {order.order_size()}"
 
                         self.log_msg(message_title)
                         self.log_msg(message)
@@ -733,7 +733,7 @@ class CurrencySmartExecutor:
                             self.log_msg(ret_msg)
 
                             for order in order_list:
-                                if order.order_type() == OrderType.STOP_LOSS_EXIT:
+                                if order.aux_order_type() == OrderType.STOP_LOSS_EXIT:
                                     #Cancel this stop loss order because we have reached take profit and re-entered
 
                                     message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its stop loss order."
@@ -796,7 +796,7 @@ class CurrencySmartExecutor:
                             # TODO: Write finished execution to persistence
 
                             for order in order_list:
-                                if order.order_type() == OrderType.STOP_ENTER:
+                                if order.aux_order_type() == OrderType.STOP_ENTER:
                                     #Cancel this stop enter order because we have reached take profit and re-entered
 
                                     message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its stop entry order."
@@ -831,7 +831,7 @@ class CurrencySmartExecutor:
 
             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                          client_order_id=client_order_id,
-                                                         side=self.opposite_side(strategy_execution.side),
+                                                         side=self.opposite_side(self.parse_side(strategy_execution.side)),
                                                          order_configuration={
                                                              "trigger_bracket_gtc": {
                                                                  "base_size": str(round(strategy_execution.prod_size, self.size_decimal)),
@@ -847,8 +847,8 @@ class CurrencySmartExecutor:
             self.log_msg(f"Order placed: {response}")
 
             message_title = f"Place stop loss order for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
-            message = f"Place stop loss order of {strategy_execution.prod_size} units at take profit price " + \
-                      f"{strategy_execution.take_profit_price} for {self.parse_side(strategy_execution.side)} order of strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
+            message = f"Place stop loss order of {round(strategy_execution.prod_size, self.size_decimal)} units at take profit price " + \
+                      f"{round(strategy_execution.take_profit_price, self.price_decimal)} for {self.parse_side(strategy_execution.side)} order of strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
 
             self.log_msg(message_title)
             self.log_msg(message)
@@ -872,13 +872,11 @@ class CurrencySmartExecutor:
             size = strategy_execution.calc_increased_size_when_take_profit()
             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                          client_order_id=client_order_id,
-                                                         side=strategy_execution.side,
+                                                         side=self.parse_side(strategy_execution.side),
                                                          order_configuration={
                                                              "stop_limit_stop_limit_gtc": {
                                                                  "base_size": str(round(size, self.size_decimal)),
-                                                                 "limit_price": str((self.calc_buffer_limit_price(
-                                                                     strategy_execution.take_profit_price,
-                                                                     self.target_side), self.price_decimal)),
+                                                                 "limit_price": str(round(self.calc_buffer_limit_price(strategy_execution.take_profit_price,self.target_side), self.price_decimal)),
                                                                  "stop_price": str(round(strategy_execution.take_profit_price, self.price_decimal))
                                                              }
                                                          },
@@ -890,8 +888,8 @@ class CurrencySmartExecutor:
             self.log_msg(f"Order placed: {response}")
 
             message_title = f"Place stop entry order for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
-            message = f"Place stop entry {self.parse_side(strategy_execution.side)} order of {size} units at take profit price " + \
-                      f"{strategy_execution.take_profit_price} for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
+            message = f"Place stop entry {self.parse_side(strategy_execution.side)} order of {round(size, self.size_decimal)} units at take profit price " + \
+                      f"{round(strategy_execution.take_profit_price, self.price_decimal)} for strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase}"
 
             self.log_msg(message_title)
             self.log_msg(message)

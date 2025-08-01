@@ -140,7 +140,7 @@ smart_executor_manager: CurrencySmartExecutionManager = None
 executor_manager_started = False
 
 
-manual_delay = 7 if is_real_time_trading else 0  #manual_delay = 10  #Darren
+manual_delay = 7 if is_real_time_trading and not use_coinbase_data_source else 0  #manual_delay = 10  #Darren
 
 if not is_real_time_trading:
     manual_delay = 0
@@ -903,6 +903,9 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
     #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
 
     current_date = "_production_execution"
+
+    #current_date = "_production_test0801_prod"
+
 
 
     #current_date = "_final_prodction_0621_bigbody_noforceOut_overbought"

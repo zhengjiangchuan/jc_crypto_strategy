@@ -83,11 +83,11 @@ try:
 
     response = client.create_order(product_id="ETH-PERP-INTX",  # BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
-                                   side="SELL",
+                                   side=2,
                                    order_configuration={
                                        "stop_limit_stop_limit_gtc": {
                                            "base_size": "0.073", #200
-                                           "limit_price": "3226.012",
+                                           "limit_price": "3226.01",
                                            "stop_price": "3583.5"
                                        }
                                    },
@@ -95,6 +95,21 @@ try:
                                    margin_type="CROSS"
                                    # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
                                    )
+
+    # response = client.create_order(product_id="ETH-PERP-INTX",  # BTC-USDC is the correct product id
+    #                                client_order_id=client_order_id,
+    #                                side='BUY',
+    #                                order_configuration={
+    #                                    "stop_limit_stop_limit_gtc": {
+    #                                        "base_size": "0.073",  # 200
+    #                                        "limit_price": "4010.1",
+    #                                        "stop_price": "4000.1"
+    #                                    }
+    #                                },
+    #                                leverage="10",
+    #                                margin_type="CROSS"
+    #                                # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
+    #                                )
 
     print(f"Order placed: {response}")
 except Exception as e:
