@@ -67,6 +67,14 @@ print("currency_to_run = " + currency_to_run)
 print("alternative = " + alternative)
 print("is_execution = " + is_execution)
 
+#do_smart_execution = False
+
+if is_execution:
+    print("set do_smart_execution to True")
+    set_smart_execution(True)
+
+do_smart_execution = get_smart_execution()
+
 global_log_file = "algo_log.txt"
 
 #log_msg("currency_to_run = " + currency_to_run)
@@ -902,7 +910,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
 
-    current_date = "_production_execution"
+    current_date = "_production_execution_0803"
 
     #current_date = "_production_test0801_prod"
 
@@ -1347,7 +1355,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
                                                                 price_decimal = currency_trader.price_decimal
                                                                 )
 
-
+    print(f"Here do_smart_execution = {do_smart_execution}")
     if do_smart_execution and do_real_money_trading:
 
         if not executor_manager_started:

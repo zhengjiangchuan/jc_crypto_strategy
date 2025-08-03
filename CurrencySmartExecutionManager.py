@@ -120,12 +120,14 @@ class CurrencySmartExecutionManager(threading.Thread):
     def reset_prod_files_written(self):
 
         with self.thread_condition:
+            self.log_msg("Call reset_prod_files_written")
             self.prod_files_written = False
             self.thread_condition.notify_all()
 
     def write_to_prod_files_finished(self):
 
         with self.thread_condition:
+            self.log_msg("Call write_to_prod_files_finished")
             self.prod_files_written = True;
             self.thread_condition.notify_all()
 

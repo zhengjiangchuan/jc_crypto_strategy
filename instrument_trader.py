@@ -342,7 +342,8 @@ global_also_filter_too_late = False
 global_use_guppy_condition = False
 
 ####################################
-do_smart_execution = True #True
+
+do_smart_execution = False #True
 use_5min_in_smart_execution = False
 use_extra_execution = False
 
@@ -377,6 +378,14 @@ if not do_real_money_trading:
     production_running = False
 
 
+
+def set_smart_execution(smart_execution):
+    global do_smart_execution
+    do_smart_execution = smart_execution
+
+def get_smart_execution():
+    global do_smart_execution
+    return do_smart_execution
 
 
 # if do_smart_execution:
@@ -701,7 +710,7 @@ class CurrencyTrader(threading.Thread):
         self.close_short_order_fill_size = 0
 
 
-
+        print(f"Checking here do_smart_execution = {do_smart_execution}")
         if do_smart_execution:
             #self.entry_total_principal = 100
 
