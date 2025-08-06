@@ -110,7 +110,7 @@ auto_download_5min_data = False #If false, then if final_start_date and final_en
 #final_start_date = "2025-07-14" #"2025-07-04"  #"2024-09-05"
 #final_end_date = "2025-07-27" #"2025-07-14" #"2025-07-06"
 
-final_start_date = None
+final_start_date = None #7-27
 final_end_date = None
 
 if __name__ == '__main__':
@@ -152,7 +152,7 @@ if __name__ == '__main__':
         if final_start_date is not None and final_end_date is not None:
 
             interval = 300 if auto_download_5min_data else 3600
-            max_bar_num = 350 if use_coinbase_data_source else 5000 #5000
+            max_bar_num = 340 if use_coinbase_data_source else 5000 #5000
 
             start_date = datetime.strptime(final_start_date, "%Y-%m-%d")
             end_date = datetime.strptime(final_end_date, "%Y-%m-%d")
@@ -169,7 +169,10 @@ if __name__ == '__main__':
                     until_date = end_date
                     reached_end = True
 
-                start_date = until_date - timedelta(seconds = 24*3600)
+                if auto_download_5min_data:
+                    start_date = until_date - timedelta(seconds = 10*300)
+                else:
+                    start_date = until_date - timedelta(seconds = 24*3600)
 
                 until_date = until_date.strftime("%Y-%m-%d")
 

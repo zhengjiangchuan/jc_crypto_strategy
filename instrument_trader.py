@@ -290,7 +290,7 @@ correct_precision = not is_crypto
 
 use_conditional_stop_loss = False
 
-printed_figure_num = 2
+printed_figure_num = 1
 
 plot_day_line = True
 plot_cross_point = True
@@ -343,18 +343,18 @@ global_use_guppy_condition = False
 
 ####################################
 
-do_smart_execution = False #True
-use_5min_in_smart_execution = False
+do_smart_execution = False #False
+use_5min_in_smart_execution = False #False
 use_extra_execution = False
 
 is_real_time_trading = True
-is_real_time_trading_5min = False
+is_real_time_trading_5min = False #False
 
-only_download_data = False
+only_download_data = False #False
 
 
 
-read_5min_data = False
+read_5min_data = False #False
 
 #use_coinbase_data_source = False
 
@@ -386,6 +386,10 @@ def set_smart_execution(smart_execution):
 def get_smart_execution():
     global do_smart_execution
     return do_smart_execution
+
+def set_is_production(production):
+    global is_production
+    is_production = production
 
 
 # if do_smart_execution:

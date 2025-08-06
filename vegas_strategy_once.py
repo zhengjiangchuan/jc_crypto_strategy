@@ -56,22 +56,30 @@ parser.add_option("-a", "--alternative", dest="alternative", default = "n",
                  help="Use alternative account")
 parser.add_option("-e", "--execution", dest="execution", default = "n",
                  help="For smart execution")
+parser.add_option("-p", "--production", dest="production", default = "n",
+                 help="production not plot pnl")
 
 (options, args) = parser.parse_args()
 
 currency_to_run = options.currency_pair
 alternative = options.alternative
 is_execution = options.execution
+production = options.production
 
 print("currency_to_run = " + currency_to_run)
 print("alternative = " + alternative)
 print("is_execution = " + is_execution)
+print("production = " + production)
 
 #do_smart_execution = False
 
-if is_execution:
+if is_execution == 'y':
     print("set do_smart_execution to True")
     set_smart_execution(True)
+
+if production == 'y':
+    print("set is_production to True")
+    set_is_production(production)
 
 do_smart_execution = get_smart_execution()
 
@@ -297,7 +305,10 @@ def get_bar_data2(currency, bar_number=240, interval = "1h", end_date = None, st
         else:
             end_time = datetime.now()
 
-        start_time = end_time - timedelta(hours=coinbase_bar_num)
+        if interval == '1h':
+            start_time = end_time - timedelta(hours=coinbase_bar_num)
+        elif interval == '5min':
+            start_time = end_time - timedelta(seconds=coinbase_bar_num * 300)
 
 
         print("end_time = " + str(end_time.isoformat()))
@@ -620,7 +631,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
 
 
-    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_fast.csv")
+    currency_file = os.path.join(root_folder, "currency_instrument.csv") if not is_crypto else os.path.join(root_folder, "crypto_prod.csv")
 
     currency_df = pd.read_csv(currency_file)
 
@@ -910,7 +921,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
 
-    current_date = "_production_execution_0803"
+    current_date = "_production_execution_0805"
 
     #current_date = "_production_test0801_prod"
 

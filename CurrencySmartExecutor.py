@@ -145,33 +145,57 @@ class CurrencySmartExecutor:
 
             self.strategy_executions = [None] * (self.strategy_number+1 if self.use_extra_execution else self.strategy_number)
 
-            unfinished_execution_data_df = self.execution_data_df[self.execution_data_df['exit_price'] <= 0]
+            unfinished_execution_data_df = self.execution_data_df[self.execution_data_df['execution_exit_price'].isnull()]
 
-            self.log_msg()
+            self.log_msg("unfinished execution_data_df:")
+            self.log_msg(unfinished_execution_data_df)
 
             for i in range(unfinished_execution_data_df.shape[0]):
                 unfinished_execution_data = unfinished_execution_data_df.iloc[i]
                 unfinished_execution: StrategyExecution = self.recover_execution(unfinished_execution_data)
                 self.strategy_executions[unfinished_execution.strategy_id-1] = unfinished_execution #should be strategy_id not execution_id here
 
+                self.log_msg(f"Recovering execution strategy {unfinished_execution.strategy_id}")
+                self.log_msg(unfinished_execution)
+
                 order_list = []
                 for j in range(1,3):
                     coinbase_order_id = unfinished_execution_data['coinbase_order_id' + str(j)]
-                    if coinbase_order_id is not None:
+                    print(f"Fuck coinbase_order_id: {coinbase_order_id}")
+                    print(type(coinbase_order_id))
+
+                    if coinbase_order_id is not None and not (isinstance(coinbase_order_id, float) and math.isnan(coinbase_order_id)):
                         coinbase_order_id = str(coinbase_order_id)
                         coinbase_order_size = float(unfinished_execution_data['coinbase_order_size' + str(j)])
                         coinbase_order_type = self.convert_str_to_order_type(unfinished_execution_data['coinbase_order_type' + str(j)])
 
                         order_list += [Order(coinbase_order_id, coinbase_order_size, coinbase_order_type)]
 
-                self.execution2order[unfinished_execution.execution_id] = order_list
+                self.execution2order[unfinished_execution.strategy_id] = order_list
 
-                key = '_'.join([unfinished_execution['side'], str(unfinished_execution['strategy_id']), str(unfinished_execution['execution_id'])])
+
+               # key = '_'.join([unfinished_execution['side'], str(unfinished_execution['strategy_id']), str(unfinished_execution['execution_id'])])
+
+                key = '_'.join([self.parse_position2(unfinished_execution.side), str(unfinished_execution.strategy_id),
+                                str(unfinished_execution.execution_id)])
                 self.execution2persistence[key] = unfinished_execution_data['idx']
+
+            self.log_msg("execution2order now recovered is:")
+            for stra_id, o_list in self.execution2order.items():
+                self.log_msg(f"strategy_id={stra_id}")
+                self.log_msg("order_list:")
+                for order in o_list:
+                    self.log_msg(order)
+
+            self.log_msg("execution2persistence is:")
+            self.log_msg(self.execution2persistence)
+
 
             self.max_index = self.execution_data_df['idx'].max()
             self.max_long_trade_id = self.execution_data_df['long_trade_id'].max()
             self.max_short_trade_id = self.execution_data_df['short_trade_id'].max()
+
+            self.log_msg(f"max_index={self.max_index}, max_long_trade_id={self.max_long_trade_id}, max_short_trade_id={self.max_short_trade_id}")
 
 
 
@@ -183,9 +207,9 @@ class CurrencySmartExecutor:
                                                take_loss_pct = float(unfinished_execution_data['take_loss_pct']),
                                                strategy_id = int(unfinished_execution_data['strategy_id']),
                                                execution_id = int(unfinished_execution_data['execution_id']),
-                                               strategy_entry_time = datetime.datetime.strptime(unfinished_execution_data['strategy_entry_time'], "%Y-%m-%d %H:%M:%S"),
+                                               strategy_entry_time = datetime.strptime(unfinished_execution_data['strategy_entry_time'], "%Y-%m-%d %H:%M:%S"),
                                                strategy_entry_price = float(unfinished_execution_data['strategy_entry_price']),
-                                               execution_entry_time = datetime.datetime.strptime(unfinished_execution_data['execution_entry_time'], "%Y-%m-%d %H:%M:%S"),
+                                               execution_entry_time = datetime.strptime(unfinished_execution_data['execution_entry_time'], "%Y-%m-%d %H:%M:%S"),
                                                execution_entry_price = float(unfinished_execution_data['execution_entry_price']),
                                                strategy_entry_value = float(unfinished_execution_data['strategy_entry_value']),
                                                execution_entry_value = float(unfinished_execution_data['execution_entry_value']),
@@ -460,6 +484,12 @@ class CurrencySmartExecutor:
         else:
             return 'Short'
 
+    def parse_position2(self, side):
+        if side == 1:
+            return 'long'
+        else:
+            return 'short'
+
     def manage_executions(self):
 
         self.current_position = self.get_current_position()
@@ -537,7 +567,13 @@ class CurrencySmartExecutor:
                         self.append_new_execution_row(new_execution_row)
 
                     self.log_msg("execution2order now is:")
-                    self.log_msg(self.execution2order)
+                    for stra_id, o_list in self.execution2order.items():
+                        self.log_msg(f"strategy_id={stra_id}")
+                        self.log_msg("order_list:")
+                        for order in o_list:
+                            self.log_msg(order)
+
+                    #self.log_msg(self.execution2order)
 
 
                 self.new_position_opened = False
@@ -611,7 +647,13 @@ class CurrencySmartExecutor:
                     del self.execution2order[strategy_execution.strategy_id]
 
                     self.log_msg("execution2order now is:")
-                    self.log_msg(self.execution2order)
+                    self.log_msg("execution2order now is:")
+                    for stra_id, o_list in self.execution2order.items():
+                        self.log_msg(f"strategy_id={stra_id}")
+                        self.log_msg("order_list:")
+                        for order in o_list:
+                            self.log_msg(order)
+                    #self.log_msg(self.execution2order)
 
                 # TODO: APPEND the new closed position close price, exit_time etc to strategy_prod_file and strategy_execution_prod_file (Write closed executions to persistence)
 
@@ -641,7 +683,7 @@ class CurrencySmartExecutor:
 
             strategy_execution: StrategyExecution = self.strategy_executions[i]
 
-            if not strategy_execution.is_active:
+            if not strategy_execution.active:
                 continue
 
             if strategy_execution.strategy_id in self.execution2order:
@@ -765,7 +807,14 @@ class CurrencySmartExecutor:
                             self.append_new_execution_row(new_execution_row)
 
                             self.log_msg("execution2order now is:")
-                            self.log_msg(self.execution2order)
+                            self.log_msg("execution2order now is:")
+                            for stra_id, o_list in self.execution2order.items():
+                                self.log_msg(f"strategy_id={stra_id}")
+                                self.log_msg("order_list:")
+                                for order in o_list:
+                                    self.log_msg(order)
+
+                            #self.log_msg(self.execution2order)
 
 
                         elif filled_order.order_type() == OrderType.STOP_LOSS_EXIT:
@@ -816,7 +865,14 @@ class CurrencySmartExecutor:
                             del self.execution2order[strategy_execution.strategy_id]
 
                             self.log_msg("execution2order now is:")
-                            self.log_msg(self.execution2order)
+                            self.log_msg("execution2order now is:")
+                            for stra_id, o_list in self.execution2order.items():
+                                self.log_msg(f"strategy_id={stra_id}")
+                                self.log_msg("order_list:")
+                                for order in o_list:
+                                    self.log_msg(order)
+
+                            #self.log_msg(self.execution2order)
 
 
 
