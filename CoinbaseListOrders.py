@@ -16,9 +16,9 @@ from json import dumps
 import uuid
 
 
-api_key, api_secret = get_api_keys()
+#api_key, api_secret = get_api_keys()
 
-
+api_key, api_secret = get_api_keys(is_alternative=True)
 
 
 client = RESTClient(api_key = api_key,
@@ -42,3 +42,20 @@ for order in open_orders:
         print("limit_price = " + str(limit_limit_gtc.limit_price))
 
     print("")
+
+
+fully_filled = False
+orderResponse = client.get_order(order_id="49b25fe4-b0cd-4b91-b4f2-9f04a773fb3b")
+if hasattr(orderResponse, "order"):
+    coinbaseorder = orderResponse.order
+    if coinbaseorder is not None:
+        status = coinbaseorder['status']
+        filled_size = float(coinbaseorder['filled_size'])
+        filled_price = float(coinbaseorder['average_filled_price'])
+        print(f"status={status}, filled_size={filled_size}, filled_price={filled_price}")
+
+        # if status == 'FILLED' and filled_size == order.order_size():
+        #     fully_filled = True
+        #     return (fully_filled, filled_price)
+    else:
+        print("coinbaseorder is None")

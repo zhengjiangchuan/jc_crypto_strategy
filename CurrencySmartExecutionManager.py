@@ -54,6 +54,10 @@ class CurrencySmartExecutionManager(threading.Thread):
                                                                   price_decimal = price_decimal,
                                                                   coinbase_client = self.coinbase_client)
 
+    def currency_executor_number(self):
+
+        return len(self.currency2executor)
+
     def has_executions(self):
         has = False
         for k, v in self.currency2executor.items():
@@ -67,6 +71,11 @@ class CurrencySmartExecutionManager(threading.Thread):
     def run(self):
 
         self.log_msg("SmartExecutionManager running...................")
+
+        sleep_number = 0
+
+        sleep_interval = 6
+
         while True:
             with self.thread_condition:
                 #while len(self.currency2executor) == 0:
@@ -87,12 +96,16 @@ class CurrencySmartExecutionManager(threading.Thread):
                 #         self.log_msg("No crypto has active executions yet, waiting...")
                 #         self.thread_condition.wait()
 
+                print_heartbeat = sleep_number%sleep_interval == 0
+
                 some_closed_position = False
                 for currency, v in self.currency2executor.items():
                     executor: CurrencySmartExecutor = v
                     if executor.has_executions():
-                        self.log_msg("Manage executions for crypto " + currency)
-                        executor.manage_executions()
+
+                        if print_heartbeat:
+                            self.log_msg("Manage executions for crypto " + currency)
+                        executor.manage_executions(print_heartbeat = print_heartbeat)
 
                     if executor.waiting_to_finalize_pnl:
                         self.log_msg("Crypto " + currency + " has closed position by signal, waiting to finalize pnl.")
@@ -113,8 +126,9 @@ class CurrencySmartExecutionManager(threading.Thread):
 
 
 
-            print("Sleep " + str(self.heart_beat) + " seconds before next checking")
+            #print("Sleep " + str(self.heart_beat) + " seconds before next checking")
             time.sleep(self.heart_beat)
+            sleep_number += 1
 
 
     def reset_prod_files_written(self):

@@ -1353,21 +1353,28 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
         if do_smart_execution and do_real_money_trading:
 
-            executor_log_file = os.path.join(root_folder, currency, currency + "_executor_log.txt")
+            if not executor_manager_started:
+                executor_log_file = os.path.join(root_folder, currency, currency + "_executor_log.txt")
 
-            smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
-                                                                strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
-                                                                strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
-                                                                trade_file = trade_file,
-                                                                trade_prod_file = trade_prod_file,
-                                                                log_file = executor_log_file,
-                                                                strategy_number = len(currency_trader.leverage),
-                                                                size_decimal = currency_trader.coinbase_decimal,
-                                                                price_decimal = currency_trader.price_decimal
-                                                                )
+                log_msg(f"Add executor for crypto {currency} to executor manager.")
+                smart_executor_manager.add_currency_executor(currency = currency, currency_coinbase = currency_coinbase,
+                                                                    strategy_prod_file = trade_file[:-len('all_trades.csv')] + 'strategies_prod.csv',
+                                                                    strategy_execution_prod_file = trade_file[:-len('all_trades.csv')] + 'strategy_execution_prod.csv',
+                                                                    trade_file = trade_file,
+                                                                    trade_prod_file = trade_prod_file,
+                                                                    log_file = executor_log_file,
+                                                                    strategy_number = len(currency_trader.leverage),
+                                                                    size_decimal = currency_trader.coinbase_decimal,
+                                                                    price_decimal = currency_trader.price_decimal
+                                                                    )
+
+
 
     print(f"Here do_smart_execution = {do_smart_execution}")
     if do_smart_execution and do_real_money_trading:
+
+        if smart_executor_manager is not None:
+            log_msg(f"There are {smart_executor_manager.currency_executor_number()} currency executors.")
 
         if not executor_manager_started:
             log_msg("Start CurrencySmartExecutionManager......")
