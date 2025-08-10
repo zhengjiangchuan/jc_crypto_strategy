@@ -3051,7 +3051,7 @@ class CurrencyTrader(threading.Thread):
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                        execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
                                                                        strategy_entry_value = extra_entry_value, execution_entry_value = extra_entry_value,
-                                                                       default_leverage=default_leverage,prod_size = extra_prod_size)
+                                                                       default_leverage=default_leverage,prod_size = round(extra_prod_size, self.coinbase_decimal))
 
                             strategy_executions += [strategy_execution]
 
@@ -3669,7 +3669,7 @@ class CurrencyTrader(threading.Thread):
                                                                        strategy_id = len(self.leverage)+1, execution_id = 1, strategy_entry_time = entry_time, strategy_entry_price = self.crypto_last_price,
                                                                        execution_entry_time = entry_time, execution_entry_price = self.crypto_last_price,
                                                                        strategy_entry_value = extra_entry_value, execution_entry_value = extra_entry_value, default_leverage=default_leverage,
-                                                                       prod_size = extra_prod_size)
+                                                                       prod_size = round(extra_prod_size, self.coinbase_decimal))
 
                             strategy_executions += [strategy_execution]
 

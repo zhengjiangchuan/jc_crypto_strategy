@@ -91,7 +91,7 @@ class CurrencySmartExecutor:
         self.strategy_executions = [] #TODO: Need to implement persistency logic (load from persistency at startup)
         self.new_strategy_executions = []
 
-        self.current_position = self.get_current_position()
+        self.current_position = self.get_current_position(True)
 
         self.new_position_opened = False
         self.old_position_closed = False
@@ -248,11 +248,23 @@ class CurrencySmartExecutor:
 
 
 
-    def get_current_position(self):
+    def get_current_position(self, print_heartbeat = False):
 
         current_real_position = 0
-        positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
-        #self.log_msg(f"positions size = {len(positions)}")
+
+        try:
+            positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
+        except Exception as e:
+
+            message_title = "Get positions failed due to connection error"
+            message = f"Get positions failed: {e}"
+            self.log_msg(message)
+
+            if not print_email_message_to_file:
+                sendEmail(message_title, message, is_alternative=True)
+
+        if print_heartbeat:
+            self.log_msg(f"positions size = {len(positions)}")
 
         for position in positions:
 
@@ -370,9 +382,17 @@ class CurrencySmartExecutor:
 
         self.log_msg(f"Generate strategy row for {self.side_to_close} strategy {strategy_id} of crypto {self.currency_coinbase}")
         if self.side_to_close == 'BUY':
-            target_df = self.execution_data_df[self.execution_data_df['long_trade_id'] == self.max_long_trade_id]
+
+            if self.max_long_trade_id != self.execution_data_df['long_trade_id'].max():
+                self.log_msg(f"Wrong!! max_long_trade_id = {self.max_long_trade_id}, but max long_trade_id = {self.execution_data_df['long_trade_id'].max()}")
+
+            target_df = self.execution_data_df[(self.execution_data_df['long_trade_id'] == self.max_long_trade_id) & (self.execution_data_df['strategy_id'] == strategy_id)]
         else:
-            target_df = self.execution_data_df[self.execution_data_df['short_trade_id'] == self.max_short_trade_id]
+
+            if self.max_short_trade_id != self.execution_data_df['short_trade_id'].max():
+                self.log_msg(f"Wrong!! max_short_trade_id = {self.max_short_trade_id}, but max short_trade_id = {self.execution_data_df['short_trade_id'].max()}")
+
+            target_df = self.execution_data_df[(self.execution_data_df['short_trade_id'] == self.max_short_trade_id) & (self.execution_data_df['strategy_id'] == strategy_id)]
 
         last_execution_data = target_df[target_df['execution_id'] == target_df['execution_id'].max()].iloc[0]
 
@@ -439,14 +459,31 @@ class CurrencySmartExecutor:
         self.log_msg(f"Map execution key {key} to row index {new_execution_row['idx']}")
 
 
-    def generate_new_execution_row(self, strategy_id, strategy_execution, order_list):
+    def generate_new_execution_row(self, trade_id, strategy_id, strategy_execution, order_list):
+
+        # new_execution_row = [self.max_index + 1, 'long' if strategy_execution.side == 1 else 'short',
+        #                      self.max_long_trade_id + 1 if strategy_execution.side == 1 else 0,
+        #                      self.max_short_trade_id + 1 if strategy_execution.side == -1 else 0, strategy_id,
+        #                      strategy_execution.execution_id, strategy_execution.leverage,
+        #                      strategy_execution.take_profit_pct, strategy_execution.take_profit_price,
+        #                      strategy_execution.take_loss_pct, strategy_execution.take_loss_price,
+        #                      strategy_execution.prod_size,
+        #                      strategy_execution.strategy_entry_time.strftime("%Y-%m-%d %H:%M:%S"),
+        #                      strategy_execution.strategy_entry_price, strategy_execution.strategy_entry_value,
+        #                      strategy_execution.prod_strategy_entry_price, strategy_execution.prod_strategy_entry_value,
+        #                      strategy_execution.execution_entry_time.strftime("%Y-%m-%d %H:%M:%S"),
+        #                      strategy_execution.execution_entry_price, strategy_execution.execution_entry_value,
+        #                      strategy_execution.prod_execution_entry_price,
+        #                      strategy_execution.prod_execution_entry_value,
+        #                      None, None, None, None, None, None, None,
+        #                      ]
 
         new_execution_row = [self.max_index + 1, 'long' if strategy_execution.side == 1 else 'short',
-                             self.max_long_trade_id + 1 if strategy_execution.side == 1 else 0,
-                             self.max_short_trade_id + 1 if strategy_execution.side == -1 else 0, strategy_id,
+                             trade_id if strategy_execution.side == 1 else 0,
+                             trade_id if strategy_execution.side == -1 else 0, strategy_id,
                              strategy_execution.execution_id, strategy_execution.leverage,
-                             strategy_execution.take_profit_pct, strategy_execution.take_profit_price,
-                             strategy_execution.take_loss_pct, strategy_execution.take_loss_price,
+                             strategy_execution.take_profit_pct, round(strategy_execution.take_profit_price, self.price_decimal),
+                             strategy_execution.take_loss_pct, round(strategy_execution.take_loss_price, self.price_decimal),
                              strategy_execution.prod_size,
                              strategy_execution.strategy_entry_time.strftime("%Y-%m-%d %H:%M:%S"),
                              strategy_execution.strategy_entry_price, strategy_execution.strategy_entry_value,
@@ -458,8 +495,9 @@ class CurrencySmartExecutor:
                              None, None, None, None, None, None, None,
                              ]
 
+
         for order in order_list:
-            new_execution_row += [order.order_id(), order.order_size(), self.convert_order_type_to_str(order.aux_order_type())]
+            new_execution_row += [order.order_id(), round(order.order_size(), self.size_decimal), self.convert_order_type_to_str(order.aux_order_type())]
 
         remaining = 2 - len(order_list)
         if remaining > 0:
@@ -467,10 +505,10 @@ class CurrencySmartExecutor:
                 new_execution_row += [None]*3
 
         self.max_index = self.max_index + 1
-        if strategy_execution.side == 1:
-            self.max_long_trade_id = self.max_long_trade_id + 1
-        else:
-            self.max_short_trade_id = self.max_short_trade_id + 1
+        # if strategy_execution.side == 1:
+        #     self.max_long_trade_id = self.max_long_trade_id + 1
+        # else:
+        #     self.max_short_trade_id = self.max_short_trade_id + 1
 
         return new_execution_row
 
@@ -498,13 +536,23 @@ class CurrencySmartExecutor:
 
     def manage_executions(self, print_heartbeat = False):
 
-        self.current_position = self.get_current_position()
+        self.current_position = self.get_current_position(print_heartbeat = print_heartbeat)
         if self.new_position_opened:
             if self.current_position == self.target_position and self.open_position_fill_price > 0:
 
                 #TODO: APPEND the new opened position open price, entry_time etc to strategy_prod_file and strategy_execution_prod_file (Write the new opened executions to persistence)
 
                 self.log_msg(f"New {'Long' if self.current_position > 0 else 'Short'} position of {abs(self.current_position)} units opened at filled price {self.open_position_fill_price}")
+
+                if self.current_position > 0:
+
+                    self.max_long_trade_id = self.max_long_trade_id + 1
+                    trade_id = self.max_long_trade_id
+
+                else:
+
+                    self.max_short_trade_id = self.max_short_trade_id + 1
+                    trade_id = self.max_short_trade_id
 
                 for i in range(len(self.new_strategy_executions)):
 
@@ -517,12 +565,12 @@ class CurrencySmartExecutor:
 
                     self.log_msg("Process execution strategy " + str(i+1) + ":")
 
+
                     if self.use_extra_execution and i == len(self.strategy_executions)-1:
                         try:
                             client_order_id = self.generate_client_order_id()
 
                             stop_price = self.calc_never_reached_stop_price(self.open_position_fill_price, self.target_side, is_stop_loss = True)
-
 
                             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                            client_order_id=client_order_id,
@@ -559,7 +607,10 @@ class CurrencySmartExecutor:
                         order_list = [Order(stop_profit_order_id, strategy_execution.prod_size,  OrderType.TAKE_PROFIT_EXIT)]
                         self.execution2order[strategy_execution.strategy_id] = order_list
 
-                        new_execution_row = self.generate_new_execution_row(strategy_execution.strategy_id, strategy_execution, order_list)
+                        new_execution_row = self.generate_new_execution_row(trade_id = trade_id,
+                                                                            strategy_id = strategy_execution.strategy_id,
+                                                                            strategy_execution = strategy_execution,
+                                                                            order_list = order_list)
                         self.append_new_execution_row(new_execution_row)
 
                     else:
@@ -569,7 +620,10 @@ class CurrencySmartExecutor:
                         order_list = [Order(stop_entry_order_id, stop_entry_order_size,  OrderType.STOP_ENTER)]
                         self.execution2order[strategy_execution.strategy_id] = order_list
 
-                        new_execution_row = self.generate_new_execution_row(strategy_execution.strategy_id,strategy_execution, order_list)
+                        new_execution_row = self.generate_new_execution_row(trade_id = trade_id,
+                                                                            strategy_id = strategy_execution.strategy_id,
+                                                                            strategy_execution = strategy_execution,
+                                                                            order_list = order_list)
                         self.append_new_execution_row(new_execution_row)
 
                     self.log_msg("execution2order now is:")
@@ -812,7 +866,10 @@ class CurrencySmartExecutor:
 
                             self.execution2order[strategy_execution.strategy_id] = order_list
 
-                            new_execution_row = self.generate_new_execution_row(strategy_execution.strategy_id, strategy_execution, order_list)
+                            new_execution_row = self.generate_new_execution_row(trade_id = self.max_long_trade_id if strategy_execution.side == 1 else self.max_short_trade_id,
+                                                                            strategy_id = strategy_execution.strategy_id,
+                                                                            strategy_execution = strategy_execution,
+                                                                            order_list = order_list)
                             self.append_new_execution_row(new_execution_row)
 
 

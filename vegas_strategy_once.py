@@ -697,9 +697,21 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
 
     if do_real_money_trading:
-        accounts = client.get_accounts()
-        account = accounts.accounts[0]
-        portfolio_id = str(account['retail_portfolio_id'])
+        while True:
+
+            try:
+                accounts = client.get_accounts()
+                account = accounts.accounts[0]
+                portfolio_id = str(account['retail_portfolio_id'])
+                break
+            except Exception as e:
+
+                emsg = str(e)
+                log_msg("Exception: " + emsg)
+
+                log_msg("Probably coinbase exception, trying again after 10 seconds.")
+                time.sleep(10)
+
 
     log_msg("Sleep 1 seconds")
     time.sleep(1)
@@ -1365,7 +1377,8 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
                                                                     log_file = executor_log_file,
                                                                     strategy_number = len(currency_trader.leverage),
                                                                     size_decimal = currency_trader.coinbase_decimal,
-                                                                    price_decimal = currency_trader.price_decimal
+                                                                    price_decimal = currency_trader.price_decimal,
+                                                                    use_extra_execution = use_extra_execution
                                                                     )
 
 
