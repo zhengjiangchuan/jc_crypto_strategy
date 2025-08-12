@@ -44,18 +44,19 @@ for order in open_orders:
     print("")
 
 
-# fully_filled = False
-# orderResponse = client.get_order(order_id="a207a891-ae05-4767-9abe-5901935b374f")
-# if hasattr(orderResponse, "order"):
-#     coinbaseorder = orderResponse.order
-#     if coinbaseorder is not None:
-#         status = coinbaseorder['status']
-#         filled_size = float(coinbaseorder['filled_size'])
-#         filled_price = float(coinbaseorder['average_filled_price'])
-#         print(f"status={status}, filled_size={filled_size}, filled_price={filled_price}")
-#
-#         # if status == 'FILLED' and filled_size == order.order_size():
-#         #     fully_filled = True
-#         #     return (fully_filled, filled_price)
-#     else:
-#         print("coinbaseorder is None")
+fully_filled = False
+orderResponse = client.get_order(order_id="6c1d7860-3209-4390-93fb-e2a808285942")
+if hasattr(orderResponse, "order"):
+    coinbaseorder = orderResponse.order
+    if coinbaseorder is not None:
+        status = coinbaseorder['status']
+        filled_size = float(coinbaseorder['filled_size'])
+        filled_price = float(coinbaseorder['average_filled_price'])
+        print(f"status={status}, filled_size={filled_size}, filled_price={filled_price}")
+
+        # if status == 'FILLED' and filled_size == order.order_size():
+        #      fully_filled = True
+
+        #     return (fully_filled, filled_price)
+    else:
+        print("coinbaseorder is None")

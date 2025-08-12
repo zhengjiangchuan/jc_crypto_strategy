@@ -4151,14 +4151,14 @@ class CurrencyTrader(threading.Thread):
         if production_running and not (do_smart_execution and not do_real_money_trading):
             if self.long_existing_df is not None and 'prod_entry_price' in self.long_existing_df.columns and 'prod_exit_price' in self.long_existing_df.columns:
 
-                # print("Fuck 1:")
-                # print(self.write_long_df.iloc[-3:])
-                #
-                # print("Fuck 2:")
-                # print(self.long_existing_df.iloc[-3:])
+                if do_smart_execution and do_real_money_trading:
 
-
-                write_long_prod_df = pd.merge(self.write_long_df, self.long_existing_df[['long_trade_id', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
+                    write_long_df_temp = self.write_long_df.copy()
+                    write_long_df_temp = write_long_df_temp.drop(columns = ['pnl'])
+                    write_long_prod_df = pd.merge(write_long_df_temp, self.long_existing_df[['long_trade_id', 'pnl', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod', 'prod_pnl']],
+                                                  on=['long_trade_id'], how='left')
+                else:
+                    write_long_prod_df = pd.merge(self.write_long_df, self.long_existing_df[['long_trade_id', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
                                               on = ['long_trade_id'], how = 'left')
             else:
                 write_long_prod_df = self.write_long_df.copy()
@@ -4220,7 +4220,15 @@ class CurrencyTrader(threading.Thread):
 
 
             if self.short_existing_df is not None and 'prod_entry_price' in self.short_existing_df.columns and 'prod_exit_price' in self.short_existing_df.columns:
-                write_short_prod_df = pd.merge(self.write_short_df, self.short_existing_df[['short_trade_id', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
+
+                if do_smart_execution and do_real_money_trading:
+                    write_short_df_temp = self.write_short_df.copy()
+                    write_short_df_temp = write_short_df_temp.drop(columns = ['pnl'])
+                    write_short_prod_df = pd.merge(write_short_df_temp, self.short_existing_df[['short_trade_id', 'pnl', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod', 'prod_pnl']],
+                                                      on=['short_trade_id'], how='left')
+
+                else:
+                    write_short_prod_df = pd.merge(self.write_short_df, self.short_existing_df[['short_trade_id', 'prod_entry_price', 'prod_exit_price', 'prod_size', 'is_prod']],
                                               on = ['short_trade_id'], how = 'left')
             else:
                 write_short_prod_df = self.write_short_df.copy()
@@ -4273,15 +4281,27 @@ class CurrencyTrader(threading.Thread):
                 self.reset_close_short_fill()
 
 
-            write_long_prod_df['prod_pnl'] = np.where(
-                (write_long_prod_df['prod_entry_price'] > 0) & (write_long_prod_df['prod_exit_price'] > 0),
-                np.where(
-                    write_long_prod_df['is_prod'] == 0,
-                    (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price'])/write_long_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
-                    (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price']) *write_long_prod_df['prod_size']
-                ),
-                0
-            )
+            if do_smart_execution and do_real_money_trading:
+                write_long_prod_df['prod_pnl'] = np.where(
+                    (write_long_prod_df['prod_entry_price'] > 0) & (write_long_prod_df['prod_exit_price'] > 0),
+                    np.where(
+                        write_long_prod_df['is_prod'] == 0,
+                        (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price'])/write_long_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
+                        write_long_prod_df['prod_pnl']
+                    ),
+                    0
+                )
+
+            else:
+                write_long_prod_df['prod_pnl'] = np.where(
+                    (write_long_prod_df['prod_entry_price'] > 0) & (write_long_prod_df['prod_exit_price'] > 0),
+                    np.where(
+                        write_long_prod_df['is_prod'] == 0,
+                        (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price'])/write_long_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
+                        (write_long_prod_df['prod_exit_price'] - write_long_prod_df['prod_entry_price']) *write_long_prod_df['prod_size']
+                    ),
+                    0
+                )
 
             write_long_prod_df['prod_size'] = np.where(
                 write_long_prod_df['prod_entry_price'] > 1,
@@ -4290,15 +4310,27 @@ class CurrencyTrader(threading.Thread):
             )
 
 
-            write_short_prod_df['prod_pnl'] = np.where(
-                (write_short_prod_df['prod_entry_price'] > 0) & (write_short_prod_df['prod_exit_price'] > 0),
-                np.where(
-                    write_short_prod_df['is_prod'] == 0,
-                    -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price'])/write_short_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
-                    -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price']) * write_short_prod_df['prod_size']
-                ),
-                0
-            )
+            if do_smart_execution and do_real_money_trading:
+                write_short_prod_df['prod_pnl'] = np.where(
+                    (write_short_prod_df['prod_entry_price'] > 0) & (write_short_prod_df['prod_exit_price'] > 0),
+                    np.where(
+                        write_short_prod_df['is_prod'] == 0,
+                        -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price'])/write_short_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
+                        write_short_prod_df['prod_pnl']
+                    ),
+                    0
+                )
+
+            else:
+                write_short_prod_df['prod_pnl'] = np.where(
+                    (write_short_prod_df['prod_entry_price'] > 0) & (write_short_prod_df['prod_exit_price'] > 0),
+                    np.where(
+                        write_short_prod_df['is_prod'] == 0,
+                        -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price'])/write_short_prod_df['prod_entry_price'] * self.init_entry_value * default_leverage,
+                        -(write_short_prod_df['prod_exit_price'] - write_short_prod_df['prod_entry_price']) * write_short_prod_df['prod_size']
+                    ),
+                    0
+                )
 
             write_short_prod_df['prod_size'] = np.where(
                 write_short_prod_df['prod_entry_price'] > 1,
