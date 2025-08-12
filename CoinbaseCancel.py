@@ -14,7 +14,7 @@ from CoinbaseUtil import *
 from coinbase.rest import RESTClient
 from json import dumps
 
-api_key, api_secret = get_api_keys()
+api_key, api_secret = get_api_keys(is_alternative=True)
 
 
 
@@ -53,7 +53,7 @@ print(permission.to_dict())
 #print("btc_usd_price: " + str(btc_usd_price))
 
 try:
-    cancel_response = client.cancel_orders(order_ids = ['cd72acbc-448c-41a4-82dc-52db35d63fd1'])
+    cancel_response = client.cancel_orders(order_ids = ["519c9a9d-f059-4bb4-b28c-9eb0e83d639e"])
     print("Cancel Response:")
     print(cancel_response)
 except Exception as e:

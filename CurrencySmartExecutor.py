@@ -432,6 +432,9 @@ class CurrencySmartExecutor:
                 self.log_msg("Finished execution:")
                 self.log_msg(self.execution_data_df.iloc[row_idx:(row_idx+1)])
 
+                self.log_msg("Finished execution df:")
+                self.log_msg(self.execution_data_df)
+
                 self.execution_data_df.to_csv(self.strategy_execution_prod_file, index=False)
 
                 del self.execution2persistence[key]
@@ -449,6 +452,12 @@ class CurrencySmartExecutor:
             self.execution_data_df = delta_data_df
         else:
             self.execution_data_df = pd.concat([self.execution_data_df, delta_data_df])
+
+        self.execution_data_df.reset_index(inplace = True)
+        self.execution_data_df = self.execution_data_df.drop(columns = ['index'])
+
+        self.log_msg("execution data df is:")
+        self.log_msg(self.execution_data_df)
 
         self.execution_data_df.to_csv(self.strategy_execution_prod_file, index = False)
 
@@ -677,11 +686,11 @@ class CurrencySmartExecutor:
 
 
                         try:
-                            print("Cancel pending orders because closing signal fires")
-                            cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
-                            print(cancel_response)
+                            self.log_msg(f"Cancel pending order {order.order_id()} because closing signal fires")
+                            cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id())])
+                            self.log_msg(cancel_response)
                         except Exception as e:
-                            print("Error:", e)
+                            self.log_msg("Error:", e)
 
 
                     is_extra = self.use_extra_execution and i == len(self.strategy_executions) - 1
@@ -850,10 +859,11 @@ class CurrencySmartExecutor:
                                         sendEmail(message_title, message, is_alternative=True)
 
                                     try:
-                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
-                                        print(cancel_response)
+                                        self.log_msg(f"Cancel pending stop loss order {order.order_id()} because of hitting stop entry order")
+                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id())])
+                                        self.log_msg(cancel_response)
                                     except Exception as e:
-                                        print("Error:", e)
+                                        self.log_msg("Error:", e)
 
 
 
@@ -923,10 +933,11 @@ class CurrencySmartExecutor:
                                         sendEmail(message_title, message, is_alternative=True)
 
                                     try:
-                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[order.order_id])
-                                        print(cancel_response)
+                                        self.log_msg(f"Cancel pending stop entry order {order.order_id()} because of hitting stop loss order")
+                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id())])
+                                        self.log_msg(cancel_response)
                                     except Exception as e:
-                                        print("Error:", e)
+                                        self.log_msg("Error:", e)
 
                             del self.execution2order[strategy_execution.strategy_id]
 
@@ -1037,7 +1048,18 @@ class CurrencySmartExecutor:
     def check_order_fully_filled(self, order: Order):
 
         fully_filled = False
-        orderResponse = self.coinbase_client.get_order(order_id=order.order_id())
+
+        while True:
+            try:
+                orderResponse = self.coinbase_client.get_order(order_id=order.order_id())
+                break
+            except Exception as e:
+                emsg = str(e)
+                self.log_msg("Exception: " + emsg)
+
+                self.log_msg("Probably coinbase exception, trying again after 10 seconds.")
+                time.sleep(10)
+
         if hasattr(orderResponse, "order"):
             coinbaseorder = orderResponse.order
             if coinbaseorder is not None:

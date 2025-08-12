@@ -66,7 +66,7 @@ class StrategyExecution:
         self.prod_strategy_entry_price = prod_entry_price
         self.prod_execution_entry_price = prod_entry_price
 
-        self.prod_strategy_entry_value = prod_entry_price * self.prod_size / self.default_leverage
+        self.prod_strategy_entry_value = prod_entry_price * self.prod_size / self.leverage
         self.prod_execution_entry_value = self.prod_strategy_entry_value
 
     def exit_execution(self, execution_exit_time, execution_exit_price, is_signal_exit, is_extra_execution):
@@ -89,7 +89,7 @@ class StrategyExecution:
                     prod_execution_exit_price - self.prod_execution_entry_price) / self.prod_execution_entry_price
 
         self.prod_pnl_rate = prod_return_rate * self.leverage
-        self.prod_pnl = self.prod_execution_entry_value * self.pnl_rate
+        self.prod_pnl = self.prod_execution_entry_value * self.prod_pnl_rate
 
         self.prod_execution_exit_price = prod_execution_exit_price
         self.prod_execution_exit_value = self.prod_execution_entry_value + self.prod_pnl

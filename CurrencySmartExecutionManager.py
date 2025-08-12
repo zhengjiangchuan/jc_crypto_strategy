@@ -75,7 +75,7 @@ class CurrencySmartExecutionManager(threading.Thread):
 
         sleep_number = 0
 
-        sleep_interval = 6
+        sleep_interval = 1
 
         while True:
             with self.thread_condition:
@@ -131,7 +131,7 @@ class CurrencySmartExecutionManager(threading.Thread):
             if print_heartbeat:
                 self.log_msg("Sleep " + str(sleep_seconds) + " seconds before next checking")
 
-            time.sleep(self.heart_beat)
+            time.sleep(sleep_seconds)
             sleep_number += 1
 
 
