@@ -33,6 +33,7 @@ for order in open_orders:
 
 
     print("order_id: " + str(order.order_id))
+    print("size: " + str(order.outstanding_hold_amount))
     print("product_id: " + str(order.product_id))
     print("client_order_id: " + str(order.client_order_id))
 
@@ -45,7 +46,7 @@ for order in open_orders:
 
 
 fully_filled = False
-orderResponse = client.get_order(order_id="6c1d7860-3209-4390-93fb-e2a808285942")
+orderResponse = client.get_order(order_id="74a943be-705d-4f9f-821e-6f197cb034ee")
 if hasattr(orderResponse, "order"):
     coinbaseorder = orderResponse.order
     if coinbaseorder is not None:

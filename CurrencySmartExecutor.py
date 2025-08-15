@@ -251,16 +251,21 @@ class CurrencySmartExecutor:
 
         current_real_position = 0
 
-        try:
-            positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
-        except Exception as e:
+        while True:
 
-            message_title = "Get positions failed due to connection error"
-            message = f"Get positions failed: {e}"
-            self.log_msg(message)
+            try:
+                positions = self.coinbase_client.list_perps_positions(portfolio_uuid=self.coinbase_portfolio_id).positions
+                break
+            except Exception as e:
 
-            if not print_email_message_to_file:
-                sendEmail(message_title, message, is_alternative=True)
+                message_title = "Get positions failed due to connection error"
+                message = f"Get positions failed: {e}"
+                self.log_msg(message)
+
+                if not print_email_message_to_file:
+                    sendEmail(message_title, message, is_alternative=True)
+
+                time.sleep(10)
 
         if print_heartbeat:
             self.log_msg(f"positions size = {len(positions)}")
@@ -748,13 +753,22 @@ class CurrencySmartExecutor:
                         if not print_email_message_to_file:
                             sendEmail(message_title, message, is_alternative=True)
 
+                        cancelled = False
+                        orderResponse = self.coinbase_client.get_order(order_id=str(order.order_id()))
+                        if hasattr(orderResponse, "order"):
+                            coinbaseorder = orderResponse.order
+                            if coinbaseorder is not None:
+                                status = coinbaseorder['status']
+                                if status == 'CANCELLED':
+                                    cancelled = True
 
-                        try:
-                            self.log_msg(f"Cancel pending order {order.order_id()} because closing signal fires")
-                            cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id())])
-                            self.log_msg(cancel_response)
-                        except Exception as e:
-                            self.log_msg("Error:", e)
+                        if not cancelled:
+                            try:
+                                self.log_msg(f"Cancel pending order {order.order_id()} because closing signal fires")
+                                cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id())])
+                                self.log_msg(cancel_response)
+                            except Exception as e:
+                                self.log_msg("Error:", e)
 
 
                     is_extra = self.use_extra_execution and i == len(self.strategy_executions) - 1
@@ -881,8 +895,10 @@ class CurrencySmartExecutor:
 
                         if filled_order.aux_order_type() == OrderType.STOP_ENTER:
 
-                            message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} hits take profit price."
-                            message = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} {self.parse_position(strategy_execution.side)} position hits " + \
+                            current_execution_id = strategy_execution.execution_id
+
+                            message_title = f"Strategy {strategy_execution.strategy_id} execution {current_execution_id} of crypto {self.currency_coinbase} hits take profit price."
+                            message = f"Strategy {strategy_execution.strategy_id} execution {current_execution_id} of crypto {self.currency_coinbase} {self.parse_position(strategy_execution.side)} position hits " + \
                                       f"take profit price {strategy_execution.take_profit_price} with actual filled price {filled_price}"
 
                             self.log_msg(message_title)
@@ -915,8 +931,8 @@ class CurrencySmartExecutor:
                                 if order.aux_order_type() == OrderType.STOP_LOSS_EXIT:
                                     #Cancel this stop loss order because we have reached take profit and re-entered
 
-                                    message_title = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its stop loss order."
-                                    message = f"Strategy {strategy_execution.strategy_id} execution {strategy_execution.execution_id} of crypto {self.currency_coinbase} cancels its stop loss order of size {order.order_size()}"
+                                    message_title = f"Strategy {strategy_execution.strategy_id} execution {current_execution_id} of crypto {self.currency_coinbase} cancels its stop loss order."
+                                    message = f"Strategy {strategy_execution.strategy_id} execution {current_execution_id} of crypto {self.currency_coinbase} cancels its stop loss order of size {order.order_size()}"
 
                                     self.log_msg(message_title)
                                     self.log_msg(message)
@@ -1024,7 +1040,7 @@ class CurrencySmartExecutor:
         try:
             client_order_id = self.generate_client_order_id()
 
-            stop_price = self.calc_never_reached_stop_price(strategy_execution.execution_entry_price, strategy_execution.side,
+            stop_price = self.calc_never_reached_stop_price(strategy_execution.execution_entry_price, self.parse_side(strategy_execution.side),
                                                             is_stop_loss=False)
 
             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
@@ -1074,7 +1090,9 @@ class CurrencySmartExecutor:
                                                          order_configuration={
                                                              "stop_limit_stop_limit_gtc": {
                                                                  "base_size": str(round(size, self.size_decimal)),
-                                                                 "limit_price": str(round(self.calc_buffer_limit_price(strategy_execution.take_profit_price,self.target_side), self.price_decimal)),
+                                                                 #"limit_price": str(round(self.calc_buffer_limit_price(strategy_execution.take_profit_price,self.target_side), self.price_decimal)),
+                                                                 "limit_price": str(round(self.calc_buffer_limit_price(
+                                                                     strategy_execution.take_profit_price, self.parse_side(strategy_execution.side)), self.price_decimal)),
                                                                  "stop_price": str(round(strategy_execution.take_profit_price, self.price_decimal))
                                                              }
                                                          },

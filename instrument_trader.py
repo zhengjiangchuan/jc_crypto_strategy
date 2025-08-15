@@ -3327,6 +3327,34 @@ class CurrencyTrader(threading.Thread):
 
                             if do_real_money_trading and self.wakeup == 1 and long_start_id + j == self.data_df.shape[0] - 1:
                                 if self.current_real_position > 0 and self.close_long_order_id is None:
+
+                                    if do_smart_execution:
+                                        open_orders = self.coinbase_client.list_orders(order_status="OPEN").orders
+                                        for order in open_orders:
+
+                                            if str(order.product_id) == str(self.currency_coinbase):
+
+                                                cancelled = False
+                                                orderResponse = self.coinbase_client.get_order(order_id=str(order.order_id))
+                                                if hasattr(orderResponse, "order"):
+                                                    coinbaseorder = orderResponse.order
+                                                    if coinbaseorder is not None:
+                                                        status = coinbaseorder['status']
+                                                        if status == 'CANCELLED':
+                                                            cancelled = True
+
+                                                if not cancelled:
+                                                    try:
+                                                        self.log_msg(f"Cancel pending order {str(order.order_id)} of {order.product_id}")
+                                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id)])
+                                                        self.log_msg(cancel_response)
+                                                    except Exception as e:
+                                                        self.log_msg("Error:", e)
+
+                                        if len(open_orders) > 0:
+                                            time.sleep(2)
+
+
                                     try:
                                         self.log_msg("At " + str(exit_time) + ", close long position by placing real short order of " + str(self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                         client_order_id = f"order_{uuid.uuid4()}"
@@ -3946,6 +3974,33 @@ class CurrencyTrader(threading.Thread):
 
                             if do_real_money_trading and self.wakeup == 1 and short_start_id + j == self.data_df.shape[0] - 1:
                                 if self.current_real_position < 0 and self.close_short_order_id is None:
+
+                                    if do_smart_execution:
+                                        open_orders = self.coinbase_client.list_orders(order_status="OPEN").orders
+                                        for order in open_orders:
+
+                                            if str(order.product_id) == str(self.currency_coinbase):
+
+                                                cancelled = False
+                                                orderResponse = self.coinbase_client.get_order(order_id=str(order.order_id))
+                                                if hasattr(orderResponse, "order"):
+                                                    coinbaseorder = orderResponse.order
+                                                    if coinbaseorder is not None:
+                                                        status = coinbaseorder['status']
+                                                        if status == 'CANCELLED':
+                                                            cancelled = True
+
+                                                if not cancelled:
+                                                    try:
+                                                        self.log_msg(f"Cancel pending order {str(order.order_id)} of {order.product_id}")
+                                                        cancel_response = self.coinbase_client.cancel_orders(order_ids=[str(order.order_id)])
+                                                        self.log_msg(cancel_response)
+                                                    except Exception as e:
+                                                        self.log_msg("Error:", e)
+
+                                        if len(open_orders) > 0:
+                                            time.sleep(2)
+
                                     try:
                                         self.log_msg("At " + str(exit_time) + ", close short position by placing real long order of " + str(-self.current_real_position) + " at limit price " + str(self.crypto_last_price) + " to Coinbase with leverage " + str(default_leverage) + "x")
                                         client_order_id = f"order_{uuid.uuid4()}"
