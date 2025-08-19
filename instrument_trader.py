@@ -4336,7 +4336,7 @@ class CurrencyTrader(threading.Thread):
                 self.reset_close_short_fill()
 
 
-            if do_smart_execution and do_real_money_trading:
+            if do_smart_execution and do_real_money_trading and 'prod_pnl' in write_long_prod_df.columns:
                 write_long_prod_df['prod_pnl'] = np.where(
                     (write_long_prod_df['prod_entry_price'] > 0) & (write_long_prod_df['prod_exit_price'] > 0),
                     np.where(
@@ -4365,7 +4365,7 @@ class CurrencyTrader(threading.Thread):
             )
 
 
-            if do_smart_execution and do_real_money_trading:
+            if do_smart_execution and do_real_money_trading and 'prod_pnl' in write_short_prod_df.columns:
                 write_short_prod_df['prod_pnl'] = np.where(
                     (write_short_prod_df['prod_entry_price'] > 0) & (write_short_prod_df['prod_exit_price'] > 0),
                     np.where(
