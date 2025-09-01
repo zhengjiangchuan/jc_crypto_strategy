@@ -284,6 +284,7 @@ class CurrencySmartExecutor:
 
                 break
 
+        self.log_msg(f"Get position = {current_real_position}")
         return current_real_position
 
     def opposite_side(self, side):
@@ -616,7 +617,11 @@ class CurrencySmartExecutor:
 
         self.current_position = self.get_current_position(print_heartbeat = print_heartbeat)
         if self.new_position_opened:
-            if self.current_position == self.target_position and self.open_position_fill_price > 0:
+
+            self.log_msg(f"current_position = {self.current_position}, target_position = {self.target_position}")
+
+            #if self.current_position == self.target_position and self.open_position_fill_price > 0:
+            if self.open_position_fill_price > 0:
 
                 #TODO: APPEND the new opened position open price, entry_time etc to strategy_prod_file and strategy_execution_prod_file (Write the new opened executions to persistence)
 

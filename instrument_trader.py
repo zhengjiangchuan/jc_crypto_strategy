@@ -3330,9 +3330,14 @@ class CurrencyTrader(threading.Thread):
 
                                     if do_smart_execution:
                                         open_orders = self.coinbase_client.list_orders(order_status="OPEN").orders
-                                        for order in open_orders:
 
+                                        self.log_msg(f"open orders number = {len(open_orders)}")
+
+                                        for order in open_orders:
                                             if str(order.product_id) == str(self.currency_coinbase):
+
+                                                self.log_msg(f"order_id: {order.order_id}")
+                                                self.log_msg(f"product_id: {order.product_id}")
 
                                                 cancelled = False
                                                 orderResponse = self.coinbase_client.get_order(order_id=str(order.order_id))
@@ -3977,9 +3982,15 @@ class CurrencyTrader(threading.Thread):
 
                                     if do_smart_execution:
                                         open_orders = self.coinbase_client.list_orders(order_status="OPEN").orders
+
+                                        self.log_msg(f"open orders number = {len(open_orders)}")
+
                                         for order in open_orders:
 
                                             if str(order.product_id) == str(self.currency_coinbase):
+
+                                                self.log_msg(f"order_id: {order.order_id}")
+                                                self.log_msg(f"product_id: {order.product_id}")
 
                                                 cancelled = False
                                                 orderResponse = self.coinbase_client.get_order(order_id=str(order.order_id))

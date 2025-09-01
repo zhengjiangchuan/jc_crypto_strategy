@@ -81,14 +81,14 @@ try:
     #                                # retail_portfolio_id="0194271a-bd95-7ba7-a028-6561a970128b"
     #                                )
 
-    x = 3838
+    x = 4430
     response = client.create_order(product_id="ETH-PERP-INTX",  # BTC-USDC is the correct product id
                                    client_order_id=client_order_id,
                                    side=1,
                                    order_configuration={
                                        "stop_limit_stop_limit_gtc": {
                                            "base_size": "0.01", #200
-                                           "limit_price": str(round(x*1.1,2)),
+                                           "limit_price": str(round(x*1.01,2)),
                                            "stop_price": str(x)
                                        }
                                    },

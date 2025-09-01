@@ -71,7 +71,7 @@ try:
                                    order_configuration={
                                        "limit_limit_gtc":{
                                            "base_size" : "100", #20
-                                           "limit_price" : "3"#"0.725"
+                                           "limit_price" : "2.7"#"0.725"
 
                                        }
                                    },
