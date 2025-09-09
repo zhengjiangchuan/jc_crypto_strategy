@@ -2934,7 +2934,7 @@ class CurrencyTrader(threading.Thread):
                         self.temporary_delta_position = abs(delta_position)
 
 
-                    if do_real_money_trading and self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1:
+                    if do_real_money_trading and self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1:  #Temp Hack  wakeup = 0
                         if self.current_real_position <= 0 and self.long_order_id is None:
 
                             if do_smart_execution:
@@ -3016,7 +3016,7 @@ class CurrencyTrader(threading.Thread):
                 strategy_executions = []
 
                 if do_real_money_trading:
-                    if self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1 and self.current_real_position <= 0 and self.long_execution_order_id is None:
+                    if self.wakeup == 1 and long_start_id == self.data_df.shape[0] - 1 and self.current_real_position <= 0 and self.long_execution_order_id is None:  #Temp Hack
 
                         prod_sizes = real_delta_position * self.distribution
 

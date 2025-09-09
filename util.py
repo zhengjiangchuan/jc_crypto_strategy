@@ -929,7 +929,7 @@ def sendEmail(title, content, is_alternative = False):
 
         print("Send email: " + title + " " + content)
         print("")
-    except smtplib.SMTPException as e:
+    except Exception as e:
         print(e)
 
 

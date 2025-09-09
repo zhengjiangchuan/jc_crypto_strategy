@@ -107,6 +107,8 @@ class CurrencySmartExecutionManager(threading.Thread):
                         if print_heartbeat:
                             self.log_msg("Manage executions for crypto " + currency)
                         executor.manage_executions(print_heartbeat = print_heartbeat)
+                        if print_heartbeat:
+                            self.log_msg("Manage executions finishes for crypto " + currency)
 
                     if executor.waiting_to_finalize_pnl:
                         self.log_msg("Crypto " + currency + " has closed position by signal, waiting to finalize pnl.")
@@ -114,8 +116,10 @@ class CurrencySmartExecutionManager(threading.Thread):
 
                 if some_closed_position:
                     while not self.prod_files_written:
+                        self.log_msg("Crypto " + currency + " waiting for prod_files_written to become true")
                         self.thread_condition.wait()
 
+                    self.log_msg("Waiting to finalize pnl for crypto " + currency)
                     for currency, v in self.currency2executor.items():
                         executor: CurrencySmartExecutor = v
                         if executor.waiting_to_finalize_pnl:

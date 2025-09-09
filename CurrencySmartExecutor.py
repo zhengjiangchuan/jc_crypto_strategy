@@ -828,10 +828,13 @@ class CurrencySmartExecutor:
 
         # Manage each execution
         if print_heartbeat:
-            self.log_msg("Manage each strategy's execution")
+            self.log_msg("Manage each strategy's execution *******************************************")
 
+
+        self.log_msg(f"strategy_executions len = {len(self.strategy_executions)}")
         for i in range(len(self.strategy_executions)):
 
+            self.log_msg(f"process {i}")
             if self.strategy_executions[i] is None:
                 continue
 
@@ -841,6 +844,8 @@ class CurrencySmartExecutor:
                 continue
 
             execution_key = self.parse_position2(strategy_execution.side) + '_' + str(strategy_execution.strategy_id)
+            self.log_msg(f"execution_key = {execution_key}")
+
             if execution_key in self.execution2order:
 
                 #self.log_msg(f"Process strategy {strategy_execution.strategy_id}")
@@ -850,6 +855,9 @@ class CurrencySmartExecutor:
                 has_order_filled = False
                 filled_order: Order = None
                 for order in order_list:
+
+                    self.log_msg(f"Check order {str(order)}")
+
                     is_filled, filled_price = self.check_order_fully_filled(order)
                     if is_filled:
                         has_order_filled = True
@@ -1152,11 +1160,17 @@ class CurrencySmartExecutor:
             coinbaseorder = orderResponse.order
             if coinbaseorder is not None:
                 status = coinbaseorder['status']
+
+                self.log_msg(f"order status is {status}")
+
                 filled_size = float(coinbaseorder['filled_size'])
                 filled_price = float(coinbaseorder['average_filled_price'])
 
+                self.log_msg(f"filled_size = {filled_size}")
+                self.log_msg(f"fille_price = {filled_price}")
+                self.log_msg(f"order_size = {order.order_size()}")
 
-                if status == 'FILLED' and filled_size == order.order_size():
+                if status == 'FILLED' and abs(filled_size - order.order_size()) < 1e-5:
                     fully_filled = True
                     return (fully_filled, filled_price)
 

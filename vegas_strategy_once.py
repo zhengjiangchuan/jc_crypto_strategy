@@ -664,10 +664,11 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     portfolio_id = None
 
-    if wakeup == 1:
+    if wakeup == 1:  #Temp Hack
         for currency in currencies_to_run:
             log_msg("Get close price for " + currency)
             close_price = get_close_price(currency)
+
             log_msg("close_price = " + str(close_price))
             currency_close_prices[currency] = close_price
 
@@ -933,7 +934,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
 
-    current_date = "_production_execution_0830"
+    current_date = "_production_execution_0908"
 
     #current_date = "_production_test0801_prod"
 
@@ -1459,7 +1460,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
-                        #data_df = data_df[data_df['time'] <= datetime(2025, 2, 10, 5, 0, 0)]  # Temp
+                        #data_df = data_df[data_df['time'] <= datetime(2025, 9, 6, 12, 0, 0)]  # Temp Hack
 
                         if currency_trader.check_data:
                             final_time = data_df.iloc[-1]['time']
@@ -1511,7 +1512,9 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
                                 log_msg("last_time = " + str(last_time) + ", but queried starting time is even after that" + str(incremental_data_df.iloc[0]['time']))
 
                             #if is_weekend:
+
                             incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time]
+
                             # else:
                             #     incremental_data_df = incremental_data_df[incremental_data_df['time'] > last_time].iloc[0:-1]
 
@@ -1519,7 +1522,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
                         if is_real_time_trading and incremental_data_df.shape[0] > 0:
 
 
-                            data_df = pd.concat([data_df, incremental_data_df])
+                            data_df = pd.concat([data_df, incremental_data_df])  #Temp Hack Remove this one
 
 
                             data_df.reset_index(inplace=True)
@@ -1643,7 +1646,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
                             #log_msg("testing_seconds = " + str(testing_seconds))
 
-                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0):
+                            if (delta is not None and delta.seconds > 0 and delta.seconds < 7200 and delta.days == 0): #Temp Hack  7200000
 
 
                                 log_msg("Received up-to-date data for currency pair " + currency)
@@ -1748,7 +1751,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
 
 
-        if do_real_money_trading and wakeup == 1:
+        if do_real_money_trading and wakeup ==1:  #Temp Hack
 
             log_msg("")
             log_msg("Checking fill status ......................")
