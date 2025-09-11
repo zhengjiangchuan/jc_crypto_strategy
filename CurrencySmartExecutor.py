@@ -637,12 +637,17 @@ class CurrencySmartExecutor:
                     self.max_short_trade_id = self.max_short_trade_id + 1
                     trade_id = self.max_short_trade_id
 
-                for i in range(len(self.new_strategy_executions)):
+                self.log_msg(f"strategy_executions = {len(self.strategy_executions)}")
+                self.log_msg(f"new_strategy_executions = {len(self.new_strategy_executions)}")
 
-                    if self.new_strategy_executions[i] is None:
+                strat_executions = self.new_strategy_executions if len(self.new_strategy_executions) > 0 else self.strategy_executions
+
+                for i in range(len(strat_executions)):
+
+                    if strat_executions[i] is None:
                         continue
 
-                    strategy_execution: StrategyExecution = self.new_strategy_executions[i]
+                    strategy_execution: StrategyExecution = strat_executions[i]
 
                     strategy_execution.set_prod_strategy_entry_price(self.open_position_fill_price)
 
@@ -1097,12 +1102,13 @@ class CurrencySmartExecutor:
             client_order_id = self.generate_client_order_id()
 
             size = strategy_execution.calc_increased_size_when_take_profit()
+            size = round(size, self.size_decimal)
             response = self.coinbase_client.create_order(product_id=self.currency_coinbase,
                                                          client_order_id=client_order_id,
                                                          side=self.parse_side(strategy_execution.side),
                                                          order_configuration={
                                                              "stop_limit_stop_limit_gtc": {
-                                                                 "base_size": str(round(size, self.size_decimal)),
+                                                                 "base_size": str(size), #str(round(size, self.size_decimal)),
                                                                  #"limit_price": str(round(self.calc_buffer_limit_price(strategy_execution.take_profit_price,self.target_side), self.price_decimal)),
                                                                  "limit_price": str(round(self.calc_buffer_limit_price(
                                                                      strategy_execution.take_profit_price, self.parse_side(strategy_execution.side)), self.price_decimal)),

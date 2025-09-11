@@ -934,7 +934,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
 
-    current_date = "_production_execution_0908"
+    current_date = "_production_execution_0911"
 
     #current_date = "_production_test0801_prod"
 
@@ -1460,7 +1460,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
                         data_df['time'] = data_df['time'].apply(lambda x: preprocess_time(x))
 
-                        #data_df = data_df[data_df['time'] <= datetime(2025, 9, 6, 12, 0, 0)]  # Temp Hack
+                        #data_df = data_df[data_df['time'] <= datetime(2025, 9, 9, 15, 0, 0)]  # Temp Hack
 
                         if currency_trader.check_data:
                             final_time = data_df.iloc[-1]['time']
@@ -1751,7 +1751,7 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
 
 
-        if do_real_money_trading and wakeup ==1:  #Temp Hack
+        if do_real_money_trading and wakeup == 1:  #Temp Hack
 
             log_msg("")
             log_msg("Checking fill status ......................")
