@@ -934,8 +934,8 @@ def start_do_trading(wakeup = 0, until_date = None, until_date_5min = None):
 
     #current_date = "_production_0701_noforceOut_overbought_coinbase_execution_production_test"
 
-    current_date = "_production_execution_0911"
-
+    current_date = "_production_execution_0918"
+ 
     #current_date = "_production_test0801_prod"
 
 
